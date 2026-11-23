@@ -368,7 +368,7 @@
     }
   ],
   "freshness_seconds": 180,
-  "retention_seconds": 604800,
+  "retention_seconds": 86400,
   "max_entities": 10000,
   "max_recent_events": 240
 }
