@@ -176,9 +176,12 @@ test('arrival signals require a new observation and do not replay after departme
     assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
     const next=structuredClone(responses.live),ci=activity('ci-new','verification','automation',{status:'working',at:new Date(Date.now()+500).toISOString()});next.organization.observed_at=new Date(Date.now()+1000).toISOString();next.organization.recent=[ci];next.organization.handoffs=[{kind:'reference',from:'research',to:'verification',activity:ci.id}];responses.live=next;await tick(15000);
     assert.equal(doc.querySelectorAll('.arrival-particle').length,1);
+    assert.equal(doc.querySelectorAll('.activity-card.has-arrival').length,1);
     doc.querySelector('[data-department="research"]').click();
     assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
     await tick(15000);assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
+    doc.querySelector('#follow-live').click();
+    assert.equal(doc.querySelectorAll('.activity-card.has-arrival').length,0);
   }finally{dom.window.close();}
 });
 
