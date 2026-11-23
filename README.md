@@ -13,11 +13,28 @@ The GitHub Pages project URL
 https://the-omega-institute.github.io/trureturing-live/ redirects to that custom
 domain. The existing Atlas stays at https://www.trureturing.org/atlas.
 
-The dashboard is plain HTML, CSS and JavaScript. The collector uses Python's
-standard library. There is no frontend build step, runtime CDN, browser token,
+The dashboard is plain HTML, CSS and JavaScript. The panorama collector uses Python's
+standard library; continuous organization observations use a pinned Rust foundation.
+There is no frontend build step, runtime CDN, browser token,
 private data dependency or change to any observed repository.
 
 ## Run locally
+
+The organization event foundation is a pinned source dependency at
+`vendor/live-harness`. Initialize it and build with the repository's Rust toolchain:
+
+```sh
+git submodule update --init
+sh tools/build-foundation.sh
+GH_TOKEN="$(gh auth token)" python3 scripts/live.py --once --output /tmp/live.json
+```
+
+`organization.json` belongs to this deployment. It assigns explicit sources to
+research, independent review, formal verification, books, publication, outreach
+and tools, with human direction represented separately. The generic Rust mechanism
+is [trureturing-live-template](https://github.com/the-omega-institute/trureturing-live-template).
+That repository contains no UI. An update changes the reviewed submodule commit;
+configuration and frontend presentation stay here.
 
 ```sh
 python3 scripts/collect.py --use-gh
@@ -104,18 +121,27 @@ domain and HTTPS. Only this independent repository's deployment is affected.
 
 `.github/workflows/live.yml` maintains one observer for 55 minutes. Its five-minute
 schedule acts as a watchdog: concurrency permits one active observer and one
-pending replacement. Each observation reads Core and Books comments and recent
-workflow runs, rotates inline reviews between them, and rotates public comment
-sampling across the remaining related repositories. Individual source observation
-times and errors stay in the feed. The cadence is approximately one minute;
-runner startup, API failures and worker handover can introduce gaps.
+pending replacement. The Rust foundation reads the sources in `organization.json`,
+grouped by repository with four bounded reader workers. Busy discussion, research
+checks, book checks and the outreach coordinator update about once a minute;
+slower sources update every five minutes with their own freshness allowance.
+Conditional requests reuse source-confirmed unchanged results. The existing public
+discussion view consumes this same reader cache, without a second set of API calls.
+Individual source times, coverage and failures remain in the structured view.
+Runner startup, API failures and worker handover can introduce gaps.
 
 The observer writes `live.json` to the **machine-owned `live-data` branch** using
 the job's short-lived repository token. This is a current-state pointer: each
 publication replaces its orphan commit. It does not retain a growing Git history
 of repeated telemetry. The publisher checks the ownership marker and expected
 head and refuses to replace human work or a changed pointer. Do not use this
-branch for source work. A public read-only reader resolves the latest commit from
+branch for source work. `live.json` includes an `organization` field with the
+`ai-org.live.v1` public view. A separate `organization-checkpoint.json` preserves
+only already-public GitHub recovery metadata between workers. This is a deliberate
+deployment-specific exception to the template's default private checkpoint policy:
+runtime registrations and runtime records are rejected before public recovery
+publication. The native HTTP cache stays on the runner and is never published.
+A public read-only reader resolves the latest commit from
 GitHub's Atom feed and loads the JSON at that immutable SHA. This avoids the
 five-minute cache on raw branch URLs. A delayed Pages deployment cannot stop
 this data channel. No observer

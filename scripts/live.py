@@ -11,7 +11,9 @@ import re
 import time
 from urllib.error import URLError
 
-from collect import GitHub, SourceError, discover_repositories, now, references, run_record, SESSION
+from foundation import FoundationReader
+
+from collect import GitHub, SourceError, references, run_record, SESSION
 
 ROOT = Path(__file__).resolve().parents[1]
 BRANCH = "live-data"
@@ -58,7 +60,11 @@ class Publisher:
         self.head = None
         self.checked = False
 
-    def publish(self, snapshot: dict):
+    def publish(self, snapshot: dict, checkpoint: dict | None = None):
+        if checkpoint is not None:
+            records = [head['event'] for head in checkpoint.get('heads', {}).values()] + checkpoint.get('recent', [])
+            if checkpoint.get('schema') != 'ai-org.checkpoint.v1' or any(event.get('kind') in {'session', 'delivery'} or (event.get('actor') or {}).get('tool') for event in records):
+                raise SourceError('only public GitHub recovery metadata may be published')
         base = "/repos/" + STATE_REPO
         try:
             ref, _ = self.api.get(base + "/git/ref/heads/" + BRANCH)
@@ -73,10 +79,13 @@ class Publisher:
             commit, _ = self.api.get(base + "/git/commits/" + current)
             if not commit["message"].startswith(MARKER) or commit.get("parents"):
                 raise SourceError("live-data is not an owned observation pointer")
-        tree = self.api.write(base + "/git/trees", {"tree": [
+        entries = [
             {"path": "live.json", "mode": "100644", "type": "blob", "content": json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")) + "\n"},
             {"path": "README.md", "mode": "100644", "type": "blob", "content": README},
-        ]})
+        ]
+        if checkpoint is not None:
+            entries.append({'path': 'organization-checkpoint.json', 'mode': '100644', 'type': 'blob', 'content': json.dumps(checkpoint, ensure_ascii=False, separators=(',', ':')) + '\n'})
+        tree = self.api.write(base + "/git/trees", {"tree": entries})
         commit = self.api.write(base + "/git/commits", {"message": MARKER + snapshot["observed_at"], "tree": tree["sha"], "parents": []})
         if current:
             self.api.write(base + "/git/refs/heads/" + BRANCH, {"sha": commit["sha"], "force": True}, method="PATCH")
@@ -89,70 +98,59 @@ class Observer:
     def __init__(self, api: GitHub, config: dict):
         self.api, self.config = api, config
         self.messages, self.runs, self.coverage = {}, {}, {}
-        self.specs = []
-        self.tick = 0
+        self.loaded_sources = {}
         try:
             previous, _ = api.get('/repos/' + STATE_REPO + '/contents/live.json', {'ref': BRANCH})
+            if previous.get('encoding') not in {None, 'base64'}:
+                previous, _ = api.get('/repos/' + STATE_REPO + '/git/blobs/' + previous['sha'])
             saved = json.loads(base64.b64decode(previous['content']))
             if saved.get('schema') == SCHEMA:
                 self.messages = {message['id']: message for message in saved.get('messages', [])}
                 self.coverage = saved.get('coverage', {})
+                self.runs = saved.get('focus_runs', {})
         except (SourceError, ValueError, KeyError):
             pass
 
-    def observe(self) -> dict:
-        if not self.specs or self.tick % 10 == 0:
-            specs, _ = discover_repositories(self.api, self.config)
-            self.specs = specs
-            allowed = {self.config['owner'] + '/' + spec['name'] for spec in specs}
-            self.messages = {key: value for key, value in self.messages.items() if value['repository'] in allowed}
+    def observe(self, foundation) -> dict:
+        view = foundation.collect()
         owner = self.config['owner']
-        focus = [name for name in ['trureturing', 'trureturing-books'] if any(spec['name'] == name for spec in self.specs)]
-        remaining = [spec['name'] for spec in self.specs if spec['name'] not in focus and spec['name'] != 'trureturing-live']
-        sampled = focus + ([remaining[self.tick % len(remaining)]] if remaining else [])
-        errors = []
-        successful_reads = 0
-        for name in sampled:
-            repo = owner + '/' + name
-            try:
-                rows, links = self.api.get('/repos/' + repo + '/issues/comments', {'per_page': 50, 'sort': 'updated', 'direction': 'desc'})
+        sources = foundation.config['sources']
+        allowed = {source['repository'] for source in sources if source.get('repository')}
+        self.messages = {key: value for key, value in self.messages.items() if value['repository'] in allowed}
+        readings = {source['id']: source for source in view['sources']}
+        for source in sources:
+            reading = readings[source['id']]
+            observed_at = reading.get('observed_at')
+            if not observed_at or self.loaded_sources.get(source['id']) == observed_at:
+                continue
+            rows = foundation.rows(source)
+            repo = source['repository']
+            if source['kind'] in {'github_comments', 'github_reviews'}:
+                kind = 'review_comment' if source['kind'] == 'github_reviews' else 'comment'
                 for row in rows:
-                    message = message_record(row, repo, 'comment', owner)
+                    message = message_record(row, repo, kind, owner)
                     if message['text']:
                         self.messages[message['id']] = message
-                self.coverage[repo] = {'observed_at': now(), 'comments_returned': len(rows), 'truncated': 'rel="next"' in links}
-                successful_reads += 1
-            except SourceError as exc:
-                errors.append(repo + ': ' + str(exc))
-        for name in focus:
-            repo = owner + '/' + name
-            try:
-                data, _ = self.api.get('/repos/' + repo + '/actions/runs', {'per_page': 50})
-                self.runs[repo] = {'observed_at': now(), 'runs': [run_record(row, repo) for row in data['workflow_runs']]}
-                successful_reads += 1
-            except SourceError as exc:
-                errors.append(repo + ' runs: ' + str(exc))
-        # Inline review comments are a separate GitHub endpoint. Rotate between
-        # the two focus repositories; never infer reviews from CI green checks.
-        if focus:
-            repo = owner + '/' + focus[self.tick % len(focus)]
-            try:
-                rows, _ = self.api.get('/repos/' + repo + '/pulls/comments', {'per_page': 30, 'sort': 'updated', 'direction': 'desc'})
+                if kind == 'comment':
+                    self.coverage[repo] = {'observed_at': observed_at, 'comments_returned': len(rows), 'truncated': not reading['complete']}
+            elif source['id'] in {'core-checks', 'book-checks'}:
+                by_id = {}
+                ranks = {'completed': 4, 'in_progress': 3}
                 for row in rows:
-                    message = message_record(row, repo, 'review_comment', owner)
-                    if message['text']:
-                        self.messages[message['id']] = message
-                successful_reads += 1
-            except SourceError as exc:
-                errors.append(repo + ' review comments: ' + str(exc))
-        if not successful_reads:
-            raise SourceError('no current source readings; retaining the last observation')
+                    order = (row['run_attempt'], row['updated_at'], ranks.get(row['status'], 2))
+                    previous = by_id.get(row['id'])
+                    if not previous or order > previous[0]:
+                        by_id[row['id']] = (order, row)
+                self.runs[repo] = {'observed_at': observed_at, 'runs': [run_record(row, repo) for _, row in by_id.values()]}
+            self.loaded_sources[source['id']] = observed_at
         self.messages = dict(sorted(self.messages.items(), key=lambda pair: pair[1]['updated_at'], reverse=True)[:240])
-        self.tick += 1
-        return {'schema': SCHEMA, 'observed_at': now(), 'interval_seconds': 60,
+        failures = foundation.statistics.get('failures', [])
+        return {'schema': SCHEMA, 'observed_at': view['observed_at'], 'interval_seconds': 60,
                 'messages': list(self.messages.values()), 'focus_runs': self.runs,
-                'coverage': self.coverage, 'errors': errors,
-                'scope': 'Public GitHub comments, inline review comments and workflow records. Accounts and explicitly declared sessions are attribution, not verified agent identities. Mentions and cross-links are explicit source references. Internal agent messages are not connected.'}
+                'coverage': self.coverage,
+                'organization': view,
+                'errors': [failure['source'] + ': ' + failure['reason'] for failure in failures],
+                'scope': 'Public GitHub collaboration and source-bound organization observations. Runtime sessions require their own explicitly authorized producer.'}
 
 
 def main():
@@ -162,27 +160,33 @@ def main():
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     api = GitHub(os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN') or '', budget=900)
+    allowance, _ = api.get('/rate_limit')
+    core = allowance['resources']['core']
+    print(f"GitHub observation allowance: {core['remaining']} of {core['limit']} remaining; reset {core['reset']}", flush=True)
     observer = Observer(api, json.loads((ROOT / 'config.json').read_text()))
     publisher = Publisher(api)
+    foundation = FoundationReader(api)
     end = time.monotonic() + args.minutes * 60
-    while True:
-        started = time.monotonic()
-        try:
-            snapshot = observer.observe()
-            if not snapshot['messages']:
-                raise SourceError('no public discussion records; retain the previous live observation')
-            if args.output:
-                args.output.write_text(json.dumps(snapshot, ensure_ascii=False))
-            else:
-                publisher.publish(snapshot)
-            print(f"Published {snapshot['observed_at']}: {len(snapshot['messages'])} messages; {len(snapshot['errors'])} source errors; {api.requests} requests", flush=True)
-        except (SourceError, URLError, TimeoutError) as exc:
-            if args.once or 'writer' in str(exc) or 'owned' in str(exc):
-                raise
-            print('Observation retained after a source/publication failure: ' + str(exc), flush=True)
-        if args.once or time.monotonic() + 60 >= end:
-            break
-        time.sleep(max(0, 60 - (time.monotonic() - started)))
+    try:
+        while True:
+            started = time.monotonic()
+            try:
+                snapshot = observer.observe(foundation)
+                if args.output:
+                    args.output.write_text(json.dumps(snapshot, ensure_ascii=False))
+                else:
+                    publisher.publish(snapshot, foundation.checkpoint)
+                stats = foundation.statistics
+                print(f"Published {snapshot['observed_at']}: {len(snapshot['messages'])} discussion updates; {len(snapshot['errors'])} source errors; {stats.get('requests', 0)} reads / {stats.get('charged_requests', 0)} non-304 responses", flush=True)
+            except (SourceError, URLError, TimeoutError) as exc:
+                if args.once or 'writer' in str(exc) or 'owned' in str(exc):
+                    raise
+                print('Observation retained after a source/publication failure: ' + str(exc), flush=True)
+            if args.once or time.monotonic() + 60 >= end:
+                break
+            time.sleep(max(0, 60 - (time.monotonic() - started)))
+    finally:
+        foundation.close()
 
 
 if __name__ == '__main__':

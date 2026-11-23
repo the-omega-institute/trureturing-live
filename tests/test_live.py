@@ -53,5 +53,16 @@ class LiveTests(unittest.TestCase):
         observer.specs = [{'name': 'trureturing'}, {'name': 'trureturing-books'}]
         observer.tick = 1
         observer.messages = {'old': {'id': 'old', 'updated_at': '2020-01-01T00:00:00Z'}}
+        class Foundation:
+            def collect(self):
+                raise SourceError('no current source readings')
         with self.assertRaises(SourceError):
-            observer.observe()
+            observer.observe(Foundation())
+        self.assertEqual(observer.messages['old']['updated_at'], '2020-01-01T00:00:00Z')
+
+    def test_publisher_refuses_private_runtime_recovery_before_any_write(self):
+        class API:
+            def get(self, *args, **kwargs):
+                raise AssertionError('must reject before reading or writing GitHub')
+        with self.assertRaises(SourceError):
+            Publisher(API()).publish({'observed_at': 'now'}, {'schema':'ai-org.checkpoint.v1','heads':{'agent':{'event':{'kind':'session'}}},'recent':[]})
