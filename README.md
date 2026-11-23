@@ -34,8 +34,11 @@ npm test
 
 ## Data and meaning
 
-`config.json` owns the public repository allowlist and presentation coordinates.
-Every collection first checks that a repository is public. Private and internal
+`config.json` owns discovery rules and presentation labels. Each collection
+discovers **all public `trureturing*` repositories**, plus `mathesis`, from the
+organization's public inventory. Newly split public repositories automatically
+appear. Core (`trureturing`) and Books (`trureturing-books`) have dedicated
+research/delivery panels and prominent map entries. Private and internal
 repositories are excluded before any activity is read. The collector exports
 selected public fields, explicit project links, and declared session identifiers;
 it exports no raw comment bodies, logs, private trackers or correspondence.
@@ -45,9 +48,10 @@ its own observation time, source coverage and errors. The complete snapshot has
 `collected_at`, the collection interval and the number of API requests used.
 
 - Running and waiting counts describe **observed workflow runs**, not agents.
-- Active queries sample up to 100 runs per state (`in_progress`, `queued`,
-  `waiting`) per repository. The 50 most recent runs also supply pending,
-  requested, completed and other states. Limits and unavailable reads remain
+- Every repository samples up to 100 `in_progress` runs. Core and Books also
+  query up to 100 `queued` and `waiting` runs each. The 50 most recent runs in
+  every repository additionally supply pending, queued, waiting, requested,
+  completed and other states. Limits and unavailable reads remain
   explicit in each repository's `coverage`; counts are not a complete census.
 - Tasks sample the 60 most recently updated issue endpoint records (excluding
   pull requests), plus up to 30 open pull requests. Recently closed issues remain
@@ -92,8 +96,10 @@ domain and HTTPS. Only this independent repository's deployment is affected.
 
 ## Extending the view
 
-Add public repositories to `config.json`; give them stable map coordinates and
-descriptions. Structured claim/heartbeat events can later add agent occupancy,
+Related public repositories are discovered automatically. Add other explicit
+names or naming prefixes to the discovery policy in `config.json`; label
+overrides supply descriptions. The map adapts to the discovered inventory.
+Structured claim/heartbeat events can later add agent occupancy,
 and published result receipts can connect tasks to exact Atlas/GID nodes. Those
 sources need their own explicit contracts; they are not inferred from CI green
 checks or GitHub trigger accounts.

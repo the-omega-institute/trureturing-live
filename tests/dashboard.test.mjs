@@ -30,6 +30,8 @@ test('real DOM rendering and map selection preserve source identity',async()=>{
   try{
     assert.equal(doc.querySelector('#metric-running').textContent,'1');
     assert.equal(doc.querySelectorAll('.map-zone').length,2);
+    assert.equal(doc.querySelectorAll('[data-focus]').length,2);
+    assert.match(doc.querySelector('[data-focus="trureturing-books"]').textContent,/理论与章节/);
     assert.match(doc.querySelector('#inspector-content').textContent,/关联交付 #42/);
     assert.match(doc.querySelector('#inspector-content').textContent,/触发账号 trigger-bot/);
     doc.querySelector('[data-repo="trureturing-books"]').click();
@@ -86,5 +88,16 @@ test('an older response cannot replace a newer observed snapshot',async()=>{
     await new Promise(resolve=>setImmediate(resolve));
     assert.equal(doc.querySelector('#metric-running').textContent,'1');
     assert.match(doc.querySelector('#notice').textContent,/上次成功读取的数据/);
+  }finally{dom.window.close();}
+});
+
+test('newly discovered research repositories appear without a frontend allowlist',async()=>{
+  const data=snapshot();data.repositories.push({...data.repositories[1],name:'trureturing-new-theory',full_name:'the-omega-institute/trureturing-new-theory',label:'New theory'});
+  const {dom,doc}=await boot(data);
+  try{
+    assert.equal(doc.querySelectorAll('.map-zone').length,3);
+    doc.querySelector('[data-repo="trureturing-new-theory"]').click();
+    assert.equal(doc.querySelector('#inspector-title').textContent,'New theory');
+    assert.equal(doc.querySelector('#metric-repos').textContent,'3/3');
   }finally{dom.window.close();}
 });

@@ -88,6 +88,23 @@ class CollectionTests(unittest.TestCase):
         with self.assertRaises(module.SourceError):
             module.collect(FakeGitHub(private=True), {"owner": OWNER, "refresh_interval_seconds": 300, "repositories": [{"name": "trureturing"}]})
 
+    def test_discovery_includes_all_related_public_repositories_and_prioritizes_core_and_books(self):
+        class Inventory:
+            def get(self, path, params):
+                return [
+                    {"name": "unrelated", "private": False},
+                    {"name": "trureturing-private", "private": True},
+                    {"name": "trureturing-internal", "private": False, "visibility": "internal"},
+                    {"name": "trureturing-new-topic", "private": False},
+                    {"name": "trureturing-books", "private": False},
+                    {"name": "mathesis", "private": False},
+                    {"name": "trureturing", "private": False},
+                ], ""
+        specs, metadata = module.discover_repositories(Inventory(), {"owner": OWNER, "discovery": {"prefixes": ["trureturing"], "include": ["mathesis"]}, "repositories": []})
+        self.assertEqual([row["name"] for row in specs], ["trureturing", "trureturing-books", "mathesis", "trureturing-new-topic"])
+        self.assertNotIn("trureturing-private", metadata)
+        self.assertNotIn("trureturing-internal", metadata)
+
 
 if __name__ == "__main__":
     unittest.main()

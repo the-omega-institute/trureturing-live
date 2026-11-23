@@ -55,6 +55,24 @@ function renderMetrics() {
   $('#metric-repos').textContent=`${repos.filter(repo=>repo.available).length}/${repos.length}`;
   const bounded=repos.some(repo=>Object.entries(repo.coverage).some(([key,value])=>key.startsWith('runs_')&&value.truncated));
   $('#metric-coverage').textContent=bounded?'活跃工作流查询已触及采样上限':'公开仓库 · 有限采样';
+  $('#map-repo-count').textContent=`${repos.length} PUBLIC REPOSITORIES`;
+}
+function renderFocus(){
+  const container=$('#focus-hubs');container.replaceChildren();
+  for(const name of ['trureturing','trureturing-books']){
+    const repo=state.snapshot.repositories.find(repo=>repo.name===name);if(!repo)continue;
+    const card=text('article','','focus-card');card.dataset.focus=name;
+    const heading=text('div','','focus-card-heading');
+    const group=text('div');group.append(text('p',name==='trureturing'?'RESEARCH & FORMALIZATION':'THEORY & CHAPTERS','eyebrow'));
+    const button=text('button',name==='trureturing'?'trureturing · 研究与形式化':'trureturing-books · 理论与章节','focus-title');button.type='button';button.addEventListener('click',()=>{selectRepo(name);$('#inspector-title').scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});});group.append(button);
+    heading.append(group,link('↗',repo.url,'focus-source'));card.append(heading);
+    const running=repo.runs.filter(run=>run.status==='in_progress').length,waiting=repo.runs.filter(run=>isActive(run)&&run.status!=='in_progress').length,pulls=repo.tasks.filter(task=>task.kind==='pull'&&task.state==='open').sort((a,b)=>date(b.updated_at)-date(a.updated_at));
+    const counts=text('p','','focus-counts');counts.append(text('strong',running),text('span','工作流运行中'),text('strong',waiting),text('span','等待'),text('strong',pulls.length),text('span','可见开放 PR'));card.append(counts);
+    const deliveries=text('div','','focus-deliveries');
+    for(const task of pulls.slice(0,3)){const row=text('div','','focus-delivery');row.append(text('span','#'+task.number),link(task.title,task.url));deliveries.append(row);}
+    if(!pulls.length)deliveries.append(text('p',repo.errors.length?'交付来源部分不可用。':'本次采样没有开放 PR。','empty'));
+    card.append(deliveries);container.append(card);
+  }
 }
 function renderMap() {
   const map=$('#research-map');
@@ -62,7 +80,7 @@ function renderMap() {
   for(const repo of state.snapshot.repositories){
     let button=map.querySelector(`[data-repo="${CSS.escape(repo.name)}"]`);
     if(!button){button=document.createElement('button');button.type='button';button.className='map-zone';button.dataset.repo=repo.name;button.dataset.core=String(repo.name==='trureturing');map.append(button);button.addEventListener('click',()=>selectRepo(repo.name));}
-    button.style.setProperty('--x',repo.x+'%');button.style.setProperty('--y',repo.y+'%');
+    button.dataset.featured=String(repo.name==='trureturing'||repo.name==='trureturing-books');
     button.setAttribute('aria-pressed',String(repo.name===state.repo));
     const active=repo.runs.filter(isActive),running=active.filter(run=>run.status==='in_progress').length,waiting=active.length-running;
     const heading=text('span','','zone-heading');heading.append(text('span',repo.label,'zone-label'),text('span',String(state.snapshot.repositories.indexOf(repo)+1).padStart(2,'0'),'zone-index'));
@@ -131,7 +149,7 @@ function renderActivities(){
   if(!records.length)frag.append(text('p','当前筛选下没有观察到记录。','empty'));
   list.replaceChildren(frag);$('#activity-scope').textContent=`${records.length} 条采样记录 · 按 GitHub 更新时间`;$('#show-more').hidden=records.length<=state.limit;
 }
-function render(){renderFreshness();renderMetrics();renderMap();renderInspector();renderActivities();}
+function render(){renderFreshness();renderMetrics();renderFocus();renderMap();renderInspector();renderActivities();}
 async function refresh(){
   if(state.fetching)return;state.fetching=true;$('#refresh').disabled=true;
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),18000);
