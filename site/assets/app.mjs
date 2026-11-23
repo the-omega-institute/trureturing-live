@@ -66,7 +66,7 @@ function renderMap() {
     button.setAttribute('aria-pressed',String(repo.name===state.repo));
     const active=repo.runs.filter(isActive),running=active.filter(run=>run.status==='in_progress').length,waiting=active.length-running;
     const heading=text('span','','zone-heading');heading.append(text('span',repo.label,'zone-label'),text('span',String(state.snapshot.repositories.indexOf(repo)+1).padStart(2,'0'),'zone-index'));
-    const status=text('span',!repo.available?'来源不可用':active.length?`${running} 执行 · ${waiting} 等待`:'暂无执行中的工作流','zone-state');status.dataset.active=String(active.length>0);status.dataset.error=String(repo.errors.length>0);
+    const status=text('span',!repo.available?'来源不可用':active.length?`${running} 执行 · ${waiting} 等待`:repo.errors.length?'部分来源不可用':'暂无执行中的工作流','zone-state');status.dataset.active=String(active.length>0);status.dataset.error=String(repo.errors.length>0);
     const dots=text('span','','zone-dots');dots.setAttribute('aria-hidden','true');
     const samples=[...active,...repo.runs.filter(run=>!isActive(run)).slice(0,Math.max(0,10-active.length))].slice(0,18);
     for(const run of samples){const dot=text('i','',isActive(run)?(run.status==='in_progress'?'running':'queued'):run.conclusion==='failure'?'failed':'completed');dot.title=`${run.name} · ${STATUS[statusKey(run)]||run.status}`;dots.append(dot);}
@@ -74,7 +74,7 @@ function renderMap() {
     button.replaceChildren(heading,text('span',repo.short,'zone-short'),status,dots);
   }
 }
-function selectRepo(name){state.repo=name;for(const button of document.querySelectorAll('[data-repo]'))button.setAttribute('aria-pressed',String(button.dataset.repo===name));renderInspector();}
+function selectRepo(name){state.repo=name;$('#inspector-content').scrollTop=0;for(const button of document.querySelectorAll('[data-repo]'))button.setAttribute('aria-pressed',String(button.dataset.repo===name));renderInspector();}
 function runItem(run,repo){
   const item=text('article','','inspection-item');
   const top=text('div','','item-top');top.append(symbol(run),text('span',STATUS[statusKey(run)]||run.status),text('span',relative(run.updated_at)));item.append(top,link(run.name,run.url,'inspection-title'));
@@ -155,7 +155,7 @@ async function refresh(){
 }
 for(const button of document.querySelectorAll('[data-tab]')){
   button.addEventListener('click',()=>{state.tab=button.dataset.tab;for(const tab of document.querySelectorAll('[data-tab]')){tab.setAttribute('aria-selected',String(tab===button));tab.tabIndex=tab===button?0:-1;}if(state.snapshot)renderInspector();});
-  button.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const target=$('#tab-'+(button.dataset.tab==='runs'?'tasks':'runs'));target.click();target.focus();}});
+  button.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const target=$('#tab-'+(event.key==='Home'?'runs':event.key==='End'?'tasks':button.dataset.tab==='runs'?'tasks':'runs'));target.click();target.focus();}});
 }
 for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{state.filter=button.dataset.filter;state.limit=20;for(const filter of document.querySelectorAll('[data-filter]'))filter.setAttribute('aria-pressed',String(filter===button));if(state.snapshot)renderActivities();});
 $('#search').addEventListener('input',event=>{state.query=event.target.value;state.limit=20;if(state.snapshot)renderActivities();});

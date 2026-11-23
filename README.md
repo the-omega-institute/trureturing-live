@@ -28,6 +28,8 @@ can be insufficient for the complete sample.
 ```sh
 python3 -m unittest discover -s tests -v
 node --check site/assets/app.mjs
+npm ci --ignore-scripts
+npm test
 ```
 
 ## Data and meaning
