@@ -4,9 +4,13 @@ A public research observatory for the trureturing ecosystem. Explore active GitH
 Actions, research questions and pull requests across the public repositories;
 follow each observation back to its source.
 
-The homepage leads with public collaboration: topic threads, comment excerpts,
-inline review comments, explicitly mentioned accounts and linked deliveries.
-These are GitHub records, not an invented transcript of internal agent messages.
+The homepage maps eight departments around human research direction. Select a
+department to read its responsibility, actual public participants and recent work;
+follow a mathematical question through its explicit issue, contribution, check and
+book references. Independent research sessions and Actions engines have distinct
+roles. New observed activity can move the viewpoint; selecting a department fixes
+it until the reader resumes following. The interface presents research in plain
+language and links back to public sources.
 
 Production domain: **https://live.trureturing.org/**.
 The GitHub Pages project URL
@@ -58,8 +62,10 @@ npm test
 `config.json` owns discovery rules and presentation labels. Each collection
 discovers **all public `trureturing*` repositories**, plus `mathesis`, from the
 organization's public inventory. Newly split public repositories automatically
-appear. Core (`trureturing`) and Books (`trureturing-books`) have dedicated
-research/delivery panels and prominent map entries. Private and internal
+appear. Core (`trureturing`) and Books (`trureturing-books`) supply the principal
+research questions and chapter contributions. The explicit departmental source
+registry is `organization.json`; discovery alone does not assign an unregistered
+repository to a department. Private and internal
 repositories are excluded before any activity is read. The collector exports
 selected public fields, explicit project links, and declared session identifiers;
 it exports no raw comment bodies, logs, private trackers or correspondence.
@@ -87,17 +93,23 @@ its own observation time, source coverage and errors. The complete snapshot has
   so the dashboard makes no agent-online or model-identity claim.
 - Workflow success is an execution outcome. It does not attest mathematical
   novelty, proof scope, source fidelity, or compatible verified publication.
-- Map positions identify research areas by repository. Decorative orbits are
-  layout guides; they encode no mathematical dependencies or task transfers.
+- Hive positions identify configured departmental responsibilities. Solid paths
+  show those responsibilities; dashed connections come from explicit public
+  references. A reference does not establish a private dispatch or prove that a
+  whole research pipeline has completed.
+- `editorial.json` supplies this site's Chinese question and paper descriptions.
+  Technical maintenance titles are omitted from mathematical topic cards.
+  Publications come from the existing public publication index at
+  `https://www.trureturing.org/assets/publication-index.json`; original authors,
+  titles, source links and preprint status are preserved.
 
-The frontend checks the full panorama every minute and the independent
-collaboration stream every 15 seconds. Its header shows the actual live observer
-timestamp; panorama age remains separately visible. Collaboration older than
-three minutes is marked delayed. An unavailable fetch
-keeps the last valid browser snapshot visibly marked; a total collection outage
-fails publication and retains the existing deployment. Partial endpoint failures
-are shown as missing readings. Existing snapshots and source changes are never
-mixed into an invented current run.
+The frontend checks the full panorama every minute and the organization stream
+every 15 seconds. Its header uses the actual organization observation time.
+Observations older than three minutes lose their live execution indicators and
+show a readable delay message. Failed requests retain the last valid view; older
+responses cannot roll it back. Initial loading, manual selection and historical
+replay do not produce invented arrival signals. Reduced motion, quiet viewing,
+keyboard department navigation and mobile layouts are supported.
 
 ## Automatic observation and publication
 
@@ -166,13 +178,17 @@ this downstream site does not instrument or change source repositories.
 
 ## Extending the view
 
-Related public repositories are discovered automatically. Add other explicit
-names or naming prefixes to the discovery policy in `config.json`; label
-overrides supply descriptions. The map adapts to the discovered inventory.
-Structured claim/heartbeat events can later add agent occupancy,
-and published result receipts can connect tasks to exact Atlas/GID nodes. Those
-sources need their own explicit contracts; they are not inferred from CI green
-checks or GitHub trigger accounts.
+Related public repositories are discovered automatically for the panorama. Add an
+explicit source to `organization.json` to connect that repository's activity to a
+department. Keep source contracts and adapters in the generic Rust foundation;
+trureturing's language, layout, editorial choices and publications stay here.
+
+The foundation's `report` command supports owner-approved independent sessions,
+public task registrations and expiring presence. This deployment has no private
+session feed attached. Such a feed needs separate private checkpoint storage:
+the public recovery publisher deliberately rejects runtime records. GitHub
+accounts, issue claims and CI trigger accounts never establish a model identity
+or current session presence.
 
 Code: MIT. Source GitHub records retain their original authorship and repository
 identity.

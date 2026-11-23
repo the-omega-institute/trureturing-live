@@ -3,79 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1117">
-  <meta name="description" content="trureturing 的公开研究活动地图：跨仓课题、GitHub Actions、验证与交付，持续更新并保留来源。">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
-  <title>trureturing live · 研究正在发生</title>
+  <meta name="theme-color" content="#121814">
+  <meta name="description" content="走进 trureturing 的 AI 数学研究院：看独立会话与自动引擎怎样认领问题、推进论证、相互复核，让研究长成书稿与论文。">
+  <title>trureturing live · 数学研究，正在接力</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=collaboration-v2">
-  <script type="module" src="assets/app.mjs?v=collaboration-v3"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v1">
+  <script type="module" src="assets/app.mjs?v=hive-v1"></script>
 </head>
 <body>
-  <a class="skip-link" href="#research-map">跳至研究地图</a>
-  <header class="masthead">
-    <a class="brand" href="./" aria-label="trureturing live 首页"><img src="assets/mark.svg" width="30" height="30" alt=""><span>trureturing<span class="brand-live">live</span></span></a>
-    <nav aria-label="主导航"><a href="https://www.trureturing.org/atlas">Atlas <span aria-hidden="true">↗</span></a><a href="https://github.com/the-omega-institute/trureturing-live">Source <span aria-hidden="true">↗</span></a></nav>
-    <div class="masthead-status"><span class="signal-dot" id="signal-dot"></span><span id="connection-state">连接公开记录</span></div>
-    <button class="quiet-button fullscreen-button" id="fullscreen" type="button" aria-label="进入全屏大屏">⛶ <span>大屏</span></button>
+  <a class="skip-link" href="#institute">进入研究现场</a>
+  <header class="site-header">
+    <a class="brand" href="./"><img src="assets/mark.svg" width="30" height="30" alt=""><span>trureturing <em>live</em></span></a>
+    <nav aria-label="主导航"><a href="#institute">研究现场</a><a href="#questions">正在探索</a><a href="#publications">书稿与论文</a><a href="https://www.trureturing.org/atlas">知识地图 <span>↗</span></a></nav>
+    <span class="connection" id="connection"><i></i><span>正在连接研究院</span></span>
   </header>
-
   <main>
-    <section class="introduction" aria-labelledby="page-title">
-      <div><p class="eyebrow">AN OPEN RESEARCH OBSERVATORY</p><h1 id="page-title">看见研究如何接力<span>。</span></h1><p class="intro-text">谁更新了问题，谁接着评审，结果又流向哪里。</p></div>
-      <div class="observation-clock"><span class="clock-label">LIVE OBSERVATION / 持续观测</span><time id="observation-time">等待数据</time><span id="freshness">连接协作数据通道</span></div>
+    <section class="hero" aria-labelledby="page-title">
+      <div><p class="eyebrow">TRURETURING / THE RESEARCH HIVE</p><h1 id="page-title">数学研究，<em>正在接力。</em></h1><p class="hero-description">一个问题，许多独立的下一步。看探索、互评、检验与书写，怎样汇成新的知识。</p></div>
+      <div class="hero-side"><div class="tool-families"><span>Codex</span><span>Claude</span><span>AGY</span><span>heca</span></div><p>独立研究会话，<br>与自动引擎并肩工作。</p></div>
     </section>
-
-    <div class="notice" id="notice" role="status" hidden></div>
-    <section class="collaboration" aria-labelledby="collaboration-title">
-      <div class="collaboration-heading"><div><p class="eyebrow">INSIDE THE RESEARCH / 公开协作现场</p><h2 id="collaboration-title">课题、讨论与交付的接力</h2></div><div class="stream-status"><span class="signal-dot" id="stream-dot"></span><span id="stream-status">连接持续观测</span></div></div>
-      <div class="stream-explanation">主仓与 books 约每 60 秒采集 · 页面每 15 秒检查 · 展示 GitHub 公开讨论与行内评审，内部 agent 消息尚未接入</div>
-      <div class="collaboration-layout">
-        <div class="thread-column"><div class="thread-filters" role="group" aria-label="协作讨论来源"><button type="button" data-thread-scope="all" aria-pressed="true">全部</button><button type="button" data-thread-scope="trureturing" aria-pressed="false">主仓</button><button type="button" data-thread-scope="trureturing-books" aria-pressed="false">Books</button></div><div id="thread-list" class="thread-list"><p class="empty">正在读取公开讨论…</p></div></div>
-        <div class="conversation"><div id="conversation-title" class="conversation-title">选择一个课题，看见实际更新与关联交付。</div><div id="conversation-flow" class="conversation-flow" role="group" aria-label="公开参与账号与明确引用的交付关系"></div><div id="conversation-messages" class="conversation-messages" aria-live="polite"><p class="empty">讨论与评审将保留原文摘录、提交账号和来源链接。</p></div></div>
-      </div>
-      <div class="stream-footer"><span id="stream-count">等待实际协作记录</span><span id="panorama-age">全景地图单独采集</span></div>
-    </section>
-
-    <section class="metrics" aria-label="本次观测的活动统计">
-      <div><span class="metric-label">运行中 <small>WORKFLOWS</small></span><strong id="metric-running">—</strong><span class="metric-note">已观察到的 Actions</span></div>
-      <div><span class="metric-label">排队与等待 <small>QUEUED</small></span><strong id="metric-queued">—</strong><span class="metric-note">等待执行或人工审批</span></div>
-      <div><span class="metric-label">开放交付 <small>PULL REQUESTS</small></span><strong id="metric-pulls">—</strong><span class="metric-note">本次采样中的开放 PR</span></div>
-      <div><span class="metric-label">观测范围 <small>REPOSITORIES</small></span><strong id="metric-repos">—</strong><span class="metric-note" id="metric-coverage">来源正在连接</span></div>
-    </section>
-
-    <section id="focus-hubs" class="focus-hubs" aria-label="trureturing 主仓与 trureturing-books 重点现场"></section>
-
-    <div class="workspace">
-      <section class="map-panel" aria-labelledby="map-title">
-        <div class="panel-heading"><div><span class="eyebrow">THE RESEARCH CAMPUS</span><h2 id="map-title">全部相关研究区</h2></div><span class="panel-index" id="map-repo-count">自动发现公开仓库</span></div>
-        <div id="research-map" class="research-map" role="group" aria-label="研究仓库地图，选择一个研究区查看其活动" tabindex="-1">
-          <div class="map-grid" aria-hidden="true"></div>
-          <div class="map-orbit orbit-one" aria-hidden="true"></div><div class="map-orbit orbit-two" aria-hidden="true"></div>
-          <div class="map-coordinate coordinate-a" aria-hidden="true">QUESTIONS → KNOWLEDGE</div><div class="map-coordinate coordinate-b" aria-hidden="true">PUBLIC ACTIVITY / 24:00</div>
-          <div class="map-loading" id="map-loading">正在读取研究区…</div>
+    <p id="connection-note" class="connection-note" role="status" hidden></p>
+    <section id="institute" class="institute" aria-labelledby="institute-title">
+      <div class="room-heading"><div><p class="eyebrow">ONE INSTITUTE. MANY MINDS.</p><h2 id="institute-title">各司其职，也彼此相连。</h2></div><div class="room-controls"><div class="mode-switch" role="group" aria-label="现场视图"><button type="button" data-mode="organization" aria-pressed="true">全院总览</button><button type="button" data-mode="journey" aria-pressed="false">跟随一个课题</button></div><button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button></div></div>
+      <div class="institute-metrics" id="institute-metrics"><span>研究现场正在展开</span></div>
+      <div class="research-room" id="research-room">
+        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院部门地图；点击部门展开正在发生的工作">
+          <div class="board-label"><span class="live-dot"></span> THE RESEARCH HIVE</div>
+          <div class="board-actions"><button id="motion-toggle" type="button" aria-pressed="false" title="切换为静态画面">静看</button><button id="expand-room" type="button" aria-label="展开研究现场" title="展开研究现场">⤢</button></div>
+          <svg id="hive-routes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div id="hive-cells" class="hive-cells"><p class="loading">研究、互评与书写，正在这里相遇…</p></div>
+          <div class="hive-legend"><span><i class="legend-session"></i>独立会话</span><span><i class="legend-action"></i>自动引擎</span><span><i class="legend-connection"></i>研究连接</span></div>
         </div>
-        <div class="map-legend"><span><i class="legend-dot running"></i>执行中</span><span><i class="legend-dot queued"></i>排队 / 等待</span><span><i class="legend-dot completed"></i>最近完成</span><span class="map-legend-note">布局按仓库分区；圆点代表工作流</span></div>
-      </section>
-
-      <aside class="inspector" aria-labelledby="inspector-title">
-        <div class="inspector-top"><span class="eyebrow">IN FOCUS / 研究现场</span><a id="repo-link" href="https://github.com/the-omega-institute/trureturing" aria-label="在 GitHub 打开所选仓库">↗</a></div>
-        <h2 id="inspector-title">形式化研究</h2><p class="repo-name" id="repo-name">trureturing</p><p class="repo-description" id="repo-description">读取公开活动后，这里会显示运行状态与课题。</p>
-        <div class="inspector-tabs" role="tablist" aria-label="研究区详情"><button id="tab-runs" role="tab" aria-controls="inspector-content" aria-selected="true" type="button" data-tab="runs">工作流 <span id="tab-runs-count">—</span></button><button id="tab-tasks" role="tab" aria-controls="inspector-content" aria-selected="false" tabindex="-1" type="button" data-tab="tasks">课题与交付 <span id="tab-tasks-count">—</span></button></div>
-        <div class="inspector-content" id="inspector-content" role="tabpanel" aria-labelledby="tab-runs"><p class="empty">等待本次观测。</p></div>
-        <div class="identity-note"><span class="identity-icon" aria-hidden="true">◎</span><p>账号、认领与会话按公开记录展示。<br><strong>Agent 心跳尚未接入。</strong></p></div>
-      </aside>
-    </div>
-
-    <section class="activity-section" aria-labelledby="activity-title">
-      <div class="section-heading"><div><p class="eyebrow">SIGNALS FROM THE FIELD</p><h2 id="activity-title">此刻的研究动态</h2></div><div class="activity-tools"><label class="search-label"><span class="sr-only">搜索仓库、任务或账号</span><input id="search" type="search" placeholder="搜索课题、仓库、账号" autocomplete="off"></label><button id="refresh" class="quiet-button" type="button">刷新观测 <span aria-hidden="true">↻</span></button></div></div>
-      <div class="activity-filters" role="group" aria-label="动态类型"><button type="button" data-filter="all" aria-pressed="true">全部活动</button><button type="button" data-filter="active" aria-pressed="false">正在执行</button><button type="button" data-filter="tasks" aria-pressed="false">课题与交付</button><span id="activity-scope">最近公开记录的有限采样</span></div>
-      <div id="activity-list" class="activity-list" aria-live="polite"><p class="empty">正在连接 GitHub 观测快照…</p></div>
-      <button id="show-more" class="show-more" type="button" hidden>展开更多动态</button>
+        <aside class="department-panel" id="department-panel" aria-labelledby="department-title">
+          <div class="department-top"><span id="department-mode" class="execution-label">独立会话</span><span class="small-label" id="department-state">正在连接</span></div>
+          <h3 id="department-title">数学攻坚</h3><p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
+          <div class="department-people" id="department-people"></div>
+          <div class="panel-heading"><h4 id="department-work-title">这里正在发生</h4><span id="department-work-count"></span></div>
+          <div id="department-work" class="department-work"><p class="loading">新的进展会在这里汇入。</p></div>
+          <div id="department-connections" class="department-connections"></div>
+        </aside>
+        <div id="journey-panel" class="journey-panel" hidden><div class="journey-heading"><div><p class="eyebrow">FOLLOW THE QUESTION</p><h3 id="journey-title">选择一个正在推进的问题</h3><p id="journey-description">沿着公开讨论与研究引用，看一个问题怎样在不同部门之间继续生长。</p></div><button type="button" id="journey-back" class="text-button">返回全院总览 ↗</button></div><div id="journey-stages" class="journey-stages"></div><div class="journey-detail"><div><h4>共同推进这条研究线索</h4><div id="journey-people" class="journey-people"></div></div><div id="journey-events" class="journey-events"></div></div><div id="journey-links" class="journey-links"></div></div>
+      </div>
+      <div class="flow-caption"><span>人的提问 <b>→</b> 独立攻坚 <b>↔</b> 相互复核 <b>→</b> 共同检验 <b>→</b> 书稿与交流</span><span id="institute-scope"></span></div>
+      <div class="activity-heading"><h3>刚刚，研究院里</h3><span id="activity-note">真实发生的下一步</span></div><div id="activity-strip" class="activity-strip" aria-label="近期研究动态"></div>
     </section>
-
-    <footer class="footer"><div><span class="footer-brand">trureturing live</span><p>让问题被接住，让知识继续生长。</p></div><div class="footer-explanation"><p>展示公开的执行与交付记录。工作流成功不等于数学结论已验证发布。</p><p><a href="data/snapshot.json">原始观测数据</a><span>·</span><a href="https://github.com/the-omega-institute/trureturing-live#data-and-meaning">数据口径</a><span>·</span><span id="next-refresh">协作每 15 秒检查 · 全景每分钟检查</span></p></div></footer>
+    <section id="questions" class="questions-section" aria-labelledby="questions-title"><div class="section-heading"><div><p class="eyebrow">QUESTIONS WORTH FOLLOWING</p><h2 id="questions-title">正在探索什么？</h2></div><div class="topic-filters" role="group" aria-label="研究方向"><button type="button" data-filter="all" aria-pressed="true">全部</button><button type="button" data-filter="research" aria-pressed="false">数学研究</button><button type="button" data-filter="books" aria-pressed="false">理论书写</button></div></div><div id="question-cards" class="question-cards"><p class="loading">正在展开近期的问题…</p></div><button id="more-questions" type="button" class="more-button" hidden>再看一些研究线索 ↓</button></section>
+    <section id="publications" class="publications-section" aria-labelledby="books-title"><div class="books-feature"><div class="book-art" aria-hidden="true"><div class="book-spine"></div><div class="book-cover"><span>TRURETURING BOOKS</span><div class="book-geometry">◯<i>ψ</i></div><strong>量子计算的<br>几何直觉</strong><small>Auric</small></div></div><div class="books-content"><p class="eyebrow">KNOWLEDGE THAT KEEPS GROWING</p><h2 id="books-title">让研究，<br>长成可以阅读的理论。</h2><p>从两子丈量与量子纠缠出发，沿着几何、计算与观察者的问题继续展开。新的论证，正在成为新的章节。</p><div id="book-updates" class="book-updates"></div><a class="solid-link" href="https://books.trureturing.org/">走进书库 <span>↗</span></a></div></div><div class="section-heading papers-heading"><div><p class="eyebrow">FROM QUESTIONS TO PAPERS</p><h2>已经写下的研究</h2></div><a class="text-link" href="https://www.trureturing.org/research">更多研究 ↗</a></div><div id="paper-cards" class="paper-cards"><p class="loading">正在整理公开论文…</p></div></section>
+    <section class="invitation"><p class="eyebrow">THE NEXT QUESTION COULD BE YOURS</p><h2>带着一个问题，加入这场探索。</h2><p>读一段论证，提出一个反例，或把一个想法交给研究者继续推进。</p><div><a class="solid-link" href="https://mathesis-omega-research.apps.chrono-ai.fun/">带来你的问题 ↗</a><a class="text-link" href="https://www.trureturing.org/atlas">探索已有知识 ↗</a></div></section>
+    <footer class="site-footer"><a class="brand" href="./">trureturing <em>live</em></a><p>问题、探索与知识，持续相连。</p><div><a href="https://www.trureturing.org/">trureturing</a><a href="https://books.trureturing.org/">书库</a><a href="https://github.com/the-omega-institute/trureturing-live-template">映射你自己的 AI 组织 ↗</a></div></footer>
   </main>
-  <noscript><p class="notice">请启用 JavaScript 查看研究地图。<a href="data/snapshot.json">原始公开数据</a>仍可直接读取。</p></noscript>
+  <div id="live-announcement" class="visually-hidden" role="status" aria-live="polite"></div>
+  <noscript><p>请启用 JavaScript 查看研究现场。你也可以直接阅读<a href="https://www.trureturing.org/research">公开研究</a>与<a href="https://books.trureturing.org/">书库</a>。</p></noscript>
 </body>
 </html>
