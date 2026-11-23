@@ -105,13 +105,15 @@ def run_record(item: dict, full_name: str) -> dict:
     }
 
 
-def collect_repository(api: GitHub, owner: str, spec: dict) -> dict:
+def collect_repository(api: GitHub, owner: str, spec: dict, metadata: dict | None = None) -> dict:
     full_name = owner + "/" + spec["name"]
     base = "/repos/" + full_name
     result = {**spec, "full_name": full_name, "url": "https://github.com/" + full_name,
               "observed_at": now(), "available": False, "runs": [], "tasks": [], "coverage": {}, "errors": []}
     try:
-        meta, _ = api.get(base)
+        meta = metadata
+        if meta is None:
+            meta, _ = api.get(base)
         if meta.get("private") or meta.get("visibility", "public") != "public":
             result["errors"].append("not a public repository; excluded")
             return result
@@ -124,7 +126,10 @@ def collect_repository(api: GitHub, owner: str, spec: dict) -> dict:
         return result
 
     runs = {}
-    for status in [None, "in_progress", "queued", "waiting"]:
+    statuses = [None, "in_progress"]
+    if spec["name"] in {"trureturing", "trureturing-books"}:
+        statuses += ["queued", "waiting"]
+    for status in statuses:
         key = "recent_runs" if status is None else "runs_" + status
         params = {"per_page": 50 if status is None else 100}
         if status:
@@ -141,6 +146,9 @@ def collect_repository(api: GitHub, owner: str, spec: dict) -> dict:
     result["runs"] = sorted(runs.values(), key=lambda row: row["updated_at"], reverse=True)
 
     for endpoint, kind, limit in [("issues", "issue", 60), ("pulls", "pull", 30)]:
+        if kind == "pull" and meta.get("open_issues_count") == 0:
+            result["coverage"][endpoint] = {"returned": 0, "scope": "public inventory reports zero open issues and pull requests"}
+            continue
         try:
             items, links = api.get(base + "/" + endpoint, {"state": "all" if kind == "issue" else "open", "sort": "updated", "direction": "desc", "per_page": limit})
             rows = [item for item in items if kind == "pull" or "pull_request" not in item]
@@ -176,20 +184,62 @@ def collect_repository(api: GitHub, owner: str, spec: dict) -> dict:
     return result
 
 
+def discover_repositories(api: GitHub, config: dict) -> tuple[list[dict], dict[str, dict]]:
+    """Read one public organization inventory; never probe private repositories."""
+    policy = config["discovery"]
+    metadata = {}
+    for page in range(1, 6):
+        rows, links = api.get(f"/orgs/{config['owner']}/repos", {"type": "public", "per_page": 100, "page": page})
+        for row in rows:
+            name = row["name"]
+            if row.get("private") or row.get("visibility", "public") != "public":
+                continue
+            if any(name.startswith(prefix) for prefix in policy["prefixes"]) or name in policy["include"]:
+                metadata[name] = row
+        if 'rel="next"' not in links:
+            break
+    else:
+        raise SourceError("public repository discovery exceeded its bound; retain the existing publication")
+    overrides = {spec["name"]: spec for spec in config["repositories"]}
+    labels = {
+        "mathesis": ("论文与研究笔记", "MATHESIS"),
+        "trureturing-mdbook": ("Blueprint 阅读", "BLUEPRINT"),
+        "trureturing-intuition": ("直觉与问题", "INTUITION"),
+        "trureturing-film": ("研究影像", "FILM"),
+        "trureturing-visualize": ("交互解释", "VISUALIZE"),
+        "trureturing-lean-eval": ("形式化评测", "LEAN EVAL"),
+        "trureturing-books-template": ("书籍模板", "TEMPLATES"),
+        "trureturing-live": ("研究观测", "LIVE"),
+    }
+    names = sorted(metadata, key=lambda name: (0 if name == "trureturing" else 1 if name == "trureturing-books" else 2, name))
+    specs = []
+    for name in names:
+        label, short = labels.get(name, (name.removeprefix("trureturing-").replace("-", " "), "REPOSITORY"))
+        specs.append(overrides.get(name, {"name": name, "label": label, "short": short, "description": metadata[name].get("description") or "公开仓库的工作流、课题与交付"}))
+    if not specs:
+        raise SourceError("public repository discovery returned no related repositories")
+    return specs, metadata
+
+
 def collect(api: GitHub, config: dict) -> dict:
     owner = config["owner"]
     if not re.fullmatch(r"[\w-]+", owner):
         raise ValueError("invalid repository owner")
-    for spec in config["repositories"]:
+    specs = config["repositories"]
+    metadata = {}
+    if config.get("discovery"):
+        specs, metadata = discover_repositories(api, config)
+    for spec in specs:
         if not re.fullmatch(r"[\w.-]+", spec["name"]):
             raise ValueError("invalid repository name")
     with ThreadPoolExecutor(max_workers=4) as pool:
-        repos = list(pool.map(lambda spec: collect_repository(api, owner, spec), config["repositories"]))
+        repos = list(pool.map(lambda spec: collect_repository(api, owner, spec, metadata.get(spec["name"])), specs))
     if not any(repo["available"] and (repo["runs"] or repo["tasks"]) for repo in repos):
         raise SourceError("no usable public source data; the existing publication must be retained")
     return {"schema": SCHEMA, "collected_at": now(), "refresh_interval_seconds": config["refresh_interval_seconds"],
             "owner": owner, "requests_used": api.requests, "repositories": repos,
-            "scope": "Public GitHub records. Active workflow queries are bounded to 100 per state and repository; recent tasks and comments are sampled. Workflow success is an execution result, not a mathematical publication attestation. No agent heartbeat source is connected."}
+            "discovery": config.get("discovery"),
+            "scope": "Related public GitHub repositories are discovered by prefix and explicit inclusion. Each repository samples 50 recent runs and up to 100 in-progress runs; Core and Books additionally query queued and waiting runs. Tasks and comments are sampled. Workflow success is an execution result, not a mathematical publication attestation. No agent heartbeat source is connected."}
 
 
 def main() -> None:

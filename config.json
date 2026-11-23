@@ -1,10 +1,11 @@
 {
   "owner": "the-omega-institute",
   "refresh_interval_seconds": 300,
+  "discovery": {"prefixes": ["trureturing"], "include": ["mathesis"]},
   "repositories": [
-    {"name": "trureturing", "label": "形式化研究", "short": "CORE", "description": "研究课题、Lean 交付与评审", "x": 49, "y": 46},
+    {"name": "trureturing", "label": "形式化研究", "short": "CORE", "description": "研究课题、Lean 交付与评审", "featured": true},
     {"name": "trureturing-requests", "label": "课题入口", "short": "INTAKE", "description": "公开的数学问题与形式化请求", "x": 18, "y": 19},
-    {"name": "trureturing-books", "label": "理论写作", "short": "BOOKS", "description": "从数学结果到章节与论证", "x": 80, "y": 19},
+    {"name": "trureturing-books", "label": "理论写作", "short": "BOOKS", "description": "从数学结果到章节与论证", "featured": true},
     {"name": "trureturing-source-theories", "label": "理论来源", "short": "SOURCES", "description": "来源理论与研究材料", "x": 82, "y": 72},
     {"name": "trureturing-outreach-engine", "label": "研究协调", "short": "COORDINATION", "description": "公开协调器及工作流", "x": 18, "y": 75},
     {"name": "trureturing-tools", "label": "验证工具", "short": "TOOLS", "description": "检查器与验证工具发布", "x": 16, "y": 46},
