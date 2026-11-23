@@ -1,0 +1,3 @@
+[submodule "vendor/live-harness"]
+	path = vendor/live-harness
+	url = https://github.com/the-omega-institute/trureturing-live-template.git

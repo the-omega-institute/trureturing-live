@@ -1,0 +1,374 @@
+{
+  "schema": "ai-org.config.v1",
+  "organization": {
+    "id": "trureturing",
+    "label": "trureturing AI 数学研究院"
+  },
+  "departments": [
+    {
+      "id": "direction",
+      "label": "研究方向",
+      "responsibility": "人提出问题、确定方向，并在研究过程中给出判断与修正。",
+      "execution": "human"
+    },
+    {
+      "id": "research",
+      "label": "数学攻坚",
+      "responsibility": "认领课题，探索证明与反例，把可以检验的论证提交给共同研究。",
+      "execution": "sessions"
+    },
+    {
+      "id": "review",
+      "label": "独立评审",
+      "responsibility": "从新的视角检查论证、边界与适用范围，将意见送回研究者。",
+      "execution": "sessions"
+    },
+    {
+      "id": "verification",
+      "label": "形式验证",
+      "responsibility": "由已有的 GitHub CI 检查提交、构建证明，并执行项目规定的检验。",
+      "execution": "actions"
+    },
+    {
+      "id": "books",
+      "label": "理论书写",
+      "responsibility": "将研究整理为双语章节，连接已有知识，持续构建与出版书稿。",
+      "execution": "mixed"
+    },
+    {
+      "id": "publication",
+      "label": "论文与知识",
+      "responsibility": "接收已有的研究发布，组织可阅读的论证、论文与知识地图。",
+      "execution": "mixed"
+    },
+    {
+      "id": "outreach",
+      "label": "学术交流",
+      "responsibility": "由 outreach engine 定期协调研究说明、传播准备与交流工作。",
+      "execution": "actions"
+    },
+    {
+      "id": "studio",
+      "label": "工具与表达",
+      "responsibility": "维护研究工具、出版模板、可视化和影像，让组织的成果可以被理解与使用。",
+      "execution": "mixed"
+    }
+  ],
+  "sources": [
+    {
+      "id": "core-questions",
+      "kind": "github_issues",
+      "department": "research",
+      "label": "提出与认领研究问题",
+      "repository": "the-omega-institute/trureturing",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "core-contributions",
+      "kind": "github_pulls",
+      "department": "research",
+      "label": "提交新的研究论证",
+      "repository": "the-omega-institute/trureturing",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "core-discussion",
+      "kind": "github_comments",
+      "department": "research",
+      "label": "推进问题与交换思路",
+      "repository": "the-omega-institute/trureturing",
+      "poll_seconds": 60,
+      "freshness_seconds": 180
+    },
+    {
+      "id": "core-reviews",
+      "kind": "github_reviews",
+      "department": "review",
+      "label": "提出论证复核意见",
+      "repository": "the-omega-institute/trureturing",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "core-checks",
+      "kind": "github_actions",
+      "department": "verification",
+      "label": "检验研究提交",
+      "repository": "the-omega-institute/trureturing",
+      "workflow_paths": [
+        ".github/workflows/ci-current.yml"
+      ],
+      "poll_seconds": 60,
+      "freshness_seconds": 180
+    },
+    {
+      "id": "truth-publication",
+      "kind": "github_actions",
+      "department": "publication",
+      "label": "发布研究知识",
+      "repository": "the-omega-institute/trureturing",
+      "workflow_paths": [
+        ".github/workflows/truth-release-publish.yml"
+      ],
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "book-contributions",
+      "kind": "github_pulls",
+      "department": "books",
+      "label": "整理新的理论章节",
+      "repository": "the-omega-institute/trureturing-books",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "book-discussion",
+      "kind": "github_comments",
+      "department": "books",
+      "label": "讨论与完善书稿",
+      "repository": "the-omega-institute/trureturing-books",
+      "poll_seconds": 60,
+      "freshness_seconds": 180
+    },
+    {
+      "id": "book-reviews",
+      "kind": "github_reviews",
+      "department": "review",
+      "label": "复核书稿中的论证",
+      "repository": "the-omega-institute/trureturing-books",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "book-checks",
+      "kind": "github_actions",
+      "department": "books",
+      "label": "检查与构建书稿",
+      "repository": "the-omega-institute/trureturing-books",
+      "workflow_paths": [
+        ".github/workflows/ci.yml"
+      ],
+      "poll_seconds": 60,
+      "freshness_seconds": 180
+    },
+    {
+      "id": "book-publication",
+      "kind": "github_actions",
+      "department": "books",
+      "label": "出版在线书库",
+      "repository": "the-omega-institute/trureturing-books",
+      "workflow_paths": [
+        ".github/workflows/pages.yml"
+      ],
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "research-pages",
+      "kind": "github_actions",
+      "department": "publication",
+      "label": "更新公开研究页面",
+      "repository": "the-omega-institute/trureturing-pages",
+      "workflow_paths": [
+        ".github/workflows/refresh-presentation.yml"
+      ],
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "outreach-coordinator",
+      "kind": "github_actions",
+      "department": "outreach",
+      "label": "协调学术交流与传播",
+      "repository": "the-omega-institute/trureturing-outreach-engine",
+      "workflow_paths": [
+        ".github/workflows/outreach-control.yml"
+      ],
+      "poll_seconds": 60,
+      "freshness_seconds": 180
+    },
+    {
+      "id": "outreach-delivery",
+      "kind": "github_actions",
+      "department": "outreach",
+      "label": "准备研究传播材料",
+      "repository": "the-omega-institute/trureturing-outreach-engine",
+      "workflow_paths": [
+        ".github/workflows/short-notes.yml"
+      ],
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "research-requests",
+      "kind": "github_issues",
+      "department": "research",
+      "label": "接收新的形式化问题",
+      "repository": "the-omega-institute/trureturing-requests",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "mathesis-platform",
+      "kind": "github_pulls",
+      "department": "publication",
+      "label": "完善公开评议平台",
+      "repository": "the-omega-institute/mathesis",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "book-template",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "完善书稿出版工具",
+      "repository": "the-omega-institute/trureturing-books-template",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "visualization",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "构建交互数学表达",
+      "repository": "the-omega-institute/trureturing-visualize",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "film",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "组织研究影像表达",
+      "repository": "the-omega-institute/trureturing-film",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "tools",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "维护研究工具",
+      "repository": "the-omega-institute/trureturing-tools",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "reader-tools",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "完善在线阅读体验",
+      "repository": "the-omega-institute/trureturing-mdbook",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "formal-evaluation",
+      "kind": "github_pulls",
+      "department": "verification",
+      "label": "完善形式化研究检验",
+      "repository": "the-omega-institute/trureturing-lean-eval",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "experiments",
+      "kind": "github_pulls",
+      "department": "research",
+      "label": "推进数学实验",
+      "repository": "the-omega-institute/trureturing-experiments",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "intuition",
+      "kind": "github_pulls",
+      "department": "research",
+      "label": "组织数学直觉与构造",
+      "repository": "the-omega-institute/trureturing-intuition",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "source-theories",
+      "kind": "github_pulls",
+      "department": "research",
+      "label": "整理理论来源",
+      "repository": "the-omega-institute/trureturing-source-theories",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "research-live",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "完善研究组织的实时展示",
+      "repository": "the-omega-institute/trureturing-live",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    },
+    {
+      "id": "live-foundation",
+      "kind": "github_pulls",
+      "department": "studio",
+      "label": "完善可复用的组织事件底层",
+      "repository": "the-omega-institute/trureturing-live-template",
+      "poll_seconds": 300,
+      "freshness_seconds": 900
+    }
+  ],
+  "routes": [
+    {
+      "from": "direction",
+      "to": "research",
+      "label": "提出问题与修正方向"
+    },
+    {
+      "from": "research",
+      "to": "review",
+      "label": "提交论证"
+    },
+    {
+      "from": "review",
+      "to": "research",
+      "label": "提出修订意见"
+    },
+    {
+      "from": "research",
+      "to": "verification",
+      "label": "提交形式化实现"
+    },
+    {
+      "from": "verification",
+      "to": "books",
+      "label": "将研究接入理论书写"
+    },
+    {
+      "from": "verification",
+      "to": "publication",
+      "label": "发布已有研究成果"
+    },
+    {
+      "from": "publication",
+      "to": "outreach",
+      "label": "准备学术交流"
+    },
+    {
+      "from": "outreach",
+      "to": "direction",
+      "label": "反馈带回新的问题"
+    },
+    {
+      "from": "studio",
+      "to": "books",
+      "label": "支持出版与表达"
+    }
+  ],
+  "freshness_seconds": 180,
+  "retention_seconds": 604800,
+  "max_entities": 10000,
+  "max_recent_events": 240
+}
