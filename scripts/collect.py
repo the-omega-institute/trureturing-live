@@ -61,6 +61,22 @@ class GitHub:
                     continue
                 raise SourceError("GitHub request unavailable") from None
 
+    def write(self, path: str, payload: dict, method: str = "POST") -> dict:
+        # State publication is restricted to this observatory's Git database.
+        if not path.startswith('/repos/the-omega-institute/trureturing-live/git/'):
+            raise SourceError('state publication outside the observatory is forbidden')
+        with self.lock:
+            if self.requests >= self.budget:
+                raise SourceError('collection request budget reached')
+            self.requests += 1
+        headers = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'trureturing-live/1', 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + self.token}
+        request = Request('https://api.github.com' + path, data=json.dumps(payload).encode(), headers=headers, method=method)
+        try:
+            with urlopen(request, timeout=25) as response:
+                return json.load(response)
+        except HTTPError as exc:
+            raise SourceError(f'GitHub publication HTTP {exc.code}') from None
+
 
 def references(text: str, owner: str) -> list[dict]:
     found = {}

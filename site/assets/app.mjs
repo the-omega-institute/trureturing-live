@@ -1,7 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const ACTIVE = new Set(['in_progress', 'queued', 'waiting', 'pending', 'requested']);
 const STATUS = {in_progress:'运行中',queued:'排队中',waiting:'等待审批',pending:'等待中',requested:'等待执行',success:'执行成功',failure:'执行失败',cancelled:'已取消',timed_out:'执行超时',action_required:'需要处理',neutral:'执行完成',skipped:'已跳过',stale:'已过期',completed:'执行完成',startup_failure:'启动失败'};
-const state = {snapshot:null,repo:'trureturing',tab:'runs',filter:'all',query:'',limit:20,fetching:false,lastError:null,lastCheck:0};
+const state = {snapshot:null,repo:'trureturing',tab:'runs',filter:'all',query:'',limit:20,fetching:false,lastError:null,lastCheck:0,live:null,liveError:null,liveFetching:false,thread:null,threadScope:'all'};
 const cacheKey = 'trureturing-live.snapshot.v1';
 const external = (url) => {
   try { const value = new URL(url); return value.protocol === 'https:' && value.hostname === 'github.com' ? value.href : '#'; } catch { return '#'; }
@@ -32,19 +32,23 @@ function relatedTask(run, repo) {
 function symbol(run) { const node = text('i','','status-symbol '+statusClass(run)); node.setAttribute('aria-hidden','true'); return node; }
 function renderFreshness() {
   if(!state.snapshot)return;
-  const age=(Date.now()-date(state.snapshot.collected_at).getTime())/1000;
-  const stale=age>900;
-  const degraded=state.snapshot.repositories.some(repo=>repo.errors.length);
-  $('#connection-state').textContent=state.lastError?'连接暂不可用':stale?'观测数据已延迟':degraded?'部分来源不可用':'公开观测已连接';
-  $('#signal-dot').className='signal-dot '+((stale||degraded||state.lastError)?'stale':'fresh');
-  $('#observation-time').dateTime=state.snapshot.collected_at;
-  $('#observation-time').textContent=date(state.snapshot.collected_at).toLocaleString('zh-CN',{timeZone:'Asia/Singapore',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' SGT';
-  $('#observation-time').title=state.snapshot.collected_at;
-  $('#freshness').textContent=`${relative(state.snapshot.collected_at)}采集 · 约每 5 分钟更新`;
+  const observation=state.live?.observed_at||state.snapshot.collected_at;
+  const age=(Date.now()-date(observation).getTime())/1000;
+  const stale=age>(state.live?180:1800);
+  const degraded=state.snapshot.repositories.some(repo=>repo.errors.length)||Boolean(state.live?.errors.length);
+  const connectionError=state.live?state.liveError:state.lastError;
+  $('#connection-state').textContent=connectionError?'连接暂不可用':stale?'观测数据已延迟':degraded?'部分来源不可用':'公开观测已连接';
+  $('#signal-dot').className='signal-dot '+((stale||degraded||connectionError)?'stale':'fresh');
+  $('#observation-time').dateTime=observation;
+  $('#observation-time').textContent=date(observation).toLocaleString('zh-CN',{timeZone:'Asia/Singapore',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' SGT';
+  $('#observation-time').title=observation;
+  $('#freshness').textContent=state.live?`${relative(observation)}观测 · 协作通道约 60 秒采集`:`${relative(observation)}全景采集 · 协作通道连接中`;
+  $('#panorama-age').textContent=`全景采集：${relative(state.snapshot.collected_at)}`;
   const messages=[];
   if(state.lastError)messages.push('暂时无法读取新的观测。当前显示上次成功读取的数据，页面将继续重试。');
-  if(stale)messages.push('当前采集已超过 15 分钟，请按下方时间判断记录的新鲜度。');
-  if(degraded)messages.push(`${state.snapshot.repositories.filter(repo=>repo.errors.length).length} 个研究区的部分来源读取失败；缺失项保留为未知。`);
+  if(stale)messages.push('观测数据已延迟，请以显示的实际采集时间为准。');
+  if(state.snapshot.repositories.some(repo=>repo.errors.length))messages.push(`${state.snapshot.repositories.filter(repo=>repo.errors.length).length} 个研究区的部分来源读取失败；缺失项保留为未知。`);
+  if(state.live?.errors.length)messages.push(`${state.live.errors.length} 个协作来源本轮不可读，保留各自最近观测时间。`);
   $('#notice').hidden=!messages.length; $('#notice').textContent=messages.join(' ');
 }
 function renderMetrics() {
@@ -110,7 +114,7 @@ function taskItem(task){
   item.append(meta);return item;
 }
 function renderInspector(){
-  const repo=currentRepo();$('#inspector-title').textContent=repo.label;$('#repo-name').textContent=repo.name;$('#repo-link').href=external(repo.url);$('#repo-description').textContent=repo.description;
+  const repo=currentRepo();$('#inspector-title').textContent=repo.label;$('#repo-name').textContent=repo.name;$('#repo-link').href=external(repo.url);$('#repo-description').textContent=repo.description+' · '+relative(repo.observed_at||state.snapshot.collected_at)+'观测';
   $('#tab-runs-count').textContent=repo.runs.length;$('#tab-tasks-count').textContent=repo.tasks.length;
   const content=$('#inspector-content');const scroll=content.scrollTop;content.replaceChildren();content.setAttribute('aria-labelledby','tab-'+state.tab);
   if(repo.errors.length)content.append(text('p','部分来源：'+repo.errors.join('；'),'inspection-meta'));
@@ -149,7 +153,78 @@ function renderActivities(){
   if(!records.length)frag.append(text('p','当前筛选下没有观察到记录。','empty'));
   list.replaceChildren(frag);$('#activity-scope').textContent=`${records.length} 条采样记录 · 按 GitHub 更新时间`;$('#show-more').hidden=records.length<=state.limit;
 }
-function render(){renderFreshness();renderMetrics();renderFocus();renderMap();renderInspector();renderActivities();}
+function render(){
+  if(state.live)for(const repo of state.snapshot.repositories){const current=state.live.focus_runs?.[repo.full_name];if(current&&Array.isArray(current.runs)&&date(current.observed_at)>=date(repo.observed_at||state.snapshot.collected_at)){repo.runs=current.runs;repo.observed_at=current.observed_at;}}
+  renderFreshness();renderMetrics();renderFocus();renderMap();renderInspector();renderActivities();
+}
+
+function threadGroups(){
+  const groups=new Map();
+  for(const message of state.live?.messages||[]){
+    if(state.threadScope!=='all'&&message.repository.split('/')[1]!==state.threadScope)continue;
+    if(!groups.has(message.thread))groups.set(message.thread,[]);
+    groups.get(message.thread).push(message);
+  }
+  return [...groups.entries()].map(([id,messages])=>({id,messages:messages.sort((a,b)=>date(a.created_at)-date(b.created_at)),latest:messages.reduce((a,b)=>date(a.updated_at)>date(b.updated_at)?a:b)})).sort((a,b)=>date(b.latest.updated_at)-date(a.latest.updated_at));
+}
+function threadTitle(message){
+  const task=state.snapshot?.repositories.flatMap(repo=>repo.tasks).find(task=>task.repository===message.repository&&task.number===message.number);
+  return task?.title||`${message.repository.split('/')[1]} #${message.number}`;
+}
+function renderConversation(){
+  const groups=threadGroups(),list=$('#thread-list');
+  if(!groups.some(group=>group.id===state.thread))state.thread=(groups.find(group=>new Set(group.messages.map(message=>message.actor)).size>1)||groups[0])?.id;
+  const fragment=document.createDocumentFragment();
+  for(const group of groups.slice(0,35)){
+    const button=text('button','','thread-card');button.type='button';button.dataset.thread=group.id;button.setAttribute('aria-pressed',String(group.id===state.thread));
+    button.append(text('span',`${group.latest.repository.split('/')[1]} #${group.latest.number}`,'thread-coordinate'),text('strong',threadTitle(group.latest)),text('span',`${new Set(group.messages.map(m=>m.actor)).size} 个公开账号 · ${group.messages.length} 条采样讨论 · ${relative(group.latest.updated_at)}`,'thread-meta'));
+    button.addEventListener('click',()=>{state.thread=group.id;renderConversation();});fragment.append(button);
+  }
+  if(!groups.length)fragment.append(text('p','当前来源没有采样到公开讨论。','empty'));
+  list.replaceChildren(fragment);
+  const selected=groups.find(group=>group.id===state.thread),flow=$('#conversation-flow'),messages=$('#conversation-messages');
+  if(!selected){flow.replaceChildren();messages.replaceChildren();return;}
+  $('#conversation-title').replaceChildren(link(threadTitle(selected.latest),selected.latest.thread_url));
+  const participants=text('div','','flow-participants');
+  for(const actor of [...new Set(selected.messages.map(m=>m.actor))].slice(0,8))participants.append(text('span',actor,'flow-person'));
+  const topic=text('div','','flow-topic');topic.append(text('small','共同更新的课题'),text('strong','#'+selected.latest.number));
+  const refs=new Map();for(const message of selected.messages)for(const ref of message.references||[])if(`${ref.repository}#${ref.number}`!==selected.id)refs.set(`${ref.repository}#${ref.number}`,ref);
+  const outputs=text('div','','flow-outputs');
+  for(const ref of [...refs.values()].slice(0,4))outputs.append(link(`${ref.repository.split('/')[1]} #${ref.number}`,ref.url,'flow-reference'));
+  if(!refs.size)outputs.append(text('span','后续交付尚无明确引用','flow-unknown'));
+  const arrow=text('span','→','flow-arrow');arrow.title='公开记录中的更新与引用关系，不代表内部私聊';
+  flow.replaceChildren(participants,arrow,topic,text('span','→','flow-arrow'),outputs);
+  const scroll=messages.scrollTop,items=document.createDocumentFragment();
+  for(const message of selected.messages.slice(-25)){
+    const article=text('article','','public-message');article.dataset.messageId=message.id;
+    const head=text('div','','public-message-head');head.append(text('strong',message.actor),text('span',message.kind==='review_comment'?'行内评审评论':'公开讨论更新'),text('time',relative(message.created_at)));head.lastChild.dateTime=message.created_at;
+    article.append(head);if(message.session)article.append(text('div','原记录声明的会话：'+message.session,'message-session'));
+    if(message.mentions?.length)article.append(text('div','明确提及：'+message.mentions.map(name=>'@'+name).join('、'),'message-mentions'));
+    article.append(text('p',message.text,'message-excerpt'),link('原记录 ↗',message.url,'message-source'));items.append(article);
+  }
+  messages.replaceChildren(items);messages.scrollTop=scroll;
+}
+function liveHealth(){
+  if(!state.live){$('#stream-status').textContent='协作通道暂未连接';return;}
+  const age=(Date.now()-date(state.live.observed_at))/1000,late=age>180;
+  $('#stream-status').textContent=state.liveError?'新观测暂不可读':late?'采集已延迟':`${relative(state.live.observed_at)}观测 · 持续采集`;
+  $('#stream-dot').className='signal-dot '+((late||state.liveError||state.live.errors.length)?'stale':'fresh');
+  $('#stream-count').textContent=`${state.live.messages.length} 条公开讨论 / 行内评审采样 · ${Object.keys(state.live.coverage).length} 个仓库已轮巡${state.live.errors.length?' · 部分来源不可用':''}`;
+}
+async function refreshLive(){
+  if(state.liveFetching)return;state.liveFetching=true;
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    const url=new URL('https://raw.githubusercontent.com/the-omega-institute/trureturing-live/live-data/live.json');url.searchParams.set('tick',String(Math.floor(Date.now()/15000)));
+    const response=await fetch(url,{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('live unavailable');
+    const live=await response.json();
+    if(live.schema!=='trureturing-live-stream.v1'||!Number.isFinite(Date.parse(live.observed_at))||!Array.isArray(live.messages)||!live.coverage||!Array.isArray(live.errors))throw new Error('live invalid');
+    if(state.live&&date(live.observed_at)<date(state.live.observed_at))throw new Error('older live snapshot');
+    const changed=JSON.stringify(state.live?.messages)!==JSON.stringify(live.messages),observedChanged=state.live?.observed_at!==live.observed_at;state.live=live;state.liveError=null;
+    if(state.snapshot&&observedChanged)render();
+    if(changed||!$('#thread-list [data-thread]'))renderConversation();
+  }catch{state.liveError='unavailable';}finally{clearTimeout(timeout);state.liveFetching=false;liveHealth();}
+}
 async function refresh(){
   if(state.fetching)return;state.fetching=true;$('#refresh').disabled=true;
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),18000);
@@ -160,7 +235,7 @@ async function refresh(){
     if(state.snapshot&&date(snapshot.collected_at)<date(state.snapshot.collected_at))throw new Error('older snapshot');
     const changed=state.snapshot?.collected_at!==snapshot.collected_at;
     state.snapshot=snapshot;state.lastError=null;state.lastCheck=Date.now();
-    if(changed)render();else renderFreshness();
+    if(changed){render();if(state.live)renderConversation();}else renderFreshness();
     try{localStorage.setItem(cacheKey,JSON.stringify(snapshot));}catch{}
   }catch{
     state.lastError='unavailable';
@@ -177,11 +252,13 @@ for(const button of document.querySelectorAll('[data-tab]')){
 }
 for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{state.filter=button.dataset.filter;state.limit=20;for(const filter of document.querySelectorAll('[data-filter]'))filter.setAttribute('aria-pressed',String(filter===button));if(state.snapshot)renderActivities();});
 $('#search').addEventListener('input',event=>{state.query=event.target.value;state.limit=20;if(state.snapshot)renderActivities();});
-$('#refresh').addEventListener('click',refresh);$('#show-more').addEventListener('click',()=>{state.limit+=30;renderActivities();});
+$('#refresh').addEventListener('click',()=>{refresh();refreshLive();});$('#show-more').addEventListener('click',()=>{state.limit+=30;renderActivities();});
 $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}});
 document.addEventListener('fullscreenchange',()=>$('#fullscreen').setAttribute('aria-label',document.fullscreenElement?'退出全屏大屏':'进入全屏大屏'));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 try{const cached=JSON.parse(localStorage.getItem(cacheKey));if(validSnapshot(cached)){state.snapshot=cached;render();}}catch{}
 refresh();
+refreshLive();
+for(const button of document.querySelectorAll('[data-thread-scope]'))button.addEventListener('click',()=>{state.threadScope=button.dataset.threadScope;state.thread=null;for(const other of document.querySelectorAll('[data-thread-scope]'))other.setAttribute('aria-pressed',String(other===button));renderConversation();});
 setInterval(()=>{if(!document.hidden)refresh();},60000);
-setInterval(()=>{if(state.snapshot&&!document.hidden)renderFreshness();},15000);
+setInterval(()=>{if(!document.hidden){refreshLive();if(state.snapshot)renderFreshness();liveHealth();}},15000);

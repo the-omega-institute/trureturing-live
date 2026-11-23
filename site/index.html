@@ -8,8 +8,8 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>trureturing live · 研究正在发生</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css">
-  <script type="module" src="assets/app.mjs"></script>
+  <link rel="stylesheet" href="assets/app.css?v=collaboration-v2">
+  <script type="module" src="assets/app.mjs?v=collaboration-v2"></script>
 </head>
 <body>
   <a class="skip-link" href="#research-map">跳至研究地图</a>
@@ -22,11 +22,21 @@
 
   <main>
     <section class="introduction" aria-labelledby="page-title">
-      <div><p class="eyebrow">AN OPEN RESEARCH OBSERVATORY</p><h1 id="page-title">研究，正在发生<span>。</span></h1><p class="intro-text">从一个问题，到下一条可复用的知识。</p></div>
-      <div class="observation-clock"><span class="clock-label">LATEST OBSERVATION / 最近采集</span><time id="observation-time">等待数据</time><span id="freshness">公开 GitHub 数据 · 约每 5 分钟采集</span></div>
+      <div><p class="eyebrow">AN OPEN RESEARCH OBSERVATORY</p><h1 id="page-title">看见研究如何接力<span>。</span></h1><p class="intro-text">谁更新了问题，谁接着评审，结果又流向哪里。</p></div>
+      <div class="observation-clock"><span class="clock-label">LIVE OBSERVATION / 持续观测</span><time id="observation-time">等待数据</time><span id="freshness">连接协作数据通道</span></div>
     </section>
 
     <div class="notice" id="notice" role="status" hidden></div>
+    <section class="collaboration" aria-labelledby="collaboration-title">
+      <div class="collaboration-heading"><div><p class="eyebrow">INSIDE THE RESEARCH / 公开协作现场</p><h2 id="collaboration-title">课题、讨论与交付的接力</h2></div><div class="stream-status"><span class="signal-dot" id="stream-dot"></span><span id="stream-status">连接持续观测</span></div></div>
+      <div class="stream-explanation">主仓与 books 约每 60 秒采集 · 页面每 15 秒检查 · 展示 GitHub 公开讨论与行内评审，内部 agent 消息尚未接入</div>
+      <div class="collaboration-layout">
+        <div class="thread-column"><div class="thread-filters" role="group" aria-label="协作讨论来源"><button type="button" data-thread-scope="all" aria-pressed="true">全部</button><button type="button" data-thread-scope="trureturing" aria-pressed="false">主仓</button><button type="button" data-thread-scope="trureturing-books" aria-pressed="false">Books</button></div><div id="thread-list" class="thread-list"><p class="empty">正在读取公开讨论…</p></div></div>
+        <div class="conversation"><div id="conversation-title" class="conversation-title">选择一个课题，看见实际更新与关联交付。</div><div id="conversation-flow" class="conversation-flow" role="group" aria-label="公开参与账号与明确引用的交付关系"></div><div id="conversation-messages" class="conversation-messages" aria-live="polite"><p class="empty">讨论与评审将保留原文摘录、提交账号和来源链接。</p></div></div>
+      </div>
+      <div class="stream-footer"><span id="stream-count">等待实际协作记录</span><span id="panorama-age">全景地图单独采集</span></div>
+    </section>
+
     <section class="metrics" aria-label="本次观测的活动统计">
       <div><span class="metric-label">运行中 <small>WORKFLOWS</small></span><strong id="metric-running">—</strong><span class="metric-note">已观察到的 Actions</span></div>
       <div><span class="metric-label">排队与等待 <small>QUEUED</small></span><strong id="metric-queued">—</strong><span class="metric-note">等待执行或人工审批</span></div>
@@ -64,7 +74,7 @@
       <button id="show-more" class="show-more" type="button" hidden>展开更多动态</button>
     </section>
 
-    <footer class="footer"><div><span class="footer-brand">trureturing live</span><p>让问题被接住，让知识继续生长。</p></div><div class="footer-explanation"><p>展示公开的执行与交付记录。工作流成功不等于数学结论已验证发布。</p><p><a href="data/snapshot.json">原始观测数据</a><span>·</span><a href="https://github.com/the-omega-institute/trureturing-live#data-and-meaning">数据口径</a><span>·</span><span id="next-refresh">页面每分钟检查更新</span></p></div></footer>
+    <footer class="footer"><div><span class="footer-brand">trureturing live</span><p>让问题被接住，让知识继续生长。</p></div><div class="footer-explanation"><p>展示公开的执行与交付记录。工作流成功不等于数学结论已验证发布。</p><p><a href="data/snapshot.json">原始观测数据</a><span>·</span><a href="https://github.com/the-omega-institute/trureturing-live#data-and-meaning">数据口径</a><span>·</span><span id="next-refresh">协作每 15 秒检查 · 全景每分钟检查</span></p></div></footer>
   </main>
   <noscript><p class="notice">请启用 JavaScript 查看研究地图。<a href="data/snapshot.json">原始公开数据</a>仍可直接读取。</p></noscript>
 </body>
