@@ -5,9 +5,9 @@ Actions, research questions and pull requests across the public repositories;
 follow each observation back to its source.
 
 Production domain: **https://live.trureturing.org/**.
-The independent GitHub Pages origin is
-https://the-omega-institute.github.io/trureturing-live/ until the custom domain
-is attached. The existing Atlas stays at https://www.trureturing.org/atlas.
+The GitHub Pages project URL
+https://the-omega-institute.github.io/trureturing-live/ redirects to that custom
+domain. The existing Atlas stays at https://www.trureturing.org/atlas.
 
 The dashboard is plain HTML, CSS and JavaScript. The collector uses Python's
 standard library. There is no frontend build step, runtime CDN, browser token,
@@ -82,10 +82,11 @@ the site displays the observed timestamp rather than promising a fixed latency.
 GitHub may disable schedules on a public repository after prolonged inactivity;
 the delayed-data indicator continues to report the last actual observation.
 
-Enable Pages with `build_type: workflow`. For the custom domain, create a
-DNS-only CNAME from `live.trureturing.org` to
-`the-omega-institute.github.io`, then set the Pages custom domain and HTTPS.
-Only this independent repository's deployment is affected.
+Pages uses `build_type: workflow` and the custom domain in `site/CNAME`.
+The existing Cloudflare route for `live.trureturing.org` already reaches GitHub
+Pages; the new site binds that hostname to this repository. For a new hostname,
+point a CNAME to `the-omega-institute.github.io` before attaching the Pages custom
+domain and HTTPS. Only this independent repository's deployment is affected.
 
 ## Extending the view
 
