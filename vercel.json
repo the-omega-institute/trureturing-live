@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "",
+  "outputDirectory": "site",
+  "regions": ["sin1"],
+  "redirects": [{"source": "/", "destination": "https://live.trureturing.org/", "permanent": false}],
+  "functions": {"api/live.mjs": {"maxDuration": 20}}
+}

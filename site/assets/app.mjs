@@ -215,7 +215,7 @@ async function refreshLive(){
   if(state.liveFetching)return;state.liveFetching=true;
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
   try{
-    const url=new URL('https://raw.githubusercontent.com/the-omega-institute/trureturing-live/live-data/live.json');url.searchParams.set('tick',String(Math.floor(Date.now()/15000)));
+    const url=new URL('https://trureturing-live-reader.vercel.app/api/live');
     const response=await fetch(url,{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('live unavailable');
     const live=await response.json();
     if(live.schema!=='trureturing-live-stream.v1'||!Number.isFinite(Date.parse(live.observed_at))||!Array.isArray(live.messages)||!live.coverage||!Array.isArray(live.errors))throw new Error('live invalid');

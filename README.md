@@ -115,9 +115,20 @@ the job's short-lived repository token. This is a current-state pointer: each
 publication replaces its orphan commit. It does not retain a growing Git history
 of repeated telemetry. The publisher checks the ownership marker and expected
 head and refuses to replace human work or a changed pointer. Do not use this
-branch for source work. The frontend reads its public raw JSON directly, so a
-delayed or failed Pages deployment cannot stop this data channel. No observer
+branch for source work. A public read-only reader resolves the latest commit from
+GitHub's Atom feed and loads the JSON at that immutable SHA. This avoids the
+five-minute cache on raw branch URLs. A delayed Pages deployment cannot stop
+this data channel. No observer
 credential is sent to the browser or an external hosting provider.
+
+The reader is `https://trureturing-live-reader.vercel.app/api/live`, implemented
+by `api/live.mjs`. It reads two fixed public GitHub URLs without a token, allows
+only reads, and caches the response for ten seconds. `publication_sha` binds each
+response to the observed data commit. The public Atom feed is used instead of
+consuming each viewer's unauthenticated REST allowance. The Vercel project is
+`trureturing-live-reader`; deploy its source with `vercel deploy --prod --yes`.
+It has no GitHub credential or connection to private repositories. Its root URL
+redirects to the production observatory. The main site remains on GitHub Pages.
 
 Only bounded excerpts of public discussion prose are projected. Code dumps,
 credential-like strings, local paths and contact addresses are omitted. Each

@@ -18,7 +18,7 @@ async function boot(data=snapshot(),live=null){
   const win=dom.window;
   // CSS.escape is a browser API not supplied by this DOM implementation.
   win.CSS={escape:value=>String(value).replace(/[^a-zA-Z0-9_-]/g,c=>'\\'+c)};
-  win.fetch=async url=>({ok:true,json:async()=>structuredClone(String(url).includes('raw.githubusercontent.com')&&live?live:data)});
+  win.fetch=async url=>({ok:true,json:async()=>structuredClone(String(url).includes('/api/live')&&live?live:data)});
   win.setInterval=()=>0;
   win.eval(script);
   await new Promise(resolve=>setImmediate(resolve));
