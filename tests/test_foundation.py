@@ -65,3 +65,18 @@ class FoundationTests(unittest.TestCase):
         }
         rows=reader.rows({'repository':REPO,'kind':'github_actions','workflow_paths':['.github/workflows/ci-current.yml']})
         self.assertEqual(rows,[{'id':1}])
+
+    def test_cold_reader_cache_preserves_the_last_actual_workflow_observation(self):
+        class API:
+            def get(self,*args,**kwargs):raise SourceError('GitHub HTTP 404')
+        class Foundation:
+            config={'sources':[{'id':'core-checks','repository':REPO,'kind':'github_actions'}]}
+            statistics={'failures':[]}
+            def collect(self):return {'schema':'ai-org.live.v1','observed_at':TIME,'sources':[{'id':'core-checks','observed_at':TIME,'complete':False}],'departments':[]}
+            def rows(self,source):return None
+        observer=Observer(API(),{'owner':'the-omega-institute'})
+        previous={'observed_at':'2026-11-23T11:59:50Z','runs':[{'id':42,'status':'in_progress'}]}
+        observer.runs={REPO:previous}
+        observed=observer.observe(Foundation())
+        self.assertEqual(observed['focus_runs'][REPO],previous)
+        self.assertNotIn('core-checks',observer.loaded_sources)
