@@ -160,6 +160,9 @@ def main():
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     api = GitHub(os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN') or '', budget=900)
+    allowance, _ = api.get('/rate_limit')
+    core = allowance['resources']['core']
+    print(f"GitHub observation allowance: {core['remaining']} of {core['limit']} remaining; reset {core['reset']}", flush=True)
     observer = Observer(api, json.loads((ROOT / 'config.json').read_text()))
     publisher = Publisher(api)
     foundation = FoundationReader(api)
