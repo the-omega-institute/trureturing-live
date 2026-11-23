@@ -1,0 +1,157 @@
+{
+  "questions": {
+    "trureturing#33584": {
+      "title": "无限生长的过程，何时具有紧致性？",
+      "question": "一个过程每次都遵守局部规则，所有可能的无限历史会呈现怎样的整体结构？",
+      "area": "分析与结构"
+    },
+    "trureturing#33506": {
+      "title": "每个奇素数，都有一个更小的素数原根吗？",
+      "question": "沿着 Erdős 的第 985 号问题，连接解析数论中的条件与可以逐项核验的结论。",
+      "area": "数论"
+    },
+    "trureturing#33599": {
+      "title": "微调频率，能保住原来的计数规律吗？",
+      "question": "寻找一种共同的扰动，让多个频率条件仍然彼此相容。",
+      "area": "分析与结构"
+    },
+    "trureturing#33594": {
+      "title": "许多频谱条件，能由同一次调整满足吗？",
+      "question": "把分别成立的估计放到一起，寻找同一组频率满足它们的条件。",
+      "area": "分析与结构"
+    },
+    "trureturing#33585": {
+      "title": "为许多检验，寻找同一组频率",
+      "question": "研究多个矩条件之间的关系，尝试用一个共同扰动控制它们。",
+      "area": "分析与结构"
+    },
+    "trureturing#33607": {
+      "title": "改变频率后，怎样继续控制谐波权重？",
+      "question": "将已有的碰撞估计接到重新计算的谐波权重上。",
+      "area": "分析与结构"
+    },
+    "trureturing#33593": {
+      "title": "三元结构的扩展，哪些规模能达到？",
+      "question": "围绕第 39 章的内部扩展，寻找可达到规模的完整范围。",
+      "area": "组合数学"
+    },
+    "trureturing#33578": {
+      "title": "拉丁方与 Steiner 结构如何共同描述扩展？",
+      "question": "从最小规模继续出发，研究更一般的三元扩展怎样被分解。",
+      "area": "组合数学"
+    },
+    "trureturing#33559": {
+      "title": "最优三元结构，能否用拉丁方来分类？",
+      "question": "把一个最小规模问题，转化为可以逐一描述的组合结构。",
+      "area": "组合数学"
+    },
+    "trureturing#33461": {
+      "title": "图上的 Δ–Y 变换，为何出现度数六的门槛？",
+      "question": "考察三角形与 Y 形的变换在什么条件下拥有相同的可达范围。",
+      "area": "组合数学"
+    },
+    "trureturing-books#1094": {
+      "title": "为许多检验，寻找同一组频率扰动",
+      "question": "第 31 章正在把共同频谱扰动的论证整理成书稿。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1096": {
+      "title": "用简单指令，观察计算与几何的联系",
+      "question": "第 38 章继续探索 FRACTRAN 计算与观察者指令的表达。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1095": {
+      "title": "把有理数、球面和傅里叶方法连起来",
+      "question": "第 39 章正在组织三元球面上的有理傅里叶构造。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1082": {
+      "title": "观察者如何用自身结构描述世界？",
+      "question": "第 38 章正在组织观察者、记忆与结构信息时间之间的论证。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1078": {
+      "title": "从更小的数学基础，接回现有证明",
+      "question": "探索一个独立数学基础怎样与现有的证明生态共同工作。",
+      "area": "理论书写"
+    },
+    "trureturing#33620": {
+      "title": "分散的扰动，能否只付出欧氏尺度的误差？",
+      "question": "研究均匀扰动的误差估计，寻找与欧氏尺度相匹配的上界。",
+      "area": "分析与结构"
+    },
+    "trureturing#33645": {
+      "title": "相邻态的重叠，怎样决定边缘态的秩？",
+      "question": "从相邻部分的重叠关系，刻画边缘态的精确秩。",
+      "area": "量子信息"
+    },
+    "trureturing#33643": {
+      "title": "用带相位的高斯核，约束窗口中的质量",
+      "question": "把闭区间上的质量估计，连接到保留相位信息的高斯核。",
+      "area": "分析与结构"
+    },
+    "trureturing#33603": {
+      "title": "带权图划分，还隐藏着怎样的组合结构？",
+      "question": "沿着 González D’León 与 Wachs 的第 7.1 问，研究带权 bond 结构的特化。",
+      "area": "组合数学"
+    },
+    "trureturing#33649": {
+      "title": "斐波那契纯量子态，具有怎样的散度间隙？",
+      "question": "检验积分后的纯量子态散度，寻找可以明确证明的间隙。",
+      "area": "量子信息"
+    },
+    "trureturing#33644": {
+      "title": "图的物理端口，为何需要至少四个阶段？",
+      "question": "研究物理图端口上的制备过程，以及达到最小阶段数的条件。",
+      "area": "组合与几何"
+    },
+    "trureturing#33542": {
+      "title": "BMV 多项式的混合符号，何时可以确定？",
+      "question": "在较小坐标至少为四的范围内，继续推进精细的符号判断。",
+      "area": "代数与结构"
+    },
+    "trureturing-books#1108": {
+      "title": "把高斯核的窗口估计写进第 31 章",
+      "question": "整理闭区间质量的高斯上界，将估计的机制写成可阅读的论证。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1098": {
+      "title": "让频谱扰动与碰撞估计汇成一章",
+      "question": "把近期的扰动构造与碰撞界，接回第 31 章的理论脉络。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1107": {
+      "title": "解释分散 sinc 乘积中的欧氏尺度",
+      "question": "从乘积的估计出发，说明误差为什么呈现这一尺度。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1104": {
+      "title": "改变谐波权重后，怎样使用碰撞估计？",
+      "question": "在重新计算权重后，整理已有碰撞界的应用方法。",
+      "area": "理论书写"
+    },
+    "trureturing-books#1105": {
+      "title": "把局部边缘态的精确秩写清楚",
+      "question": "将秩的刻画与推导，整理为斐波那契量子态部分的论证。",
+      "area": "理论书写"
+    }
+  },
+  "papers": {
+    "paper-two-qutrit-time-invariant-negativity": {
+      "title": "噪声中，哪些量子纠缠能够保留下来？",
+      "summary": "研究两组三能级量子系统的演化：纠缠何时保持、消失，或以束缚形式持续存在。"
+    },
+    "paper-cotfas-gaussian-discrete-approximation": {
+      "title": "用离散量子系统，逼近连续的高斯态",
+      "summary": "构造离散近似，并给出随维度变化的明确误差估计。"
+    },
+    "paper-well-covered-powers-cartesian-products-and-cayley-graphs": {
+      "title": "图的幂，何时保持良覆盖性质？",
+      "summary": "从笛卡尔积与 Cayley 图出发，研究哪些结构能够保持这一性质。"
+    },
+    "paper-singhvi-deletion-channel-input-entropy": {
+      "title": "删掉或插入两个字符，哪些结果最难猜回原文？",
+      "summary": "在均匀传输模型下，寻找使输入熵最大的接收词。"
+    }
+  }
+}

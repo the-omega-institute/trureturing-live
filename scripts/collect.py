@@ -268,6 +268,14 @@ def main() -> None:
     if args.use_gh and not token:
         token = subprocess.run(["gh", "auth", "token"], check=True, capture_output=True, text=True).stdout.strip()
     snapshot = collect(GitHub(token), json.loads(args.config.read_text()))
+    try:
+        request = Request('https://www.trureturing.org/assets/publication-index.json', headers={'User-Agent': 'trureturing-live/1'})
+        with urlopen(request, timeout=20) as response:
+            publication_index = json.load(response)
+        snapshot['publications'] = publication_index['publications']
+    except (HTTPError, URLError, TimeoutError, ValueError, KeyError):
+        snapshot['publications'] = []
+    snapshot['editorial'] = json.loads((ROOT / 'editorial.json').read_text())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")) + "\n")
