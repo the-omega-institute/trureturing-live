@@ -93,9 +93,11 @@ class FoundationReader:
         else:
             return []
         rows = []
+        found = False
         for cache_key, value in self.cache.items():
             path, _ = json.loads(cache_key)
             if path in paths:
+                found = True
                 payload = value['value']
                 rows.extend(payload.get('workflow_runs', []) if isinstance(payload, dict) else payload)
-        return rows
+        return rows if found else None

@@ -124,6 +124,8 @@ class Observer:
             if not observed_at or self.loaded_sources.get(source['id']) == observed_at:
                 continue
             rows = foundation.rows(source)
+            if rows is None:
+                continue
             repo = source['repository']
             if source['kind'] in {'github_comments', 'github_reviews'}:
                 kind = 'review_comment' if source['kind'] == 'github_reviews' else 'comment'
