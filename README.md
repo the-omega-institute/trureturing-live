@@ -4,6 +4,10 @@ A public research observatory for the trureturing ecosystem. Explore active GitH
 Actions, research questions and pull requests across the public repositories;
 follow each observation back to its source.
 
+The homepage leads with public collaboration: topic threads, comment excerpts,
+inline review comments, explicitly mentioned accounts and linked deliveries.
+These are GitHub records, not an invented transcript of internal agent messages.
+
 Production domain: **https://live.trureturing.org/**.
 The GitHub Pages project URL
 https://the-omega-institute.github.io/trureturing-live/ redirects to that custom
@@ -69,8 +73,10 @@ its own observation time, source coverage and errors. The complete snapshot has
 - Map positions identify research areas by repository. Decorative orbits are
   layout guides; they encode no mathematical dependencies or task transfers.
 
-The frontend checks the published snapshot every minute and displays its actual
-age. After 15 minutes it marks the observation as delayed. An unavailable fetch
+The frontend checks the full panorama every minute and the independent
+collaboration stream every 15 seconds. Its header shows the actual live observer
+timestamp; panorama age remains separately visible. Collaboration older than
+three minutes is marked delayed. An unavailable fetch
 keeps the last valid browser snapshot visibly marked; a total collection outage
 fails publication and retains the existing deployment. Partial endpoint failures
 are shown as missing readings. Existing snapshots and source changes are never
@@ -78,7 +84,7 @@ mixed into an invented current run.
 
 ## Automatic observation and publication
 
-`.github/workflows/pages.yml` runs every five minutes, on main pushes and on
+`.github/workflows/pages.yml` runs every fifteen minutes, on main pushes and on
 manual dispatch. It reads public GitHub records with the job's short-lived
 `GITHUB_TOKEN`, then deploys the static site to GitHub Pages. It does not place
 credentials in browser code or require access to private source repositories.
@@ -93,6 +99,33 @@ The existing Cloudflare route for `live.trureturing.org` already reaches GitHub
 Pages; the new site binds that hostname to this repository. For a new hostname,
 point a CNAME to `the-omega-institute.github.io` before attaching the Pages custom
 domain and HTTPS. Only this independent repository's deployment is affected.
+
+## Continuous collaboration channel
+
+`.github/workflows/live.yml` maintains one observer for 55 minutes. Its five-minute
+schedule acts as a watchdog: concurrency permits one active observer and one
+pending replacement. Each observation reads Core and Books comments and recent
+workflow runs, rotates inline reviews between them, and rotates public comment
+sampling across the remaining related repositories. Individual source observation
+times and errors stay in the feed. The cadence is approximately one minute;
+runner startup, API failures and worker handover can introduce gaps.
+
+The observer writes `live.json` to the **machine-owned `live-data` branch** using
+the job's short-lived repository token. This is a current-state pointer: each
+publication replaces its orphan commit. It does not retain a growing Git history
+of repeated telemetry. The publisher checks the ownership marker and expected
+head and refuses to replace human work or a changed pointer. Do not use this
+branch for source work. The frontend reads its public raw JSON directly, so a
+delayed or failed Pages deployment cannot stop this data channel. No observer
+credential is sent to the browser or an external hosting provider.
+
+Only bounded excerpts of public discussion prose are projected. Code dumps,
+credential-like strings, local paths and contact addresses are omitted. Each
+excerpt links to its original record. Accounts, explicit mentions and declared
+sessions retain distinct meanings: co-participation in one issue is not evidence
+of an internal direct message or an independently verified AI identity. Internal
+agent communication and heartbeats require an explicitly supplied producer feed;
+this downstream site does not instrument or change source repositories.
 
 ## Extending the view
 

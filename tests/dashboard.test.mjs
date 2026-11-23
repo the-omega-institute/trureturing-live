@@ -13,12 +13,12 @@ function snapshot(){
   const books={...core,name:'trureturing-books',full_name:'the-omega-institute/trureturing-books',label:'理论写作',short:'BOOKS',x:80,y:19,url:'https://github.com/the-omega-institute/trureturing-books',runs:[],tasks:[]};
   return {schema:'trureturing-live.v1',collected_at:stamp,repositories:[core,books]};
 }
-async function boot(data=snapshot()){
+async function boot(data=snapshot(),live=null){
   const dom=new JSDOM(html,{url:'https://live.trureturing.org/',runScripts:'outside-only',pretendToBeVisual:true});
   const win=dom.window;
   // CSS.escape is a browser API not supplied by this DOM implementation.
   win.CSS={escape:value=>String(value).replace(/[^a-zA-Z0-9_-]/g,c=>'\\'+c)};
-  win.fetch=async()=>({ok:true,json:async()=>structuredClone(data)});
+  win.fetch=async url=>({ok:true,json:async()=>structuredClone(String(url).includes('raw.githubusercontent.com')&&live?live:data)});
   win.setInterval=()=>0;
   win.eval(script);
   await new Promise(resolve=>setImmediate(resolve));
@@ -99,5 +99,22 @@ test('newly discovered research repositories appear without a frontend allowlist
     doc.querySelector('[data-repo="trureturing-new-theory"]').click();
     assert.equal(doc.querySelector('#inspector-title').textContent,'New theory');
     assert.equal(doc.querySelector('#metric-repos').textContent,'3/3');
+  }finally{dom.window.close();}
+});
+
+test('public collaboration shows actual accounts, explicit mentions and source-linked messages',async()=>{
+  const message={id:'m1',kind:'comment',repository:'the-omega-institute/trureturing',number:42,thread:'the-omega-institute/trureturing#42',thread_url:'https://github.com/the-omega-institute/trureturing/issues/42',url:'https://github.com/the-omega-institute/trureturing/issues/42#issuecomment-1',actor:'research-seat',session:null,mentions:['review-seat'],created_at:stamp,updated_at:stamp,text:'Please review the exact construction.',references:[{repository:'the-omega-institute/trureturing-books',number:9,url:'https://github.com/the-omega-institute/trureturing-books/pull/9'}]};
+  const live={schema:'trureturing-live-stream.v1',observed_at:stamp,messages:[message,{...message,id:'m2',actor:'review-seat',text:'The boundary case needs a correction.'}],coverage:{'the-omega-institute/trureturing':{}},focus_runs:{},errors:[]};
+  const {dom,doc}=await boot(snapshot(),live);
+  try{
+    assert.equal(doc.querySelectorAll('.public-message').length,2);
+    assert.match(doc.querySelector('#conversation-flow').textContent,/research-seat/);
+    assert.match(doc.querySelector('#conversation-flow').textContent,/trureturing-books #9/);
+    assert.match(doc.querySelector('#conversation-messages').textContent,/@review-seat/);
+    assert.equal(doc.querySelectorAll('.message-session').length,0);
+    assert.equal(doc.querySelector('.message-source').href,message.url);
+    doc.querySelector('[data-thread-scope="trureturing-books"]').click();
+    assert.equal(doc.querySelectorAll('.public-message').length,0);
+    assert.match(doc.querySelector('#thread-list').textContent,/没有采样到公开讨论/);
   }finally{dom.window.close();}
 });

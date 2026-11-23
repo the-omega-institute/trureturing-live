@@ -1,6 +1,6 @@
 {
   "owner": "the-omega-institute",
-  "refresh_interval_seconds": 300,
+  "refresh_interval_seconds": 900,
   "discovery": {"prefixes": ["trureturing"], "include": ["mathesis"]},
   "repositories": [
     {"name": "trureturing", "label": "形式化研究", "short": "CORE", "description": "研究课题、Lean 交付与评审", "featured": true},
