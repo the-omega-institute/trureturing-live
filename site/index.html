@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1117">
+  <meta name="description" content="trureturing 的公开研究活动地图：跨仓课题、GitHub Actions、验证与交付，持续更新并保留来源。">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>trureturing live · 研究正在发生</title>
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/app.css">
+  <script type="module" src="assets/app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#research-map">跳至研究地图</a>
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="trureturing live 首页"><img src="assets/mark.svg" width="30" height="30" alt=""><span>trureturing<span class="brand-live">live</span></span></a>
+    <nav aria-label="主导航"><a href="https://www.trureturing.org/atlas">Atlas <span aria-hidden="true">↗</span></a><a href="https://github.com/the-omega-institute/trureturing-live">Source <span aria-hidden="true">↗</span></a></nav>
+    <div class="masthead-status"><span class="signal-dot" id="signal-dot"></span><span id="connection-state">连接公开记录</span></div>
+    <button class="quiet-button fullscreen-button" id="fullscreen" type="button" aria-label="进入全屏大屏">⛶ <span>大屏</span></button>
+  </header>
+
+  <main>
+    <section class="introduction" aria-labelledby="page-title">
+      <div><p class="eyebrow">AN OPEN RESEARCH OBSERVATORY</p><h1 id="page-title">研究，正在发生<span>。</span></h1><p class="intro-text">从一个问题，到下一条可复用的知识。</p></div>
+      <div class="observation-clock"><span class="clock-label">LATEST OBSERVATION / 最近采集</span><time id="observation-time">等待数据</time><span id="freshness">公开 GitHub 数据 · 约每 5 分钟采集</span></div>
+    </section>
+
+    <div class="notice" id="notice" role="status" hidden></div>
+    <section class="metrics" aria-label="本次观测的活动统计">
+      <div><span class="metric-label">运行中 <small>WORKFLOWS</small></span><strong id="metric-running">—</strong><span class="metric-note">已观察到的 Actions</span></div>
+      <div><span class="metric-label">排队与等待 <small>QUEUED</small></span><strong id="metric-queued">—</strong><span class="metric-note">等待执行或人工审批</span></div>
+      <div><span class="metric-label">开放交付 <small>PULL REQUESTS</small></span><strong id="metric-pulls">—</strong><span class="metric-note">本次采样中的开放 PR</span></div>
+      <div><span class="metric-label">观测范围 <small>REPOSITORIES</small></span><strong id="metric-repos">—</strong><span class="metric-note" id="metric-coverage">来源正在连接</span></div>
+    </section>
+
+    <div class="workspace">
+      <section class="map-panel" aria-labelledby="map-title">
+        <div class="panel-heading"><div><span class="eyebrow">THE RESEARCH CAMPUS</span><h2 id="map-title">一张持续生长的研究版图</h2></div><span class="panel-index">01 — 08</span></div>
+        <div id="research-map" class="research-map" role="group" aria-label="研究仓库地图，选择一个研究区查看其活动" tabindex="-1">
+          <div class="map-grid" aria-hidden="true"></div>
+          <div class="map-orbit orbit-one" aria-hidden="true"></div><div class="map-orbit orbit-two" aria-hidden="true"></div>
+          <div class="map-coordinate coordinate-a" aria-hidden="true">QUESTIONS → KNOWLEDGE</div><div class="map-coordinate coordinate-b" aria-hidden="true">PUBLIC ACTIVITY / 24:00</div>
+          <div class="map-loading" id="map-loading">正在读取研究区…</div>
+        </div>
+        <div class="map-legend"><span><i class="legend-dot running"></i>执行中</span><span><i class="legend-dot queued"></i>排队 / 等待</span><span><i class="legend-dot completed"></i>最近完成</span><span class="map-legend-note">布局按仓库分区；圆点代表工作流</span></div>
+      </section>
+
+      <aside class="inspector" aria-labelledby="inspector-title">
+        <div class="inspector-top"><span class="eyebrow">IN FOCUS / 研究现场</span><a id="repo-link" href="https://github.com/the-omega-institute/trureturing" aria-label="在 GitHub 打开所选仓库">↗</a></div>
+        <h2 id="inspector-title">形式化研究</h2><p class="repo-name" id="repo-name">trureturing</p><p class="repo-description" id="repo-description">读取公开活动后，这里会显示运行状态与课题。</p>
+        <div class="inspector-tabs" role="tablist" aria-label="研究区详情"><button id="tab-runs" role="tab" aria-controls="inspector-content" aria-selected="true" type="button" data-tab="runs">工作流 <span id="tab-runs-count">—</span></button><button id="tab-tasks" role="tab" aria-controls="inspector-content" aria-selected="false" tabindex="-1" type="button" data-tab="tasks">课题与交付 <span id="tab-tasks-count">—</span></button></div>
+        <div class="inspector-content" id="inspector-content" role="tabpanel" aria-labelledby="tab-runs"><p class="empty">等待本次观测。</p></div>
+        <div class="identity-note"><span class="identity-icon" aria-hidden="true">◎</span><p>账号、认领与会话按公开记录展示。<br><strong>Agent 心跳尚未接入。</strong></p></div>
+      </aside>
+    </div>
+
+    <section class="activity-section" aria-labelledby="activity-title">
+      <div class="section-heading"><div><p class="eyebrow">SIGNALS FROM THE FIELD</p><h2 id="activity-title">此刻的研究动态</h2></div><div class="activity-tools"><label class="search-label"><span class="sr-only">搜索仓库、任务或账号</span><input id="search" type="search" placeholder="搜索课题、仓库、账号" autocomplete="off"></label><button id="refresh" class="quiet-button" type="button">刷新观测 <span aria-hidden="true">↻</span></button></div></div>
+      <div class="activity-filters" role="group" aria-label="动态类型"><button type="button" data-filter="all" aria-pressed="true">全部活动</button><button type="button" data-filter="active" aria-pressed="false">正在执行</button><button type="button" data-filter="tasks" aria-pressed="false">课题与交付</button><span id="activity-scope">最近公开记录的有限采样</span></div>
+      <div id="activity-list" class="activity-list" aria-live="polite"><p class="empty">正在连接 GitHub 观测快照…</p></div>
+      <button id="show-more" class="show-more" type="button" hidden>展开更多动态</button>
+    </section>
+
+    <footer class="footer"><div><span class="footer-brand">trureturing live</span><p>让问题被接住，让知识继续生长。</p></div><div class="footer-explanation"><p>展示公开的执行与交付记录。工作流成功不等于数学结论已验证发布。</p><p><a href="data/snapshot.json">原始观测数据</a><span>·</span><a href="https://github.com/the-omega-institute/trureturing-live#data-and-meaning">数据口径</a><span>·</span><span id="next-refresh">页面每分钟检查更新</span></p></div></footer>
+  </main>
+  <noscript><p class="notice">请启用 JavaScript 查看研究地图。<a href="data/snapshot.json">原始公开数据</a>仍可直接读取。</p></noscript>
+</body>
+</html>

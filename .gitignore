@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+.vercel/
+site/data/snapshot.json
+node_modules/
+test-results/
