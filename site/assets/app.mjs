@@ -3341,9 +3341,12 @@ const scifiLog = {
   hoverPaused: false,
   seeded: false,
   mode: 'latest',
-  latestSignature: null,
-  latestKeys: new Set()
+  history: new Map(),
+  painted: false,
+  stick: true,
+  unseen: 0
 };
+const LOG_SCROLLBACK = 1000;
 
 function fmtClockMs(offsetMs = 0) {
   const d = new Date(Date.now() + offsetMs);
@@ -3479,36 +3482,84 @@ function eventClock(value) {
     : `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// Each distinct line appears once, at the time of its newest event.
-function latestSciFiLogEntries() {
-  const byLine = new Map();
-  const rows = (view()?.recent || [])
-    .filter(a => Number.isFinite(timestamp(a.at)))
-    .sort((a, b) => timestamp(a.at) - timestamp(b.at));
-  for (const a of rows) {
+// Latest mode is a terminal: every real event is one line in time order, newest last.
+// Lines accumulate across observations (up to LOG_SCROLLBACK) and the view follows
+// the bottom unless the reader has scrolled up.
+const byLogTime = (a, b) => a.t - b.t || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+
+function collectSciFiLogHistory() {
+  const added = new Set();
+  for (const a of view()?.recent || []) {
+    const t = timestamp(a.at);
+    if (!Number.isFinite(t)) continue;
+    const key = eventKey(a);
+    if (scifiLog.history.has(key)) continue;
     const entry = activityLogEntry(a);
     if (!entry) continue;
-    const line = `${entry.tag}:${entry.text}`;
-    byLine.delete(line);
-    byLine.set(line, { ...entry, key: eventKey(a), at: a.at });
+    scifiLog.history.set(key, { ...entry, key, at: a.at, t });
+    added.add(key);
   }
-  return [...byLine.values()].slice(-30);
+  if (scifiLog.history.size > LOG_SCROLLBACK) {
+    const keep = [...scifiLog.history.values()].sort(byLogTime).slice(-LOG_SCROLLBACK);
+    scifiLog.history = new Map(keep.map(e => [e.key, e]));
+  }
+  return added;
+}
+
+const logAtBottom = container => container.scrollHeight - container.scrollTop - container.clientHeight < 12;
+
+function updateLogJump() {
+  const btn = $('#log-jump-latest');
+  if (!btn) return;
+  btn.hidden = scifiLog.mode !== 'latest' || scifiLog.stick;
+  btn.textContent = scifiLog.unseen ? `↓ ${scifiLog.unseen} 条新事件` : '↓ 回到最新';
+}
+
+function followLatestLog() {
+  const container = $('#scifi-log-stream');
+  if (container) container.scrollTop = container.scrollHeight;
+  scifiLog.stick = true;
+  scifiLog.unseen = 0;
+  updateLogJump();
 }
 
 function renderLatestSciFiLog() {
   const container = $('#scifi-log-stream');
   if (!container || scifiLog.mode !== 'latest' || !view()) return;
-  const entries = latestSciFiLogEntries();
-  const signature = entries.map(e => e.key).join('|');
-  if (signature === scifiLog.latestSignature) return;
-  const firstPaint = scifiLog.latestSignature === null;
-  const shown = scifiLog.latestKeys;
-  container.replaceChildren(...entries.map(e => sciFiLogRow(e, !firstPaint && !shown.has(e.key), eventClock(e.at))));
+  const added = collectSciFiLogHistory();
+  if (scifiLog.painted && !added.size) return;
+  const firstPaint = !scifiLog.painted;
+  const entries = [...scifiLog.history.values()].sort(byLogTime);
+  const prevTop = container.scrollTop;
+  container.replaceChildren(...entries.map(e => {
+    const row = sciFiLogRow(e, !firstPaint && added.has(e.key), eventClock(e.at));
+    row.dataset.logKey = e.key;
+    return row;
+  }));
   if (!entries.length) container.append(sciFiLogRow({ tag: 'IDLE', tone: 'muted', text: '暂无新的公开事件' }, false, '--:--:--'));
-  scifiLog.latestKeys = new Set(entries.map(e => e.key));
-  scifiLog.latestSignature = signature;
+  scifiLog.painted = true;
+  if (scifiLog.stick) {
+    container.scrollTop = container.scrollHeight;
+  } else {
+    container.scrollTop = prevTop;
+    if (!firstPaint) scifiLog.unseen += added.size;
+  }
+  updateLogJump();
   const pktEl = $('#log-pkt-count');
-  if (pktEl) pktEl.textContent = `${entries.length} 条最新`;
+  if (pktEl) pktEl.textContent = `${entries.length} 条`;
+}
+
+function updateLogBadge() {
+  const badge = $('#log-rate-badge');
+  if (!badge) return;
+  let text = 'LATEST · 最新在下';
+  if (scifiLog.mode === 'cycle') {
+    text = reduced ? '轮播 · 系统已减少动态'
+      : state.quiet ? '轮播 · 静看中暂停'
+        : scifiLog.hoverPaused ? '轮播 · 悬停暂停'
+          : 'HIGH-DENSITY INTEL · 轮播';
+  }
+  if (badge.textContent !== text) badge.textContent = text;
 }
 
 function setLogMode(mode) {
@@ -3516,15 +3567,20 @@ function setLogMode(mode) {
   for (const btn of document.querySelectorAll('[data-log-mode]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.logMode === scifiLog.mode));
   }
-  const badge = $('#log-rate-badge');
-  if (badge) badge.textContent = scifiLog.mode === 'cycle' ? 'HIGH-DENSITY INTEL · 轮播' : 'LATEST · 最新在下';
-  $('#scifi-log-stream')?.replaceChildren();
+  const container = $('#scifi-log-stream');
+  if (container) {
+    container.classList.toggle('is-terminal', scifiLog.mode === 'latest');
+    container.replaceChildren();
+  }
   scifiLog.seeded = false;
   scifiLog.acc = 0;
   scifiLog.cursor = 0;
-  scifiLog.latestSignature = null;
-  scifiLog.latestKeys = new Set();
+  scifiLog.painted = false;
+  scifiLog.stick = true;
+  scifiLog.unseen = 0;
+  updateLogBadge();
   renderLatestSciFiLog();
+  updateLogJump();
 }
 
 function stepSciFiLog(dt) {
@@ -3535,6 +3591,7 @@ function stepSciFiLog(dt) {
   const rolling = scifiLog.mode === 'cycle' && motion && !scifiLog.hoverPaused;
   const spec = $('#log-spectrum');
   if (spec) spec.classList.toggle('is-paused', !rolling);
+  updateLogBadge();
   if (!view()) return;
 
   // Cycle mode seeds an initial burst of 22 staggered high-density lines on its first frame.
@@ -3584,11 +3641,24 @@ function stepSciFiLog(dt) {
   }
 }
 
-const logWallEl = $('#scifi-log-wall');
-if (logWallEl) {
-  logWallEl.addEventListener('pointerenter', () => { scifiLog.hoverPaused = true; });
-  logWallEl.addEventListener('pointerleave', () => { scifiLog.hoverPaused = false; });
+// Cycle mode pauses only while the pointer rests on the log lines, not on its header controls.
+const logStreamEl = $('#scifi-log-stream');
+if (logStreamEl) {
+  logStreamEl.addEventListener('pointerenter', () => { scifiLog.hoverPaused = true; });
+  logStreamEl.addEventListener('pointerleave', () => { scifiLog.hoverPaused = false; });
+  logStreamEl.addEventListener('scroll', () => {
+    if (scifiLog.mode !== 'latest') return;
+    scifiLog.stick = logAtBottom(logStreamEl);
+    if (scifiLog.stick) scifiLog.unseen = 0;
+    updateLogJump();
+  }, { passive: true });
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => {
+      if (scifiLog.mode === 'latest' && scifiLog.stick) logStreamEl.scrollTop = logStreamEl.scrollHeight;
+    }).observe(logStreamEl);
+  }
 }
+$('#log-jump-latest')?.addEventListener('click', followLatestLog);
 for (const btn of document.querySelectorAll('[data-log-mode]')) {
   btn.addEventListener('click', () => {
     setLogMode(btn.dataset.logMode);

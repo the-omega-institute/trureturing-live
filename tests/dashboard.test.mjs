@@ -267,19 +267,21 @@ test('inside-the-institute live telemetry, checker runs, relay bridges, and work
   }finally{dom.window.close();}
 });
 
-test('the war-room log defaults to the latest real events, newest last, and rolls only when chosen',async()=>{
+test('the war-room log defaults to a scrollable terminal of real events, newest last, and rolls only when chosen',async()=>{
   const {dom,doc,win,responses,tick}=await boot();try{
     const stream=doc.querySelector('#scifi-log-stream');
+    const lines=()=>[...stream.querySelectorAll('.scifi-log-line')];
     assert.equal(doc.querySelector('[data-log-mode="latest"]').getAttribute('aria-pressed'),'true');
     assert.equal(doc.querySelector('[data-log-mode="cycle"]').getAttribute('aria-pressed'),'false');
-    const before=stream.querySelectorAll('.scifi-log-line').length;
+    assert.ok(stream.classList.contains('is-terminal'));
+    const before=lines().length;
     assert.ok(before>=1);
     const next=structuredClone(responses.live),at=new Date(Date.now()+500);
     const newest=activity('book-new','books','contribution',{label:'A fresh chapter on spectral gaps',at:at.toISOString(),task:task(10,bookRepository),url:`https://github.com/${bookRepository}/pull/10`});
     next.organization.observed_at=new Date(Date.now()+1000).toISOString();
     next.organization.recent=[...next.organization.recent,newest];
     responses.live=next;await tick(15000);
-    const rows=[...stream.querySelectorAll('.scifi-log-line')];
+    const rows=lines();
     assert.equal(rows.length,before+1);
     assert.match(rows.at(-1).querySelector('.log-msg').textContent,/^理论书写 ▸ /);
     assert.ok(rows.at(-1).classList.contains('is-fresh'));
@@ -287,19 +289,29 @@ test('the war-room log defaults to the latest real events, newest last, and roll
     const pad=n=>String(n).padStart(2,'0');
     assert.equal(rows.at(-1).querySelector('.log-ts').textContent,`${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}`);
     await tick(15000);
-    assert.equal(stream.querySelectorAll('.scifi-log-line').length,before+1);
+    assert.equal(lines().length,before+1);
+    // A repeated event on the same work is its own terminal line.
     const again=structuredClone(responses.live),rerun=structuredClone(again.organization.recent[0]);
     rerun.id='ci-rerun';rerun.at=new Date(Date.now()+1500).toISOString();
     again.organization.observed_at=new Date(Date.now()+2000).toISOString();
     again.organization.recent=[...again.organization.recent,rerun];
     responses.live=again;await tick(15000);
-    const merged=[...stream.querySelectorAll('.scifi-log-line')];
-    assert.equal(merged.length,before+1);
-    assert.equal(merged.at(-1).querySelector('.log-msg').textContent,rows[0].querySelector('.log-msg').textContent);
-    assert.ok(merged.at(-1).classList.contains('is-fresh'));
+    assert.equal(lines().length,before+2);
+    const original=rows.find(row=>row.dataset.logKey.startsWith(`${rerun.id.replace('-rerun','')}/`));
+    assert.ok(original);
+    assert.equal(lines().at(-1).querySelector('.log-msg').textContent,original.querySelector('.log-msg').textContent);
+    // Events that leave the observation window stay in the scrollback, which holds far more than 30 lines.
+    const many=structuredClone(responses.live),base=Date.now()+3000;
+    many.organization.observed_at=new Date(base+60000).toISOString();
+    many.organization.recent=Array.from({length:45},(_,i)=>activity(`ci-batch-${i}`,'verification','automation',{status:'working',at:new Date(base+i*1000).toISOString()}));
+    responses.live=many;await tick(15000);
+    assert.equal(lines().length,before+2+45);
     doc.querySelector('[data-log-mode="cycle"]').click();
     assert.equal(doc.querySelector('[data-log-mode="cycle"]').getAttribute('aria-pressed'),'true');
     assert.equal(doc.querySelector('[data-log-mode="latest"]').getAttribute('aria-pressed'),'false');
     assert.equal(win.localStorage.getItem('trureturing-live.log-mode.v1'),'cycle');
+    assert.ok(!stream.classList.contains('is-terminal'));
+    doc.querySelector('[data-log-mode="latest"]').click();
+    assert.equal(lines().length,before+2+45);
   }finally{dom.window.close();}
 });
