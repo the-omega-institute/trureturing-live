@@ -3,142 +3,105 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#F6F4EE">
-  <meta name="description" content="trureturing live：像运转中的研究院一样管理人与 AI 的开源数学协作。实时观察蜂巢部门架构、公开工作席位、GitHub Actions 验证与跨部门研究接力。">
-  <title>trureturing live · 蜂巢研究组织实时看板</title>
+  <meta name="theme-color" content="#030712">
+  <meta name="description" content="trureturing live：24/7 AI 数学研究院实时指挥大屏。可视化三层蜂巢架构、公开工作席位、Lean CI 验证与跨部门研究接力。">
+  <title>TRURETURING // LIVE · 24/7 AI 研究院实时指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v6">
-  <script type="module" src="assets/app.mjs?v=hive-v6"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v7">
+  <script type="module" src="assets/app.mjs?v=hive-v7"></script>
 </head>
 <body>
-  <a class="skip-link" href="#institute">进入蜂巢研究现场</a>
+  <a class="skip-link" href="#institute">进入实时指挥大屏</a>
 
-  <header class="site-header">
-    <div class="header-inner">
-      <a class="brand" href="./">
-        <img src="assets/mark.svg" width="30" height="30" alt="">
-        <span class="brand-name">trureturing <em>live</em></span>
-        <span class="brand-tag">AI 数学研究院实时架构</span>
-      </a>
-      <nav aria-label="主导航">
-        <a href="#institute">蜂巢架构</a>
-        <a href="#live-ops">实时现场</a>
-        <a href="#questions">在研课题</a>
-        <a href="#publications">书稿与论文</a>
-        <a href="#ecosystem">开源底层</a>
-        <a href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图 <span>↗</span></a>
-      </nav>
-      <div class="header-right">
-        <span class="connection" id="connection"><i></i><span>正在连接研究院</span></span>
-        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换明暗主题" title="切换明亮纸面 / 深色值守模式">☾</button>
+  <header class="hud-header">
+    <div class="hud-header-inner">
+      <div class="hud-brand-group">
+        <a class="brand" href="./">
+          <img src="assets/mark.svg" width="28" height="28" alt="">
+          <span class="brand-name">TRURETURING <em>// LIVE</em></span>
+        </a>
+        <span class="connection" id="connection"><i></i><span>正在连接</span></span>
+      </div>
+
+      <div class="hud-telemetry-center">
+        <div class="institute-metrics" id="institute-metrics">
+          <span>正在接入实时流</span>
+        </div>
+        <div class="ticker-pill" id="live-ticker" aria-live="polite">
+          <span class="ticker-badge">LIVE</span>
+          <button type="button" class="ticker-message" id="ticker-action">
+            <span id="ticker-text">正在接入 trureturing 公开协作与 Lean CI 观测流…</span>
+          </button>
+          <span class="ticker-meta" id="ticker-time"></span>
+        </div>
+      </div>
+
+      <div class="hud-controls">
+        <div class="mode-switch" role="group" aria-label="现场视图">
+          <button type="button" data-mode="organization" aria-pressed="true">组织架构</button>
+          <button type="button" data-mode="journey" aria-pressed="false">接力追踪</button>
+        </div>
+        <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button>
+        <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="切换动态 / 静看">静看</button>
+        <button class="hud-icon-btn" id="expand-room" type="button" aria-label="全屏大屏" title="全屏大屏模式">⤢</button>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换明暗模式" title="切换深空指挥大屏 / 明亮视图">☀</button>
       </div>
     </div>
   </header>
 
-  <div class="ticker-bar" id="live-ticker" aria-live="polite">
-    <div class="ticker-inner">
-      <span class="ticker-badge">JUST IN</span>
-      <button type="button" class="ticker-message" id="ticker-action">
-        <span id="ticker-text">正在接入 trureturing 公开协作与 GitHub Actions 观测流…</span>
-      </button>
-      <span class="ticker-meta" id="ticker-time"></span>
-    </div>
-  </div>
-
-  <main>
-    <section class="masthead" aria-labelledby="page-title">
-      <div class="masthead-copy">
-        <p class="eyebrow">TRURETURING / 24·7 AI RESEARCH ORGANIZATION</p>
-        <h1 id="page-title">24/7 自治运转的，<em>AI 数学研究院。</em></h1>
-        <p class="hero-description">人提出问题与把关方向，AI 会话与 Lean CI 全天候持续攻关、交叉复核、自动验证并沉淀为书稿与论文——点击任意蜂巢部门，直接放大进入内部工作图。</p>
-      </div>
-      <div class="masthead-side">
-        <div class="tool-families" aria-label="协作会话与引擎">
-          <span>Codex</span>
-          <span>Claude</span>
-          <span>AGY</span>
-          <span>heca</span>
-          <span class="tool-actions">24/7 Lean CI</span>
-        </div>
-        <div class="institute-metrics" id="institute-metrics">
-          <span>研究现场正在展开</span>
-        </div>
-      </div>
-    </section>
-
+  <main class="command-main">
     <p id="connection-note" class="connection-note" role="status" hidden></p>
 
-    <section id="institute" class="institute" aria-labelledby="institute-title">
-      <div class="room-toolbar">
-        <div class="room-title-group">
-          <p class="eyebrow">COMPANY ARCHITECTURE · 24/7 AI LOOP &amp; HUMAN IN THE LOOP</p>
-          <h2 id="institute-title">研究院三层组织架构与 24/7 接力闭环</h2>
-        </div>
-        <div class="room-controls">
-          <div class="mode-switch" role="group" aria-label="现场视图">
-            <button type="button" data-mode="organization" aria-pressed="true">组织架构</button>
-            <button type="button" data-mode="journey" aria-pressed="false">跟随一条接力</button>
-          </div>
-          <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button>
-        </div>
-      </div>
-
-      <div class="method-strip" aria-label="研究院的运转方法">
-        <div class="method-heading">
-          <span class="eyebrow">RELAY PIPELINE</span>
-          <strong>一条研究线索，如何一步步穿过整个组织</strong>
-          <span>点击任意环节，直接走进对应部门的实时办公台</span>
-        </div>
+    <section id="institute" class="command-deck" aria-label="研究院三层蜂巢实时指挥大屏">
+      <div class="method-strip" aria-label="24/7 研究接力链">
+        <span class="method-tag">RELAY</span>
         <div class="method-steps">
           <button type="button" data-method-department="direction">
             <span class="step-num">01</span>
-            <span class="step-body"><strong>人的方向</strong><small>提出问题，把关方向</small></span>
-            <span class="step-badge" data-step-badge="direction">起点</span>
+            <strong>人的方向</strong>
+            <span class="step-badge" data-step-badge="direction">指引</span>
           </button>
-          <i class="step-arrow" aria-hidden="true">→</i>
+          <i class="step-arrow" aria-hidden="true">▸</i>
           <button type="button" data-method-department="research">
             <span class="step-num">02</span>
-            <span class="step-body"><strong>数学攻坚</strong><small>认领课题与证明</small></span>
+            <strong>数学攻坚</strong>
             <span class="step-badge" data-step-badge="research">—</span>
           </button>
-          <i class="step-arrow" aria-hidden="true">↔</i>
+          <i class="step-arrow" aria-hidden="true">⇄</i>
           <button type="button" data-method-department="review">
             <span class="step-num">03</span>
-            <span class="step-body"><strong>独立评审</strong><small>交叉核验边界条件</small></span>
+            <strong>独立评审</strong>
             <span class="step-badge" data-step-badge="review">—</span>
           </button>
-          <i class="step-arrow" aria-hidden="true">→</i>
+          <i class="step-arrow" aria-hidden="true">▸</i>
           <button type="button" data-method-department="verification">
             <span class="step-num">04</span>
-            <span class="step-body"><strong>形式验证</strong><small>Lean CI 自动检验</small></span>
+            <strong>形式验证</strong>
             <span class="step-badge" data-step-badge="verification">—</span>
           </button>
-          <i class="step-arrow" aria-hidden="true">→</i>
+          <i class="step-arrow" aria-hidden="true">▸</i>
           <button type="button" data-method-department="books">
             <span class="step-num">05</span>
-            <span class="step-body"><strong>书稿与交流</strong><small>书写出版并带回反馈</small></span>
+            <strong>书稿与交流</strong>
             <span class="step-badge" data-step-badge="books">—</span>
           </button>
         </div>
       </div>
 
       <div class="research-room" id="research-room">
-        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院蜂巢架构图；点击部门走进实时办公台">
-          <div class="board-bar">
-            <div class="board-label-wrap">
-              <div class="board-label"><span class="live-dot"></span> COMPANY ARCHITECTURE / 24·7 AI AUTONOMOUS LOOP</div>
-              <div class="board-caption">点击任意部门六边形，直接放大进入内部工作图 · <span>实线为职责接力</span> · <span>虚线为跨部门引用</span></div>
+        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院蜂巢架构大屏；悬浮预览部门，点击放大进入部门图">
+          <div class="board-hud-top">
+            <div class="board-label">
+              <span class="live-dot"></span>
+              <span>SYS // 24·7 AI AUTONOMOUS ARCHITECTURE</span>
             </div>
-            <div class="board-actions">
-              <button id="motion-toggle" type="button" aria-pressed="false" title="切换为静态画面">静看</button>
-              <button id="expand-room" type="button" aria-label="展开研究现场" title="全屏展开看板">⤢</button>
-            </div>
+            <div class="board-telemetry-code" id="board-clock">ORBITAL LOOP · ACTIVE</div>
           </div>
 
           <div class="hive-stage">
             <div class="hive-canvas" id="hive-canvas">
               <svg id="hive-routes" viewBox="0 0 1000 740" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-              <div id="hive-cells" class="hive-cells"><p class="loading">正在构建蜂巢部门架构…</p></div>
+              <div id="hive-cells" class="hive-cells"><p class="loading">正在初始化全息蜂巢架构…</p></div>
               <svg id="hive-badges" viewBox="0 0 1000 740" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
             </div>
           </div>
@@ -148,24 +111,26 @@
               <span><i class="legend-running"></i>执行中</span>
               <span><i class="legend-session"></i>独立会话</span>
               <span><i class="legend-action"></i>Actions 引擎</span>
-              <span><i class="legend-route"></i>职责接力</span>
-              <span><i class="legend-connection"></i>公开引用</span>
+              <span><i class="legend-route"></i>接力总线</span>
+              <span><i class="legend-connection"></i>跨部门引用</span>
             </div>
-            <div class="hive-hover-hint" id="hive-hover-hint">悬浮查看上下游交棒，点击进入办公台</div>
+            <div class="hive-hover-hint" id="hive-hover-hint">光标悬浮即时切换右侧简报 · 点击六边形放大进入部门图</div>
           </div>
 
           <div id="department-lens" class="department-lens" hidden aria-live="polite">
             <div class="lens-topbar">
-              <button id="lens-back" type="button" class="lens-back">← 缩回全院蜂巢</button>
-              <div id="lens-switcher" class="lens-switcher" role="tablist" aria-label="切换部门放大图"></div>
+              <button id="lens-back" type="button" class="lens-back">← 返回全院大屏</button>
+              <div id="lens-switcher" class="lens-switcher" role="tablist" aria-label="切换部门全息图"></div>
             </div>
 
             <div class="lens-header-strip">
               <div class="lens-title-block">
-                <span id="lens-exec-pill" class="execution-label">独立研究会话</span>
-                <h3 id="lens-title">数学攻坚</h3>
-                <p id="lens-responsibility">正在读取这个部门怎样工作。</p>
-                <span id="lens-freshness" class="lens-freshness"></span>
+                <div class="lens-title-line">
+                  <span id="lens-exec-pill" class="execution-label">独立研究会话</span>
+                  <h2 id="lens-title">数学攻坚</h2>
+                  <span id="lens-freshness" class="lens-freshness"></span>
+                </div>
+                <p id="lens-responsibility">正在加载部门实时全息视图…</p>
               </div>
               <div id="lens-metrics" class="lens-metrics"></div>
             </div>
@@ -184,111 +149,99 @@
 
             <div class="lens-bottom-strip">
               <div class="lens-method">
-                <span class="lens-method-tag">本部门流转</span>
+                <span class="lens-method-tag">I/O FLOW</span>
                 <strong id="lens-input">问题与公开认领</strong>
-                <i aria-hidden="true">→</i>
+                <i aria-hidden="true">▸</i>
                 <strong id="lens-output">可检验的论证</strong>
               </div>
               <div id="lens-spotlight" class="lens-spotlight">
-                <span>悬浮或点击任意席位查看它的研究连线，点击右侧线索跟随全院接力，点击左右门户直达上下游部门。</span>
+                <span>悬浮席位高亮研究光束 · 点击右侧线索追踪全院接力</span>
               </div>
             </div>
           </div>
         </div>
 
         <aside class="department-panel" id="department-panel" aria-labelledby="department-title">
-          <div class="department-top">
-            <span id="department-mode" class="execution-label">独立会话</span>
-            <span class="small-label" id="department-state">正在连接</span>
+          <div class="panel-top-band">
+            <div class="department-top">
+              <span id="department-mode" class="execution-label">独立会话</span>
+              <span class="small-label" id="department-state">正在连接</span>
+            </div>
+            <div class="department-title-row">
+              <h1 id="department-title">数学攻坚</h1>
+              <button type="button" id="open-lens-button" class="open-lens-btn">放大部门图 ⤢</button>
+            </div>
+            <p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
+            <div class="department-people" id="department-people"></div>
           </div>
-          <div class="department-title-row">
-            <h3 id="department-title">数学攻坚</h3>
-            <button type="button" id="open-lens-button" class="open-lens-btn">放大部门图 ⤢</button>
-          </div>
-          <p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
-          <div class="department-people" id="department-people"></div>
 
-          <div class="panel-heading">
-            <h4>公开工作席位</h4>
-            <span id="department-agent-count"></span>
-          </div>
-          <p class="identity-note">仅明确注册来源标注为 agent，其余保持公开账号身份。</p>
-          <div id="department-agents" class="department-agents"><p class="loading">正在读取公开工作席位…</p></div>
+          <div class="panel-scroll-body">
+            <div class="panel-heading">
+              <h4>公开工作席位</h4>
+              <span id="department-agent-count"></span>
+            </div>
+            <div id="department-agents" class="department-agents"><p class="loading">正在同步席位…</p></div>
 
-          <div class="panel-heading work-heading">
-            <h4 id="department-work-title">部门最近的工作</h4>
-            <span id="department-work-count"></span>
-          </div>
-          <div id="department-work" class="department-work"><p class="loading">新的进展会在这里汇入。</p></div>
+            <div class="panel-heading work-heading">
+              <h4 id="department-work-title">实时推进</h4>
+              <span id="department-work-count"></span>
+            </div>
+            <div id="department-work" class="department-work"><p class="loading">等待现场信号…</p></div>
 
-          <div id="department-connections" class="department-connections"></div>
+            <div id="department-connections" class="department-connections"></div>
+          </div>
         </aside>
 
         <div id="journey-panel" class="journey-panel" hidden>
           <div class="journey-heading">
             <div>
-              <p class="eyebrow">FOLLOW THE RELAY · STEP BY STEP</p>
+              <p class="eyebrow">RELAY TRAJECTORY // STEP BY STEP</p>
               <h3 id="journey-title">选择一个正在推进的问题</h3>
-              <p id="journey-description">沿着公开讨论与研究引用，看一个问题怎样在不同部门之间接力生长。</p>
+              <p id="journey-description">沿着公开讨论与研究引用，追踪一条线索如何跨部门接力生长。</p>
             </div>
-            <button type="button" id="journey-back" class="lens-back">← 返回蜂巢架构</button>
+            <button type="button" id="journey-back" class="lens-back">← 返回全院大屏</button>
           </div>
           <div id="journey-stages" class="journey-stages"></div>
           <div class="journey-detail">
             <div class="journey-roster-box">
-              <h4>共同推进这条线索的席位</h4>
+              <h4>参与推进席位</h4>
               <div id="journey-people" class="journey-people"></div>
               <div id="journey-links" class="journey-links"></div>
             </div>
             <div>
-              <h4>接力时间线与公开进展</h4>
+              <h4>接力轨迹与公开进展</h4>
               <div id="journey-events" class="journey-events"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flow-caption">
-        <span>人的提问 <b>→</b> 独立攻坚 <b>↔</b> 相互复核 <b>→</b> 形式验证 <b>→</b> 书稿与交流</span>
-        <span id="institute-scope"></span>
+      <div class="signal-strip-bar">
+        <div class="signal-strip-label">
+          <span class="live-dot"></span>
+          <span>RECENT</span>
+          <small id="activity-note">实时信号</small>
+        </div>
+        <div id="activity-strip" class="activity-strip" aria-label="近期研究信号"></div>
       </div>
-
-      <div class="activity-heading">
-        <h3>刚刚，研究院里</h3>
-        <span id="activity-note">真实发生的下一步</span>
-      </div>
-      <div id="activity-strip" class="activity-strip" aria-label="近期研究动态"></div>
     </section>
 
-    <section id="live-ops" class="live-ops" aria-labelledby="live-ops-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">INSIDE THE INSTITUTE · LIVE PULSE</p>
-          <h2 id="live-ops-title">实时接力脉搏与检验灯阵</h2>
+    <section class="telemetry-dock" aria-label="实时遥测与档案控制台">
+      <div class="dock-tabs-bar">
+        <div class="dock-tabs" role="tablist" aria-label="控制台视图">
+          <button type="button" role="tab" data-dock-tab="live-ops" aria-selected="true">01 检验与接力</button>
+          <button type="button" role="tab" data-dock-tab="questions" aria-selected="false">02 在研课题</button>
+          <button type="button" role="tab" data-dock-tab="publications" aria-selected="false">03 书稿与论文</button>
+          <button type="button" role="tab" data-dock-tab="ecosystem" aria-selected="false">04 开源仓库与模板</button>
         </div>
-        <div class="feed-filters" role="group" aria-label="实时脉搏筛选">
-          <button type="button" data-feed-filter="all" aria-pressed="true">全部动态</button>
-          <button type="button" data-feed-filter="discussion" aria-pressed="false">讨论与复核</button>
-          <button type="button" data-feed-filter="work" aria-pressed="false">课题与书稿</button>
-          <button type="button" data-feed-filter="automation" aria-pressed="false">自动检验</button>
-        </div>
+        <span id="institute-scope" class="dock-scope"></span>
       </div>
 
-      <div class="ops-grid">
-        <div class="ops-feed-column">
-          <div class="ops-card-head">
-            <h3>最新协作脉搏</h3>
-            <span id="live-feed-meta" class="mono-meta">正在同步…</span>
-          </div>
-          <div id="live-feed" class="live-feed">
-            <p class="loading">正在同步研究院最新的协作动态…</p>
-          </div>
-        </div>
-
-        <div class="ops-side-column">
-          <div class="ops-panel">
+      <div id="live-ops" class="dock-panel is-active" data-dock-panel="live-ops">
+        <div class="ops-grid">
+          <div class="ops-panel ops-checker-col">
             <div class="ops-card-head">
-              <h3>自动检验灯阵</h3>
+              <h3>Lean CI 检验灯阵</h3>
               <span id="checker-summary" class="mono-meta">GitHub Actions</span>
             </div>
             <div id="checker-lights" class="checker-lights" aria-label="近期自动检验结果灯阵"></div>
@@ -297,7 +250,7 @@
             </div>
           </div>
 
-          <div class="ops-panel">
+          <div class="ops-panel ops-relay-col">
             <div class="ops-card-head">
               <h3>跨部门接力热力</h3>
               <span id="relay-summary" class="mono-meta">部门间流转</span>
@@ -306,104 +259,92 @@
               <p class="loading">正在统计跨部门接力…</p>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <section id="questions" class="questions-section" aria-labelledby="questions-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">QUESTIONS WORTH FOLLOWING</p>
-          <h2 id="questions-title">正在探索什么？</h2>
-        </div>
-        <div class="topic-filters" role="group" aria-label="研究方向">
-          <button type="button" data-filter="all" aria-pressed="true">全部</button>
-          <button type="button" data-filter="research" aria-pressed="false">数学研究</button>
-          <button type="button" data-filter="books" aria-pressed="false">理论书写</button>
-        </div>
-      </div>
-      <div id="question-cards" class="question-cards"><p class="loading">正在展开近期的问题…</p></div>
-      <button id="more-questions" type="button" class="more-button" hidden>再看一些研究线索 ↓</button>
-    </section>
-
-    <section id="publications" class="publications-section" aria-labelledby="books-title">
-      <div class="books-feature">
-        <div class="book-art" aria-hidden="true">
-          <div class="book-spine"></div>
-          <div class="book-cover">
-            <span>TRURETURING BOOKS</span>
-            <div class="book-geometry">◯<i>ψ</i></div>
-            <strong>量子计算的<br>几何直觉</strong>
-            <small>Auric</small>
-          </div>
-        </div>
-        <div class="books-content">
-          <p class="eyebrow">KNOWLEDGE THAT KEEPS GROWING</p>
-          <h2 id="books-title">让研究，长成可以阅读的理论。</h2>
-          <p>从两子丈量与量子纠缠出发，沿着几何、计算与观察者的问题继续展开。新的论证经过验证后，正持续汇入双语章节。</p>
-          <div id="book-updates" class="book-updates"></div>
-          <a class="solid-link" href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">走进书库 <span>↗</span></a>
-        </div>
-      </div>
-
-      <div class="section-heading papers-heading">
-        <div>
-          <p class="eyebrow">FROM QUESTIONS TO PAPERS</p>
-          <h2>已经写下的研究</h2>
-        </div>
-        <a class="text-link" href="https://www.trureturing.org/research" target="_blank" rel="noopener noreferrer">更多研究 ↗</a>
-      </div>
-      <div id="paper-cards" class="paper-cards"><p class="loading">正在整理公开论文…</p></div>
-    </section>
-
-    <section id="ecosystem" class="ecosystem-section" aria-labelledby="ecosystem-title">
-      <div class="ecosystem-layout">
-        <div class="ecosystem-repos">
-          <div class="section-heading compact">
-            <div>
-              <p class="eyebrow">ORGANIZATION INFRASTRUCTURE</p>
-              <h2 id="ecosystem-title">公开研究仓库全景</h2>
+          <div class="ops-panel ops-feed-col">
+            <div class="ops-card-head">
+              <h3>协作信号流</h3>
+              <div class="feed-filters" role="group" aria-label="信号筛选">
+                <button type="button" data-feed-filter="all" aria-pressed="true">全部</button>
+                <button type="button" data-feed-filter="discussion" aria-pressed="false">讨论</button>
+                <button type="button" data-feed-filter="work" aria-pressed="false">课题</button>
+                <button type="button" data-feed-filter="automation" aria-pressed="false">检验</button>
+              </div>
+              <span id="live-feed-meta" class="mono-meta">同步中…</span>
             </div>
-            <span id="repo-matrix-count" class="mono-meta"></span>
-          </div>
-          <div id="repo-matrix" class="repo-matrix">
-            <p class="loading">正在索引公开研究仓库…</p>
+            <div id="live-feed" class="live-feed">
+              <p class="loading">正在同步协作信号…</p>
+            </div>
           </div>
         </div>
+      </div>
 
-        <aside class="template-card" aria-labelledby="template-title">
-          <p class="eyebrow">OPEN-SOURCE RUST FOUNDATION</p>
-          <h3 id="template-title">任何「人 + AI」的 GitHub 组织，都能直接长出这座实时蜂巢</h3>
-          <p>这套看板底层由独立的 Rust 观测引擎驱动：无需改造原有代码仓库，直接把 GitHub 的课题讨论、代码评审与自动检验映射成可视化部门蜂巢。</p>
-          <ol class="template-steps">
-            <li><strong>01 定义公司架构</strong><span>声明每个部门的职责、对应仓库与上下游接力关系</span></li>
-            <li><strong>02 Rust 底层观测</strong><span>自动拉取并实时规约整个组织的公开协作与执行脉搏</span></li>
-            <li><strong>03 可视化蜂巢看板</strong><span>一键发布静态页面，让团队与外界一眼看懂进度与流转</span></li>
-          </ol>
-          <div class="template-actions">
-            <a class="solid-link" href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">使用 Rust 开源模板 <span>↗</span></a>
-            <a class="text-link" href="https://mathesis-omega-research.apps.chrono-ai.fun/" target="_blank" rel="noopener noreferrer">带来一个数学问题 ↗</a>
+      <div id="questions" class="dock-panel" data-dock-panel="questions">
+        <div class="dock-subbar">
+          <div class="topic-filters" role="group" aria-label="研究方向">
+            <button type="button" data-filter="all" aria-pressed="true">全部课题</button>
+            <button type="button" data-filter="research" aria-pressed="false">数学研究</button>
+            <button type="button" data-filter="books" aria-pressed="false">理论书写</button>
           </div>
-        </aside>
+          <button id="more-questions" type="button" class="more-button" hidden>展开更多 ↓</button>
+        </div>
+        <div id="question-cards" class="question-cards"><p class="loading">正在同步在研课题…</p></div>
+      </div>
+
+      <div id="publications" class="dock-panel" data-dock-panel="publications">
+        <div class="pub-compact-grid">
+          <div class="pub-books-panel">
+            <div class="ops-card-head">
+              <h3>双语书稿进展</h3>
+              <a class="text-link" href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">书库 ↗</a>
+            </div>
+            <div id="book-updates" class="book-updates"></div>
+          </div>
+          <div class="pub-papers-panel">
+            <div class="ops-card-head">
+              <h3>已公开论文</h3>
+              <a class="text-link" href="https://www.trureturing.org/research" target="_blank" rel="noopener noreferrer">全部研究 ↗</a>
+            </div>
+            <div id="paper-cards" class="paper-cards"><p class="loading">正在整理公开论文…</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ecosystem" class="dock-panel" data-dock-panel="ecosystem">
+        <div class="ecosystem-layout">
+          <div class="ecosystem-repos">
+            <div class="ops-card-head">
+              <h3>公开研究仓库</h3>
+              <span id="repo-matrix-count" class="mono-meta"></span>
+            </div>
+            <div id="repo-matrix" class="repo-matrix">
+              <p class="loading">正在索引公开研究仓库…</p>
+            </div>
+          </div>
+          <aside class="template-card">
+            <p class="eyebrow">OPEN-SOURCE RUST FOUNDATION</p>
+            <h3>复用到任意「人 + AI」GitHub 组织</h3>
+            <p>独立 Rust 观测引擎自动拉取 Issue / PR / Actions，零改造映射为 24/7 蜂巢实时大屏。</p>
+            <div class="template-actions">
+              <a class="solid-link" href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">Rust 开源模板 ↗</a>
+              <a class="text-link" href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图 ↗</a>
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
 
     <footer class="site-footer">
-      <a class="brand" href="./">
-        <img src="assets/mark.svg" width="22" height="22" alt="">
-        <span>trureturing <em>live</em></span>
-      </a>
-      <p>问题、探索、检验与知识，持续接力相连。</p>
+      <span>TRURETURING // 24·7 AI RESEARCH COMMAND</span>
       <div class="footer-links">
-        <a href="https://www.trureturing.org/" target="_blank" rel="noopener noreferrer">trureturing</a>
+        <a href="https://www.trureturing.org/" target="_blank" rel="noopener noreferrer">官网</a>
         <a href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">书库</a>
         <a href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图</a>
-        <a href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">映射你自己的 AI 组织 ↗</a>
+        <a href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">开源模板 ↗</a>
       </div>
     </footer>
   </main>
 
   <div id="live-announcement" class="visually-hidden" role="status" aria-live="polite"></div>
-  <noscript><p class="noscript-note">请启用 JavaScript 查看蜂巢研究现场。你也可以直接阅读<a href="https://www.trureturing.org/research">公开研究</a>与<a href="https://books.trureturing.org/">书库</a>。</p></noscript>
+  <noscript><p class="noscript-note">请启用 JavaScript 查看实时指挥大屏。</p></noscript>
 </body>
 </html>

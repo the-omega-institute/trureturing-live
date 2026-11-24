@@ -1,6 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
-  <polygon points="20,2.5 35.2,11.25 35.2,28.75 20,37.5 4.8,28.75 4.8,11.25" fill="#181816" stroke="#D9A648" stroke-width="1.8" stroke-linejoin="round"/>
-  <polygon points="20,7.5 30.8,13.75 30.8,26.25 20,32.5 9.2,26.25 9.2,13.75" fill="none" stroke="#10B981" stroke-opacity="0.45" stroke-width="1" stroke-linejoin="round"/>
-  <path d="M13 15.5h14M20 15.5v11.5M15.2 22.8l4.8 4.4 4.8-4.4" stroke="#F6F4EE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="29.5" cy="11.5" r="2.4" fill="#10B981"/>
+  <defs>
+    <linearGradient id="hex-rim" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="55%" stop-color="#10F5A0"/>
+      <stop offset="100%" stop-color="#F5B749"/>
+    </linearGradient>
+  </defs>
+  <polygon points="20,2.5 35.2,11.25 35.2,28.75 20,37.5 4.8,28.75 4.8,11.25" fill="#06101F" stroke="url(#hex-rim)" stroke-width="1.8" stroke-linejoin="round"/>
+  <polygon points="20,7.5 30.8,13.75 30.8,26.25 20,32.5 9.2,26.25 9.2,13.75" fill="none" stroke="#38BDF8" stroke-opacity="0.38" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M13 15.5h14M20 15.5v11.5M15.2 22.8l4.8 4.4 4.8-4.4" stroke="#E8F4FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="29.5" cy="11.5" r="2.3" fill="#10F5A0"/>
 </svg>
