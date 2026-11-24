@@ -5102,6 +5102,37 @@ $('#more-questions').addEventListener('click', () => {
 $('#journey-back').addEventListener('click', () => setMode('organization'));
 $('#lens-back').addEventListener('click', () => closeDepartmentLens());
 
+// Clicking a panel's own blank background returns one level up. Controls, text,
+// drags, text selections and scrollbar presses keep the panel open.
+const panelControlSelector = 'a, button, input, select, textarea, summary, label, [role="button"], [role="tab"], [tabindex]:not([tabindex="-1"]), .lens-agent';
+
+function bindBackgroundBack(panel, back) {
+  if (!panel) return;
+  let press = null;
+  const isBlank = target => {
+    if (!(target instanceof Element) || !panel.contains(target)) return false;
+    if (target.closest(panelControlSelector)) return false;
+    return ![...target.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+  };
+  panel.addEventListener('pointerdown', event => {
+    press = event.button === 0 && isBlank(event.target) ? { x: event.clientX, y: event.clientY } : null;
+  });
+  panel.addEventListener('click', event => {
+    const start = press;
+    press = null;
+    const target = event.target;
+    if (!start || event.defaultPrevented || !isBlank(target)) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
+    if (target.clientWidth && (event.offsetX > target.clientWidth || event.offsetY > target.clientHeight)) return;
+    if (String(window.getSelection?.() || '').trim()) return;
+    back();
+  });
+}
+
+bindBackgroundBack($('#department-lens'), () => closeDepartmentLens());
+bindBackgroundBack($('#journey-panel'), () => setMode('organization'));
+bindBackgroundBack($('#telemetry-dock'), closeDockDrawer);
+
 $('#follow-live').addEventListener('click', () => {
   state.follow = !state.follow;
   if (state.follow) {
