@@ -175,6 +175,10 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/two-colour Rado|Rado last exception/i, '双色 Rado 猜想的最后例外刻画'],
+    [/heat separation.*vanishing-mass|vanishing-mass triangle/i, '零质量三角形上的热分离证明'],
+    [/preserve zeta residues|triangular Mangoldt/i, '三角 Mangoldt 平滑与 ζ 留数保持'],
+    [/three-state Potts|unsatisfied bonds/i, '三态 Potts 反铁磁条带的递推计数'],
     [/cyclic occupation mass|common degree/i, '按公共度数的循环占据质量投影'],
     [/Narayan Conjecture/i, 'Narayan 猜想 18.2 的构造性证明'],
     [/disjoint occupation.*cyclic band|project disjoint occupation/i, '循环带上的不相交占据系数投影'],
@@ -2498,23 +2502,23 @@ async function refreshLive() {
 // department entities, rapid boot flash-in, radar sweep & synchronized log wall
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 2.35, z: -3.85, r: 0.72, baseH: 1.15, floating: true,  tier: 1, order: 0, hex: [245, 183, 73]  },
-  research:     { x: -3.65, y: 0.0,  z: -1.25, r: 0.80, baseH: 1.65, floating: false, tier: 2, order: 1, hex: [45, 227, 184]  },
-  review:       { x:  0.0,  y: 0.0,  z: -1.55, r: 0.74, baseH: 1.38, floating: false, tier: 2, order: 2, hex: [168, 138, 250] },
-  verification: { x:  3.65, y: 0.0,  z: -1.25, r: 0.80, baseH: 1.75, floating: false, tier: 2, order: 3, hex: [94, 237, 236]  },
-  outreach:     { x: -4.15, y: 0.0,  z:  3.25, r: 0.68, baseH: 1.25, floating: false, tier: 3, order: 4, hex: [240, 148, 90]  },
-  publication:  { x: -1.38, y: 0.0,  z:  3.50, r: 0.68, baseH: 1.38, floating: false, tier: 3, order: 5, hex: [74, 216, 176]  },
-  books:        { x:  1.38, y: 0.0,  z:  3.50, r: 0.70, baseH: 1.38, floating: false, tier: 3, order: 6, hex: [199, 140, 219] },
-  studio:       { x:  4.15, y: 0.0,  z:  3.25, r: 0.68, baseH: 1.25, floating: false, tier: 3, order: 7, hex: [136, 184, 212] }
+  direction:    { x:  0.0,  y: 1.45, z: -4.10, r: 0.72, baseH: 1.05, floating: true,  tier: 1, order: 0, hex: [245, 183, 73]  },
+  research:     { x: -3.45, y: 0.0,  z: -0.95, r: 0.76, baseH: 1.45, floating: false, tier: 2, order: 1, hex: [45, 227, 184]  },
+  review:       { x:  0.0,  y: 0.0,  z: -0.95, r: 0.72, baseH: 1.30, floating: false, tier: 2, order: 2, hex: [168, 138, 250] },
+  verification: { x:  3.45, y: 0.0,  z: -0.95, r: 0.76, baseH: 1.48, floating: false, tier: 2, order: 3, hex: [94, 237, 236]  },
+  outreach:     { x: -4.35, y: 0.0,  z:  3.05, r: 0.64, baseH: 1.15, floating: false, tier: 3, order: 4, hex: [240, 148, 90]  },
+  publication:  { x: -1.45, y: 0.0,  z:  3.05, r: 0.64, baseH: 1.24, floating: false, tier: 3, order: 5, hex: [74, 216, 176]  },
+  books:        { x:  1.45, y: 0.0,  z:  3.05, r: 0.66, baseH: 1.24, floating: false, tier: 3, order: 6, hex: [199, 140, 219] },
+  studio:       { x:  4.35, y: 0.0,  z:  3.05, r: 0.64, baseH: 1.15, floating: false, tier: 3, order: 7, hex: [136, 184, 212] }
 };
 
 const holoCam = {
-  yaw: -0.45,
-  pitch: 0.68,
-  dist: 20.4,
+  yaw: -0.32,
+  pitch: 0.76,
+  dist: 20.5,
   targetYaw: 0.0,
-  targetPitch: 0.46,
-  targetDist: 16.2,
+  targetPitch: 0.58,
+  targetDist: 16.4,
   dragging: false,
   dragMoved: false,
   lastX: 0,
@@ -2579,7 +2583,7 @@ function towerHeight(id) {
   if (!d || cfg.floating) return cfg.baseH;
   const run = countRunning(d) || 0;
   const q = queueStats(d);
-  const boost = Math.min(1.05, run * 0.10) + Math.min(0.32, q.waiting * 0.012);
+  const boost = Math.min(0.42, run * 0.042) + Math.min(0.16, q.waiting * 0.006);
   return cfg.baseH + boost;
 }
 
@@ -2935,36 +2939,144 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // ==========================================================================
-  // 4. DISCIPLINED 3-TIER TERRACED GROUND GRID + 360° RADAR SWEEP WEDGE
+  // 4. THREE SOLID 3D ARCHITECTURAL DECK PLATFORMS (CRYSTAL-CLEAR HIERARCHY!)
+  // TIER 01 (Human Apex) -> TIER 02 (24/7 AI Loop Deck) -> TIER 03 (Delivery)
   // ==========================================================================
   const gridColor = isLight ? [120, 113, 102] : isBlueprint ? [150, 215, 255] : [94, 237, 236];
   const half = 6.2;
   for (let i = -6; i <= 6; i++) {
     const fade = 1 - Math.abs(i) / 7.2;
-    const alpha = (isLight ? 0.13 : isBlueprint ? 0.14 : 0.075) * fade;
-    draw3DSeg(project(i, 0, -half), project(i, 0, half), rgba(gridColor, alpha), 1);
-    draw3DSeg(project(-half, 0, i), project(half, 0, i), rgba(gridColor, alpha), 1);
+    const alpha = (isLight ? 0.08 : isBlueprint ? 0.10 : 0.045) * fade;
+    draw3DSeg(project(i, -0.22, -half), project(i, -0.22, half), rgba(gridColor, alpha), 1);
+    draw3DSeg(project(-half, -0.22, i), project(half, -0.22, i), rgba(gridColor, alpha), 1);
   }
 
-  // 360° Sci-Fi Radar Sweep Cone on the Holographic Floor Plane
-  const coreZ = -1.25;
+  // Helper to draw a sculpted 3D translucent architectural glass deck terrace with corner brackets & nameplate
+  const drawDeckSlab = (x1, x2, z1, z2, y, rgb, tagLeft, tagRight, isPrimary = false) => {
+    const thick = 0.16;
+    const c = [
+      project(x1, y, z1),
+      project(x2, y, z1),
+      project(x2, y, z2),
+      project(x1, y, z2)
+    ];
+    const bL = project(x1, y - thick, z2);
+    const bR = project(x2, y - thick, z2);
+    if (c.some(p => !p) || !bL || !bR) return;
+
+    // Front extruded glass thickness face
+    ctx.beginPath();
+    ctx.moveTo(c[3].x, c[3].y);
+    ctx.lineTo(c[2].x, c[2].y);
+    ctx.lineTo(bR.x, bR.y);
+    ctx.lineTo(bL.x, bL.y);
+    ctx.closePath();
+    ctx.fillStyle = isLight ? rgba(rgb, 0.14) : rgba(rgb, isPrimary ? 0.18 : 0.10);
+    ctx.fill();
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.34 : (isPrimary ? 0.55 : 0.28));
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Top translucent architectural glass surface
+    ctx.beginPath();
+    ctx.moveTo(c[0].x, c[0].y);
+    ctx.lineTo(c[1].x, c[1].y);
+    ctx.lineTo(c[2].x, c[2].y);
+    ctx.lineTo(c[3].x, c[3].y);
+    ctx.closePath();
+    ctx.fillStyle = isLight
+      ? (isPrimary ? 'rgba(245, 250, 248, 0.72)' : 'rgba(252, 249, 242, 0.68)')
+      : rgba(rgb, isPrimary ? 0.085 : 0.045);
+    ctx.fill();
+    ctx.strokeStyle = rgba(rgb, isLight ? (isPrimary ? 0.52 : 0.30) : (isPrimary ? 0.62 : 0.30));
+    ctx.lineWidth = isPrimary ? 1.6 : 1.1;
+    ctx.stroke();
+
+    // Glowing L-shaped sci-fi corner brackets on all 4 corners
+    const bLen = 0.42;
+    const corners = [
+      [[x1, z1 + bLen], [x1, z1], [x1 + bLen, z1]],
+      [[x2 - bLen, z1], [x2, z1], [x2, z1 + bLen]],
+      [[x2, z2 - bLen], [x2, z2], [x2 - bLen, z2]],
+      [[x1 + bLen, z2], [x1, z2], [x1, z2 - bLen]]
+    ];
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.85 : 0.92);
+    ctx.lineWidth = isPrimary ? 2.2 : 1.7;
+    for (const tri of corners) {
+      const pts = tri.map(([px, pz]) => project(px, y + 0.01, pz));
+      if (pts.some(p => !p)) continue;
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); ctx.lineTo(pts[2].x, pts[2].y); ctx.stroke();
+    }
+
+    // Optional crisp architectural deck labels (only placed where unobstructed)
+    if (tagLeft || tagRight) {
+      ctx.save();
+      ctx.font = '700 10px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillStyle = isLight ? rgba(rgb, 0.95) : rgba(rgb, isPrimary ? 0.96 : 0.88);
+      const lPt = project(x1 + 0.22, y + 0.02, z1 + 0.28);
+      if (lPt && tagLeft) {
+        ctx.textAlign = 'left';
+        ctx.fillText(tagLeft, lPt.x, lPt.y);
+      }
+      const rPt = project(x2 - 0.22, y + 0.02, z1 + 0.28);
+      if (rPt && tagRight) {
+        ctx.textAlign = 'right';
+        ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif';
+        ctx.fillStyle = isLight ? 'rgba(63,61,54,0.78)' : 'rgba(181,219,232,0.78)';
+        ctx.fillText(tagRight, rPt.x, rPt.y);
+      }
+      ctx.restore();
+    }
+  };
+
+  // Helper to draw a crisp floating holographic pill badge at any open 3D anchor
+  const drawHoloBadge = (wx, wy, wz, text, rgb, lightText, darkText) => {
+    const pt = project(wx, wy, wz);
+    if (!pt) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = '700 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    const tw = ctx.measureText(text).width + 18;
+    ctx.fillStyle = isLight ? 'rgba(252, 250, 245, 0.94)' : 'rgba(3, 14, 24, 0.90)';
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.65 : 0.78);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(pt.x - tw / 2, pt.y - 10, tw, 20, 10);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = isLight ? lightText : darkText;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, pt.x, pt.y);
+    ctx.restore();
+  };
+
+  // Draw the 3 Unmistakable Architectural Decks Back-to-Front!
+  const tier1RGB = [245, 183, 73];
+  const tier2RGB = isBlueprint ? [150, 215, 255] : [45, 227, 184];
+  const tier3RGB = isBlueprint ? [130, 195, 255] : [110, 180, 225];
+
+  drawDeckSlab(-3.10, 3.10, -4.85, -3.30, 1.32, tier1RGB, 'TIER 01 // HUMAN IN THE LOOP', '提出方向与把关', false);
+  drawDeckSlab(-4.95, 4.95, -2.55,  0.88, 0.00, tier2RGB, '', '', true);
+  drawDeckSlab(-5.35, 5.35,  1.88,  4.46, 0.00, tier3RGB, '', '', false);
+  drawHoloBadge(0.0, -0.52, 5.55, 'TIER 03 // 知识交付与底座 · 双语书稿 · 论文 · 交流 · 工程', tier3RGB, '#2a5678', '#a8d8f8');
+
+  // Subtle 360° Radar Sweep Cone confined cleanly on Deck 02!
+  const coreZ = -0.95;
   if (!state.quiet && !reduced && !isLight) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const sweepA = t * 1.15;
+    const sweepA = t * 1.1;
     const cPt = project(0, 0.02, coreZ);
     if (cPt) {
-      for (let s = 0; s < 10; s++) {
-        const a1 = sweepA - s * 0.055;
-        const a2 = sweepA - (s + 1) * 0.055;
-        const p1 = project(Math.cos(a1) * 5.2, 0.02, coreZ + Math.sin(a1) * 3.8);
-        const p2 = project(Math.cos(a2) * 5.2, 0.02, coreZ + Math.sin(a2) * 3.8);
+      for (let s = 0; s < 8; s++) {
+        const a1 = sweepA - s * 0.055, a2 = sweepA - (s + 1) * 0.055;
+        const p1 = project(Math.cos(a1) * 4.4, 0.02, coreZ + Math.sin(a1) * 1.45);
+        const p2 = project(Math.cos(a2) * 4.4, 0.02, coreZ + Math.sin(a2) * 1.45);
         if (!p1 || !p2) continue;
-        ctx.fillStyle = rgba(isBlueprint ? [150, 215, 255] : [94, 237, 236], (1 - s / 10) * 0.048);
+        ctx.fillStyle = rgba(tier2RGB, (1 - s / 8) * 0.042);
         ctx.beginPath(); ctx.moveTo(cPt.x, cPt.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.closePath(); ctx.fill();
       }
-      const lead = project(Math.cos(sweepA) * 5.2, 0.02, coreZ + Math.sin(sweepA) * 3.8);
-      draw3DSeg(cPt, lead, rgba(isBlueprint ? [150, 215, 255] : [94, 237, 236], 0.36), 1.4);
     }
     ctx.restore();
   }
@@ -2972,98 +3084,181 @@ function drawHolo3DFrame(dt = 0.016) {
   // Boot Shockwave Ring expanding across ground plane during 0..1.1s
   if (holoCam.bootAge < 1.1 && !state.quiet && !reduced) {
     const bu = holoCam.bootAge / 1.1;
-    draw3DRing(0, 0.03, coreZ, 0.5 + bu * 6.8, 0.4 + bu * 5.2, 64, rgba([94, 237, 236], (1 - bu) * 0.85), 2.4);
+    draw3DRing(0, 0.03, coreZ, 0.5 + bu * 6.5, 0.4 + bu * 4.8, 64, rgba([94, 237, 236], (1 - bu) * 0.85), 2.4);
   }
 
-  // Calibrated Orbital Compass Rings around Tier 2 AI Core
-  draw3DRing(0, 0.01, coreZ, 4.45, 2.05, 64, rgba(isLight ? [15, 118, 110] : [45, 227, 184], isLight ? 0.24 : 0.30), 1.4);
-  draw3DRing(0, 0.01, coreZ, 5.65, 3.85, 72, rgba(gridColor, isLight ? 0.12 : 0.13), 1, [4, 8], t * 0.025);
+  // ==========================================================================
+  // 5. CRYSTAL-CLEAR 3D ARCHITECTURAL BUSES & THE UNMISTAKABLE 24/7 LOOP TRACK!
+  // Every route follows crisp architectural rails with directional chevrons!
+  // ==========================================================================
+  const activeId = state.hovered || state.selected;
 
-  // Subtle 3-Tier Architectural Deck Brackets (front Tier 3 rail)
-  draw3DSeg(project(-4.8, 0.01, 1.85), project(4.8, 0.01, 1.85), rgba(gridColor, isLight ? 0.18 : 0.16), 1);
+  // Helper: render a 3D polyline conduit with glowing rail, animated chevrons & flowing light packets
+  const drawConduit3D = (waypoints, colorRGB, opts = {}) => {
+    const { lw = 1.6, alpha = 0.55, dashed = false, particles = 0, speed = 0.35, chevrons = true, bidir = false } = opts;
+    const pts = waypoints.map(([x, y, z]) => project(x, y, z));
+    if (pts.some(p => !p)) return;
 
-  // 5. Elevated 24/7 AI Autonomous Orbital Accelerator Track + Fast Photons
-  ctx.save();
-  if (!isLight) ctx.globalCompositeOperation = 'lighter';
-  const loopRGB = isBlueprint ? [150, 215, 255] : [45, 227, 184];
-  draw3DRing(0, 0.36, coreZ, 4.15, 1.65, 64, rgba(loopRGB, isLight ? 0.30 : 0.42), 1.6, [8, 6], -t * 0.14);
-  if (!state.quiet && !reduced && !isStale()) {
-    for (let i = 0; i < 24; i++) {
-      const a = (i / 24) * Math.PI * 2 - t * 0.62;
-      const pt = project(Math.cos(a) * 4.15, 0.36 + Math.sin(a * 2 + t) * 0.04, coreZ + Math.sin(a) * 1.65);
-      if (!pt) continue;
-      ctx.fillStyle = rgba(i % 2 === 0 ? [94, 237, 236] : [121, 255, 223], isLight ? 0.72 : 0.90);
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, Math.max(1.2, 2.6 * (pt.s / 70)), 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    if (dashed) ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = rgba(colorRGB, alpha);
+    ctx.lineWidth = lw;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    // Compute total 2D projected length for evenly spaced directional chevrons & photons
+    const segLens = [];
+    let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+      segLens.push(l);
+      total += l;
     }
-  }
+    if (total < 6) return;
 
-  // 6. Focused Golden Tractor Beam from Apex Human Sun -> AI Core
-  const dirCfg = holoWorld.direction;
-  const beamTop = project(dirCfg.x, dirCfg.y, dirCfg.z);
-  const beamBot = project(dirCfg.x, 0.04, dirCfg.z);
-  if (beamTop && beamBot) {
-    const grad = ctx.createLinearGradient(beamTop.x, beamTop.y, beamBot.x, beamBot.y);
-    grad.addColorStop(0, rgba([245, 183, 73], isLight ? 0.45 : 0.58));
-    grad.addColorStop(1, rgba([245, 183, 73], 0));
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = Math.max(2, 8 * (beamTop.s / 90));
-    ctx.beginPath(); ctx.moveTo(beamTop.x, beamTop.y); ctx.lineTo(beamBot.x, beamBot.y); ctx.stroke();
-    if (!state.quiet && !reduced) {
-      for (let i = 0; i < 4; i++) {
-        const u = (t * 0.48 + i * 0.25) % 1;
-        const p = project(dirCfg.x, dirCfg.y * (1 - u), dirCfg.z);
-        if (p) { ctx.fillStyle = rgba([255, 224, 140], 0.92); ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2); ctx.fill(); }
+    const sampleAt = u => {
+      const target = Math.max(0, Math.min(1, u)) * total;
+      let acc = 0;
+      for (let i = 0; i < segLens.length; i++) {
+        if (acc + segLens[i] >= target || i === segLens.length - 1) {
+          const frac = segLens[i] > 0.001 ? (target - acc) / segLens[i] : 0;
+          const x = pts[i].x + (pts[i + 1].x - pts[i].x) * frac;
+          const y = pts[i].y + (pts[i + 1].y - pts[i].y) * frac;
+          const ang = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x);
+          return { x, y, ang };
+        }
+        acc += segLens[i];
+      }
+      return { x: pts[0].x, y: pts[0].y, ang: 0 };
+    };
+
+    // Crisp directional chevrons along the bus (makes flow direction 100% unmistakable!)
+    if (chevrons) {
+      const chCount = Math.max(1, Math.min(5, Math.floor(total / 85)));
+      ctx.strokeStyle = rgba(colorRGB, Math.min(1, alpha + 0.35));
+      ctx.lineWidth = Math.max(1.4, lw * 0.85);
+      for (let c = 0; c < chCount; c++) {
+        const u = (c + 0.5) / chCount;
+        const s = sampleAt(u);
+        const drawCh = (ang, dir = 1) => {
+          ctx.save();
+          ctx.translate(s.x, s.y);
+          ctx.rotate(ang + (dir < 0 ? Math.PI : 0));
+          ctx.beginPath();
+          ctx.moveTo(-4.5, -3.6);
+          ctx.lineTo(3.5, 0);
+          ctx.lineTo(-4.5, 3.6);
+          ctx.stroke();
+          ctx.restore();
+        };
+        drawCh(s.ang, 1);
+        if (bidir) {
+          const s2 = sampleAt(Math.max(0.15, u - 0.14));
+          ctx.save();
+          ctx.translate(s2.x, s2.y);
+          ctx.rotate(s2.ang + Math.PI);
+          ctx.beginPath(); ctx.moveTo(-4.5, -3.6); ctx.lineTo(3.5, 0); ctx.lineTo(-4.5, 3.6); ctx.stroke();
+          ctx.restore();
+        }
       }
     }
-  }
 
-  // 7. Disciplined 3D Energy Conduits (Quiet at rest, electric on hovered/active entity!)
-  const activeId = state.hovered || state.selected;
-  const drawArc3D = (fromId, toId, colorRGB, isHot, count = 0) => {
-    const a = holoWorld[fromId], b = holoWorld[toId];
-    if (!a || !b) return;
-    const yA = a.y + (a.floating ? 0 : 0.55);
-    const yB = b.y + (b.floating ? 0 : 0.55);
-    const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
-    const dist = Math.hypot(b.x - a.x, b.z - a.z);
-    const my = Math.max(yA, yB) + 0.45 + dist * 0.14;
-
-    ctx.beginPath();
-    for (let i = 0; i <= 26; i++) {
-      const u = i / 26, inv = 1 - u;
-      const pt = project(inv * inv * a.x + 2 * inv * u * mx + u * u * b.x, inv * inv * yA + 2 * inv * u * my + u * u * yB, inv * inv * a.z + 2 * inv * u * mz + u * u * b.z);
-      if (!pt) continue;
-      if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
-    }
-    ctx.strokeStyle = rgba(colorRGB, isHot ? (isLight ? 0.85 : 0.88) : (isLight ? 0.12 : 0.13));
-    ctx.lineWidth = isHot ? 2.0 : 0.85;
-    ctx.stroke();
-
-    if (isHot && !state.quiet && !reduced && !isStale()) {
-      const numDots = Math.min(4, Math.max(2, Math.ceil((count || 8) / 50)));
-      for (let k = 0; k < numDots; k++) {
-        const u = (t * 0.44 + k / numDots) % 1, inv = 1 - u;
-        const pt = project(inv * inv * a.x + 2 * inv * u * mx + u * u * b.x, inv * inv * yA + 2 * inv * u * my + u * u * yB, inv * inv * a.z + 2 * inv * u * mz + u * u * b.z);
-        if (pt) { ctx.fillStyle = rgba(colorRGB, 0.96); ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.6, 0, Math.PI * 2); ctx.fill(); }
+    // Streaming high-speed glowing energy packets
+    if (particles > 0 && !state.quiet && !reduced && !isStale()) {
+      for (let k = 0; k < particles; k++) {
+        const u = (t * speed + k / particles) % 1;
+        const s = sampleAt(u);
+        ctx.fillStyle = rgba([230, 255, 250], 0.96);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2.7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(colorRGB, 0.42);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 5.5, 0, Math.PI * 2); ctx.fill();
       }
     }
   };
 
-  for (const r of view()?.routes || []) {
-    const isHot = r.from === activeId || r.to === activeId;
-    const cRGB = isBlueprint ? [150, 215, 255] : (isHot ? [94, 237, 236] : [90, 155, 185]);
-    drawArc3D(r.from, r.to, cRGB, isHot, 10);
-  }
-  const refCounts = new Map();
-  for (const rel of view()?.handoffs || []) {
-    if (rel.kind !== 'reference' || (rel.from !== activeId && rel.to !== activeId)) continue;
-    const k = `${rel.from}->${rel.to}`;
-    refCounts.set(k, (refCounts.get(k) || 0) + 1);
-  }
-  for (const [k, cnt] of refCounts) {
-    const [f, to] = k.split('->');
-    drawArc3D(f, to, [245, 183, 73], true, cnt);
-  }
+  ctx.save();
+  if (!isLight) ctx.globalCompositeOperation = 'lighter';
+
+  // A. TIER 01 -> TIER 02: Golden Human Direction Downlink (研究方向 -> 数学攻坚)
+  const dirHot = activeId === 'direction' || activeId === 'research';
+  drawConduit3D(
+    [[0.0, 1.35, -3.35], [-3.45, 1.35, -3.35], [-3.45, 0.08, -2.45], [-3.45, 0.08, -1.65]],
+    tier1RGB,
+    { lw: dirHot ? 2.8 : 2.0, alpha: dirHot ? 0.95 : 0.62, particles: 3, speed: 0.32 }
+  );
+
+  // B. TIER 02 CORE 24/7 CLOSED LOOP TRACK (UNMISTAKABLE!)
+  // B1: Forward Spine: 数学攻坚 (-3.45) ⇄ 独立评审 (0.0) -> 形式验证 (+3.45)
+  const rrHot = activeId === 'research' || activeId === 'review';
+  const rvHot = activeId === 'review' || activeId === 'verification';
+  drawConduit3D(
+    [[-2.65, 0.06, -0.95], [-0.75, 0.06, -0.95]],
+    tier2RGB,
+    { lw: rrHot ? 3.2 : 2.3, alpha: rrHot ? 0.98 : 0.78, particles: 3, speed: 0.55, bidir: true }
+  );
+  drawConduit3D(
+    [[0.75, 0.06, -0.95], [2.65, 0.06, -0.95]],
+    isBlueprint ? [150, 215, 255] : [94, 237, 236],
+    { lw: rvHot ? 3.2 : 2.3, alpha: rvHot ? 0.98 : 0.78, particles: 3, speed: 0.55 }
+  );
+
+  // B2: THE GIANT GLOWING 24/7 CLOSED-LOOP RETURN BRIDGE: 形式验证 (+3.45) ↺ 数学攻坚 (-3.45)
+  const loopHot = activeId === 'research' || activeId === 'verification' || activeId === 'review';
+  drawConduit3D(
+    [[3.45, 0.06, -1.68], [3.45, 0.14, -2.18], [0.0, 0.22, -2.28], [-3.45, 0.14, -2.18], [-3.45, 0.06, -1.68]],
+    isBlueprint ? [150, 215, 255] : [45, 227, 184],
+    { lw: loopHot ? 3.0 : 2.2, alpha: loopHot ? 0.96 : 0.72, dashed: true, particles: 6, speed: 0.38 }
+  );
+  // Crisp floating holographic badge right on top of the 24/7 Return Loop Bridge!
+  drawHoloBadge(0.0, 0.28, -2.30, 'TIER 02 · ↺ 24/7 AI 自主闭环持续迭代', tier2RGB, '#047857', '#7dffe0');
+
+  // B3: Lower 24/7 Fast-Check Bypass Channel inside Deck 02 (数学攻坚 -> 形式验证)
+  drawConduit3D(
+    [[-3.45, 0.05, -0.18], [-3.45, 0.05, 0.42], [3.45, 0.05, 0.42], [3.45, 0.05, -0.18]],
+    [245, 183, 73],
+    { lw: (activeId === 'research' || activeId === 'verification') ? 2.2 : 1.2, alpha: (activeId === 'research' || activeId === 'verification') ? 0.85 : 0.28, dashed: true, particles: (activeId === 'research' || activeId === 'verification') ? 3 : 0, speed: 0.42 }
+  );
+
+  // C. TIER 02 -> TIER 03 CLEAN 90° ARCHITECTURAL DISTRIBUTION BUS (z = 1.35)
+  const outBookHot = activeId === 'verification' || activeId === 'books';
+  const outPubHot = activeId === 'verification' || activeId === 'publication';
+  drawConduit3D(
+    [[3.45, 0.05, 0.42], [3.45, 0.05, 1.35], [1.45, 0.05, 1.35], [1.45, 0.05, 2.35]],
+    isBlueprint ? [150, 215, 255] : [199, 140, 219],
+    { lw: outBookHot ? 2.6 : 1.7, alpha: outBookHot ? 0.92 : 0.48, particles: outBookHot ? 3 : 1, speed: 0.36 }
+  );
+  drawConduit3D(
+    [[1.45, 0.05, 1.35], [-1.45, 0.05, 1.35], [-1.45, 0.05, 2.35]],
+    isBlueprint ? [150, 215, 255] : [74, 216, 176],
+    { lw: outPubHot ? 2.6 : 1.6, alpha: outPubHot ? 0.92 : 0.44, particles: outPubHot ? 3 : 1, speed: 0.34 }
+  );
+
+  // D. TIER 03 INTERNAL OUTPUT FLOW: 工具与表达 -> 理论书写, 论文与知识 -> 学术交流
+  const sbHot = activeId === 'studio' || activeId === 'books';
+  const poHot = activeId === 'publication' || activeId === 'outreach';
+  drawConduit3D(
+    [[3.65, 0.05, 3.05], [2.15, 0.05, 3.05]],
+    [136, 184, 212],
+    { lw: sbHot ? 2.4 : 1.5, alpha: sbHot ? 0.92 : 0.46, particles: sbHot ? 2 : 0, speed: 0.45 }
+  );
+  drawConduit3D(
+    [[-2.15, 0.05, 3.05], [-3.65, 0.05, 3.05]],
+    [240, 148, 90],
+    { lw: poHot ? 2.4 : 1.5, alpha: poHot ? 0.92 : 0.46, particles: poHot ? 2 : 0, speed: 0.45 }
+  );
+
+  // E. OUTER MACRO-FEEDBACK LOOP: 学术交流 -> 研究方向 (runs cleanly along far-left rail x = -5.55!)
+  const fbHot = activeId === 'outreach' || activeId === 'direction';
+  drawConduit3D(
+    [[-5.00, 0.05, 3.05], [-5.55, 0.05, 3.05], [-5.55, 0.05, -2.55], [-5.55, 1.35, -4.10], [-3.10, 1.35, -4.10]],
+    [240, 148, 90],
+    { lw: fbHot ? 2.4 : 1.2, alpha: fbHot ? 0.88 : 0.32, dashed: true, particles: fbHot ? 3 : 1, speed: 0.22 }
+  );
+
   ctx.restore();
 
   // ==========================================================================
