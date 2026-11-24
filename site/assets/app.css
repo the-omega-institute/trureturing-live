@@ -539,7 +539,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   position: absolute;
   left: var(--x);
   top: var(--y);
-  transform: translate(-50%, 0%) scale(var(--depth-scale));
+  transform: translate(-50%, 0%) scale(calc(var(--depth-scale) * var(--cell-scale, 1)));
   transform-origin: top center;
   display: flex;
   flex-direction: column;
@@ -554,7 +554,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 
 .hive-cell.is-apex-label {
   flex-direction: column-reverse;
-  transform: translate(-50%, -100%) scale(var(--depth-scale));
+  transform: translate(-50%, -100%) scale(calc(var(--depth-scale) * var(--cell-scale, 1)));
   transform-origin: bottom center;
 }
 
@@ -591,12 +591,12 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 
 .hive-cell:hover,
 .hive-cell[aria-pressed="true"] {
-  transform: translate(-50%, -2px) scale(calc(var(--depth-scale) * 1.07));
+  transform: translate(-50%, -2px) scale(calc(var(--depth-scale) * var(--cell-scale, 1) * 1.07));
 }
 
 .hive-cell.is-apex-label:hover,
 .hive-cell.is-apex-label[aria-pressed="true"] {
-  transform: translate(-50%, calc(-100% - 3px)) scale(calc(var(--depth-scale) * 1.07));
+  transform: translate(-50%, calc(-100% - 3px)) scale(calc(var(--depth-scale) * var(--cell-scale, 1) * 1.07));
 }
 
 .hive-cell:hover .cell-card,
@@ -1788,4 +1788,147 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   #lens-map-svg, .map-hub-node { display: none; }
   .map-seat-layer, .map-topic-layer, .map-portal-col { position: static; display: flex; flex-direction: column; gap: 8px; }
   .lens-agent, .map-topic-node, .map-portal-node { position: static; transform: none; width: 100%; }
+}
+
+/* ============================================================================
+   PORTRAIT COMMAND SCREEN (竖屏)
+   Header, 3D campus, department readouts and relay rail stack top to bottom.
+   Phones scroll; tablets and rotated monitors fill exactly one screen.
+   ============================================================================ */
+@media (orientation: portrait) {
+  /* Only the viewport scrolls, so the relay rail can stay sticky. */
+  html { height: auto; overflow-x: hidden; overflow-y: auto; }
+  body { height: auto; overflow: visible; overflow-x: clip; }
+
+  .cinema-stage {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fui-top,
+  :root[data-look="blueprint"] .fui-top,
+  :root[data-theme="light"] .fui-top {
+    position: relative;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 10px 14px;
+    background: var(--surface-solid);
+    border-bottom: 1px solid var(--border);
+  }
+  .fui-top-left,
+  .fui-top-right { flex-wrap: wrap; row-gap: 8px; min-width: 0; }
+  .fui-top-right { flex: 1 1 100%; }
+
+  .connection-note {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    align-self: center;
+    margin: 8px 12px 0;
+  }
+
+  .research-room {
+    position: relative;
+    inset: auto;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .hive-board {
+    position: relative;
+    inset: auto;
+    grid-column: 1 / -1;
+    height: clamp(340px, 108vw, 72svh);
+    touch-action: pan-y;
+  }
+
+  .fui-corner-telemetry { position: absolute; bottom: 10px; }
+
+  .scifi-log-wall { display: none; }
+
+  .department-panel {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: auto;
+    max-height: none;
+    min-height: 0;
+    margin: 0 12px;
+  }
+
+  .fui-bottom-shell {
+    position: sticky;
+    left: auto;
+    right: auto;
+    bottom: 0;
+    padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+    background: var(--surface-solid);
+    border-top: 1px solid var(--border);
+  }
+  .fui-bottom-rail {
+    height: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding: 6px 8px;
+    border-radius: 12px;
+  }
+  .method-strip { flex: 1 1 auto; width: auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .method-strip::-webkit-scrollbar { display: none; }
+  .ticker-pill { display: none; }
+
+  /* The drawer opens over the stage so the rail keeps its height. */
+  .telemetry-dock { position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); }
+  .telemetry-dock.is-open { max-height: min(56vh, 720px); }
+
+  .department-lens { top: 8px; left: 8px; right: 8px; bottom: 8px; z-index: 80; overflow-y: auto; }
+  .journey-panel { top: 8px; width: calc(100vw - 16px); max-height: calc(100vh - 16px); max-height: calc(100svh - 16px); z-index: 80; }
+}
+
+/* Phones: the page scrolls under a sticky relay rail. */
+@media (orientation: portrait) and (max-width: 699px) {
+  .hive-cell { --cell-scale: 0.9; }
+  .cell-role-tag,
+  .cell-meta-row { display: none; }
+  .fui-orbit-hint { display: none; }
+  .department-panel { min-height: 280px; }
+  .department-lens { top: 0; left: 0; right: 0; bottom: 0; border-radius: 0; }
+}
+
+/* Tablets and rotated monitors: one fixed screen, readouts scroll inside. */
+@media (orientation: portrait) and (min-width: 700px) {
+  html, body { height: 100%; overflow: hidden; }
+  .cinema-stage { height: 100vh; height: 100svh; min-height: 0; }
+  .hive-board { height: min(104vw, 58svh); }
+  .department-work { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+}
+
+/* Rotated desktop monitors (1080 × 1920 CSS px and wider): live log beside the department readout. */
+@media (orientation: portrait) and (min-width: 1000px) {
+  .research-room { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+  .scifi-log-wall {
+    display: flex;
+    position: relative;
+    top: auto;
+    left: auto;
+    bottom: auto;
+    width: auto;
+    min-height: 0;
+    margin-left: 12px;
+  }
+  .department-panel { margin-left: 0; }
 }
