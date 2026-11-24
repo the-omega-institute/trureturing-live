@@ -606,16 +606,7 @@ function createCell(d, index) {
   button.append(hexShellSVG(), content);
 
   button.addEventListener('click', () => selectDepartment(d.id, true, true));
-  button.addEventListener('pointerenter', () => {
-    state.hovered = d.id;
-    highlightRoutes(d.id);
-    updateHoverHint(d.id);
-  });
-  button.addEventListener('pointerleave', () => {
-    state.hovered = null;
-    highlightRoutes(state.selected);
-    updateHoverHint(state.selected);
-  });
+  button.addEventListener('pointerenter', () => previewDepartment(d.id));
   button.addEventListener('keydown', event => {
     if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(event.key)) {
       event.preventDefault();
@@ -628,6 +619,26 @@ function createCell(d, index) {
     }
   });
   return { button, status, title, mode, seats };
+}
+
+function previewDepartment(id) {
+  if (!department(id) || state.focused) return;
+  state.hovered = id;
+  if (state.selected === id) {
+    highlightRoutes(id);
+    updateHoverHint(id);
+    return;
+  }
+  state.selected = id;
+  for (const [deptId, cell] of state.cells) {
+    cell.button.setAttribute('aria-pressed', String(deptId === id));
+  }
+  for (const btn of document.querySelectorAll('[data-method-department]')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.methodDepartment === id));
+  }
+  highlightRoutes(id);
+  updateHoverHint(id);
+  renderDepartment();
 }
 
 function updateHoverHint(id) {
@@ -732,34 +743,44 @@ function customRouteCurve(from, to) {
   const q = positions[to];
   if (!p || !q) return null;
   if (from === 'outreach' && to === 'direction') {
-    const d = 'M 155 632 C 42 580, 42 138, 408 114 L 500 114';
-    return { d, mid: [66, 364], angle: -90 };
+    // Clean orthogonal architectural return bus along the left edge
+    const d = 'M 155 632 L 72 632 Q 52 632 52 612 L 52 134 Q 52 114 72 114 L 500 114';
+    return { d, mid: [52, 364], angle: -90 };
   }
   if (from === 'direction' && to === 'research') {
-    const c = [248, 146];
-    return {
-      d: `M ${p[0]} ${p[1]} Q ${c[0]} ${c[1]} ${q[0]} ${q[1]}`,
-      mid: quadPoint(p, c, q, 0.52),
-      angle: quadTangent(p, c, q, 0.52)
-    };
+    const d = 'M 500 114 L 225 114 Q 205 114 205 134 L 205 364';
+    return { d, mid: [205, 198], angle: 90 };
   }
   if (from === 'research' && to === 'verification') {
-    // Glides cleanly along the lower track of the 24/7 bay well below 独立评审!
-    const c = [500, 502];
-    return {
-      d: `M ${p[0]} ${p[1]} Q ${c[0]} ${c[1]} ${q[0]} ${q[1]}`,
-      mid: quadPoint(p, c, q, 0.5),
-      angle: quadTangent(p, c, q, 0.5),
-      isLoop: true
-    };
+    // Clean rounded lower channel inside the 24/7 loop bay
+    const d = 'M 205 364 L 205 446 Q 205 462 225 462 L 775 462 Q 795 462 795 446 L 795 364';
+    return { d, mid: [500, 462], angle: 0, isLoop: true };
   }
-  if (from === 'research' && to === 'review') return { ...curveBetween(from, to, -18), isLoop: true };
-  if (from === 'review' && to === 'research') return { ...curveBetween(from, to, -18), isLoop: true };
-  if (from === 'verification' && to === 'books') return curveBetween(from, to, -20);
-  if (from === 'verification' && to === 'publication') return curveBetween(from, to, 24);
-  if (from === 'publication' && to === 'outreach') return curveBetween(from, to, 0);
-  if (from === 'studio' && to === 'books') return curveBetween(from, to, 0);
-  return curveBetween(from, to, 12);
+  if (from === 'research' && to === 'review') {
+    // Single crisp horizontal conduit (bidirectional chevrons added cleanly)
+    return { d: 'M 205 364 L 500 364', mid: [352, 364], angle: 0, isLoop: true, bidirectional: true };
+  }
+  if (from === 'review' && to === 'research') {
+    // Handled as single clean bidirectional conduit with research -> review
+    return null;
+  }
+  if (from === 'verification' && to === 'books') {
+    // Clean horizontal distribution bus at y = 492 between Tier 2 & Tier 3
+    const d = 'M 795 364 L 795 478 Q 795 492 779 492 L 631 492 Q 615 492 615 508 L 615 632';
+    return { d, mid: [615, 532], angle: 90 };
+  }
+  if (from === 'verification' && to === 'publication') {
+    // Shares the exact clean horizontal distribution bus at y = 492 -> drops straight into publication!
+    const d = 'M 795 364 L 795 478 Q 795 492 779 492 L 401 492 Q 385 492 385 508 L 385 632';
+    return { d, mid: [385, 532], angle: 90 };
+  }
+  if (from === 'publication' && to === 'outreach') {
+    return { d: 'M 385 632 L 155 632', mid: [270, 632], angle: 180 };
+  }
+  if (from === 'studio' && to === 'books') {
+    return { d: 'M 845 632 L 615 632', mid: [730, 632], angle: 180 };
+  }
+  return curveBetween(from, to, 0);
 }
 
 function svgText(x, y, text, className) {
@@ -911,13 +932,29 @@ function renderRoutes() {
     svg.append(path);
 
     if (badges) {
-      const chevron = document.createElementNS(ns, 'path');
-      chevron.setAttribute('d', 'M -4.5 -3.6 L 3.8 0 L -4.5 3.6');
-      chevron.setAttribute('class', 'route-chevron');
-      chevron.setAttribute('transform', `translate(${curve.mid[0].toFixed(1)} ${curve.mid[1].toFixed(1)}) rotate(${curve.angle.toFixed(1)})`);
-      chevron.dataset.from = route.from;
-      chevron.dataset.to = route.to;
-      badges.append(chevron);
+      if (curve.bidirectional) {
+        const right = document.createElementNS(ns, 'path');
+        right.setAttribute('d', 'M 2 -3.4 L 8.5 0 L 2 3.4');
+        right.setAttribute('class', 'route-chevron');
+        right.setAttribute('transform', `translate(${curve.mid[0].toFixed(1)} ${curve.mid[1].toFixed(1)})`);
+        right.dataset.from = route.from;
+        right.dataset.to = route.to;
+        const left = document.createElementNS(ns, 'path');
+        left.setAttribute('d', 'M -2 -3.4 L -8.5 0 L -2 3.4');
+        left.setAttribute('class', 'route-chevron');
+        left.setAttribute('transform', `translate(${curve.mid[0].toFixed(1)} ${curve.mid[1].toFixed(1)})`);
+        left.dataset.from = route.from;
+        left.dataset.to = route.to;
+        badges.append(left, right);
+      } else {
+        const chevron = document.createElementNS(ns, 'path');
+        chevron.setAttribute('d', 'M -4.2 -3.4 L 3.8 0 L -4.2 3.4');
+        chevron.setAttribute('class', 'route-chevron');
+        chevron.setAttribute('transform', `translate(${curve.mid[0].toFixed(1)} ${curve.mid[1].toFixed(1)}) rotate(${curve.angle.toFixed(1)})`);
+        chevron.dataset.from = route.from;
+        chevron.dataset.to = route.to;
+        badges.append(chevron);
+      }
     }
   }
 
@@ -937,34 +974,36 @@ function renderRoutes() {
 
   const badgeSlot = pair => {
     const slots = {
-      'research|verification': [500, 456],
-      'books|verification': [706, 492],
-      'books|research': [356, 492],
+      'research|verification': [500, 462],
+      'books|verification': [696, 492],
+      'books|research': [316, 492],
       'books|studio': [730, 632],
-      'studio|verification': [830, 492]
+      'studio|verification': [845, 492]
     };
     return slots[pair] || null;
   };
 
   for (const [identity, entry] of grouped) {
     const { relation, count, activities: relActs } = entry;
-    let curve;
+    // Align cross-department reference arcs with the clean orthogonal bus (no messy diagonals!)
+    let dPath = null;
     if (identity === 'research|verification') {
-      const c = [500, 520];
-      curve = {
-        d: `M ${positions.research[0]} ${positions.research[1]} Q ${c[0]} ${c[1]} ${positions.verification[0]} ${positions.verification[1]}`
-      };
+      dPath = 'M 205 364 L 205 446 Q 205 462 225 462 L 775 462 Q 795 462 795 446 L 795 364';
     } else if (identity === 'books|research') {
-      const c = [342, 514];
-      curve = {
-        d: `M ${positions.research[0]} ${positions.research[1]} Q ${c[0]} ${c[1]} ${positions.books[0]} ${positions.books[1]}`
-      };
+      dPath = 'M 205 364 L 205 478 Q 205 492 221 492 L 599 492 Q 615 492 615 508 L 615 632';
+    } else if (identity === 'books|verification') {
+      dPath = 'M 795 364 L 795 478 Q 795 492 779 492 L 631 492 Q 615 492 615 508 L 615 632';
+    } else if (identity === 'books|studio') {
+      dPath = 'M 845 632 L 615 632';
+    } else if (identity === 'studio|verification') {
+      dPath = 'M 795 364 L 795 478 Q 795 492 811 492 L 829 492 Q 845 492 845 508 L 845 632';
     } else {
-      curve = curveBetween(relation.from, relation.to, -18);
+      const c = curveBetween(relation.from, relation.to, 0);
+      dPath = c?.d || null;
     }
-    if (!curve) continue;
+    if (!dPath) continue;
     const path = document.createElementNS(ns, 'path');
-    path.setAttribute('d', curve.d);
+    path.setAttribute('d', dPath);
     path.setAttribute('class', 'research-connection');
     path.dataset.from = relation.from;
     path.dataset.to = relation.to;
@@ -1003,7 +1042,7 @@ function renderRoutes() {
       dot.setAttribute('class', 'arrival-particle');
       const motion = document.createElementNS(ns, 'animateMotion');
       motion.setAttribute('dur', '1.5s');
-      motion.setAttribute('path', curve.d);
+      motion.setAttribute('path', dPath);
       motion.setAttribute('repeatCount', '1');
       dot.append(motion);
       svg.append(dot);
@@ -1020,7 +1059,6 @@ function highlightRoutes(id) {
   for (const badge of document.querySelectorAll('#hive-badges .route-badge')) {
     const match = badge.dataset.from === id || badge.dataset.to === id;
     badge.classList.toggle('selected', match);
-    badge.style.opacity = match ? '1' : '0.68';
   }
 }
 
