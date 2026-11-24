@@ -2896,9 +2896,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   const breath = 1.0 + (quiet ? 0.02 : 0.038 * Math.sin(tEff * 0.30));
 
   const cx = w * 0.5;
-  const cy = h * 0.495;
-  const scaleX = w * 0.405 * breath;
-  const scaleY = h * 0.465 * breath;
+  const cy = h * 0.50;
+  const scaleX = w * 0.425 * breath;
+  const scaleY = h * 0.455 * breath;
   const camZ = 2.65;
 
   const projectNeb = (nx, ny, nz) => {
@@ -2910,7 +2910,20 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     return [cx + x1 * scaleX * inv, cy - y2 * scaleY * inv, z2, inv];
   };
 
-  // Pre-project all 8 mathematical galaxy centroids for gas clouds, curved DAG links & labels!
+  // STRICT CORE SANCTUARY MASK: keeps the central foreground architecture (Akasha Eye,
+  // 4-sector campus & Central Lean Bridge) 100% clear & unobstructed while letting the
+  // vast outer Truth DAG cosmic ring shine brightly all around!
+  const coreClear = (px, py) => {
+    const dx = (px - w * 0.5) / (w * 0.235);
+    const dy = (py - h * 0.49) / (h * 0.255);
+    const d = Math.hypot(dx, dy);
+    if (d <= 0.72) return 0.05;
+    if (d >= 1.18) return 1.0;
+    const u = (d - 0.72) / 0.46;
+    return 0.05 + 0.95 * (u * u * (3 - 2 * u));
+  };
+
+  // Pre-project all named mathematical galaxy centroids around the outer cosmic perimeter!
   const clProj = new Map();
   for (const cl of clusters) {
     const [px, py, pz, inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000);
@@ -2920,15 +2933,16 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // PASS 1: Silky Volumetric Cosmic Nebula Clouds enveloping each mathematical galaxy!
+  // PASS 1: Wide, airy Volumetric Cosmic Nebula Mist enveloping the 7 outer mathematical galaxies!
   for (const { cl, x: px, y: py, inv, col } of clProj.values()) {
-    const weight = Math.min(1.38, 0.72 + Math.sqrt((cl.count || 500) / 1600) * 0.50);
-    const rad = Math.min(w, h) * 0.18 * weight * inv;
-    const pulse = 1.0 + (quiet ? 0 : 0.09 * Math.sin(tEff * 0.46 + cl.id * 1.1));
-    const g = ctx.createRadialGradient(px, py, 2, px, py, rad * pulse);
-    const baseA = isLight ? 0.065 : isBlueprint ? 0.095 : 0.115;
+    if (cl.name === 'Other') continue;
+    const weight = Math.min(1.42, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.48);
+    const rad = Math.min(w, h) * 0.22 * weight * inv;
+    const pulse = 1.0 + (quiet ? 0 : 0.08 * Math.sin(tEff * 0.44 + cl.id * 1.1));
+    const g = ctx.createRadialGradient(px, py, 6, px, py, rad * pulse);
+    const baseA = (isLight ? 0.052 : isBlueprint ? 0.082 : 0.098) * coreClear(px, py);
     g.addColorStop(0, rgba(col, baseA));
-    g.addColorStop(0.50, rgba(col, baseA * 0.42));
+    g.addColorStop(0.52, rgba(col, baseA * 0.42));
     g.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
@@ -2936,91 +2950,105 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.fill();
   }
 
-  // PASS 2: Continuous Cosmological Expansion Shockwaves + Live Lean Verification Ripples
+  // PASS 2: Subtle Outer Cosmological Expansion Shockwaves (hugging the outer cosmos, clear of center!)
   const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [0, 255, 168];
   const drawCosmicWave = (u, peakAlpha, lw) => {
-    if (u <= 0.02 || u >= 1.26) return;
-    const rx = w * 0.44 * u;
-    const ry = h * 0.43 * u;
-    const fade = Math.sin(Math.min(1, u / 1.24) * Math.PI);
+    if (u <= 0.58 || u >= 1.28) return;
+    const rx = w * 0.45 * u;
+    const ry = h * 0.45 * u;
+    const norm = (u - 0.58) / 0.70;
+    const fade = Math.sin(Math.min(1, norm) * Math.PI);
     ctx.strokeStyle = rgba(waveColor, fade * peakAlpha);
     ctx.lineWidth = lw;
-    ctx.setLineDash([6, 14]);
+    ctx.setLineDash([6, 16]);
     ctx.beginPath();
-    ctx.ellipse(cx, cy - h * 0.03, rx, ry, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   };
-  drawCosmicWave(front0, isLight ? 0.10 : 0.14, 1.0);
-  drawCosmicWave(front1, isLight ? 0.07 : 0.10, 0.85);
+  drawCosmicWave(0.58 + (front0 / 1.30) * 0.70, isLight ? 0.09 : 0.13, 0.95);
+  drawCosmicWave(0.58 + (front1 / 1.30) * 0.70, isLight ? 0.06 : 0.09, 0.80);
   for (const rp of holoCam.nebulaRipples) {
-    drawCosmicWave(0.08 + rp.age * 1.12, isLight ? 0.14 : 0.24, 1.35);
+    drawCosmicWave(0.58 + rp.age * 0.70, isLight ? 0.12 : 0.22, 1.25);
   }
 
-  // PASS 3: UNMISTAKABLE CURVED INTER-GALAXY TRUTH DAG CONDUITS (16 real directed domain links!)
-  // Shows exactly how Foundations, Combinatorics, Quantum, Arith, Weil, Analytic, Observer & ConceptDynamics connect!
-  for (let i = 0; i < clusterLinks.length; i++) {
-    const [fromId, toId, count] = clusterLinks[i];
+  // PASS 3: PERIMETER-HUGGING CURVED INTER-GALAXY TRUTH DAG CONDUITS!
+  // Routes real cross-galaxy dependencies gracefully AROUND the outer cosmic ring — ZERO lines cut across the core!
+  const ringRx = w * 0.34;
+  const ringRy = h * 0.385;
+  const namedLinks = clusterLinks.filter(([u, v]) => {
+    const cu = clProj.get(u)?.cl, cv = clProj.get(v)?.cl;
+    return cu && cv && cu.name !== 'Other' && cv.name !== 'Other';
+  });
+  for (let i = 0; i < namedLinks.length; i++) {
+    const [fromId, toId, count] = namedLinks[i];
     const a = clProj.get(fromId);
     const b = clProj.get(toId);
     if (!a || !b) continue;
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const dist = Math.hypot(dx, dy) || 1;
-    // Gentle graceful outward arc bowing slightly away from screen center
-    const mx = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
-    const nx = -dy / dist, ny = dx / dist;
-    const sign = ((mx - cx) * nx + (my - cy) * ny) >= 0 ? 1 : -1;
-    const bow = Math.min(82, dist * 0.17) * sign;
-    const cpx = mx + nx * bow;
-    const cpy = my + ny * bow;
+    const angA = Math.atan2((a.y - cy) / ringRy, (a.x - cx) / ringRx);
+    const angB = Math.atan2((b.y - cy) / ringRy, (b.x - cx) / ringRx);
+    let diff = angB - angA;
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    // Skip far-opposite diagonals (> 145 deg) so every link sweeps cleanly along the outer perimeter!
+    if (Math.abs(diff) > 2.55) continue;
 
-    const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(330));
-    const lw = 0.85 + strength * 1.35;
-    const alpha = (isLight ? 0.22 : 0.24) + strength * (isLight ? 0.22 : 0.26);
+    // Sample 18 points smoothly along the outer elliptical cosmic arch (never entering core sanctuary!)
+    const segs = 18;
+    const pts = [];
+    const rBoost = 1.0 + Math.min(0.14, Math.abs(diff) * 0.06) + (i % 3) * 0.025;
+    for (let s = 0; s <= segs; s++) {
+      const u = s / segs;
+      const ang = angA + diff * u;
+      const arch = Math.sin(u * Math.PI);
+      const px = (a.x * (1 - u) + b.x * u) * (1 - arch * 0.72) + (cx + Math.cos(ang) * ringRx * rBoost) * (arch * 0.72);
+      const py = (a.y * (1 - u) + b.y * u) * (1 - arch * 0.72) + (cy + Math.sin(ang) * ringRy * rBoost) * (arch * 0.72);
+      pts.push([px, py]);
+    }
 
+    const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
+    const lw = 0.85 + strength * 1.05;
+    const alpha = (isLight ? 0.24 : 0.26) + strength * (isLight ? 0.20 : 0.24);
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
     grad.addColorStop(0, rgba(a.col, alpha));
     grad.addColorStop(1, rgba(b.col, alpha * 1.1));
     ctx.strokeStyle = grad;
     ctx.lineWidth = lw;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(cpx, cpy, b.x, b.y);
+    pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
     ctx.stroke();
 
-    // Directional DAG chevron (▸) right at u=0.56 along the curve!
-    const evalQ = u => {
-      const m = 1 - u;
-      return [
-        m * m * a.x + 2 * m * u * cpx + u * u * b.x,
-        m * m * a.y + 2 * m * u * cpy + u * u * b.y,
-        Math.atan2(2 * m * (cpy - a.y) + 2 * u * (b.y - cpy), 2 * m * (cpx - a.x) + 2 * u * (b.x - cpx))
-      ];
-    };
-    const [chX, chY, chAng] = evalQ(0.56);
+    // Directional DAG chevron (▸) midway along the outer cosmic arc
+    const midIdx = Math.floor(segs * 0.52);
+    const p0 = pts[midIdx - 1], p1 = pts[midIdx];
+    const chAng = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
     ctx.save();
-    ctx.translate(chX, chY);
+    ctx.translate(p1[0], p1[1]);
     ctx.rotate(chAng);
-    ctx.strokeStyle = rgba(b.col, Math.min(0.88, alpha + 0.28));
+    ctx.strokeStyle = rgba(b.col, Math.min(0.90, alpha + 0.30));
     ctx.lineWidth = Math.max(1.0, lw * 0.85);
     ctx.beginPath();
-    ctx.moveTo(-4.0, -2.8); ctx.lineTo(2.8, 0); ctx.lineTo(-4.0, 2.8);
+    ctx.moveTo(-3.8, -2.6); ctx.lineTo(2.8, 0); ctx.lineTo(-3.8, 2.6);
     ctx.stroke();
     ctx.restore();
 
-    // Gliding luminous proof-packet traveling in the TRUE DAG direction (parent galaxy -> child galaxy)!
+    // Gliding proof-packet traveling in the TRUE DAG direction along the perimeter arc
     if (!quiet) {
-      const pu = (tEff * (0.16 + strength * 0.08) + i * 0.19) % 1;
-      const [px, py] = evalQ(pu);
+      const pu = (tEff * (0.14 + strength * 0.07) + i * 0.21) % 1;
+      const fIdx = pu * segs;
+      const i0 = Math.min(segs - 1, Math.floor(fIdx));
+      const frac = fIdx - i0;
+      const px = pts[i0][0] + (pts[i0 + 1][0] - pts[i0][0]) * frac;
+      const py = pts[i0][1] + (pts[i0 + 1][1] - pts[i0][1]) * frac;
       const fade = Math.sin(pu * Math.PI);
-      ctx.fillStyle = rgba(b.col, fade * (isLight ? 0.35 : 0.45));
-      ctx.beginPath(); ctx.arc(px, py, 3.6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isLight ? rgba(b.col, fade * 0.88) : rgba([235, 255, 245], fade * 0.92);
-      ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(b.col, fade * (isLight ? 0.32 : 0.42));
+      ctx.beginPath(); ctx.arc(px, py, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = isLight ? rgba(b.col, fade * 0.86) : rgba([235, 255, 245], fade * 0.90);
+      ctx.beginPath(); ctx.arc(px, py, 1.35, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  // PASS 4: Project all 1,160 real Truth DAG stars with subtle radial expansion swelling
+  // PASS 4: Project all 1,160 real Truth DAG stars with subtle airy radial expansion
   for (let i = 0; i < n; i++) {
     const s = stars[i];
     const gen = s[4] / 100;
@@ -3028,11 +3056,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const d1 = Math.max(0, 1 - Math.abs(gen - front1) / 0.16);
     const lit = Math.max(d0, d1);
     const cl = clProj.get(s[3])?.cl;
-    // Swell radially outward from this star's own galaxy centroid when the expansion wave hits!
-    const ctrX = cl ? cl.center[0] / 1000 : 0;
-    const ctrY = cl ? cl.center[1] / 1000 : 0;
-    const ctrZ = cl ? cl.center[2] / 1000 : 0;
-    const swell = 1.0 + lit * 0.11 + (quiet ? 0 : gen * 0.05 * Math.sin(tEff * 0.42 + gen * 4.5));
+    const ctrX = (cl && cl.name !== 'Other') ? cl.center[0] / 1000 : 0;
+    const ctrY = (cl && cl.name !== 'Other') ? cl.center[1] / 1000 : 0;
+    const ctrZ = (cl && cl.name !== 'Other') ? cl.center[2] / 1000 : 0;
+    const swell = 1.0 + lit * 0.08 + (quiet ? 0 : gen * 0.04 * Math.sin(tEff * 0.38 + gen * 4.2));
     const nx = ctrX + (s[0] / 1000 - ctrX) * swell;
     const ny = ctrY + (s[1] / 1000 - ctrY) * swell;
     const nz = ctrZ + (s[2] / 1000 - ctrZ) * swell;
@@ -3043,29 +3070,29 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     projLit[i] = lit;
   }
 
-  // PASS 5: CRISP BRANCHING INTRA-GALAXY DAG TREES (680 real parent -> child Lean dependencies!)
-  // Clearly legible branching DAG structure inside every galaxy, color-coded by mathematical cluster!
+  // PASS 5: AIRY BRANCHING INTRA-GALAXY DAG TREES (strictly masked outside core sanctuary!)
   for (let cid = 0; cid < clusters.length; cid++) {
     const col = nebPalette[cid % nebPalette.length];
-    ctx.strokeStyle = rgba(col, isLight ? 0.24 : 0.27);
-    ctx.lineWidth = 0.78;
+    ctx.strokeStyle = rgba(col, isLight ? 0.24 : 0.26);
+    ctx.lineWidth = 0.72;
     ctx.beginPath();
     let countNormal = 0;
     for (let i = 0; i < edges.length; i++) {
       const e = edges[i];
-      if (e[2] === 1) continue; // cross edges handled via clean curved cluster bundles
+      if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      if (Math.max(projLit[u], projLit[v]) > 0.50) continue;
+      // Never draw stray DAG branches inside the central foreground core!
+      if (coreClear((projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.35) continue;
+      if (Math.max(projLit[u], projLit[v]) > 0.52) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
       countNormal++;
     }
     if (countNormal) ctx.stroke();
 
-    // Expansion-wave-illuminated bright branching DAG spines!
-    ctx.strokeStyle = isLight ? rgba(col, 0.54) : rgba([205, 255, 235], 0.56);
-    ctx.lineWidth = 1.15;
+    ctx.strokeStyle = isLight ? rgba(col, 0.50) : rgba([205, 255, 235], 0.50);
+    ctx.lineWidth = 1.05;
     ctx.beginPath();
     let countHot = 0;
     for (let i = 0; i < edges.length; i++) {
@@ -3073,7 +3100,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      if (Math.max(projLit[u], projLit[v]) <= 0.50) continue;
+      if (coreClear((projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.35) continue;
+      if (Math.max(projLit[u], projLit[v]) <= 0.52) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
       countHot++;
@@ -3081,101 +3109,86 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     if (countHot) ctx.stroke();
   }
 
-  // PASS 6: Render 1,160 REAL Truth DAG Stars (crisp constellation nodes + glowing axiom hubs!)
+  // PASS 6: Render 1,160 Airy Real Truth DAG Stars (fine diamond stardust, 0 glare in core!)
   for (let i = 0; i < n; i++) {
     const s = stars[i];
     const px = projX[i], py = projY[i];
     if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
+    const mask = coreClear(px, py);
+    if (mask < 0.08) continue;
     const col = nebPalette[s[3] % nebPalette.length];
     const degW = s[5];
     const lit = projLit[i];
-    const aCore = (isLight ? 0.44 : 0.48) + lit * (isLight ? 0.34 : 0.44) + (degW >= 6 ? 0.18 : 0);
+    const aCore = ((isLight ? 0.36 : 0.38) + lit * (isLight ? 0.30 : 0.38) + (degW >= 7 ? 0.16 : 0)) * mask;
 
-    if (degW >= 6 || lit > 0.62) {
-      const rCore = (degW >= 8 ? 2.0 : 1.35) + lit * 0.55;
-      ctx.fillStyle = rgba(col, Math.min(0.32, aCore * 0.36));
+    if (degW >= 7 || lit > 0.68) {
+      const rCore = (degW >= 8 ? 1.55 : 1.05) + lit * 0.40;
+      ctx.fillStyle = rgba(col, Math.min(0.24, aCore * 0.32));
       ctx.beginPath();
-      ctx.arc(px, py, rCore * 2.5, 0, Math.PI * 2);
+      ctx.arc(px, py, rCore * 2.2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = isLight ? rgba(col, Math.min(0.88, aCore)) : rgba([232, 255, 244], Math.min(0.95, aCore));
+      ctx.fillStyle = isLight ? rgba(col, Math.min(0.80, aCore)) : rgba([230, 255, 244], Math.min(0.88, aCore));
       ctx.beginPath();
       ctx.arc(px, py, rCore, 0, Math.PI * 2);
       ctx.fill();
-      if (degW >= 8 && !isLight) {
+      if (degW >= 9 && !isLight && mask > 0.65) {
         const sp = rCore * 3.8;
-        ctx.strokeStyle = rgba(col, Math.min(0.55, aCore * 0.58));
-        ctx.lineWidth = 0.7;
+        ctx.strokeStyle = rgba(col, Math.min(0.46, aCore * 0.52));
+        ctx.lineWidth = 0.65;
         ctx.beginPath();
         ctx.moveTo(px - sp, py); ctx.lineTo(px + sp, py);
         ctx.moveTo(px, py - sp); ctx.lineTo(px, py + sp);
         ctx.stroke();
       }
     } else {
-      const sz = degW >= 4 ? 1.85 : 1.35;
-      ctx.fillStyle = rgba(col, Math.min(0.82, aCore));
+      const sz = degW >= 5 ? 1.55 : 1.15;
+      ctx.fillStyle = rgba(col, Math.min(0.72, aCore));
       ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
     }
   }
 
-  // PASS 7: 144 CONTINUOUSLY SPROUTING FRONTIER DAG BRANCHES (Perpetual Nebula Growth!)
-  // Visible glowing parent -> new theorem DAG twigs radiating outward from EVERY galaxy rim!
+  // PASS 7: 144 CONTINUOUSLY SPROUTING FRONTIER DAG BRANCHES (expanding outward into deep cosmos!)
   for (let k = 0; k < truthNebula.frontier.length; k++) {
     const f = truthNebula.frontier[k];
     const pStar = stars[f.parentIdx];
     const u = quiet ? ((f.phase * 0.70 + 0.18) % 1) : ((tEff * f.speed + f.phase) % 1);
-    const dist = Math.pow(u, 0.82) * 0.58;
+    const dist = Math.pow(u, 0.82) * 0.55;
     const fx = pStar[0] / 1000 + f.vx * dist;
     const fy = pStar[1] / 1000 + f.vy * dist;
     const fz = pStar[2] / 1000 + f.vz * dist;
     const [px, py] = projectNeb(fx, fy, fz);
     if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
+    const mask = coreClear(px, py);
+    if (mask < 0.25) continue;
     const col = nebPalette[f.cid % nebPalette.length];
-    const fade = Math.sin(u * Math.PI);
+    const fade = Math.sin(u * Math.PI) * mask;
 
-    // Visible glowing nascent DAG dependency branch linking parent theorem -> new frontier theorem!
     if (u < 0.78) {
-      const branchA = (1 - u / 0.78) * fade * (isLight ? 0.42 : 0.56);
+      const branchA = (1 - u / 0.78) * fade * (isLight ? 0.36 : 0.48);
       ctx.strokeStyle = rgba(col, branchA);
-      ctx.lineWidth = 0.9;
+      ctx.lineWidth = 0.85;
       ctx.beginPath();
       ctx.moveTo(projX[f.parentIdx], projY[f.parentIdx]);
       ctx.lineTo(px, py);
       ctx.stroke();
     }
-    ctx.fillStyle = rgba(col, fade * (isLight ? 0.28 : 0.40));
+    ctx.fillStyle = rgba(col, fade * (isLight ? 0.22 : 0.32));
     ctx.beginPath();
-    ctx.arc(px, py, f.size * 2.2, 0, Math.PI * 2);
+    ctx.arc(px, py, f.size * 1.9, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = isLight ? rgba(col, fade * 0.84) : rgba([238, 255, 246], fade * 0.94);
+    ctx.fillStyle = isLight ? rgba(col, fade * 0.80) : rgba([235, 255, 245], fade * 0.88);
     ctx.beginPath();
-    ctx.arc(px, py, f.size * 0.92, 0, Math.PI * 2);
+    ctx.arc(px, py, f.size * 0.82, 0, Math.PI * 2);
     ctx.fill();
   }
 
   ctx.restore();
 
-  // PASS 8: Subtle foreground depth cushion right behind the concrete 4-sector campus
-  const cushion = ctx.createRadialGradient(w * 0.5, h * 0.56, 40, w * 0.5, h * 0.56, Math.min(w, h) * 0.42);
-  if (isLight) {
-    cushion.addColorStop(0, 'rgba(244, 240, 232, 0.36)');
-    cushion.addColorStop(1, 'rgba(244, 240, 232, 0)');
-  } else if (isBlueprint) {
-    cushion.addColorStop(0, 'rgba(8, 22, 42, 0.42)');
-    cushion.addColorStop(1, 'rgba(8, 22, 42, 0)');
-  } else {
-    cushion.addColorStop(0, 'rgba(2, 11, 6, 0.46)');
-    cushion.addColorStop(1, 'rgba(2, 11, 6, 0)');
-  }
-  ctx.fillStyle = cushion;
-  ctx.fillRect(0, 0, w, h);
-
-  // PASS 9: CRISP ASTRONOMICAL TRUTH DAG GALAXY LABELS + TOP COSMOS HEADER!
-  // Makes it 100% instantly obvious WHAT the expanding background DAG is!
+  // PASS 8: CRISP ASTRONOMICAL TRUTH DAG GALAXY LABELS IN WIDE OPEN PERIMETER SKY!
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
-  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.92)' : 'rgba(2, 10, 5, 0.92)';
+  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(2, 10, 5, 0.94)';
 
-  // Subtle top-center cosmic Truth DAG subtitle right beneath the top HUD bar
   if (truthNebula.counts?.truth_nodes) {
     const hdr = `TRUTH DAG NEBULA // ${truthNebula.counts.truth_nodes.toLocaleString()} FROZEN THEOREMS · ${(truthNebula.counts.truth_edges || 0).toLocaleString()} DEPENDENCIES`;
     ctx.font = '700 9px "Geist Mono", ui-monospace, monospace';
@@ -3188,30 +3201,25 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.fillText(hdr, w * 0.5, 62);
   }
 
-  // Crisp constellation tags anchored right beside each outer mathematical galaxy in open sky
   for (const { cl, x: px, y: py, col } of clProj.values()) {
-    if (cl.name === 'Other') continue; // Foundations core sits quietly behind the Lean Bridge
+    if (cl.name === 'Other') continue;
     const isBottom = cl.center[1] < 0;
-    const isTopCrown = cl.name === 'Observer';
-    const lx = px;
-    const ly = isTopCrown ? py - 30 : isBottom ? py + 44 : py - 42;
-    if (lx < 276 || lx > w - 276 || ly < 74 || ly > h - 82) continue;
+    const lx = Math.max(308, Math.min(w - 308, px));
+    const ly = isBottom ? Math.min(h - 104, py + 38) : Math.max(84, py - 34);
+    if (lx < 276 || lx > w - 276) continue;
 
-    // Delicate constellation tick line pointing from label to galaxy centroid
-    ctx.strokeStyle = rgba(col, isLight ? 0.50 : 0.45);
+    ctx.strokeStyle = rgba(col, isLight ? 0.45 : 0.42);
     ctx.lineWidth = 0.85;
     ctx.beginPath();
     ctx.moveTo(lx, isBottom ? ly - 10 : ly + 10);
-    ctx.lineTo(px, py + (isBottom ? 12 : -12));
+    ctx.lineTo(px, py + (isBottom ? 10 : -10));
     ctx.stroke();
 
-    // Small glowing constellation anchor dot
-    ctx.fillStyle = rgba(col, isLight ? 0.85 : 0.90);
+    ctx.fillStyle = rgba(col, isLight ? 0.82 : 0.88);
     ctx.beginPath();
-    ctx.arc(lx, isBottom ? ly - 10 : ly + 10, 2.0, 0, Math.PI * 2);
+    ctx.arc(lx, isBottom ? ly - 10 : ly + 10, 1.9, 0, Math.PI * 2);
     ctx.fill();
 
-    // Crisp galaxy title (Chinese + real theorem count) & micro English code
     const mainLabel = `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -3219,12 +3227,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.lineWidth = 3.2;
     ctx.strokeStyle = strokeHalo;
     ctx.strokeText(mainLabel, lx, ly);
-    ctx.fillStyle = isLight ? rgba(col, 0.92) : rgba(col, 0.90);
+    ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba(col, 0.88);
     ctx.fillText(mainLabel, lx, ly);
 
-    ctx.font = '600 7.8px "Geist Mono", ui-monospace, monospace';
+    ctx.font = '600 7.6px "Geist Mono", ui-monospace, monospace';
     ctx.strokeText(cl.en || cl.name.toUpperCase(), lx, ly + (isBottom ? 11 : -11));
-    ctx.fillStyle = isLight ? rgba(col, 0.68) : rgba([215, 248, 232], 0.58);
+    ctx.fillStyle = isLight ? rgba(col, 0.66) : rgba([215, 248, 232], 0.56);
     ctx.fillText(cl.en || cl.name.toUpperCase(), lx, ly + (isBottom ? 11 : -11));
   }
   ctx.restore();
