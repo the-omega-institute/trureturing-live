@@ -175,6 +175,7 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/cyclic occupation mass|common degree/i, '按公共度数的循环占据质量投影'],
     [/Narayan Conjecture/i, 'Narayan 猜想 18.2 的构造性证明'],
     [/disjoint occupation.*cyclic band|project disjoint occupation/i, '循环带上的不相交占据系数投影'],
     [/quarter-grid.*prime triangle|characterize RH/i, '四分网格素数三角形与黎曼猜想刻画'],
@@ -617,30 +618,30 @@ function createCell(d, index) {
   button.style.setProperty('--x', `${(pos[0] / 10).toFixed(2)}%`);
   button.style.setProperty('--y', `${(pos[1] / 7.4).toFixed(2)}%`);
 
-  const content = element('span', '', 'cell-content');
-  const topRow = element('span', '', 'cell-top-row');
-  const liveDot = element('i', '', 'cell-live-dot');
-  const code = element('span', deptCodes[d.id] || String(index + 1).padStart(2, '0'));
-  topRow.append(liveDot, code);
-
+  const card = element('span', '', 'cell-card');
   const head = element('span', '', 'cell-head');
+  const liveDot = element('i', '', 'cell-live-dot');
   const glyph = element('span', '', 'cell-icon');
   glyph.append(icon(d.id));
   const title = element('strong', d.label, 'cell-title');
-  head.append(glyph, title);
+  const landmark = element('span', '', 'cell-landmark');
+  const landmarkCap = element('span', '', 'cell-landmark-cap');
+  landmark.append(landmarkCap);
+  head.append(liveDot, glyph, title, landmark);
+
+  const meta = element('span', '', 'cell-meta-row');
+  const status = element('span', '', 'cell-status');
+  const mode = element('span', d.execution === 'human' ? 'HUMAN LOOP' : execution[d.execution], 'cell-mode');
+  meta.append(status, mode);
 
   const seats = element('span', '', 'cell-seats');
-  const status = element('span', '', 'cell-status');
-  const mode = element('span', d.execution === 'human' ? 'Human in the Loop' : execution[d.execution], 'cell-mode');
+  card.append(head, meta, seats);
 
-  const landmark = element('span', '', 'cell-landmark');
-  landmark.setAttribute('aria-hidden', 'true');
-  const landmarkCap = element('span', '', 'cell-landmark-cap');
-  const landmarkPin = element('i', '', 'cell-landmark-pin');
-  landmark.append(landmarkCap, landmarkPin);
+  const pin = element('span', '', 'cell-pin');
+  pin.setAttribute('aria-hidden', 'true');
+  pin.append(element('i', '', 'cell-pin-stem'), element('i', '', 'cell-pin-node'));
 
-  content.append(topRow, head, seats, status, mode);
-  button.append(landmark, hexShellSVG(), content);
+  button.append(card, pin);
 
   button.addEventListener('click', () => selectDepartment(d.id, true, true));
   button.addEventListener('pointerenter', () => previewDepartment(d.id));
@@ -2481,68 +2482,653 @@ async function refreshLive() {
   }
 }
 
+// ============================================================================
+// REAL-TIME 60FPS 3D HOLOGRAPHIC RESEARCH CITADEL ENGINE (#holo-3d)
+// Zero-dependency 3D projection, depth-sorted holographic glass spires,
+// volumetric plasma arcs, 24/7 orbital accelerator ring & interactive camera
+// ============================================================================
+const holoWorld = {
+  direction:    { x:  0.0,  y: 2.95, z: -2.05, r: 0.72, baseH: 0.44, floating: true,  tier: 1, hex: [245, 183, 73]  },
+  research:     { x: -3.35, y: 0.0,  z: -0.35, r: 0.78, baseH: 1.50, floating: false, tier: 2, hex: [45, 227, 184]  },
+  review:       { x:  0.0,  y: 0.0,  z: -2.15, r: 0.70, baseH: 1.00, floating: false, tier: 2, hex: [168, 138, 250] },
+  verification: { x:  3.35, y: 0.0,  z: -0.35, r: 0.80, baseH: 1.50, floating: false, tier: 2, hex: [94, 237, 236]  },
+  outreach:     { x: -4.15, y: 0.0,  z:  2.35, r: 0.66, baseH: 0.90, floating: false, tier: 3, hex: [240, 148, 90]  },
+  publication:  { x: -1.45, y: 0.0,  z:  3.20, r: 0.68, baseH: 1.02, floating: false, tier: 3, hex: [74, 216, 176]  },
+  books:        { x:  1.45, y: 0.0,  z:  3.20, r: 0.72, baseH: 1.22, floating: false, tier: 3, hex: [199, 140, 219] },
+  studio:       { x:  4.15, y: 0.0,  z:  2.35, r: 0.66, baseH: 0.90, floating: false, tier: 3, hex: [136, 184, 212] }
+};
+
+const holoCam = {
+  yaw: -0.22,
+  pitch: 0.49,
+  dist: 13.6,
+  targetYaw: -0.22,
+  targetPitch: 0.49,
+  targetDist: 13.6,
+  dragging: false,
+  dragMoved: false,
+  lastX: 0,
+  lastY: 0,
+  time: 0,
+  raf: 0,
+  stars: [],
+  projectedTowers: new Map()
+};
+
+function initHoloStars() {
+  if (holoCam.stars.length) return;
+  let seed = 4242;
+  const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  for (let i = 0; i < 240; i++) {
+    const theta = rand() * Math.PI * 2;
+    const phi = (rand() - 0.15) * Math.PI * 0.65;
+    const rad = 26 + rand() * 18;
+    holoCam.stars.push({
+      x: Math.cos(theta) * Math.cos(phi) * rad,
+      y: Math.sin(phi) * rad + 4,
+      z: Math.sin(theta) * Math.cos(phi) * rad,
+      r: rand() > 0.85 ? 1.45 : 0.75,
+      a: 0.22 + rand() * 0.65,
+      cyan: i % 5 === 0
+    });
+  }
+}
+
+function towerHeight(id) {
+  const cfg = holoWorld[id];
+  if (!cfg) return 1.0;
+  const d = department(id);
+  if (!d || cfg.floating) return cfg.baseH;
+  const run = countRunning(d) || 0;
+  const q = queueStats(d);
+  const boost = Math.min(1.35, run * 0.13) + Math.min(0.45, q.waiting * 0.015);
+  return cfg.baseH + boost;
+}
+
+function rgba(rgb, a) {
+  return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a.toFixed(3)})`;
+}
+
 function renderHoloSky() {
-  const svg = $('#holo-sky');
-  if (!svg) return;
-  svg.replaceChildren();
-  const w = 1200;
-  const h = 760;
+  // Trigger an immediate 3D frame draw on style/resize changes
+  drawHolo3DFrame(0);
+}
+
+function drawHolo3DFrame(dt = 0.016) {
+  const canvas = $('#holo-3d');
+  if (!canvas || /jsdom/i.test(navigator.userAgent || '')) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(320, Math.round(rect.width || window.innerWidth || 1440));
+  const h = Math.max(280, Math.round(rect.height || window.innerHeight || 900));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  if (!state.quiet && !reduced) {
+    holoCam.time += Math.min(0.05, dt);
+  }
+  const t = holoCam.time;
+  const idleDrift = (!holoCam.dragging && !state.quiet && !reduced) ? Math.sin(t * 0.16) * 0.12 : 0;
+  holoCam.yaw += (holoCam.targetYaw + idleDrift - holoCam.yaw) * 0.08;
+  holoCam.pitch += (holoCam.targetPitch - holoCam.pitch) * 0.08;
+  holoCam.dist += (holoCam.targetDist - holoCam.dist) * 0.08;
+
   const isLight = document.documentElement.dataset.theme === 'light';
   const isBlueprint = document.documentElement.dataset.look === 'blueprint';
+  const isHolo = !isLight && !isBlueprint;
 
-  const make = (tag, attrs) => {
-    const el = document.createElementNS(ns, tag);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
-    return el;
+  // 1. Deep Space / Blueprint / Maquette Background Gradient
+  const bg = ctx.createRadialGradient(w * 0.44, h * 0.36, 40, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
+  if (isLight) {
+    bg.addColorStop(0, '#f7f4ec');
+    bg.addColorStop(0.6, '#eeeae0');
+    bg.addColorStop(1, '#dfd9cc');
+  } else if (isBlueprint) {
+    bg.addColorStop(0, '#102644');
+    bg.addColorStop(0.55, '#0a182d');
+    bg.addColorStop(1, '#061020');
+  } else {
+    bg.addColorStop(0, '#061626');
+    bg.addColorStop(0.45, '#020a14');
+    bg.addColorStop(1, '#010308');
+  }
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle twilight violet + glacial cyan horizon atmosphere (Chrono-Metaverse hologram.ts)
+  if (isHolo) {
+    const aura = ctx.createRadialGradient(w * 0.44, h * 0.14, 10, w * 0.44, h * 0.28, w * 0.55);
+    aura.addColorStop(0, 'rgba(94, 237, 236, 0.09)');
+    aura.addColorStop(0.35, 'rgba(184, 140, 232, 0.065)');
+    aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = aura;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Camera projection helper (left-shifted slightly on desktop to give room for floating right HUD)
+  const cx = (!state.focused && w > 980) ? w * 0.42 : w * 0.5;
+  const cy = state.focused ? h * 0.52 : h * 0.55;
+  const fov = Math.min(w, h) * (w > 980 ? 1.18 : 1.05);
+  const cosY = Math.cos(holoCam.yaw);
+  const sinY = Math.sin(holoCam.yaw);
+  const cosP = Math.cos(holoCam.pitch);
+  const sinP = Math.sin(holoCam.pitch);
+  const lookY = 0.78;
+  const lookZ = 0.35;
+
+  const project = (wx, wy, wz) => {
+    const x0 = wx;
+    const y0 = wy - lookY;
+    const z0 = wz - lookZ;
+    // Rotate yaw around Y
+    const x1 = x0 * cosY - z0 * sinY;
+    const z1 = x0 * sinY + z0 * cosY;
+    // Rotate pitch around X
+    const y2 = y0 * cosP - z1 * sinP;
+    const z2 = y0 * sinP + z1 * cosP + holoCam.dist;
+    if (z2 < 0.8) return null;
+    const s = fov / z2;
+    return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s };
   };
 
-  // 1. Chrono-Metaverse deterministic orbital starfield (sky.ts)
+  // 2. Parallax 3D Orbital Starfield
   if (!isLight) {
-    let seed = 1337;
-    const rand = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
-    const stars = make('g', { class: 'holo-stars' });
-    const count = isBlueprint ? 55 : 120;
-    for (let i = 0; i < count; i++) {
-      const sx = (rand() * w).toFixed(1);
-      const sy = (rand() * h * 0.62).toFixed(1);
-      const r = rand() > 0.84 ? '1.3' : '0.75';
-      const op = (0.16 + rand() * 0.52).toFixed(2);
-      const fill = isBlueprint
-        ? '#96d7ff'
-        : i % 5 === 0 ? '#5eedec' : '#d7eeff';
-      stars.append(make('circle', { cx: sx, cy: sy, r, fill, opacity: op }));
+    initHoloStars();
+    for (const st of holoCam.stars) {
+      const p = project(st.x, st.y, st.z);
+      if (!p || p.x < -10 || p.x > w + 10 || p.y < -10 || p.y > h + 10) continue;
+      ctx.fillStyle = isBlueprint
+        ? `rgba(150,215,255,${(st.a * 0.55).toFixed(2)})`
+        : st.cyan
+          ? `rgba(94,237,236,${st.a.toFixed(2)})`
+          : `rgba(220,242,255,${st.a.toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, st.r, 0, Math.PI * 2);
+      ctx.fill();
     }
-    svg.append(stars);
   }
 
-  // 2. Chrono-Metaverse 3D Perspective Architectural Floor Grid receding into horizon
-  const vpX = w * 0.5;
-  const vpY = -h * 0.24;
-  const startY = h * 0.08;
-  const gridStroke = isLight
-    ? 'rgba(120, 113, 102, 0.16)'
-    : isBlueprint
-      ? 'rgba(150, 215, 255, 0.16)'
-      : 'rgba(94, 237, 236, 0.09)';
+  // 3. IF ZOOMED INTO DEPARTMENT INTERIOR: Render Spinning 3D Holographic Reactor Core & Hex Dome!
+  if (state.focused) {
+    const fCfg = holoWorld[state.focused] || holoWorld.research;
+    const rgb = isBlueprint ? [150, 215, 255] : fCfg.hex;
+    ctx.save();
+    if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  const grid = make('g', { stroke: gridStroke, 'stroke-width': '1', fill: 'none' });
-  const cols = 16;
-  for (let i = -cols; i <= cols; i++) {
-    const bottomX = vpX + (i / (cols * 0.45)) * w;
-    const t = (startY - vpY) / (h - vpY);
-    const topX = vpX + (bottomX - vpX) * t;
-    grid.append(make('line', { x1: topX.toFixed(1), y1: startY.toFixed(1), x2: bottomX.toFixed(1), y2: h }));
+    // Spinning 3D Hexagonal Cathedral Dome Rings
+    for (let ringIdx = 0; ringIdx < 5; ringIdx++) {
+      const ry = -1.6 + ringIdx * 1.1;
+      const rad = 5.4 - Math.abs(ringIdx - 2) * 0.7;
+      ctx.beginPath();
+      for (let i = 0; i <= 6; i++) {
+        const ang = (i / 6) * Math.PI * 2 + t * 0.08 * (ringIdx % 2 === 0 ? 1 : -1);
+        const pt = project(Math.cos(ang) * rad, ry + 0.7, Math.sin(ang) * rad);
+        if (!pt) continue;
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.strokeStyle = rgba(rgb, isLight ? 0.14 : 0.14);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Triple-Axis Rotating 3D Gyroscope Rings around the Central Reactor
+    const gyroR = [2.1, 2.65, 3.25];
+    gyroR.forEach((gr, gi) => {
+      ctx.beginPath();
+      const segs = 48;
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        let gx = Math.cos(a) * gr;
+        let gy = Math.sin(a) * gr * (gi === 0 ? 0.3 : gi === 1 ? 0.75 : 0.95);
+        let gz = Math.sin(a) * gr * (gi === 0 ? 0.95 : gi === 1 ? 0.65 : 0.25);
+        const rot = t * (0.28 + gi * 0.11) * (gi % 2 === 0 ? 1 : -1);
+        const rx = gx * Math.cos(rot) - gz * Math.sin(rot);
+        const rz = gx * Math.sin(rot) + gz * Math.cos(rot);
+        const pt = project(rx, gy + 0.85, rz);
+        if (!pt) continue;
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.strokeStyle = rgba(rgb, isLight ? 0.22 : 0.26 - gi * 0.05);
+      ctx.lineWidth = gi === 0 ? 1.6 : 1.1;
+      ctx.stroke();
+    });
+
+    // Central Spinning 3D Octahedron Crystal Core
+    const cY = 0.85;
+    const spin = t * 0.65;
+    const verts = [
+      [0, cY + 1.05, 0],
+      [0, cY - 1.05, 0],
+      [Math.cos(spin) * 0.85, cY, Math.sin(spin) * 0.85],
+      [Math.cos(spin + Math.PI / 2) * 0.85, cY, Math.sin(spin + Math.PI / 2) * 0.85],
+      [Math.cos(spin + Math.PI) * 0.85, cY, Math.sin(spin + Math.PI) * 0.85],
+      [Math.cos(spin + 1.5 * Math.PI) * 0.85, cY, Math.sin(spin + 1.5 * Math.PI) * 0.85]
+    ].map(v => project(v[0], v[1], v[2]));
+    const edges = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,3],[3,4],[4,5],[5,2]];
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.35 : 0.55);
+    ctx.lineWidth = 1.4;
+    for (const [u, v] of edges) {
+      if (!verts[u] || !verts[v]) continue;
+      ctx.beginPath();
+      ctx.moveTo(verts[u].x, verts[u].y);
+      ctx.lineTo(verts[v].x, verts[v].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
   }
-  const rows = 14;
-  for (let r = 0; r <= rows; r++) {
-    const p = Math.pow(r / rows, 1.55);
-    const y = (startY + p * (h - startY)).toFixed(1);
-    grid.append(make('line', { x1: 0, y1: y, x2: w, y2: y, opacity: (0.28 + p * 0.72).toFixed(2) }));
+
+  // ==========================================================================
+  // 4. FULL 3D HOLOGRAPHIC CITADEL GROUND GRID + ORBITAL COMPASS RINGS (y = 0)
+  // ==========================================================================
+  const gridColor = isLight ? [120, 113, 102] : isBlueprint ? [150, 215, 255] : [94, 237, 236];
+  ctx.lineWidth = 1;
+  const half = 6.5;
+  for (let i = -6; i <= 6; i++) {
+    const fade = 1 - Math.abs(i) / 7.5;
+    const alpha = (isLight ? 0.14 : isBlueprint ? 0.14 : 0.085) * fade;
+    ctx.strokeStyle = rgba(gridColor, alpha);
+    const a1 = project(i, 0, -half);
+    const a2 = project(i, 0, half);
+    if (a1 && a2) { ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke(); }
+    const b1 = project(-half, 0, i);
+    const b2 = project(half, 0, i);
+    if (b1 && b2) { ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke(); }
   }
-  svg.append(grid);
+
+  // Helper to draw a 3D horizontal ring
+  const draw3DRing = (rx, ry, rz, radX, radZ, segs, stroke, lw = 1, dash = null, rot = 0) => {
+    ctx.save();
+    if (dash) ctx.setLineDash(dash);
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i <= segs; i++) {
+      const a = (i / segs) * Math.PI * 2 + rot;
+      const pt = project(rx + Math.cos(a) * radX, ry, rz + Math.sin(a) * radZ);
+      if (!pt) continue;
+      if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  // Concentric Orbital Sonar & Calibrated Compass Rings centered on Tier 2 AI Core
+  const coreZ = -0.8;
+  draw3DRing(0, 0.01, coreZ, 4.25, 2.55, 64, rgba(isLight ? [15, 118, 110] : [45, 227, 184], isLight ? 0.25 : 0.28), 1.4);
+  draw3DRing(0, 0.01, coreZ, 5.55, 4.05, 72, rgba(gridColor, isLight ? 0.14 : 0.14), 1, [4, 8], t * 0.03);
+  draw3DRing(0, 0.01, coreZ, 6.8, 5.0, 72, rgba(gridColor, isLight ? 0.08 : 0.08), 1);
+
+  // Rotating compass ticks along outer AI Core ring
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2 + t * 0.04;
+    const major = i % 3 === 0;
+    const p1 = project(Math.cos(a) * 4.25, 0.02, coreZ + Math.sin(a) * 2.55);
+    const p2 = project(Math.cos(a) * (major ? 4.52 : 4.38), 0.02, coreZ + Math.sin(a) * (major ? 2.74 : 2.64));
+    if (p1 && p2) {
+      ctx.strokeStyle = rgba(isLight ? [15, 118, 110] : [94, 237, 236], major ? 0.42 : 0.18);
+      ctx.lineWidth = major ? 1.4 : 0.9;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+  }
+
+  // 5. Elevated 24/7 AI Autonomous Orbital Accelerator Halo + Streaming Plasma Photons!
+  ctx.save();
+  if (!isLight) ctx.globalCompositeOperation = 'lighter';
+  const loopColor = isBlueprint ? [150, 215, 255] : [45, 227, 184];
+  draw3DRing(0, 0.56, coreZ, 3.92, 2.08, 64, rgba(loopColor, isLight ? 0.32 : 0.44), 1.8, [8, 6], -t * 0.12);
+
+  if (!state.quiet && !reduced && !isStale()) {
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2 - t * 0.52;
+      const pt = project(Math.cos(a) * 3.92, 0.56 + Math.sin(a * 2 + t) * 0.06, coreZ + Math.sin(a) * 2.08);
+      if (!pt) continue;
+      const rad = Math.max(1.2, 2.8 * (pt.s / 70));
+      ctx.fillStyle = rgba(i % 2 === 0 ? [94, 237, 236] : [121, 255, 223], isLight ? 0.75 : 0.88);
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, rad, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // 6. Vertical Golden Human-in-the-Loop Tractor Beam (Apex -> AI Core)
+  const dirCfg = holoWorld.direction;
+  const beamTop = project(dirCfg.x, dirCfg.y, dirCfg.z);
+  const beamBot = project(dirCfg.x, 0.05, dirCfg.z);
+  if (beamTop && beamBot) {
+    const grad = ctx.createLinearGradient(beamTop.x, beamTop.y, beamBot.x, beamBot.y);
+    grad.addColorStop(0, rgba([245, 183, 73], isLight ? 0.42 : 0.55));
+    grad.addColorStop(0.5, rgba([245, 183, 73], isLight ? 0.16 : 0.18));
+    grad.addColorStop(1, rgba([245, 183, 73], 0));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = Math.max(2, 10 * (beamTop.s / 90));
+    ctx.beginPath(); ctx.moveTo(beamTop.x, beamTop.y); ctx.lineTo(beamBot.x, beamBot.y); ctx.stroke();
+    // Streaming downward guidance photons
+    if (!state.quiet && !reduced) {
+      for (let i = 0; i < 5; i++) {
+        const u = (t * 0.42 + i * 0.2) % 1;
+        const p = project(dirCfg.x, dirCfg.y * (1 - u), dirCfg.z);
+        if (p) {
+          ctx.fillStyle = rgba([255, 220, 130], 0.9);
+          ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+  }
+
+  // 7. 3D Parabolic Plasma Conduits Between Departments
+  const activeId = state.hovered || state.selected;
+  const drawArc3D = (fromId, toId, colorRGB, isHot, count = 0) => {
+    const a = holoWorld[fromId];
+    const b = holoWorld[toId];
+    if (!a || !b) return;
+    const hA = a.y + towerHeight(fromId) * 0.68;
+    const hB = b.y + towerHeight(toId) * 0.68;
+    const mx = (a.x + b.x) / 2;
+    const mz = (a.z + b.z) / 2;
+    const dist = Math.hypot(b.x - a.x, b.z - a.z);
+    const my = Math.max(hA, hB) + 0.55 + dist * 0.16;
+
+    ctx.beginPath();
+    const steps = 28;
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const inv = 1 - u;
+      const px = inv * inv * a.x + 2 * inv * u * mx + u * u * b.x;
+      const py = inv * inv * hA + 2 * inv * u * my + u * u * hB;
+      const pz = inv * inv * a.z + 2 * inv * u * mz + u * u * b.z;
+      const pt = project(px, py, pz);
+      if (!pt) continue;
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.strokeStyle = rgba(colorRGB, isHot ? (isLight ? 0.85 : 0.88) : (isLight ? 0.16 : 0.18));
+    ctx.lineWidth = isHot ? 2.2 : 1.0;
+    ctx.stroke();
+
+    // Streaming energy packets on hot/active arcs
+    if (isHot && !state.quiet && !reduced && !isStale()) {
+      const numDots = Math.min(5, Math.max(2, Math.ceil((count || 6) / 40)));
+      for (let k = 0; k < numDots; k++) {
+        const u = (t * 0.36 + k / numDots) % 1;
+        const inv = 1 - u;
+        const px = inv * inv * a.x + 2 * inv * u * mx + u * u * b.x;
+        const py = inv * inv * hA + 2 * inv * u * my + u * u * b.y + towerHeight(toId) * 0.68 * u * u;
+        const pyClean = inv * inv * hA + 2 * inv * u * my + u * u * hB;
+        const pz = inv * inv * a.z + 2 * inv * u * mz + u * u * b.z;
+        const pt = project(px, pyClean, pz);
+        if (!pt) continue;
+        ctx.fillStyle = rgba(colorRGB, 0.96);
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.8, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  };
+
+  for (const r of view()?.routes || []) {
+    const isHot = r.from === activeId || r.to === activeId;
+    const cRGB = isBlueprint ? [150, 215, 255] : (isHot ? [94, 237, 236] : [100, 170, 200]);
+    drawArc3D(r.from, r.to, cRGB, isHot, 12);
+  }
+  // Hovered observed reference handoffs in luminous amber-gold
+  const refCounts = new Map();
+  for (const rel of view()?.handoffs || []) {
+    if (rel.kind !== 'reference') continue;
+    if (rel.from !== activeId && rel.to !== activeId) continue;
+    const k = `${rel.from}->${rel.to}`;
+    refCounts.set(k, (refCounts.get(k) || 0) + 1);
+  }
+  for (const [k, cnt] of refCounts) {
+    const [f, to] = k.split('->');
+    drawArc3D(f, to, [245, 183, 73], true, cnt);
+  }
+  ctx.restore();
+
+  // ==========================================================================
+  // 8. DEPTH-SORTED 3D VOLUMETRIC HOLOGRAPHIC GLASS TOWERS (8 DEPARTMENTS)
+  // ==========================================================================
+  const list = departments();
+  const sorted = list
+    .map(d => {
+      const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1, hex: [94, 237, 236] };
+      const center = project(cfg.x, cfg.y + towerHeight(d.id) * 0.5, cfg.z);
+      return { d, cfg, depth: center ? center.z : 999 };
+    })
+    .sort((a, b) => b.depth - a.depth);
+
+  holoCam.projectedTowers.clear();
+
+  for (const { d, cfg } of sorted) {
+    const hTower = towerHeight(d.id);
+    const y0 = cfg.floating ? cfg.y + Math.sin(t * 1.4) * 0.08 : 0;
+    const y1 = y0 + hTower;
+    const running = Boolean(countRunning(d));
+    const isSel = d.id === activeId;
+    const rgb = isBlueprint ? [150, 215, 255] : cfg.hex;
+
+    // Ground glow halo + sonar pulse + rotating target lock reticle
+    if (!cfg.floating) {
+      const groundPt = project(cfg.x, 0.02, cfg.z);
+      if (groundPt) {
+        const gRad = cfg.r * groundPt.s * (isSel ? 1.85 : running ? 1.55 : 1.15);
+        const glow = ctx.createRadialGradient(groundPt.x, groundPt.y, 2, groundPt.x, groundPt.y, Math.max(8, gRad));
+        glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.36 : running ? 0.28 : 0.12)));
+        glow.addColorStop(1, rgba(rgb, 0));
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.ellipse(groundPt.x, groundPt.y, gRad, gRad * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      if (running && !state.quiet && !reduced) {
+        const pulse = (t * 0.55) % 1;
+        draw3DRing(cfg.x, 0.02, cfg.z, cfg.r * (1.05 + pulse * 0.85), cfg.r * (1.05 + pulse * 0.85), 24, rgba(rgb, (1 - pulse) * 0.55), 1.4);
+      }
+      if (isSel) {
+        draw3DRing(cfg.x, 0.04, cfg.z, cfg.r * 1.42, cfg.r * 1.42, 6, rgba(rgb, 0.85), 1.8, [10, 6], t * 0.45);
+      }
+    }
+
+    // 6-sided 3D Hexagonal Glass Prism vertices
+    const botV = [];
+    const topV = [];
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2 + Math.PI / 6;
+      const vx = cfg.x + Math.cos(ang) * cfg.r;
+      const vz = cfg.z + Math.sin(ang) * cfg.r;
+      botV.push(project(vx, y0, vz));
+      topV.push(project(vx, y1, vz));
+    }
+
+    // Draw 6 translucent glass side faces sorted back-to-front
+    const faces = [];
+    for (let i = 0; i < 6; i++) {
+      const j = (i + 1) % 6;
+      if (!botV[i] || !botV[j] || !topV[i] || !topV[j]) continue;
+      const fDepth = (botV[i].z + botV[j].z + topV[i].z + topV[j].z) * 0.25;
+      faces.push({ i, j, fDepth });
+    }
+    faces.sort((a, b) => b.fDepth - a.fDepth);
+
+    for (const { i, j } of faces) {
+      const shade = 0.72 + 0.28 * Math.sin(i * 1.1 + holoCam.yaw);
+      ctx.beginPath();
+      ctx.moveTo(botV[i].x, botV[i].y);
+      ctx.lineTo(botV[j].x, botV[j].y);
+      ctx.lineTo(topV[j].x, topV[j].y);
+      ctx.lineTo(topV[i].x, topV[i].y);
+      ctx.closePath();
+
+      if (isLight) {
+        ctx.fillStyle = `rgba(${Math.round(238 * shade)},${Math.round(233 * shade)},${Math.round(224 * shade)},0.90)`;
+        ctx.fill();
+        ctx.strokeStyle = rgba(rgb, isSel ? 0.82 : 0.36);
+        ctx.lineWidth = isSel ? 1.6 : 0.9;
+        ctx.stroke();
+      } else {
+        const fillAlpha = isBlueprint ? 0.14 : (isSel ? 0.22 : running ? 0.18 : 0.11);
+        ctx.fillStyle = rgba(rgb, fillAlpha * shade);
+        ctx.fill();
+        ctx.strokeStyle = rgba(rgb, isSel ? 0.85 : running ? 0.62 : 0.34);
+        ctx.lineWidth = isSel ? 1.6 : 1.0;
+        ctx.stroke();
+      }
+    }
+
+    // Horizontal Holographic Projection Slice Rings inside the glass prism (Chrono projection.ts!)
+    const sliceCount = cfg.floating ? 2 : Math.max(3, Math.round(hTower * 2.8));
+    for (let s = 1; s < sliceCount; s++) {
+      const sy = y0 + (s / sliceCount) * hTower;
+      ctx.beginPath();
+      let ok = false;
+      for (let i = 0; i <= 6; i++) {
+        const ang = ((i % 6) / 6) * Math.PI * 2 + Math.PI / 6;
+        const pt = project(cfg.x + Math.cos(ang) * cfg.r, sy, cfg.z + Math.sin(ang) * cfg.r);
+        if (!pt) continue;
+        if (!ok) { ctx.moveTo(pt.x, pt.y); ok = true; }
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.strokeStyle = rgba(rgb, isLight ? 0.22 : (isSel ? 0.45 : 0.24));
+      ctx.lineWidth = 0.85;
+      ctx.stroke();
+    }
+
+    // Inner Glowing Vertical Plasma Reactor Core + Ascending Scan Plane on active/running towers
+    if ((running || isSel) && !cfg.floating) {
+      ctx.save();
+      if (!isLight) ctx.globalCompositeOperation = 'lighter';
+      const cBot = project(cfg.x, y0 + 0.06, cfg.z);
+      const cTop = project(cfg.x, y1 - 0.04, cfg.z);
+      if (cBot && cTop) {
+        const cg = ctx.createLinearGradient(cBot.x, cBot.y, cTop.x, cTop.y);
+        cg.addColorStop(0, rgba(rgb, 0.12));
+        cg.addColorStop(0.5, rgba(rgb, running ? 0.65 : 0.38));
+        cg.addColorStop(1, rgba([255, 255, 255], running ? 0.72 : 0.35));
+        ctx.strokeStyle = cg;
+        ctx.lineWidth = running ? 4.5 : 2.5;
+        ctx.beginPath(); ctx.moveTo(cBot.x, cBot.y); ctx.lineTo(cTop.x, cTop.y); ctx.stroke();
+      }
+      if (running && !state.quiet && !reduced) {
+        const scanU = (t * 0.48 + (cfg.x + 5) * 0.17) % 1;
+        const scanY = y0 + scanU * hTower;
+        draw3DRing(cfg.x, scanY, cfg.z, cfg.r * 1.04, cfg.r * 1.04, 6, rgba([255, 255, 255], 0.85), 1.8, null, Math.PI / 6);
+      }
+      ctx.restore();
+    }
+
+    // Top Luminous Beveled Hex Roof Cap
+    if (topV.every(Boolean)) {
+      ctx.beginPath();
+      topV.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+      ctx.closePath();
+      ctx.fillStyle = isLight ? 'rgba(255,253,248,0.92)' : rgba(rgb, isSel ? 0.36 : running ? 0.28 : 0.16);
+      ctx.fill();
+      ctx.strokeStyle = rgba(rgb, isSel ? 1 : running ? 0.88 : 0.56);
+      ctx.lineWidth = isSel ? 2.2 : 1.5;
+      ctx.stroke();
+    }
+
+    // Tilted Orbital Crown Halo on Tier 2 AI Engine & Tier 1 Human Apex
+    if (cfg.floating || (cfg.tier === 2 && (running || d.id === 'research'))) {
+      draw3DRing(cfg.x, y1 + 0.12, cfg.z, cfg.r * 1.28, cfg.r * 1.28, 32, rgba(rgb, isLight ? 0.38 : 0.55), 1.2, [6, 5], t * (cfg.floating ? 0.35 : -0.45));
+    }
+
+    // Project 3D crown anchor -> synchronize floating Chrono FUI Landmark Callout (.hive-cell)
+    const crownPt = project(cfg.x, y1 + 0.18, cfg.z);
+    const bodyCenter = project(cfg.x, (y0 + y1) * 0.5, cfg.z);
+    if (crownPt && bodyCenter) {
+      holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(38, cfg.r * bodyCenter.s * 1.35) });
+      const cell = state.cells.get(d.id);
+      if (cell) {
+        const depthScale = Math.max(0.84, Math.min(1.08, 11.8 / crownPt.z));
+        cell.button.style.left = `${crownPt.x.toFixed(1)}px`;
+        cell.button.style.top = `${crownPt.y.toFixed(1)}px`;
+        cell.button.style.zIndex = String(isSel ? 40 : Math.round(30 - crownPt.z));
+        cell.button.style.setProperty('--depth-scale', depthScale.toFixed(3));
+        cell.button.classList.add('is-projected');
+      }
+    }
+  }
+}
+
+function startHoloLoop() {
+  if (holoCam.raf || /jsdom/i.test(navigator.userAgent || '')) return;
+  let prev = performance.now();
+  const tick = now => {
+    const dt = (now - prev) / 1000;
+    prev = now;
+    if (!document.hidden) drawHolo3DFrame(dt);
+    holoCam.raf = requestAnimationFrame(tick);
+  };
+  holoCam.raf = requestAnimationFrame(tick);
+}
+
+// Interactive 3D Camera Drag Orbit, Wheel Zoom & Direct 3D Tower Picking on #hive-board
+const boardEl = $('#hive-board');
+if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
+  const hitTowerAt = (clientX, clientY) => {
+    const rect = boardEl.getBoundingClientRect();
+    const lx = clientX - rect.left;
+    const ly = clientY - rect.top;
+    let best = null;
+    let bestD = Infinity;
+    for (const [id, info] of holoCam.projectedTowers) {
+      const dist = Math.hypot(lx - info.x, ly - info.y);
+      if (dist < info.r && dist < bestD) {
+        best = id;
+        bestD = dist;
+      }
+    }
+    return best;
+  };
+
+  boardEl.addEventListener('pointerdown', e => {
+    if (state.focused || e.target.closest('button, a, .department-lens')) return;
+    holoCam.dragging = true;
+    holoCam.dragMoved = false;
+    holoCam.lastX = e.clientX;
+    holoCam.lastY = e.clientY;
+    boardEl.classList.add('is-dragging');
+  });
+
+  window.addEventListener('pointermove', e => {
+    if (holoCam.dragging) {
+      const dx = e.clientX - holoCam.lastX;
+      const dy = e.clientY - holoCam.lastY;
+      if (Math.abs(dx) + Math.abs(dy) > 3) holoCam.dragMoved = true;
+      holoCam.lastX = e.clientX;
+      holoCam.lastY = e.clientY;
+      holoCam.targetYaw += dx * 0.0065;
+      holoCam.targetPitch = Math.max(0.22, Math.min(1.08, holoCam.targetPitch + dy * 0.005));
+      return;
+    }
+    if (!state.focused && e.target === $('#holo-3d')) {
+      const hit = hitTowerAt(e.clientX, e.clientY);
+      boardEl.style.cursor = hit ? 'pointer' : 'grab';
+      if (hit) previewDepartment(hit);
+    }
+  }, { passive: true });
+
+  window.addEventListener('pointerup', e => {
+    if (!holoCam.dragging) return;
+    const moved = holoCam.dragMoved;
+    holoCam.dragging = false;
+    boardEl.classList.remove('is-dragging');
+    if (!moved && !state.focused && e.target === $('#holo-3d')) {
+      const hit = hitTowerAt(e.clientX, e.clientY);
+      if (hit) selectDepartment(hit, true, true);
+    }
+  });
+
+  boardEl.addEventListener('wheel', e => {
+    if (state.focused || e.target.closest('.department-panel, .telemetry-dock')) return;
+    e.preventDefault();
+    holoCam.targetDist = Math.max(8.4, Math.min(16.8, holoCam.targetDist + e.deltaY * 0.006));
+  }, { passive: false });
 }
 
 function applyLook(look) {
@@ -2557,12 +3143,12 @@ function applyLook(look) {
   } else if (look === 'blueprint') {
     delete docEl.dataset.theme;
     docEl.dataset.look = 'blueprint';
-    if (meta) meta.setAttribute('content', '#0C192C');
+    if (meta) meta.setAttribute('content', '#081426');
     if (btn) btn.textContent = '☀';
   } else {
     delete docEl.dataset.theme;
     delete docEl.dataset.look;
-    if (meta) meta.setAttribute('content', '#02060E');
+    if (meta) meta.setAttribute('content', '#01040A');
     if (btn) btn.textContent = '☀';
   }
   const activeLook = docEl.dataset.theme === 'light' ? 'light' : (docEl.dataset.look || 'holo');
@@ -2588,10 +3174,35 @@ for (const lookBtn of document.querySelectorAll('[data-look]')) {
 
 window.addEventListener('resize', () => renderHoloSky(), { passive: true });
 
-// Dock tab switching
+// Slide-Up Translucent FUI Telemetry Drawer (collapsed at rest so 3D space fills 100% of screen!)
+const dockTitles = {
+  'live-ops': 'TELEMETRY // LEAN CI 检验灯阵与跨部门接力',
+  'questions': 'RESEARCH // 当前在研课题索引',
+  'publications': 'ARCHIVE // 双语书稿与公开论文',
+  'ecosystem': 'INFRA // 公开研究仓库与 Rust 开源模板'
+};
+
+function closeDockDrawer() {
+  const dock = $('#telemetry-dock');
+  if (!dock) return;
+  dock.classList.remove('is-open');
+  for (const tab of document.querySelectorAll('[data-dock-tab]')) {
+    tab.setAttribute('aria-selected', 'false');
+  }
+}
+
 for (const tab of document.querySelectorAll('[data-dock-tab]')) {
   tab.addEventListener('click', () => {
+    const dock = $('#telemetry-dock');
     const target = tab.dataset.dockTab;
+    const alreadyOpen = dock?.classList.contains('is-open') && tab.getAttribute('aria-selected') === 'true';
+    if (alreadyOpen) {
+      closeDockDrawer();
+      return;
+    }
+    dock?.classList.add('is-open');
+    const titleEl = $('#dock-drawer-title');
+    if (titleEl && dockTitles[target]) titleEl.textContent = dockTitles[target];
     for (const sibling of document.querySelectorAll('[data-dock-tab]')) {
       sibling.setAttribute('aria-selected', String(sibling === tab));
     }
@@ -2600,6 +3211,8 @@ for (const tab of document.querySelectorAll('[data-dock-tab]')) {
     }
   });
 }
+
+$('#dock-close-btn')?.addEventListener('click', closeDockDrawer);
 
 // Event bindings
 for (const button of document.querySelectorAll('[data-mode]')) {
@@ -2712,6 +3325,7 @@ $('#expand-room').addEventListener('click', async () => {
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
+    if ($('#telemetry-dock')?.classList.contains('is-open')) closeDockDrawer();
     if (state.focused) closeDepartmentLens();
     $('#research-room').classList.remove('is-expanded');
     document.body.style.overflow = '';
@@ -2730,6 +3344,7 @@ try {
 } catch {
   renderHoloSky();
 }
+startHoloLoop();
 
 try {
   const saved = JSON.parse(localStorage.getItem(cacheKey));

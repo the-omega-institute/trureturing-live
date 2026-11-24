@@ -3,30 +3,205 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#02060E">
-  <meta name="description" content="trureturing live：24/7 AI 数学研究院全息空间指挥大屏。立体蜂巢部门架构、公开工作席位、Lean CI 验证与跨部门研究接力。">
-  <title>TRURETURING // LIVE · 全息空间指挥大屏</title>
+  <meta name="theme-color" content="#01040A">
+  <meta name="description" content="trureturing live：24/7 AI 数学研究院 3D 全息空间指挥大屏。立体蜂巢架构、实时 Lean CI 验证与跨部门研究接力。">
+  <title>TRURETURING // LIVE · 3D 全息空间指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v9">
-  <script type="module" src="assets/app.mjs?v=hive-v9"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v10">
+  <script type="module" src="assets/app.mjs?v=hive-v10"></script>
 </head>
 <body>
-  <a class="skip-link" href="#institute">进入实时指挥大屏</a>
+  <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
 
-  <header class="hud-header">
-    <div class="hud-header-inner">
-      <div class="hud-brand-group">
+  <div class="cinema-stage" id="institute">
+    <!-- Top Floating Borderless FUI HUD -->
+    <header class="fui-top">
+      <div class="fui-top-left">
         <a class="brand" href="./">
-          <img src="assets/mark.svg" width="28" height="28" alt="">
+          <img src="assets/mark.svg" width="26" height="26" alt="">
           <span class="brand-name">TRURETURING <em>// LIVE</em></span>
         </a>
         <span class="connection" id="connection"><i></i><span>正在连接</span></span>
+        <div class="institute-metrics" id="institute-metrics">
+          <span>正在接入全息流</span>
+        </div>
       </div>
 
-      <div class="hud-telemetry-center">
-        <div class="institute-metrics" id="institute-metrics">
-          <span>正在接入实时流</span>
+      <div class="fui-top-right">
+        <div class="style-switcher" role="group" aria-label="空间渲染风格">
+          <button type="button" data-look="holo" aria-pressed="true" title="Chrono 全息场"><i class="swatch-holo"></i><span>全息场</span></button>
+          <button type="button" data-look="blueprint" aria-pressed="false" title="3D 工程蓝图"><i class="swatch-blueprint"></i><span>蓝图</span></button>
+          <button type="button" data-look="light" aria-pressed="false" title="白模沙盘"><i class="swatch-maquette"></i><span>白模</span></button>
         </div>
+        <div class="mode-switch" role="group" aria-label="现场视图">
+          <button type="button" data-mode="organization" aria-pressed="true">3D 架构</button>
+          <button type="button" data-mode="journey" aria-pressed="false">接力轨迹</button>
+        </div>
+        <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随</span></button>
+        <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="暂停旋转 / 静看">静看</button>
+        <button class="hud-icon-btn" id="expand-room" type="button" aria-label="全屏大屏" title="全屏大屏模式">⤢</button>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换全息场 / 白模" title="切换深空全息场 / 白模沙盘">☀</button>
+      </div>
+    </header>
+
+    <p id="connection-note" class="connection-note" role="status" hidden></p>
+
+    <!-- Full-Viewport 100vw x 100vh 3D Holographic Citadel Room -->
+    <main class="research-room" id="research-room">
+      <div class="hive-board" id="hive-board" role="group" aria-label="3D 全息研究院架构大屏；拖拽旋转视角，悬浮预览部门，点击飞入部门全息舱">
+        <canvas id="holo-3d" class="holo-3d-canvas" aria-hidden="true"></canvas>
+
+        <!-- Minimal SVG layer strictly for live arrival flare particles & accessibility compatibility -->
+        <svg id="hive-routes" class="hive-overlay-svg" viewBox="0 0 1000 740" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <svg id="hive-badges" class="hive-overlay-svg" viewBox="0 0 1000 740" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+        <!-- Projected Floating Chrono-Metaverse 3D Landmark Callouts -->
+        <div id="hive-cells" class="hive-cells"><p class="loading">正在初始化 3D 全息建筑群…</p></div>
+
+        <!-- Subtle Cinema Telemetry Corner Readout -->
+        <div class="fui-corner-telemetry" aria-hidden="true">
+          <span class="fui-coord" id="board-clock">HOLO CITADEL // 24·7 ORBITAL CORE</span>
+          <span class="fui-orbit-hint" id="hive-hover-hint">拖拽旋转 3D 空间 · 光标悬浮锁定部门 · 点击塔体飞入舱内</span>
+        </div>
+
+        <!-- Zoomed 3D Holographic Interior Chamber Overlay -->
+        <div id="department-lens" class="department-lens" hidden aria-live="polite">
+          <div class="lens-topbar">
+            <button id="lens-back" type="button" class="lens-back">← 退出舱内 · 返回 3D 全院</button>
+            <div id="lens-switcher" class="lens-switcher" role="tablist" aria-label="切换部门全息舱"></div>
+          </div>
+
+          <div class="lens-header-strip">
+            <div class="lens-title-block">
+              <div class="lens-title-line">
+                <span id="lens-exec-pill" class="execution-label">独立研究会话</span>
+                <h2 id="lens-title">数学攻坚</h2>
+                <span id="lens-freshness" class="lens-freshness"></span>
+              </div>
+              <p id="lens-responsibility">正在加载部门 3D 全息舱…</p>
+            </div>
+            <div id="lens-metrics" class="lens-metrics"></div>
+          </div>
+
+          <div class="dept-zoom-stage" id="dept-zoom-stage">
+            <div class="dept-zoom-canvas" id="dept-zoom-canvas">
+              <svg id="lens-map-svg" viewBox="0 0 1200 580" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+              <div id="lens-upstream" class="map-portal-col map-portal-left" aria-label="上游交棒部门"></div>
+              <div id="lens-agents" class="map-seat-layer" aria-label="并行工作通道"></div>
+              <div id="lens-hub" class="map-hub-node" aria-hidden="true"></div>
+              <div id="lens-topics" class="map-topic-layer" aria-label="本部门流转的研究线索"></div>
+              <div id="lens-downstream" class="map-portal-col map-portal-right" aria-label="下游交棒部门"></div>
+            </div>
+            <div id="lens-extra-seats" class="lens-extra-seats" hidden></div>
+          </div>
+
+          <div class="lens-bottom-strip">
+            <div class="lens-method">
+              <span class="lens-method-tag">I/O FLOW</span>
+              <strong id="lens-input">问题与公开认领</strong>
+              <i aria-hidden="true">▸</i>
+              <strong id="lens-output">可检验的论证</strong>
+            </div>
+            <div id="lens-spotlight" class="lens-spotlight">
+              <span>悬浮通道高亮能量光束 · 点击右侧线索追踪全院接力 · 点击门户跃迁至上下游</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Translucent Right FUI Telemetry Readout (No Heavy Box Wall!) -->
+      <aside class="department-panel" id="department-panel" aria-labelledby="department-title">
+        <div class="panel-top-band">
+          <div class="department-top">
+            <span id="department-mode" class="execution-label">独立会话</span>
+            <span class="small-label" id="department-state">正在连接</span>
+          </div>
+          <div class="department-title-row">
+            <h1 id="department-title">数学攻坚</h1>
+            <button type="button" id="open-lens-button" class="open-lens-btn">飞入舱内 ⤢</button>
+          </div>
+          <p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
+          <div class="department-people visually-hidden" id="department-people"></div>
+        </div>
+
+        <div class="panel-scroll-body">
+          <div class="panel-heading">
+            <h4 id="department-work-title">实时推进</h4>
+            <span id="department-work-count"></span>
+          </div>
+          <div id="department-work" class="department-work"><p class="loading">等待全息信号…</p></div>
+
+          <div id="department-connections" class="department-connections"></div>
+
+          <div class="visually-hidden" aria-hidden="true">
+            <span id="department-agent-count"></span>
+            <div id="department-agents" class="department-agents"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Floating Relay Trajectory Overlay -->
+      <div id="journey-panel" class="journey-panel" hidden>
+        <div class="journey-heading">
+          <div>
+            <p class="eyebrow">RELAY TRAJECTORY // STEP BY STEP</p>
+            <h3 id="journey-title">选择一个正在推进的问题</h3>
+            <p id="journey-description">沿着公开讨论与研究引用，追踪一条线索如何跨部门接力生长。</p>
+          </div>
+          <button type="button" id="journey-back" class="lens-back">← 返回 3D 全院</button>
+        </div>
+        <div id="journey-stages" class="journey-stages"></div>
+        <div class="journey-detail">
+          <div class="journey-roster-box">
+            <h4>关联入口</h4>
+            <div id="journey-people" class="journey-people visually-hidden"></div>
+            <div id="journey-links" class="journey-links"></div>
+          </div>
+          <div>
+            <h4>接力轨迹与公开进展</h4>
+            <div id="journey-events" class="journey-events"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Floating FUI Command Rail (5-Stage Relay + Live Signal + Slide-Up Telemetry Drawer) -->
+    <div class="fui-bottom-shell">
+      <div class="fui-bottom-rail">
+        <div class="method-strip" aria-label="24/7 研究接力链">
+          <div class="method-steps">
+            <button type="button" data-method-department="direction">
+              <span class="step-num">01</span>
+              <strong>人的方向</strong>
+              <span class="step-badge" data-step-badge="direction">指引</span>
+            </button>
+            <i class="step-arrow" aria-hidden="true">▸</i>
+            <button type="button" data-method-department="research">
+              <span class="step-num">02</span>
+              <strong>数学攻坚</strong>
+              <span class="step-badge" data-step-badge="research">—</span>
+            </button>
+            <i class="step-arrow" aria-hidden="true">⇄</i>
+            <button type="button" data-method-department="review">
+              <span class="step-num">03</span>
+              <strong>独立评审</strong>
+              <span class="step-badge" data-step-badge="review">—</span>
+            </button>
+            <i class="step-arrow" aria-hidden="true">▸</i>
+            <button type="button" data-method-department="verification">
+              <span class="step-num">04</span>
+              <strong>形式验证</strong>
+              <span class="step-badge" data-step-badge="verification">—</span>
+            </button>
+            <i class="step-arrow" aria-hidden="true">▸</i>
+            <button type="button" data-method-department="books">
+              <span class="step-num">05</span>
+              <strong>书稿与交流</strong>
+              <span class="step-badge" data-step-badge="books">—</span>
+            </button>
+          </div>
+        </div>
+
         <div class="ticker-pill" id="live-ticker" aria-live="polite">
           <span class="ticker-badge">LIVE</span>
           <button type="button" class="ticker-message" id="ticker-action">
@@ -34,322 +209,127 @@
           </button>
           <span class="ticker-meta" id="ticker-time"></span>
         </div>
-      </div>
 
-      <div class="hud-controls">
-        <div class="style-switcher" role="group" aria-label="空间渲染风格">
-          <button type="button" data-look="holo" aria-pressed="true" title="Chrono 全息场"><i class="swatch-holo"></i><span>全息场</span></button>
-          <button type="button" data-look="blueprint" aria-pressed="false" title="工程蓝图"><i class="swatch-blueprint"></i><span>蓝图</span></button>
-          <button type="button" data-look="light" aria-pressed="false" title="白模沙盘"><i class="swatch-maquette"></i><span>白模</span></button>
-        </div>
-        <div class="mode-switch" role="group" aria-label="现场视图">
-          <button type="button" data-mode="organization" aria-pressed="true">架构</button>
-          <button type="button" data-mode="journey" aria-pressed="false">接力</button>
-        </div>
-        <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button>
-        <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="切换动态 / 静看">静看</button>
-        <button class="hud-icon-btn" id="expand-room" type="button" aria-label="全屏大屏" title="全屏大屏模式">⤢</button>
-        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换全息场 / 白模" title="一键切换深空全息场 / 白模沙盘">☀</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="command-main">
-    <p id="connection-note" class="connection-note" role="status" hidden></p>
-
-    <section id="institute" class="command-deck" aria-label="研究院三层蜂巢实时指挥大屏">
-      <div class="method-strip" aria-label="24/7 研究接力链">
-        <span class="method-tag">RELAY</span>
-        <div class="method-steps">
-          <button type="button" data-method-department="direction">
-            <span class="step-num">01</span>
-            <strong>人的方向</strong>
-            <span class="step-badge" data-step-badge="direction">指引</span>
-          </button>
-          <i class="step-arrow" aria-hidden="true">▸</i>
-          <button type="button" data-method-department="research">
-            <span class="step-num">02</span>
-            <strong>数学攻坚</strong>
-            <span class="step-badge" data-step-badge="research">—</span>
-          </button>
-          <i class="step-arrow" aria-hidden="true">⇄</i>
-          <button type="button" data-method-department="review">
-            <span class="step-num">03</span>
-            <strong>独立评审</strong>
-            <span class="step-badge" data-step-badge="review">—</span>
-          </button>
-          <i class="step-arrow" aria-hidden="true">▸</i>
-          <button type="button" data-method-department="verification">
-            <span class="step-num">04</span>
-            <strong>形式验证</strong>
-            <span class="step-badge" data-step-badge="verification">—</span>
-          </button>
-          <i class="step-arrow" aria-hidden="true">▸</i>
-          <button type="button" data-method-department="books">
-            <span class="step-num">05</span>
-            <strong>书稿与交流</strong>
-            <span class="step-badge" data-step-badge="books">—</span>
-          </button>
+        <div class="dock-triggers" role="tablist" aria-label="展开遥测抽屉">
+          <button type="button" role="tab" data-dock-tab="live-ops" aria-selected="false">检验灯阵</button>
+          <button type="button" role="tab" data-dock-tab="questions" aria-selected="false">在研课题</button>
+          <button type="button" role="tab" data-dock-tab="publications" aria-selected="false">书稿论文</button>
+          <button type="button" role="tab" data-dock-tab="ecosystem" aria-selected="false">开源底座</button>
         </div>
       </div>
 
-      <div class="research-room" id="research-room">
-        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院全息蜂巢架构大屏；悬浮预览部门，点击放大进入部门图">
-          <svg id="holo-sky" class="holo-sky-canvas" viewBox="0 0 1200 760" preserveAspectRatio="none" aria-hidden="true"></svg>
-          <div class="board-hud-top">
-            <div class="board-label">
-              <span class="live-dot"></span>
-              <span>HOLO ARENA // 24·7 AI AUTONOMOUS ARCHITECTURE</span>
-            </div>
-            <div class="board-telemetry-code" id="board-clock">ORBITAL LOOP · ACTIVE</div>
+      <!-- Slide-Up Translucent FUI Telemetry Drawer (Hidden at rest so 3D world owns 100% of screen!) -->
+      <section class="telemetry-dock" id="telemetry-dock" aria-label="实时遥测与档案抽屉">
+        <div class="dock-drawer-head">
+          <span class="dock-drawer-title" id="dock-drawer-title">TELEMETRY // 检验与接力</span>
+          <span id="institute-scope" class="dock-scope"></span>
+          <button type="button" class="dock-close-btn" id="dock-close-btn" aria-label="收起抽屉">✕ 收起</button>
+        </div>
+
+        <div id="live-ops" class="dock-panel is-active" data-dock-panel="live-ops">
+          <div class="drawer-recent-row">
+            <span class="signal-chip-tag">RECENT · <small id="activity-note">实时信号</small></span>
+            <div id="activity-strip" class="activity-strip" aria-label="近期研究信号"></div>
           </div>
 
-          <div class="hive-stage">
-            <div class="hive-canvas" id="hive-canvas">
-              <svg id="hive-routes" viewBox="0 0 1000 740" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-              <div id="hive-cells" class="hive-cells"><p class="loading">正在初始化全息蜂巢架构…</p></div>
-              <svg id="hive-badges" viewBox="0 0 1000 740" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-            </div>
-          </div>
-
-          <div class="hive-footer-bar">
-            <div class="hive-legend">
-              <span><i class="legend-running"></i>执行中</span>
-              <span><i class="legend-session"></i>独立会话</span>
-              <span><i class="legend-action"></i>Actions 引擎</span>
-              <span><i class="legend-route"></i>接力总线</span>
-              <span><i class="legend-connection"></i>跨部门引用</span>
-            </div>
-            <div class="hive-hover-hint" id="hive-hover-hint">光标悬浮即时切换右侧简报 · 点击六边形放大进入部门图</div>
-          </div>
-
-          <div id="department-lens" class="department-lens" hidden aria-live="polite">
-            <div class="lens-topbar">
-              <button id="lens-back" type="button" class="lens-back">← 返回全院大屏</button>
-              <div id="lens-switcher" class="lens-switcher" role="tablist" aria-label="切换部门全息图"></div>
+          <div class="ops-grid">
+            <div class="ops-panel ops-checker-col">
+              <div class="ops-card-head">
+                <h3>Lean CI 检验灯阵</h3>
+                <span id="checker-summary" class="mono-meta">GitHub Actions</span>
+              </div>
+              <div id="checker-lights" class="checker-lights" aria-label="近期自动检验结果灯阵"></div>
+              <div id="checker-runs" class="checker-runs">
+                <p class="loading">正在读取检验队列…</p>
+              </div>
             </div>
 
-            <div class="lens-header-strip">
-              <div class="lens-title-block">
-                <div class="lens-title-line">
-                  <span id="lens-exec-pill" class="execution-label">独立研究会话</span>
-                  <h2 id="lens-title">数学攻坚</h2>
-                  <span id="lens-freshness" class="lens-freshness"></span>
+            <div class="ops-panel ops-relay-col">
+              <div class="ops-card-head">
+                <h3>跨部门接力热力</h3>
+                <span id="relay-summary" class="mono-meta">部门间流转</span>
+              </div>
+              <div id="relay-bridges" class="relay-bridges">
+                <p class="loading">正在统计跨部门接力…</p>
+              </div>
+            </div>
+
+            <div class="ops-panel ops-feed-col">
+              <div class="ops-card-head">
+                <h3>协作信号流</h3>
+                <div class="feed-filters" role="group" aria-label="信号筛选">
+                  <button type="button" data-feed-filter="all" aria-pressed="true">全部</button>
+                  <button type="button" data-feed-filter="discussion" aria-pressed="false">讨论</button>
+                  <button type="button" data-feed-filter="work" aria-pressed="false">课题</button>
+                  <button type="button" data-feed-filter="automation" aria-pressed="false">检验</button>
                 </div>
-                <p id="lens-responsibility">正在加载部门实时全息视图…</p>
+                <span id="live-feed-meta" class="mono-meta">同步中…</span>
               </div>
-              <div id="lens-metrics" class="lens-metrics"></div>
-            </div>
-
-            <div class="dept-zoom-stage" id="dept-zoom-stage">
-              <div class="dept-zoom-canvas" id="dept-zoom-canvas">
-                <svg id="lens-map-svg" viewBox="0 0 1200 580" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-                <div id="lens-upstream" class="map-portal-col map-portal-left" aria-label="上游交棒部门"></div>
-                <div id="lens-agents" class="map-seat-layer" aria-label="部门办公席位分布"></div>
-                <div id="lens-hub" class="map-hub-node" aria-hidden="true"></div>
-                <div id="lens-topics" class="map-topic-layer" aria-label="本部门正在流转的研究线索"></div>
-                <div id="lens-downstream" class="map-portal-col map-portal-right" aria-label="下游交棒部门"></div>
-              </div>
-              <div id="lens-extra-seats" class="lens-extra-seats" hidden></div>
-            </div>
-
-            <div class="lens-bottom-strip">
-              <div class="lens-method">
-                <span class="lens-method-tag">I/O FLOW</span>
-                <strong id="lens-input">问题与公开认领</strong>
-                <i aria-hidden="true">▸</i>
-                <strong id="lens-output">可检验的论证</strong>
-              </div>
-              <div id="lens-spotlight" class="lens-spotlight">
-                <span>悬浮通道高亮研究光束 · 点击右侧线索追踪全院接力 · 点击左右门户直达上下游</span>
+              <div id="live-feed" class="live-feed">
+                <p class="loading">正在同步协作信号…</p>
               </div>
             </div>
           </div>
         </div>
 
-        <aside class="department-panel" id="department-panel" aria-labelledby="department-title">
-          <div class="panel-top-band">
-            <div class="department-top">
-              <span id="department-mode" class="execution-label">独立会话</span>
-              <span class="small-label" id="department-state">正在连接</span>
+        <div id="questions" class="dock-panel" data-dock-panel="questions">
+          <div class="dock-subbar">
+            <div class="topic-filters" role="group" aria-label="研究方向">
+              <button type="button" data-filter="all" aria-pressed="true">全部课题</button>
+              <button type="button" data-filter="research" aria-pressed="false">数学研究</button>
+              <button type="button" data-filter="books" aria-pressed="false">理论书写</button>
             </div>
-            <div class="department-title-row">
-              <h1 id="department-title">数学攻坚</h1>
-              <button type="button" id="open-lens-button" class="open-lens-btn">放大部门图 ⤢</button>
-            </div>
-            <p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
-            <div class="department-people visually-hidden" id="department-people"></div>
+            <button id="more-questions" type="button" class="more-button" hidden>展开更多 ↓</button>
           </div>
-
-          <div class="panel-scroll-body">
-            <div class="panel-heading">
-              <h4 id="department-work-title">实时推进</h4>
-              <span id="department-work-count"></span>
-            </div>
-            <div id="department-work" class="department-work"><p class="loading">等待现场信号…</p></div>
-
-            <div id="department-connections" class="department-connections"></div>
-
-            <div class="visually-hidden" aria-hidden="true">
-              <span id="department-agent-count"></span>
-              <div id="department-agents" class="department-agents"></div>
-            </div>
-          </div>
-        </aside>
-
-        <div id="journey-panel" class="journey-panel" hidden>
-          <div class="journey-heading">
-            <div>
-              <p class="eyebrow">RELAY TRAJECTORY // STEP BY STEP</p>
-              <h3 id="journey-title">选择一个正在推进的问题</h3>
-              <p id="journey-description">沿着公开讨论与研究引用，追踪一条线索如何跨部门接力生长。</p>
-            </div>
-            <button type="button" id="journey-back" class="lens-back">← 返回全院大屏</button>
-          </div>
-          <div id="journey-stages" class="journey-stages"></div>
-          <div class="journey-detail">
-            <div class="journey-roster-box">
-              <h4>参与推进席位</h4>
-              <div id="journey-people" class="journey-people"></div>
-              <div id="journey-links" class="journey-links"></div>
-            </div>
-            <div>
-              <h4>接力轨迹与公开进展</h4>
-              <div id="journey-events" class="journey-events"></div>
-            </div>
-          </div>
+          <div id="question-cards" class="question-cards"><p class="loading">正在同步在研课题…</p></div>
         </div>
-      </div>
 
-      <div class="signal-strip-bar">
-        <div class="signal-strip-label">
-          <span class="live-dot"></span>
-          <span>RECENT</span>
-          <small id="activity-note">实时信号</small>
-        </div>
-        <div id="activity-strip" class="activity-strip" aria-label="近期研究信号"></div>
-      </div>
-    </section>
-
-    <section class="telemetry-dock" aria-label="实时遥测与档案控制台">
-      <div class="dock-tabs-bar">
-        <div class="dock-tabs" role="tablist" aria-label="控制台视图">
-          <button type="button" role="tab" data-dock-tab="live-ops" aria-selected="true">01 检验与接力</button>
-          <button type="button" role="tab" data-dock-tab="questions" aria-selected="false">02 在研课题</button>
-          <button type="button" role="tab" data-dock-tab="publications" aria-selected="false">03 书稿与论文</button>
-          <button type="button" role="tab" data-dock-tab="ecosystem" aria-selected="false">04 开源仓库与模板</button>
-        </div>
-        <span id="institute-scope" class="dock-scope"></span>
-      </div>
-
-      <div id="live-ops" class="dock-panel is-active" data-dock-panel="live-ops">
-        <div class="ops-grid">
-          <div class="ops-panel ops-checker-col">
-            <div class="ops-card-head">
-              <h3>Lean CI 检验灯阵</h3>
-              <span id="checker-summary" class="mono-meta">GitHub Actions</span>
-            </div>
-            <div id="checker-lights" class="checker-lights" aria-label="近期自动检验结果灯阵"></div>
-            <div id="checker-runs" class="checker-runs">
-              <p class="loading">正在读取检验队列…</p>
-            </div>
-          </div>
-
-          <div class="ops-panel ops-relay-col">
-            <div class="ops-card-head">
-              <h3>跨部门接力热力</h3>
-              <span id="relay-summary" class="mono-meta">部门间流转</span>
-            </div>
-            <div id="relay-bridges" class="relay-bridges">
-              <p class="loading">正在统计跨部门接力…</p>
-            </div>
-          </div>
-
-          <div class="ops-panel ops-feed-col">
-            <div class="ops-card-head">
-              <h3>协作信号流</h3>
-              <div class="feed-filters" role="group" aria-label="信号筛选">
-                <button type="button" data-feed-filter="all" aria-pressed="true">全部</button>
-                <button type="button" data-feed-filter="discussion" aria-pressed="false">讨论</button>
-                <button type="button" data-feed-filter="work" aria-pressed="false">课题</button>
-                <button type="button" data-feed-filter="automation" aria-pressed="false">检验</button>
+        <div id="publications" class="dock-panel" data-dock-panel="publications">
+          <div class="pub-compact-grid">
+            <div class="pub-books-panel">
+              <div class="ops-card-head">
+                <h3>双语书稿进展</h3>
+                <a class="text-link" href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">书库 ↗</a>
               </div>
-              <span id="live-feed-meta" class="mono-meta">同步中…</span>
+              <div id="book-updates" class="book-updates"></div>
             </div>
-            <div id="live-feed" class="live-feed">
-              <p class="loading">正在同步协作信号…</p>
+            <div class="pub-papers-panel">
+              <div class="ops-card-head">
+                <h3>已公开论文</h3>
+                <a class="text-link" href="https://www.trureturing.org/research" target="_blank" rel="noopener noreferrer">全部研究 ↗</a>
+              </div>
+              <div id="paper-cards" class="paper-cards"><p class="loading">正在整理公开论文…</p></div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div id="questions" class="dock-panel" data-dock-panel="questions">
-        <div class="dock-subbar">
-          <div class="topic-filters" role="group" aria-label="研究方向">
-            <button type="button" data-filter="all" aria-pressed="true">全部课题</button>
-            <button type="button" data-filter="research" aria-pressed="false">数学研究</button>
-            <button type="button" data-filter="books" aria-pressed="false">理论书写</button>
-          </div>
-          <button id="more-questions" type="button" class="more-button" hidden>展开更多 ↓</button>
-        </div>
-        <div id="question-cards" class="question-cards"><p class="loading">正在同步在研课题…</p></div>
-      </div>
-
-      <div id="publications" class="dock-panel" data-dock-panel="publications">
-        <div class="pub-compact-grid">
-          <div class="pub-books-panel">
-            <div class="ops-card-head">
-              <h3>双语书稿进展</h3>
-              <a class="text-link" href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">书库 ↗</a>
+        <div id="ecosystem" class="dock-panel" data-dock-panel="ecosystem">
+          <div class="ecosystem-layout">
+            <div class="ecosystem-repos">
+              <div class="ops-card-head">
+                <h3>公开研究仓库</h3>
+                <span id="repo-matrix-count" class="mono-meta"></span>
+              </div>
+              <div id="repo-matrix" class="repo-matrix">
+                <p class="loading">正在索引公开研究仓库…</p>
+              </div>
             </div>
-            <div id="book-updates" class="book-updates"></div>
-          </div>
-          <div class="pub-papers-panel">
-            <div class="ops-card-head">
-              <h3>已公开论文</h3>
-              <a class="text-link" href="https://www.trureturing.org/research" target="_blank" rel="noopener noreferrer">全部研究 ↗</a>
-            </div>
-            <div id="paper-cards" class="paper-cards"><p class="loading">正在整理公开论文…</p></div>
+            <aside class="template-card">
+              <p class="eyebrow">OPEN-SOURCE RUST FOUNDATION</p>
+              <h3>复用到任意「人 + AI」GitHub 组织</h3>
+              <p>独立 Rust 观测引擎自动拉取 Issue / PR / Actions，零改造映射为 3D 全息蜂巢大屏。</p>
+              <div class="template-actions">
+                <a class="solid-link" href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">Rust 开源模板 ↗</a>
+                <a class="text-link" href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图 ↗</a>
+              </div>
+            </aside>
           </div>
         </div>
-      </div>
-
-      <div id="ecosystem" class="dock-panel" data-dock-panel="ecosystem">
-        <div class="ecosystem-layout">
-          <div class="ecosystem-repos">
-            <div class="ops-card-head">
-              <h3>公开研究仓库</h3>
-              <span id="repo-matrix-count" class="mono-meta"></span>
-            </div>
-            <div id="repo-matrix" class="repo-matrix">
-              <p class="loading">正在索引公开研究仓库…</p>
-            </div>
-          </div>
-          <aside class="template-card">
-            <p class="eyebrow">OPEN-SOURCE RUST FOUNDATION</p>
-            <h3>复用到任意「人 + AI」GitHub 组织</h3>
-            <p>独立 Rust 观测引擎自动拉取 Issue / PR / Actions，零改造映射为 24/7 蜂巢实时大屏。</p>
-            <div class="template-actions">
-              <a class="solid-link" href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">Rust 开源模板 ↗</a>
-              <a class="text-link" href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图 ↗</a>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </section>
-
-    <footer class="site-footer">
-      <span>TRURETURING // 24·7 AI RESEARCH COMMAND</span>
-      <div class="footer-links">
-        <a href="https://www.trureturing.org/" target="_blank" rel="noopener noreferrer">官网</a>
-        <a href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">书库</a>
-        <a href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图</a>
-        <a href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">开源模板 ↗</a>
-      </div>
-    </footer>
-  </main>
+      </section>
+    </div>
+  </div>
 
   <div id="live-announcement" class="visually-hidden" role="status" aria-live="polite"></div>
-  <noscript><p class="noscript-note">请启用 JavaScript 查看实时指挥大屏。</p></noscript>
+  <noscript><p class="noscript-note">请启用 JavaScript 查看 3D 全息指挥大屏。</p></noscript>
 </body>
 </html>
