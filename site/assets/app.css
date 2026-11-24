@@ -551,15 +551,16 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1.5px;
-  padding: 4px 8px 4.5px;
+  gap: 2.5px;
+  max-width: 196px;
+  padding: 5px 9px 5.5px;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--surface-solid) 76%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid color-mix(in srgb, var(--cell-color) 36%, transparent);
-  border-top: 1.8px solid var(--cell-color);
-  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.42), 0 0 12px color-mix(in srgb, var(--cell-color) 16%, transparent);
+  background: color-mix(in srgb, var(--surface-solid) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--cell-color) 40%, transparent);
+  border-top: 2px solid var(--cell-color);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.46), 0 0 14px color-mix(in srgb, var(--cell-color) 18%, transparent);
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -616,10 +617,44 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .cell-landmark-cap { padding: 1px 4px; border-radius: 3px; font-family: var(--font-mono); font-size: 8.5px; font-weight: 800; letter-spacing: 0.05em; background: var(--live); color: #01040a; }
 .cell-landmark.is-human .cell-landmark-cap { background: var(--gold); }
 
-.cell-meta-row { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
-.cell-status { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; color: var(--ink-2); }
-.hive-cell.is-running .cell-status { color: var(--live-ink); }
-.cell-mode { font-family: var(--font-mono); font-size: 8.5px; color: var(--muted); padding-left: 4px; border-left: 1px solid var(--border); }
+.cell-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 178px;
+  overflow: hidden;
+}
+.cell-mission-dot {
+  color: var(--cell-color);
+  font-size: 8px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.cell-status {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 164px;
+  transition: color 0.18s ease, opacity 0.22s ease;
+}
+.hive-cell.is-running .cell-status { color: var(--ink); }
+.hive-cell.is-mission-shift .cell-status { color: var(--cell-color); }
+.cell-mode {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .cell-seats { display: none; }
 
