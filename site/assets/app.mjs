@@ -175,6 +175,25 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/Bargmann-Gram spherical trig|quaternion Fractran/i, 'Bargmann–Gram 球面三角与四元数 Fractran'],
+    [/triple-contact fibres|Huang energy/i, '由 Huang 能量界定三重接触纤维'],
+    [/prime primitive-root character sieve|exact threshold.*primitive-root/i, '素数原根特征筛的精确阈值证明'],
+    [/zero-axiom quadratic extensions|Lagrange-Schur positivity/i, '零公理二次扩张与 Lagrange–Schur 正定性'],
+    [/weighted near-collisions|missing-window starts/i, '加权近碰撞与有界缺口起点估计'],
+    [/bound the disjoint character coefficients/i, '量子几何：不相交特征系数上界'],
+    [/return supports and simultaneous switch counts/i, 'Steiner 章节：回返支撑与同时切换计数'],
+    [/explain the mixed phase term in disjoint triples/i, '量子几何：不相交三重和混合相位项'],
+    [/derive cyclic occupation/i, '书稿推导：按公共度数的循环占据质量'],
+    [/Clarify trusted collection|single material producer/i, 'Mathesis：可信收录与单源产物机制'],
+    [/two fixed CMA roles|memory budgets/i, 'Mathesis：固定 CMA 席位角色与内存预算'],
+    [/Connect papers to open questions/i, 'Mathesis：论文关联开放问题与共享贡献'],
+    [/Unify formalization participation/i, 'Mathesis：统一形式化参与与共享请求'],
+    [/formal verification as central hub/i, '实时大屏：形式验证中心枢纽 3D 架构'],
+    [/3-tier 3D architectural decks/i, '实时大屏：三层玻璃甲板与闭环总轨'],
+    [/8 biomimetic 3D holographic entities/i, '实时大屏：8 部门拟生态实体与战报墙'],
+    [/full-bleed 60fps 3D holographic/i, '实时大屏：全屏 3D 全息引擎与 HUD'],
+    [/Chrono-Metaverse Holo Arena/i, '实时大屏：全息场 / 蓝图 / 白模三风格'],
+    [/用蓝色标记无公理的 Lean 定理/i, '书稿模板：蓝标无公理 Lean 定理'],
     [/rotated BKM energy|qubit Petz pencil/i, '物理量子比特 Petz 族的旋转 BKM 能量证明'],
     [/retain phase cancellation|disjoint coefficient bound/i, '不相交系数上界中的相位抵消保持'],
     [/isolate the mixed phase|disjoint triple sums/i, '不相交三重和中的混合相位项分离'],
@@ -546,12 +565,152 @@ function renderHealth() {
   $('#connection-note').textContent = '更新稍慢。你仍然可以浏览已有架构、历史进展与公开讨论。';
 }
 
+function isGenericAutomationTitle(title) {
+  return /^(?:检验研究提交|检查与构建书稿|出版在线书库|更新公开研究页面|发布研究知识|协调学术交流与传播|准备研究传播材料)$/.test(String(title || '').trim());
+}
+
+function cleanWorkTitle(a, d) {
+  if (a.kind === 'automation') {
+    const linked = findLinkedTaskActivity(a.task);
+    if (linked) return copyFor(linked).title;
+    return sourceLabel(a);
+  }
+  if (a.task && ['discussion', 'review'].includes(a.kind)) {
+    const linked = findLinkedTaskActivity(a.task);
+    if (linked) return copyFor(linked).title;
+  }
+  const translated = humanTitle(a.label);
+  if (translated && translated !== sourceLabel(a) && !isGenericAutomationTitle(translated)) return translated;
+  if (a.task && ['research', 'books'].includes(d?.id)) return copyFor(a).title;
+  return sourceLabel(a);
+}
+
+function departmentMissions(d) {
+  if (!d) return [];
+  const missions = [];
+  const seen = new Set();
+  const push = text => {
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!clean || seen.has(clean)) return;
+    seen.add(clean);
+    missions.push(clean);
+  };
+
+  if (d.execution === 'human') {
+    const rDept = department('research');
+    if (rDept) {
+      for (const a of rDept.activities) {
+        if (['task', 'contribution'].includes(a.kind) && !technical.test(a.label)) {
+          push(`牵引：${copyFor(a).title}`);
+          if (missions.length >= 3) break;
+        }
+      }
+    }
+    if (!missions.length) push('提出前沿问题 · 设定约束与方向把关');
+    return missions;
+  }
+
+  if (d.id === 'verification') {
+    const sorted = [...d.activities].sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at));
+    for (const a of sorted) {
+      if (a.kind === 'task' && !technical.test(a.label)) {
+        push(`请求：${copyFor(a).title}`);
+      } else if (a.kind === 'automation' && a.task) {
+        const linked = findLinkedTaskActivity(a.task);
+        if (linked && !technical.test(linked.label)) push(`核验：${copyFor(linked).title}`);
+      }
+      if (missions.length >= 4) break;
+    }
+    if (!missions.length) push('Lean 4 内核核验与定理账本固化');
+    return missions;
+  }
+
+  if (d.id === 'review') {
+    for (const a of d.activities) {
+      const t = cleanWorkTitle(a, d);
+      if (!isGenericAutomationTitle(t)) push(`复核：${t}`);
+      if (missions.length >= 3) break;
+    }
+    if (!missions.length) {
+      const rDept = department('research');
+      const latest = rDept?.activities.find(a => a.kind === 'contribution' && !technical.test(a.label));
+      push(latest ? `待审边界：${copyFor(latest).title}` : '独立跨模型边界复核就绪');
+    }
+    return missions;
+  }
+
+  if (d.id === 'books') {
+    const sorted = [...d.activities]
+      .filter(a => ['contribution', 'task'].includes(a.kind) && !technical.test(a.label))
+      .sort((a, b) => timestamp(b.at) - timestamp(a.at));
+    for (const a of sorted) {
+      push(copyFor(a).title);
+      if (missions.length >= 4) break;
+    }
+    if (!missions.length) push('双语理论章节整理与书面证明回流');
+    return missions;
+  }
+
+  if (d.id === 'publication') {
+    const sorted = [...d.activities]
+      .filter(a => ['contribution', 'task'].includes(a.kind))
+      .sort((a, b) => timestamp(b.at) - timestamp(a.at));
+    for (const a of sorted) {
+      const t = cleanWorkTitle(a, d);
+      if (!isGenericAutomationTitle(t)) push(t);
+      if (missions.length >= 3) break;
+    }
+    for (const p of (state.snapshot?.publications || []).slice(0, 2)) {
+      const copy = state.snapshot?.editorial?.papers?.[p.id];
+      push(`预印本：${copy?.title || humanTitle(p.title)}`);
+      if (missions.length >= 4) break;
+    }
+    if (!missions.length) push('短文 DOI 发布与 Mathesis 公开目录');
+    return missions;
+  }
+
+  if (d.id === 'outreach') {
+    for (const p of (state.snapshot?.publications || []).slice(0, 2)) {
+      const copy = state.snapshot?.editorial?.papers?.[p.id];
+      push(`学者协作：${copy?.title || humanTitle(p.title)}`);
+    }
+    push('向题源作者同步已验证定理并回收请求');
+    return missions.slice(0, 3);
+  }
+
+  if (d.id === 'studio') {
+    const sorted = [...d.activities]
+      .filter(a => ['contribution', 'task'].includes(a.kind))
+      .sort((a, b) => timestamp(b.at) - timestamp(a.at));
+    for (const a of sorted) {
+      const t = cleanWorkTitle(a, d);
+      if (!isGenericAutomationTitle(t)) push(t);
+      if (missions.length >= 4) break;
+    }
+    if (!missions.length) push('出版模板、交互可视化与大屏观测');
+    return missions;
+  }
+
+  // research & fallback
+  const sorted = [...d.activities]
+    .filter(a => ['contribution', 'task'].includes(a.kind) && !technical.test(a.label))
+    .sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at));
+  for (const a of sorted) {
+    push(copyFor(a).title);
+    if (missions.length >= 4) break;
+  }
+  if (!missions.length) push('持续探索新证明、反例与边界构造');
+  return missions;
+}
+
 function renderTicker() {
   const recent = view()?.recent || [];
-  const item = recent.find(a => active(a)) || recent[0];
+  // Prefer concrete theorem/chapter/linked signals over bare unlinked CI boilerplate
+  const richActive = recent.find(a => active(a) && (a.kind !== 'automation' || findLinkedTaskActivity(a.task)));
+  const item = richActive || recent.find(a => active(a)) || recent[0];
   if (!item) return;
   const d = department(item.department);
-  const title = actorTaskTitle(item, d || { id: item.department });
+  const title = cleanWorkTitle(item, d || { id: item.department });
   state.tickerTarget = item;
   $('#ticker-text').textContent = `${d?.label || '研究院'} · ${phase(item)}：${title}`;
   $('#ticker-time').textContent = `${relative(item.at)} · 查看 →`;
@@ -642,9 +801,11 @@ function createCell(d, index) {
   head.append(liveDot, glyph, title, landmark);
 
   const meta = element('span', '', 'cell-meta-row');
+  const missionDot = element('span', '▸', 'cell-mission-dot');
+  missionDot.setAttribute('aria-hidden', 'true');
   const status = element('span', '', 'cell-status');
   const mode = element('span', d.execution === 'human' ? 'HUMAN LOOP' : execution[d.execution], 'cell-mode');
-  meta.append(status, mode);
+  meta.append(missionDot, status, mode);
 
   const seats = element('span', '', 'cell-seats');
   card.append(head, meta, seats);
@@ -741,22 +902,34 @@ function renderHive() {
       container.append(cell.button);
     }
     const cell = state.cells.get(d.id);
+    const missions = departmentMissions(d);
+    cell.missions = missions;
+    const mIdx = (cell.missionIdx || 0) % Math.max(1, missions.length);
     cell.title.textContent = d.label;
-    cell.status.textContent = departmentState(d);
+    cell.status.textContent = missions[mIdx] || departmentState(d);
     renderCellSeats(d, cell.seats);
     cell.button.setAttribute('aria-pressed', String(d.id === state.selected));
-    cell.button.setAttribute('aria-label', `${d.label}。${d.responsibility}。${departmentState(d)}`);
+    cell.button.setAttribute('aria-label', `${d.label}。${d.responsibility}。${missions[0] || departmentState(d)}`);
     const running = countRunning(d);
+    const q = queueStats(d);
     cell.button.classList.toggle('is-running', Boolean(running));
     if (cell.landmark && cell.landmarkCap) {
-      if (running) {
-        cell.landmarkCap.textContent = `${running} RUN`;
-        cell.landmark.classList.add('is-visible', 'is-live');
-        cell.landmark.classList.remove('is-human');
-      } else if (d.execution === 'human') {
+      if (d.execution === 'human') {
         cell.landmarkCap.textContent = 'HUMAN LOOP';
         cell.landmark.classList.add('is-visible', 'is-human');
         cell.landmark.classList.remove('is-live');
+      } else if (d.id === 'verification' && running) {
+        cell.landmarkCap.textContent = `${running} 核验中`;
+        cell.landmark.classList.add('is-visible', 'is-live');
+        cell.landmark.classList.remove('is-human');
+      } else if (running) {
+        cell.landmarkCap.textContent = d.id === 'books' ? `${running} 构建` : `${running} 活跃`;
+        cell.landmark.classList.add('is-visible', 'is-live');
+        cell.landmark.classList.remove('is-human');
+      } else if (q.waiting) {
+        cell.landmarkCap.textContent = `${q.label} 课题`;
+        cell.landmark.classList.add('is-visible');
+        cell.landmark.classList.remove('is-live', 'is-human');
       } else {
         cell.landmark.classList.remove('is-visible', 'is-live', 'is-human');
       }
@@ -1239,15 +1412,46 @@ function renderAgentRoster(d) {
 function primaryWork(d) {
   const items = [...d.activities];
   if (d.execution === 'human') return [];
+  const dedup = list => {
+    const out = [];
+    const seen = new Set();
+    for (const a of list) {
+      const t = cleanWorkTitle(a, d);
+      if (seen.has(t)) continue;
+      seen.add(t);
+      out.push(a);
+    }
+    return out;
+  };
   if (d.id === 'research' || d.id === 'books') {
-    const work = items
-      .filter(a => (a.kind === 'session' && active(a)) || (['task', 'contribution'].includes(a.kind) && !technical.test(a.label)))
-      .sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at))
-      .slice(0, 6);
+    const work = dedup(
+      items
+        .filter(a => (a.kind === 'session' && active(a)) || (['task', 'contribution'].includes(a.kind) && !technical.test(a.label)))
+        .sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at))
+    ).slice(0, 6);
+    // Keep at most 1 active book build check after concrete chapters (preserves contract while elevating book content!)
     const building = d.id === 'books' && items.find(a => a.kind === 'automation' && active(a));
-    return building ? [building, ...work.slice(0, 5)] : work;
+    if (building && !work.some(w => cleanWorkTitle(w, d) === cleanWorkTitle(building, d))) {
+      return [...work.slice(0, 5), building];
+    }
+    return work;
   }
-  return items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at)).slice(0, 6);
+  if (d.id === 'verification') {
+    // Elevate concrete linked theorems & formalization requests; suppress repetitive bare "检验研究提交" runs!
+    const sorted = items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at));
+    const substantive = dedup(
+      sorted.filter(a => (a.kind === 'task' && !technical.test(a.label)) || (a.kind === 'automation' && findLinkedTaskActivity(a.task)))
+    ).slice(0, 6);
+    if (substantive.length) return substantive;
+    return dedup(sorted).slice(0, 3);
+  }
+  if (d.id === 'publication' || d.id === 'studio') {
+    const sorted = items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at));
+    const substantive = dedup(sorted.filter(a => ['contribution', 'task'].includes(a.kind))).slice(0, 6);
+    if (substantive.length) return substantive;
+    return dedup(sorted).slice(0, 3);
+  }
+  return dedup(items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at))).slice(0, 4);
 }
 
 function renderDepartment() {
@@ -1296,14 +1500,19 @@ function renderDepartment() {
     const timeEl = element('time', relative(a.at));
     timeEl.dateTime = a.at;
     meta.append(element('span', phase(a), 'work-state'), timeEl);
-    const title = ['automation', 'session'].includes(a.kind)
-      ? (findLinkedTaskActivity(a.task) ? `${sourceLabel(a)} · ${copyFor(findLinkedTaskActivity(a.task)).title}` : sourceLabel(a))
-      : ['studio', 'publication', 'outreach'].includes(d.id) || (d.id === 'verification' && a.kind !== 'task')
-        ? sourceLabel(a)
-        : copyFor(a).title;
+    const title = cleanWorkTitle(a, d);
     card.append(meta, element('strong', title));
     const bottom = element('div', '', 'work-bottom');
-    const areaTag = a.kind === 'automation' ? 'Lean CI / Actions' : copyFor(a).area;
+    const linked = a.kind === 'automation' ? findLinkedTaskActivity(a.task) : null;
+    const areaTag = linked
+      ? `${copyFor(linked).area} · 形式核验`
+      : a.kind === 'automation'
+        ? (d.id === 'books' ? '书稿构建' : d.id === 'outreach' ? '学术协作' : d.id === 'publication' ? '知识发布' : '形式核验')
+        : d.id === 'publication'
+          ? 'Mathesis / 知识'
+          : d.id === 'studio'
+            ? '工具与表达'
+            : copyFor(a).area;
     bottom.append(
       element('span', areaTag),
       element('span', task ? '追踪接力 ↗' : '查看 ↗', 'work-arrow')
@@ -2533,6 +2742,7 @@ const holoCam = {
   stars: [],
   sparks: [],
   pulses: [],
+  flares: [],
   projectedTowers: new Map()
 };
 
@@ -2540,6 +2750,13 @@ function spawnHoloPulse(deptId, strength = 0.85) {
   if (!holoWorld[deptId] || state.quiet || reduced) return;
   holoCam.pulses.push({ id: deptId, age: 0, strength });
   if (holoCam.pulses.length > 18) holoCam.pulses.shift();
+}
+
+function spawnSpokeFlare(fromId, toId = 'verification') {
+  if (!holoWorld[fromId] || !holoWorld[toId] || fromId === toId || state.quiet || reduced) return;
+  const col = holoWorld[fromId].hex || [94, 237, 236];
+  holoCam.flares.push({ fromId, toId, age: 0, rgb: col });
+  if (holoCam.flares.length > 14) holoCam.flares.shift();
 }
 
 function triggerScanSweep() {
@@ -2600,13 +2817,15 @@ function renderHoloSky() {
 }
 
 // ============================================================================
-// HIGH-SPEED SCI-FI MOVIE TELEMETRY LOG WALL (#scifi-log-stream)
-// Streams 100% real observed research/CI/relay telemetry at movie speed
-// without any account clutter, firing synchronized 3D pulses on every packet
+// HIGH-DENSITY SCI-FI WAR-ROOM INTEL STREAM (#scifi-log-stream)
+// Purges repetitive CI/Actions boilerplate; broadcasts concrete theorems,
+// verifications, book chapters, Mathesis papers & engineering intel while
+// cycling each 3D department's live mission readout & firing 3D spoke flares!
 // ============================================================================
 const scifiLog = {
   acc: 0,
-  nextGap: 0.24,
+  missionAcc: 0,
+  nextGap: 0.34,
   cursor: 0,
   pktCount: 0,
   paused: false,
@@ -2622,74 +2841,77 @@ function fmtClockMs(offsetMs = 0) {
 
 function buildSciFiLogPool() {
   const pool = [];
+  const seenText = new Set();
+  const add = item => {
+    const k = `${item.deptId}:${item.text}`;
+    if (seenText.has(k)) return;
+    seenText.add(k);
+    pool.push(item);
+  };
+
   const depts = departments();
-  const totalRunning = isStale() ? 0 : depts.reduce((n, d) => n + (d.running_automations || 0), 0);
   const totalHandoffs = (view()?.handoffs || []).length;
 
-  // 1. Live running automations & recent activities (NO usernames!)
-  for (const a of (view()?.recent || []).slice(0, 32)) {
-    if (['research', 'books'].includes(a.department) && technical.test(a.label)) continue;
-    const d = department(a.department);
-    const title = actorTaskTitle(a, d || { id: a.department });
-    if (a.kind === 'automation') {
-      const tag = a.status === 'working' ? 'CI::RUN' : a.status === 'waiting' ? 'CI::QUE' : a.status === 'succeeded' ? 'VERIFY' : 'CI::END';
-      const tone = a.status === 'working' ? 'cyan' : a.status === 'succeeded' ? 'live' : a.status === 'waiting' ? 'gold' : 'muted';
-      pool.push({ tag, tone, deptId: a.department, text: `${d?.label || '验证'} ▸ ${title}` });
-    } else if (a.department === 'books') {
-      pool.push({ tag: 'BOOK::IO', tone: 'violet', deptId: 'books', text: `理论书写 ▸ ${title}` });
-    } else {
-      pool.push({ tag: 'PROOF', tone: 'live', deptId: a.department, text: `${d?.label || '攻坚'} ▸ ${title}` });
+  // 1. High-density live missions across ALL 8 departments (interleaved so every dept shines!)
+  const deptMeta = {
+    research:     { tag: 'PROOF',  tone: 'live',   target: 'verification' },
+    verification: { tag: 'VERIFY', tone: 'cyan',   target: 'books' },
+    books:        { tag: 'CODEX',  tone: 'violet', target: 'verification' },
+    publication:  { tag: 'PAPER',  tone: 'live',   target: 'verification' },
+    outreach:     { tag: 'COLLAB', tone: 'gold',   target: 'verification' },
+    studio:       { tag: 'FORGE',  tone: 'cyan',   target: 'books' },
+    review:       { tag: 'AUDIT',  tone: 'violet', target: 'verification' },
+    direction:    { tag: 'HUMAN',  tone: 'gold',   target: 'research' }
+  };
+
+  const perDept = depts.map(d => ({ d, missions: departmentMissions(d) }));
+  for (let round = 0; round < 4; round++) {
+    for (const { d, missions } of perDept) {
+      const m = missions[round];
+      if (!m) continue;
+      const meta = deptMeta[d.id] || { tag: 'INTEL', tone: 'cyan', target: 'verification' };
+      add({
+        tag: meta.tag,
+        tone: meta.tone,
+        deptId: d.id,
+        targetId: meta.target,
+        text: `${d.label} ▸ ${m}`
+      });
     }
   }
 
-  // 2. Cross-department relay bridges
-  for (const b of handoffSummary().slice(0, 6)) {
+  // 2. Concrete deduplicated recent non-boilerplate activities (NEVER bare CI noise!)
+  for (const a of (view()?.recent || []).slice(0, 40)) {
+    if (['research', 'books'].includes(a.department) && technical.test(a.label)) continue;
+    const d = department(a.department);
+    const title = cleanWorkTitle(a, d || { id: a.department });
+    if (isGenericAutomationTitle(title)) continue;
+    if (a.kind === 'automation') {
+      add({ tag: 'VERIFY', tone: 'cyan', deptId: a.department, targetId: 'research', text: `形式验证 ▸ 核验：${title}` });
+    } else if (a.department === 'books') {
+      add({ tag: 'CODEX', tone: 'violet', deptId: 'books', targetId: 'verification', text: `理论书写 ▸ ${title}` });
+    } else if (a.department === 'publication') {
+      add({ tag: 'PAPER', tone: 'live', deptId: 'publication', targetId: 'verification', text: `论文与知识 ▸ ${title}` });
+    } else if (a.department === 'studio') {
+      add({ tag: 'FORGE', tone: 'cyan', deptId: 'studio', targetId: 'books', text: `工具与表达 ▸ ${title}` });
+    } else {
+      add({ tag: 'PROOF', tone: 'live', deptId: a.department, targetId: 'verification', text: `${d?.label || '数学攻坚'} ▸ ${title}` });
+    }
+  }
+
+  // 3. Cross-department real citation relays
+  for (const b of handoffSummary().slice(0, 5)) {
     const f = department(b.from)?.label || b.from;
     const to = department(b.to)?.label || b.to;
-    pool.push({ tag: 'RELAY', tone: 'gold', deptId: b.to, text: `${f} ══▸ ${to} // ${b.count} 条引用接力` });
+    add({ tag: 'RELAY', tone: 'gold', deptId: b.from, targetId: b.to, text: `${f} ══▸ ${to} // ${b.count} 条引用接力` });
   }
 
-  // 3. Active math questions
-  for (const q of questionTopics().slice(0, 10)) {
-    pool.push({ tag: q.book ? 'CODEX' : 'SOLVE', tone: q.book ? 'violet' : 'live', deptId: q.book ? 'books' : 'research', text: `${q.copy.area} ▸ ${q.copy.title}` });
+  // 4. Hub summary pulse
+  if (totalHandoffs) {
+    add({ tag: 'HUB', tone: 'cyan', deptId: 'verification', targetId: 'research', text: `形式验证枢纽 ▸ 四路汇聚 · ${totalHandoffs} 条跨部门接力` });
   }
 
-  // 4. Central verification hub heartbeat & four incoming request streams
-  pool.push({
-    tag: 'HUB::CI',
-    tone: 'cyan',
-    deptId: 'verification',
-    text: `形式验证枢纽 // ${totalRunning} CI ACTIVE · ${totalHandoffs} RELAYS`
-  });
-  pool.push({
-    tag: 'REQ::TH',
-    tone: 'live',
-    deptId: 'research',
-    text: `数学攻坚 ⇄ 形式验证枢纽 // 理论推进提交验证请求`
-  });
-  pool.push({
-    tag: 'REQ::BK',
-    tone: 'violet',
-    deptId: 'books',
-    text: `理论书写 ⇄ 形式验证枢纽 // 书稿书面证明触发验证请求`
-  });
-  pool.push({
-    tag: 'REQ::CO',
-    tone: 'gold',
-    deptId: 'outreach',
-    text: `学术合作 ▸ 形式验证枢纽 // 外部回复生成公开验证请求`
-  });
-  pool.push({
-    tag: 'HUMAN',
-    tone: 'gold',
-    deptId: 'direction',
-    text: `研究方向 ▸ 意图设定、边界约束与最终把关`
-  });
-  const repos = state.snapshot?.repositories?.length || 0;
-  if (repos) {
-    pool.push({ tag: 'ATLAS', tone: 'cyan', deptId: 'publication', text: `论文与知识 ⇄ 形式验证枢纽 // ${repos} 公开空间在线` });
-  }
-  return pool.length ? pool : [{ tag: 'BOOT', tone: 'cyan', deptId: 'verification', text: '正在接入 24/7 AI 研究院形式验证枢纽实时流…' }];
+  return pool.length ? pool : [{ tag: 'BOOT', tone: 'cyan', deptId: 'verification', text: '正在接入全院实时研究战报流…' }];
 }
 
 function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
@@ -2716,7 +2938,10 @@ function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
   while (container.children.length > 30) container.firstElementChild?.remove();
 
   if (animate && entry.deptId) {
-    spawnHoloPulse(entry.deptId, 0.72);
+    spawnHoloPulse(entry.deptId, 0.78);
+    if (entry.targetId && entry.targetId !== entry.deptId) {
+      spawnSpokeFlare(entry.deptId, entry.targetId);
+    }
   }
 }
 
@@ -2724,27 +2949,40 @@ function stepSciFiLog(dt) {
   const container = $('#scifi-log-stream');
   if (!container || /jsdom/i.test(navigator.userAgent || '')) return;
 
-  // Seed initial burst of 22 staggered lines immediately so the log wall fills top-to-bottom on frame 1!
+  // Seed initial burst of 22 staggered high-density lines immediately on frame 1!
   if (!scifiLog.seeded && view()) {
     scifiLog.seeded = true;
     const pool = buildSciFiLogPool();
     for (let i = 0; i < 22; i++) {
-      pushSciFiLogLine(pool[i % pool.length], false, -(22 - i) * 290);
+      pushSciFiLogLine(pool[i % pool.length], false, -(22 - i) * 340);
     }
     scifiLog.cursor = 22;
   }
 
-  // Animate spectrum equalizer bars
   const spec = $('#log-spectrum');
   const activeRun = !state.quiet && !reduced && !scifiLog.paused && !scifiLog.hoverPaused;
   if (spec) spec.classList.toggle('is-paused', !activeRun);
 
   if (!activeRun || !view()) return;
 
+  // Cycle live department mission readouts smoothly across active tasks every ~4.2s
+  scifiLog.missionAcc += dt;
+  if (scifiLog.missionAcc >= 4.2) {
+    scifiLog.missionAcc = 0;
+    for (const [deptId, cell] of state.cells) {
+      if (!cell.missions || cell.missions.length <= 1) continue;
+      cell.missionIdx = ((cell.missionIdx || 0) + 1) % cell.missions.length;
+      cell.status.textContent = cell.missions[cell.missionIdx];
+      cell.button.classList.add('is-mission-shift');
+      setTimeout(() => cell.button.classList.remove('is-mission-shift'), 420);
+      if (deptId !== 'verification') spawnSpokeFlare(deptId, 'verification');
+    }
+  }
+
   scifiLog.acc += dt;
   if (scifiLog.acc >= scifiLog.nextGap) {
     scifiLog.acc = 0;
-    scifiLog.nextGap = 0.21 + (scifiLog.cursor % 5) * 0.045;
+    scifiLog.nextGap = 0.28 + (scifiLog.cursor % 5) * 0.055;
     const pool = buildSciFiLogPool();
     const entry = pool[scifiLog.cursor % pool.length];
     scifiLog.cursor += 1;
@@ -2801,10 +3039,14 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.pitch += (holoCam.targetPitch - holoCam.pitch) * ease;
   holoCam.dist += (holoCam.targetDist - holoCam.dist) * ease;
 
-  // Age pulses & rising holographic sparks
+  // Age pulses & live streaking spoke comet flares
   for (let i = holoCam.pulses.length - 1; i >= 0; i--) {
     holoCam.pulses[i].age += stepDt * 1.35;
     if (holoCam.pulses[i].age >= 1) holoCam.pulses.splice(i, 1);
+  }
+  for (let i = holoCam.flares.length - 1; i >= 0; i--) {
+    holoCam.flares[i].age += stepDt * 1.15;
+    if (holoCam.flares[i].age >= 1) holoCam.flares.splice(i, 1);
   }
 
   const isLight = document.documentElement.dataset.theme === 'light';
@@ -3120,6 +3362,22 @@ function drawHolo3DFrame(dt = 0.016) {
   drawDeckSlab(-5.45, 5.45, -2.75,  4.35, 0.00, arenaRGB, '', '', false);
   drawHubDais(hubX, hubY, hubZ, 1.56, hubRGB);
 
+  // Sci-Fi War-Room Tactical Range Rings & Azimuth Compass Ticks etched around the Hub!
+  draw3DRing(hubX, 0.015, hubZ, 2.85, 2.15, 64, rgba(hubRGB, isLight ? 0.14 : 0.16), 1.0, [4, 6]);
+  draw3DRing(hubX, 0.015, hubZ, 4.55, 3.35, 72, rgba(arenaRGB, isLight ? 0.14 : 0.14), 1.0, [10, 8]);
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2;
+    const isCard = k % 4 === 0;
+    const r0 = isCard ? 4.30 : 4.44;
+    const r1 = 4.65;
+    draw3DSeg(
+      project(hubX + Math.cos(a) * r0, 0.018, hubZ + Math.sin(a) * (r0 * 0.74)),
+      project(hubX + Math.cos(a) * r1, 0.018, hubZ + Math.sin(a) * (r1 * 0.74)),
+      rgba(hubRGB, isCard ? (isLight ? 0.36 : 0.48) : (isLight ? 0.18 : 0.22)),
+      isCard ? 1.5 : 1.0
+    );
+  }
+
   // Subtle 360° Radar Sweep Cone radiating from the Central Formal Verification Hub!
   if (!state.quiet && !reduced && !isLight) {
     ctx.save();
@@ -3310,6 +3568,33 @@ function drawHolo3DFrame(dt = 0.016) {
     [240, 148, 90],
     { lw: fbHot ? 2.4 : 1.3, alpha: fbHot ? 0.90 : 0.34, dashed: true, particles: fbHot ? 3 : 1, speed: 0.22 }
   );
+
+  // D. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
+  for (const fl of holoCam.flares) {
+    const a = holoWorld[fl.fromId], b = holoWorld[fl.toId];
+    if (!a || !b) continue;
+    const u = fl.age;
+    const tailU = Math.max(0, u - 0.18);
+    const ptAt = frac => {
+      const lx = a.x + (b.x - a.x) * frac;
+      const lz = a.z + (b.z - a.z) * frac;
+      const ly = (a.y || 0.08) + ((b.y || 0.14) - (a.y || 0.08)) * frac + Math.sin(frac * Math.PI) * 0.45;
+      return project(lx, ly, lz);
+    };
+    const pHead = ptAt(u), pTail = ptAt(tailU);
+    if (!pHead || !pTail) continue;
+    const fade = Math.sin(u * Math.PI);
+    const grad = ctx.createLinearGradient(pTail.x, pTail.y, pHead.x, pHead.y);
+    grad.addColorStop(0, rgba(fl.rgb, 0));
+    grad.addColorStop(1, rgba([240, 255, 255], fade * 0.95));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(pTail.x, pTail.y); ctx.lineTo(pHead.x, pHead.y); ctx.stroke();
+    ctx.fillStyle = rgba([255, 255, 255], fade);
+    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 3.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = rgba(fl.rgb, fade * 0.45);
+    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 7.2, 0, Math.PI * 2); ctx.fill();
+  }
 
   ctx.restore();
 
@@ -3619,16 +3904,33 @@ function drawHolo3DFrame(dt = 0.016) {
     const pulseObj = holoCam.pulses.find(p => p.id === d.id);
     const pulseBoost = pulseObj ? (1 - pulseObj.age) : 0;
 
-    // Ground glow aura
+    // Ground glow aura + Active Tactical Target Lock-On Vertical Beam & Brackets!
     if (!cfg.floating) {
       const gPt = project(cfg.x, yBase + 0.02, cfg.z);
       if (gPt) {
-        const gRad = cfg.r * gPt.s * (isSel ? 1.8 : running ? 1.45 : 1.1) * bootK;
+        const gRad = cfg.r * gPt.s * (isSel ? 1.9 : running ? 1.45 : 1.1) * bootK;
         const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
-        glow.addColorStop(0, rgba(rgb, isLight ? 0.16 : (isSel ? 0.34 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
+        glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.38 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
         glow.addColorStop(1, rgba(rgb, 0));
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    if (isSel && !isLight) {
+      const topBeam = project(cfg.x, yBase + hEntity + 1.15, cfg.z);
+      const botBeam = project(cfg.x, yBase, cfg.z);
+      if (topBeam && botBeam) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const bgGrad = ctx.createLinearGradient(botBeam.x, botBeam.y, topBeam.x, topBeam.y);
+        bgGrad.addColorStop(0, rgba(rgb, 0.32));
+        bgGrad.addColorStop(0.65, rgba(rgb, 0.08));
+        bgGrad.addColorStop(1, rgba(rgb, 0));
+        ctx.strokeStyle = bgGrad;
+        ctx.lineWidth = Math.max(12, cfg.r * botBeam.s * 0.55);
+        ctx.beginPath(); ctx.moveTo(botBeam.x, botBeam.y); ctx.lineTo(topBeam.x, topBeam.y); ctx.stroke();
+        ctx.restore();
       }
     }
 
@@ -3658,8 +3960,8 @@ function drawHolo3DFrame(dt = 0.016) {
   drawHoloBadge(0.0, 0.12, -2.76, '★ CORE HUB // 形式验证枢纽 · 24/7 LEAN CI & 真理账本', hubRGB, '#0369a1', '#9ff9ff');
   drawHoloBadge(-2.22, 0.22, -1.05, '理论推进 ⇄ 验证请求', [45, 227, 184], '#047857', '#7dffe0', true);
   drawHoloBadge( 2.22, 0.22, -1.05, '写书 ⇄ 验证请求', [199, 140, 219], '#6d28d9', '#e5c6ff', true);
-  drawHoloBadge(-1.35, 0.06,  2.80, '合作 ▸ 验证请求', [240, 148, 90], '#b45309', '#ffd1a8', true);
-  drawHoloBadge( 1.35, 0.06,  2.80, '论文 ⇄ Lean 目标', [74, 216, 176], '#047857', '#9df5dc', true);
+  drawHoloBadge(-1.25, 0.04,  3.22, '合作 ▸ 验证请求', [240, 148, 90], '#b45309', '#ffd1a8', true);
+  drawHoloBadge( 1.25, 0.04,  3.22, '论文 ⇄ Lean 目标', [74, 216, 176], '#047857', '#9df5dc', true);
   drawHoloBadge(0.0, -0.52, 5.45, '四路汇聚验证枢纽 · 理论推进 ⇄ 写书 ⇄ 论文 ⇄ 合作 持续生成形式化请求', arenaRGB, '#2a5678', '#a8d8f8');
 }
 
