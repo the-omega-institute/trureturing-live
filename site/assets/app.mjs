@@ -1,8 +1,8 @@
 const $ = selector => document.querySelector(selector);
 const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
-const cacheKey = 'trureturing-live.hive.content.v5';
-const themeKey = 'trureturing-live.theme';
+const cacheKey = 'trureturing-live.hive.content.v7';
+const themeKey = 'trureturing-live.theme.v2';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const state = {
@@ -173,6 +173,11 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/disjoint occupation.*cyclic band|project disjoint occupation/i, '循环带上的不相交占据系数投影'],
+    [/quarter-grid.*prime triangle|characterize RH/i, '四分网格素数三角形与黎曼猜想刻画'],
+    [/weighted mass of disjoint|bound the weighted mass|disjoint residual occupation mass/i, '不相交剩余占据的质量精确上界'],
+    [/Farey chord gaps|Cayley composition|Taylor barrier/i, 'Farey 弦间隙、Cayley 复合与 Taylor 势垒'],
+    [/degree-two residual|directed gaps/i, '二次剩余与有向间隙的结构关联'],
     [/controlled-qubit.*recovery|arbitrary finite fragments/i, '有限片段上的受控量子比特重构'],
     [/multinomial mass.*residual|matchable residual/i, '可匹配剩余占据的多项式质量上界'],
     [/weighted near-pairs|near-pairs of ζ/i, 'ζ 函数加权近对的精确上界'],
@@ -364,7 +369,7 @@ function person(actor) {
   const el = element('span', '', 'person' + (actor.kind === 'agent' ? ' agent' : ''));
   const mark = element('span', seatMonogram(actor), 'person-mark');
   mark.setAttribute('aria-hidden', 'true');
-  el.append(mark, document.createTextNode(label));
+  el.append(mark, element('span', label, 'person-name'));
   return el;
 }
 
@@ -545,7 +550,15 @@ function renderMetrics() {
   items.push(element('span', '24/7 AI 自治闭环与人的方向指引', 'metric-end'));
   $('#institute-metrics').replaceChildren(...items);
   const n = state.snapshot?.repositories?.length;
-  $('#institute-scope').textContent = n ? `${n} 个公开研究空间，持续协同` : '';
+  $('#institute-scope').textContent = n ? `${n} REPOS · LIVE STREAM` : '';
+  const clockEl = $('#board-clock');
+  if (clockEl) {
+    clockEl.textContent = isStale()
+      ? 'SIGNAL STANDBY · AWAITING PULSE'
+      : running
+        ? `24·7 LOOP // ${running} CI ACTIVE · ${handoffsCount} RELAYS`
+        : `24·7 LOOP // ${list.length} SECTORS ONLINE`;
+  }
 
   for (const btn of document.querySelectorAll('[data-method-department]')) {
     const id = btn.dataset.methodDepartment;
@@ -799,19 +812,37 @@ function renderRoutes() {
   svg.replaceChildren();
   badges?.replaceChildren();
 
-  // 0. Feathered radial gradients for active department auras
+  // 0. Holographic SVG glow filter + radial reactor auras
   const defs = document.createElementNS(ns, 'defs');
+  const glow = document.createElementNS(ns, 'filter');
+  glow.setAttribute('id', 'holo-glow');
+  glow.setAttribute('x', '-40%');
+  glow.setAttribute('y', '-40%');
+  glow.setAttribute('width', '180%');
+  glow.setAttribute('height', '180%');
+  const blur = document.createElementNS(ns, 'feGaussianBlur');
+  blur.setAttribute('stdDeviation', '3.5');
+  blur.setAttribute('result', 'blur');
+  const merge = document.createElementNS(ns, 'feMerge');
+  const m1 = document.createElementNS(ns, 'feMergeNode');
+  m1.setAttribute('in', 'blur');
+  const m2 = document.createElementNS(ns, 'feMergeNode');
+  m2.setAttribute('in', 'SourceGraphic');
+  merge.append(m1, m2);
+  glow.append(blur, merge);
+  defs.append(glow);
+
   for (const d of departments()) {
     const grad = document.createElementNS(ns, 'radialGradient');
     grad.setAttribute('id', `halo-${d.id}`);
     const s1 = document.createElementNS(ns, 'stop');
     s1.setAttribute('offset', '0%');
     s1.setAttribute('stop-color', deptColors[d.id] || 'var(--accent)');
-    s1.setAttribute('stop-opacity', countRunning(d) ? '0.24' : '0.12');
+    s1.setAttribute('stop-opacity', countRunning(d) ? '0.32' : '0.14');
     const s2 = document.createElementNS(ns, 'stop');
-    s2.setAttribute('offset', '62%');
+    s2.setAttribute('offset', '58%');
     s2.setAttribute('stop-color', deptColors[d.id] || 'var(--accent)');
-    s2.setAttribute('stop-opacity', countRunning(d) ? '0.07' : '0.03');
+    s2.setAttribute('stop-opacity', countRunning(d) ? '0.09' : '0.03');
     const s3 = document.createElementNS(ns, 'stop');
     s3.setAttribute('offset', '100%');
     s3.setAttribute('stop-color', deptColors[d.id] || 'var(--accent)');
@@ -821,7 +852,7 @@ function renderRoutes() {
   }
   svg.append(defs);
 
-  // 1. Subtle architectural honeycomb lattice background
+  // 1. Subtle architectural honeycomb lattice + holographic radar rings behind Tier 2
   const ghostGroup = document.createElementNS(ns, 'g');
   for (const [gx, gy] of bgHexLattice) {
     const poly = document.createElementNS(ns, 'polygon');
@@ -829,7 +860,32 @@ function renderRoutes() {
     poly.setAttribute('class', 'ghost-hex');
     ghostGroup.append(poly);
   }
+  for (const [rad, cls] of [[150, 'radar-ring'], [245, 'radar-ring is-dashed'], [345, 'radar-ring is-outer']]) {
+    const ring = document.createElementNS(ns, 'circle');
+    ring.setAttribute('cx', '500');
+    ring.setAttribute('cy', '364');
+    ring.setAttribute('r', String(rad));
+    ring.setAttribute('class', cls);
+    ghostGroup.append(ring);
+  }
   svg.append(ghostGroup);
+
+  // Helper to draw sci-fi HUD corner reticles on architectural tiers
+  const drawTierCorners = (parent, x, y, w, h, cls = 'arch-corner') => {
+    const len = 14;
+    const paths = [
+      `M ${x} ${y + len} L ${x} ${y} L ${x + len} ${y}`,
+      `M ${x + w - len} ${y} L ${x + w} ${y} L ${x + w} ${y + len}`,
+      `M ${x} ${y + h - len} L ${x} ${y + h} L ${x + len} ${y + h}`,
+      `M ${x + w - len} ${y + h} L ${x + w} ${y + h} L ${x + w} ${y + h - len}`
+    ];
+    for (const d of paths) {
+      const p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('class', cls);
+      parent.append(p);
+    }
+  };
 
   // 2. Three Architectural Company Tiers (Human in the Loop / 24-7 AI Engine Loop / Delivery & Platform)
   const archGroup = document.createElementNS(ns, 'g');
@@ -840,13 +896,15 @@ function renderRoutes() {
   tier1.setAttribute('y', '12');
   tier1.setAttribute('width', '956');
   tier1.setAttribute('height', '182');
-  tier1.setAttribute('rx', '16');
-  tier1.setAttribute('class', 'arch-tier-box');
+  tier1.setAttribute('rx', '12');
+  tier1.setAttribute('class', 'arch-tier-box is-human');
   archGroup.append(
     tier1,
-    svgText(42, 36, 'TIER 01 · HUMAN IN THE LOOP', 'arch-tier-tag'),
-    svgText(42, 54, '提出数学课题 · 战略方向把关', 'arch-tier-sub')
+    svgText(42, 36, 'TIER 01 // HUMAN IN THE LOOP', 'arch-tier-tag is-human'),
+    svgText(958, 36, '问题策源 · 方向把关', 'arch-tier-sub')
   );
+  archGroup.lastChild.setAttribute('text-anchor', 'end');
+  drawTierCorners(archGroup, 22, 12, 956, 182, 'arch-corner is-human');
 
   // Tier 2: Highlighted 24/7 AI Autonomous Loop Bay (y: 210..484)
   const tier2 = document.createElementNS(ns, 'rect');
@@ -854,7 +912,7 @@ function renderRoutes() {
   tier2.setAttribute('y', '210');
   tier2.setAttribute('width', '956');
   tier2.setAttribute('height', '274');
-  tier2.setAttribute('rx', '18');
+  tier2.setAttribute('rx', '14');
   tier2.setAttribute('class', 'arch-loop-bay');
   const loopDot = document.createElementNS(ns, 'circle');
   loopDot.setAttribute('cx', '44');
@@ -864,10 +922,11 @@ function renderRoutes() {
   archGroup.append(
     tier2,
     loopDot,
-    svgText(56, 238, 'TIER 02 · 24/7 AI AUTONOMOUS RESEARCH LOOP', 'arch-loop-tag'),
-    svgText(958, 238, 'AI 全天候自动攻关 ⇄ 评审 → Lean CI 检验迭代', 'arch-tier-sub')
+    svgText(56, 238, 'TIER 02 // 24·7 AI AUTONOMOUS CORE', 'arch-loop-tag'),
+    svgText(958, 238, 'AI 全天候自动攻关 ⇄ 独立复核 ▸ Lean CI 闭环', 'arch-tier-sub')
   );
   archGroup.lastChild.setAttribute('text-anchor', 'end');
+  drawTierCorners(archGroup, 22, 210, 956, 274, 'arch-corner is-loop');
 
   // Continuous 24/7 AI Loop Orbital Return Track well below header and above hexes!
   const loopOrbitD = 'M 795 284 C 710 250, 290 250, 205 284';
@@ -877,15 +936,19 @@ function renderRoutes() {
   archGroup.append(loopOrbit);
 
   if (!state.quiet && !reduced && !isStale()) {
-    const flowDot = document.createElementNS(ns, 'circle');
-    flowDot.setAttribute('r', '3.6');
-    flowDot.setAttribute('class', 'arch-flow-dot');
-    const motion = document.createElementNS(ns, 'animateMotion');
-    motion.setAttribute('dur', '6s');
-    motion.setAttribute('path', loopOrbitD);
-    motion.setAttribute('repeatCount', 'indefinite');
-    flowDot.append(motion);
-    archGroup.append(flowDot);
+    for (const beginOffset of ['0s', '3s']) {
+      const flowDot = document.createElementNS(ns, 'circle');
+      flowDot.setAttribute('r', '3.8');
+      flowDot.setAttribute('class', 'arch-flow-dot');
+      flowDot.setAttribute('filter', 'url(#holo-glow)');
+      const motion = document.createElementNS(ns, 'animateMotion');
+      motion.setAttribute('dur', '6s');
+      motion.setAttribute('begin', beginOffset);
+      motion.setAttribute('path', loopOrbitD);
+      motion.setAttribute('repeatCount', 'indefinite');
+      flowDot.append(motion);
+      archGroup.append(flowDot);
+    }
   }
 
   // Tier 3: Knowledge Delivery & Platform Band (y: 500..726)
@@ -894,14 +957,15 @@ function renderRoutes() {
   tier3.setAttribute('y', '500');
   tier3.setAttribute('width', '956');
   tier3.setAttribute('height', '226');
-  tier3.setAttribute('rx', '16');
+  tier3.setAttribute('rx', '12');
   tier3.setAttribute('class', 'arch-tier-box');
   archGroup.append(
     tier3,
-    svgText(42, 526, 'TIER 03 · 24/7 KNOWLEDGE DELIVERY & PLATFORM', 'arch-tier-tag'),
-    svgText(958, 526, '双语书稿出版 · 论文与知识地图 · 学术交流 · 工程底座', 'arch-tier-sub')
+    svgText(42, 526, 'TIER 03 // KNOWLEDGE DELIVERY & PLATFORM', 'arch-tier-tag'),
+    svgText(958, 526, '书稿出版 · 论文与知识地图 · 学术交流 · 工程底座', 'arch-tier-sub')
   );
   archGroup.lastChild.setAttribute('text-anchor', 'end');
+  drawTierCorners(archGroup, 22, 500, 956, 226, 'arch-corner');
 
   svg.append(archGroup);
 
@@ -978,29 +1042,41 @@ function renderRoutes() {
       'books|verification': [696, 492],
       'books|research': [316, 492],
       'books|studio': [730, 632],
-      'studio|verification': [845, 492]
+      'studio|verification': [845, 492],
+      'research|studio': [500, 492],
+      'publication|research': [295, 492],
+      'publication|verification': [500, 492]
     };
     return slots[pair] || null;
   };
 
+  const orthogonalBusPath = (from, to) => {
+    const p = positions[from];
+    const q = positions[to];
+    if (!p || !q) return null;
+    const [x1, y1] = p;
+    const [x2, y2] = q;
+    // Same horizontal tier -> crisp direct or low-channel orthogonal bus
+    if (Math.abs(y1 - y2) < 10) {
+      if (Math.abs(x1 - x2) > 350 && y1 === 364) {
+        return `M ${x1} ${y1} L ${x1} 446 Q ${x1} 462 ${x1 < x2 ? x1 + 16 : x1 - 16} 462 L ${x1 < x2 ? x2 - 16 : x2 + 16} 462 Q ${x2} 462 ${x2} 446 L ${x2} ${y2}`;
+      }
+      return `M ${x1} ${y1} L ${x2} ${y2}`;
+    }
+    // Cross-tier -> always route cleanly via the architectural horizontal bus (y = 202 or y = 492)
+    const busY = (y1 < 250 || y2 < 250) ? 202 : 492;
+    const dirY1 = busY > y1 ? 1 : -1;
+    const dirY2 = y2 > busY ? 1 : -1;
+    const dirX = x2 >= x1 ? 1 : -1;
+    const r = Math.min(16, Math.abs(x2 - x1) / 2);
+    if (Math.abs(x2 - x1) < 8) return `M ${x1} ${y1} L ${x2} ${y2}`;
+    return `M ${x1} ${y1} L ${x1} ${busY - dirY1 * r} Q ${x1} ${busY} ${x1 + dirX * r} ${busY} L ${x2 - dirX * r} ${busY} Q ${x2} ${busY} ${x2} ${busY + dirY2 * r} L ${x2} ${y2}`;
+  };
+
   for (const [identity, entry] of grouped) {
     const { relation, count, activities: relActs } = entry;
-    // Align cross-department reference arcs with the clean orthogonal bus (no messy diagonals!)
-    let dPath = null;
-    if (identity === 'research|verification') {
-      dPath = 'M 205 364 L 205 446 Q 205 462 225 462 L 775 462 Q 795 462 795 446 L 795 364';
-    } else if (identity === 'books|research') {
-      dPath = 'M 205 364 L 205 478 Q 205 492 221 492 L 599 492 Q 615 492 615 508 L 615 632';
-    } else if (identity === 'books|verification') {
-      dPath = 'M 795 364 L 795 478 Q 795 492 779 492 L 631 492 Q 615 492 615 508 L 615 632';
-    } else if (identity === 'books|studio') {
-      dPath = 'M 845 632 L 615 632';
-    } else if (identity === 'studio|verification') {
-      dPath = 'M 795 364 L 795 478 Q 795 492 811 492 L 829 492 Q 845 492 845 508 L 845 632';
-    } else {
-      const c = curveBetween(relation.from, relation.to, 0);
-      dPath = c?.d || null;
-    }
+    // Route EVERY cross-department reference cleanly on the orthogonal architectural bus (zero diagonals!)
+    const dPath = orthogonalBusPath(relation.from, relation.to);
     if (!dPath) continue;
     const path = document.createElementNS(ns, 'path');
     path.setAttribute('d', dPath);
@@ -1090,19 +1166,20 @@ function renderAgentRoster(d) {
     card.append(head);
 
     const taskList = element('div', '', 'agent-task-list');
-    for (const a of tasks.slice(0, 2)) {
-      const row = a.task ? element('button', '', 'agent-task') : external('', a.url, 'agent-task');
-      if (a.task) row.type = 'button';
-      row.dataset.focusKey = `agent-task:${a.id}`;
+    const latest = tasks[0];
+    if (latest) {
+      const row = latest.task ? element('button', '', 'agent-task') : external('', latest.url, 'agent-task');
+      if (latest.task) row.type = 'button';
+      row.dataset.focusKey = `agent-task:${latest.id}`;
       row.append(
-        element('span', phase(a), 'agent-task-state' + (active(a) ? ' is-running' : '')),
-        element('strong', actorTaskTitle(a, d)),
-        element('small', humanTaskSubtitle(a))
+        element('span', phase(latest), 'agent-task-state' + (active(latest) ? ' is-running' : '')),
+        element('strong', actorTaskTitle(latest, d))
       );
-      if (a.task) row.addEventListener('click', () => selectTopic(a));
+      if (latest.task) row.addEventListener('click', () => selectTopic(latest));
       taskList.append(row);
+    } else {
+      taskList.append(element('p', '待命 · 等待新信号', 'agent-empty'));
     }
-    if (!tasks.length) taskList.append(element('p', '最近的公开活动将在这里出现。', 'agent-empty'));
     card.append(taskList);
     container.append(card);
   }
@@ -1173,11 +1250,11 @@ function renderDepartment() {
       : ['studio', 'verification', 'publication', 'outreach'].includes(d.id)
         ? sourceLabel(a)
         : copyFor(a).title;
-    card.append(meta, element('strong', title), element('p', humanTaskSubtitle(a)));
+    card.append(meta, element('strong', title));
     const bottom = element('div', '', 'work-bottom');
     bottom.append(
       element('span', a.actor?.kind === 'agent' && a.actor.tool ? a.actor.tool : a.actor?.label || execution[d.execution]),
-      element('span', task ? '沿着课题继续看 ↗' : '查看公开动态 ↗', 'work-arrow')
+      element('span', task ? '追踪接力 ↗' : '查看 ↗', 'work-arrow')
     );
     card.append(bottom);
     if (task) card.addEventListener('click', () => selectTopic(a));
@@ -1411,7 +1488,7 @@ function renderDepartmentLens(d) {
   const svg = $('#lens-map-svg');
   if (svg) {
     svg.replaceChildren();
-    // Magnified hexagonal room outline in the center
+    // Magnified hexagonal holographic chamber + tactical radar rings
     const outerHex = document.createElementNS(ns, 'polygon');
     outerHex.setAttribute('points', flatHexPoints(590, 290, 292));
     outerHex.setAttribute('class', 'zoom-hex-wall-outer');
@@ -1420,13 +1497,35 @@ function renderDepartmentLens(d) {
     wallHex.setAttribute('class', 'zoom-hex-wall');
     svg.append(outerHex, wallHex);
 
+    for (const [rad, cls] of [[104, 'zoom-radar-ring is-inner'], [182, 'zoom-radar-ring is-outer']]) {
+      const ring = document.createElementNS(ns, 'circle');
+      ring.setAttribute('cx', '590');
+      ring.setAttribute('cy', '290');
+      ring.setAttribute('r', String(rad));
+      ring.setAttribute('class', cls);
+      svg.append(ring);
+    }
+    const axisH = document.createElementNS(ns, 'line');
+    axisH.setAttribute('x1', '334');
+    axisH.setAttribute('y1', '290');
+    axisH.setAttribute('x2', '846');
+    axisH.setAttribute('y2', '290');
+    axisH.setAttribute('class', 'zoom-axis');
+    const axisV = document.createElementNS(ns, 'line');
+    axisV.setAttribute('x1', '590');
+    axisV.setAttribute('y1', '38');
+    axisV.setAttribute('x2', '590');
+    axisV.setAttribute('y2', '542');
+    axisV.setAttribute('class', 'zoom-axis');
+    svg.append(axisH, axisV);
+
     // Subtle spatial column headers
     svg.append(
-      svgText(76, 24, '上游输入', 'zoom-zone-label'),
-      svgText(310, 24, '公开办公席位', 'zoom-zone-label'),
-      svgText(590, 24, '部门核心枢纽', 'zoom-zone-label'),
-      svgText(872, 24, '当前流转线索', 'zoom-zone-label'),
-      svgText(1122, 24, '下游交棒', 'zoom-zone-label')
+      svgText(76, 24, 'IN // 上游输入', 'zoom-zone-label'),
+      svgText(310, 24, 'SEATS // 公开席位', 'zoom-zone-label'),
+      svgText(590, 24, 'CORE // 部门枢纽', 'zoom-zone-label'),
+      svgText(872, 24, 'ACTIVE // 流转线索', 'zoom-zone-label'),
+      svgText(1122, 24, 'OUT // 下游交棒', 'zoom-zone-label')
     );
 
     const drawBeam = (x1, y1, x2, y2, cls, extra = {}) => {
@@ -1867,13 +1966,12 @@ function renderActivity() {
     timeEl.dateTime = a.at;
     top.append(element('span', d?.label || '研究现场', 'activity-role'), timeEl);
     const update = progress(a);
-    const subtitle = a.kind === 'automation'
-      ? (findLinkedTaskActivity(a.task) ? `${update.title} · ${copyFor(findLinkedTaskActivity(a.task)).title}` : update.title)
-      : humanTaskSubtitle(a);
+    const headline = a.kind === 'automation'
+      ? (findLinkedTaskActivity(a.task) ? `${phase(a)} · ${copyFor(findLinkedTaskActivity(a.task)).title}` : `${phase(a)} · ${update.title}`)
+      : update.title;
     card.append(
       top,
-      element('strong', a.kind === 'automation' ? phase(a) : update.title),
-      element('p', subtitle),
+      element('strong', headline),
       element('span', a.actor?.kind === 'agent' && a.actor.tool ? `${a.actor.tool} · ${a.actor.label}` : a.actor?.label || execution[d?.execution] || '共同推进', 'activity-byline')
     );
     card.addEventListener('click', () => {
@@ -1959,7 +2057,7 @@ function renderLiveFeed() {
     return;
   }
 
-  for (const entry of filtered.slice(0, 12)) {
+  for (const entry of filtered.slice(0, 6)) {
     const d = department(entry.deptId);
     const row = element('article', '', 'feed-entry');
     const head = element('div', '', 'feed-entry-head');
@@ -2040,7 +2138,7 @@ function renderCheckerRuns() {
     return '已结束';
   };
 
-  for (const a of runs.slice(0, 8)) {
+  for (const a of runs.slice(0, 5)) {
     const d = department(a.department);
     const linked = findLinkedTaskActivity(a.task);
     const row = external('', a.url || '#', 'checker-row');
@@ -2077,7 +2175,7 @@ function renderRelayBridges() {
   }
 
   const maxCount = bridges[0].count || 1;
-  for (const b of bridges.slice(0, 6)) {
+  for (const b of bridges.slice(0, 5)) {
     const fromLabel = department(b.from)?.label || b.from;
     const toLabel = department(b.to)?.label || b.to;
     const row = element('button', '', 'bridge-row');
@@ -2117,7 +2215,8 @@ function renderQuestions() {
       selectTopic(a);
       $('#institute').scrollIntoView({ behavior: reduced ? 'instant' : 'smooth' });
     });
-    card.append(top, title, element('p', topic.copy.question));
+    card.append(top, title);
+    if (topic.copy.hasEditorial) card.append(element('p', topic.copy.question));
     const bottom = element('div', '', 'question-card-bottom');
     bottom.append(
       element('span', `${relative(a.at)}有新进展`),
@@ -2356,19 +2455,32 @@ async function refreshLive() {
 }
 
 function applyTheme(theme) {
-  if (theme === 'dark') {
-    document.documentElement.dataset.theme = 'dark';
+  if (theme === 'light') {
+    document.documentElement.dataset.theme = 'light';
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#0E1116');
+    if (meta) meta.setAttribute('content', '#F2F5FA');
     const btn = $('#theme-toggle');
-    if (btn) btn.textContent = '☀';
+    if (btn) btn.textContent = '☾';
   } else {
     delete document.documentElement.dataset.theme;
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#F6F4EE');
+    if (meta) meta.setAttribute('content', '#030712');
     const btn = $('#theme-toggle');
-    if (btn) btn.textContent = '☾';
+    if (btn) btn.textContent = '☀';
   }
+}
+
+// Dock tab switching
+for (const tab of document.querySelectorAll('[data-dock-tab]')) {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.dockTab;
+    for (const sibling of document.querySelectorAll('[data-dock-tab]')) {
+      sibling.setAttribute('aria-selected', String(sibling === tab));
+    }
+    for (const panel of document.querySelectorAll('[data-dock-panel]')) {
+      panel.classList.toggle('is-active', panel.dataset.dockPanel === target);
+    }
+  });
 }
 
 // Event bindings
@@ -2452,7 +2564,7 @@ $('#motion-toggle').addEventListener('click', () => {
 });
 
 $('#theme-toggle')?.addEventListener('click', () => {
-  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
   applyTheme(next);
   try {
     localStorage.setItem(themeKey, next);
@@ -2495,7 +2607,7 @@ if (reduced) {
 
 try {
   const savedTheme = localStorage.getItem(themeKey);
-  if (savedTheme === 'dark') applyTheme('dark');
+  if (savedTheme === 'light') applyTheme('light');
 } catch {}
 
 try {

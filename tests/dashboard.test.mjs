@@ -257,7 +257,7 @@ test('inside-the-institute live telemetry, checker runs, relay bridges, and work
     assert.equal(doc.querySelectorAll('#lens-switcher .lens-switch-pill').length,8);
     assert.match(doc.querySelector('#lens-downstream').textContent,/形式验证/);
     doc.querySelector('#theme-toggle').click();
-    assert.equal(doc.documentElement.dataset.theme,'dark');
+    assert.equal(doc.documentElement.dataset.theme,'light');
     doc.querySelector('#theme-toggle').click();
     assert.equal(doc.documentElement.dataset.theme,undefined);
     doc.querySelector('#lens-back').click();
