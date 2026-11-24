@@ -267,15 +267,31 @@ test('inside-the-institute live telemetry, checker runs, relay bridges, and work
   }finally{dom.window.close();}
 });
 
-test('the war-room log defaults to a scrollable terminal of real events, newest last, and rolls only when chosen',async()=>{
+test('the war-room log opens rolling; 最新 is a scrollable terminal of real events kept across observations',async()=>{
   const {dom,doc,win,responses,tick}=await boot();try{
     const stream=doc.querySelector('#scifi-log-stream');
     const lines=()=>[...stream.querySelectorAll('.scifi-log-line')];
-    assert.equal(doc.querySelector('[data-log-mode="latest"]').getAttribute('aria-pressed'),'true');
-    assert.equal(doc.querySelector('[data-log-mode="cycle"]').getAttribute('aria-pressed'),'false');
+    const pressed=mode=>doc.querySelector(`[data-log-mode="${mode}"]`).getAttribute('aria-pressed');
+    assert.equal(pressed('cycle'),'true');
+    assert.equal(pressed('latest'),'false');
+    assert.ok(!stream.classList.contains('is-terminal'));
+    // An event observed while rolling is still in the terminal's scrollback.
+    const first=structuredClone(responses.live);
+    const early=activity('book-early','books','contribution',{at:new Date(Date.now()+200).toISOString(),task:task(11,bookRepository),url:`https://github.com/${bookRepository}/pull/11`});
+    first.organization.observed_at=new Date(Date.now()+300).toISOString();
+    first.organization.recent=[...first.organization.recent,early];
+    responses.live=first;await tick(15000);
+    const later=structuredClone(responses.live);
+    later.organization.observed_at=new Date(Date.now()+400).toISOString();
+    later.organization.recent=later.organization.recent.filter(a=>a.id!=='book-early');
+    responses.live=later;await tick(15000);
+    doc.querySelector('[data-log-mode="latest"]').click();
+    assert.equal(pressed('latest'),'true');
+    assert.equal(pressed('cycle'),'false');
+    assert.equal(win.localStorage.getItem('trureturing-live.log-mode.v2'),'latest');
     assert.ok(stream.classList.contains('is-terminal'));
+    assert.ok(lines().some(row=>row.dataset.logKey.startsWith('book-early/')));
     const before=lines().length;
-    assert.ok(before>=1);
     const next=structuredClone(responses.live),at=new Date(Date.now()+500);
     const newest=activity('book-new','books','contribution',{label:'A fresh chapter on spectral gaps',at:at.toISOString(),task:task(10,bookRepository),url:`https://github.com/${bookRepository}/pull/10`});
     next.organization.observed_at=new Date(Date.now()+1000).toISOString();
@@ -307,9 +323,8 @@ test('the war-room log defaults to a scrollable terminal of real events, newest 
     responses.live=many;await tick(15000);
     assert.equal(lines().length,before+2+45);
     doc.querySelector('[data-log-mode="cycle"]').click();
-    assert.equal(doc.querySelector('[data-log-mode="cycle"]').getAttribute('aria-pressed'),'true');
-    assert.equal(doc.querySelector('[data-log-mode="latest"]').getAttribute('aria-pressed'),'false');
-    assert.equal(win.localStorage.getItem('trureturing-live.log-mode.v1'),'cycle');
+    assert.equal(pressed('cycle'),'true');
+    assert.equal(win.localStorage.getItem('trureturing-live.log-mode.v2'),'cycle');
     assert.ok(!stream.classList.contains('is-terminal'));
     doc.querySelector('[data-log-mode="latest"]').click();
     assert.equal(lines().length,before+2+45);

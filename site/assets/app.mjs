@@ -3,7 +3,7 @@ const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
 const cacheKey = 'trureturing-live.hive.content.v7';
 const themeKey = 'trureturing-live.theme.v2';
-const logModeKey = 'trureturing-live.log-mode.v1';
+const logModeKey = 'trureturing-live.log-mode.v2';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const state = {
@@ -3340,7 +3340,7 @@ const scifiLog = {
   pktCount: 0,
   hoverPaused: false,
   seeded: false,
-  mode: 'latest',
+  mode: 'cycle',
   history: new Map(),
   painted: false,
   stick: true,
@@ -3525,8 +3525,10 @@ function followLatestLog() {
 
 function renderLatestSciFiLog() {
   const container = $('#scifi-log-stream');
-  if (!container || scifiLog.mode !== 'latest' || !view()) return;
+  if (!container || !view()) return;
+  // The scrollback records every observation, including those seen while rolling.
   const added = collectSciFiLogHistory();
+  if (scifiLog.mode !== 'latest') return;
   if (scifiLog.painted && !added.size) return;
   const firstPaint = !scifiLog.painted;
   const entries = [...scifiLog.history.values()].sort(byLogTime);
@@ -3668,9 +3670,9 @@ for (const btn of document.querySelectorAll('[data-log-mode]')) {
   });
 }
 try {
-  setLogMode(localStorage.getItem(logModeKey) || 'latest');
+  setLogMode(localStorage.getItem(logModeKey) || 'cycle');
 } catch {
-  setLogMode('latest');
+  setLogMode('cycle');
 }
 
 // ============================================================================
