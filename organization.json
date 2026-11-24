@@ -374,12 +374,17 @@
     {
       "from": "publication",
       "to": "outreach",
-      "label": "准备学术通信与合作"
+      "label": "短文与论文进入对外学术合作"
+    },
+    {
+      "from": "outreach",
+      "to": "publication",
+      "label": "学者合作催生联合论文与独立投稿"
     },
     {
       "from": "outreach",
       "to": "verification",
-      "label": "合作与回复产生形式化验证请求"
+      "label": "合作与回复写回形式化验证请求"
     },
     {
       "from": "outreach",
@@ -389,7 +394,12 @@
     {
       "from": "studio",
       "to": "books",
-      "label": "支持出版模板与表达"
+      "label": "支持书稿出版模板与在线书库"
+    },
+    {
+      "from": "studio",
+      "to": "publication",
+      "label": "支持研究可视化与公开展示"
     }
   ],
   "freshness_seconds": 180,
