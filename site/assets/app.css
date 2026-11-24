@@ -1,39 +1,39 @@
 :root {
   color-scheme: dark;
-  --bg: #01040a;
-  --bg-deep: #020914;
-  --surface: rgba(4, 14, 26, 0.62);
-  --surface-solid: #040d19;
-  --surface-soft: rgba(7, 20, 36, 0.56);
-  --surface-elevated: rgba(7, 22, 38, 0.82);
-  --ink: #eef9ff;
-  --ink-2: #b5dbe8;
-  --muted: #6f9ab0;
-  --dim: #466c82;
-  --border: rgba(94, 237, 236, 0.18);
-  --border-strong: rgba(94, 237, 236, 0.45);
-  --border-glow: rgba(94, 237, 236, 0.78);
+  --bg: #020804;
+  --bg-deep: #031008;
+  --surface: rgba(4, 18, 10, 0.72);
+  --surface-solid: #041109;
+  --surface-soft: rgba(6, 26, 14, 0.64);
+  --surface-elevated: rgba(6, 28, 16, 0.88);
+  --ink: #ebfff2;
+  --ink-2: #a5eac1;
+  --muted: #5a9c77;
+  --dim: #2f6146;
+  --border: rgba(0, 240, 120, 0.22);
+  --border-strong: rgba(0, 240, 120, 0.52);
+  --border-glow: rgba(0, 255, 136, 0.85);
 
-  --accent: #5eedec;
-  --accent-soft: rgba(94, 237, 236, 0.15);
-  --gold: #f5b749;
-  --gold-soft: rgba(245, 183, 73, 0.18);
-  --live: #2de3b8;
-  --live-ink: #7dffe0;
-  --live-soft: rgba(45, 227, 184, 0.16);
-  --warn: #f5b749;
-  --warn-soft: rgba(245, 183, 73, 0.16);
+  --accent: #00f078;
+  --accent-soft: rgba(0, 240, 120, 0.14);
+  --gold: #f4c553;
+  --gold-soft: rgba(244, 197, 83, 0.18);
+  --live: #1eff86;
+  --live-ink: #b9ffd8;
+  --live-soft: rgba(30, 255, 134, 0.16);
+  --warn: #f4c553;
+  --warn-soft: rgba(244, 197, 83, 0.16);
   --danger: #fb7185;
   --danger-soft: rgba(251, 113, 133, 0.16);
 
-  --c-direction: #f5b749;
-  --c-research: #2de3b8;
-  --c-review: #a88afa;
-  --c-verification: #5eedec;
-  --c-books: #c78cdb;
-  --c-publication: #4ad8b0;
-  --c-outreach: #f0945a;
-  --c-studio: #88b8d4;
+  --c-direction: #f4c553;
+  --c-research: #1dff82;
+  --c-review: #b894ff;
+  --c-verification: #00ffd0;
+  --c-books: #d996f5;
+  --c-publication: #3df2b4;
+  --c-outreach: #f5a156;
+  --c-studio: #6cd6ff;
 
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
@@ -159,6 +159,22 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   overflow: hidden;
 }
 
+:root:not([data-theme="light"]):not([data-look="blueprint"]) .cinema-stage::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.048;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(0, 255, 136, 0.25) 0px,
+    rgba(0, 255, 136, 0.25) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
 .fui-scan-sweep {
   position: fixed;
   left: 0;
@@ -168,8 +184,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   z-index: 250;
   pointer-events: none;
   opacity: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(94, 237, 236, 0.14) 55%, rgba(94, 237, 236, 0.72) 96%, #ffffff 100%);
-  box-shadow: 0 4px 28px rgba(94, 237, 236, 0.55);
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--accent) 16%, transparent) 55%, color-mix(in srgb, var(--accent) 76%, transparent) 96%, #eafff2 100%);
+  box-shadow: 0 4px 28px color-mix(in srgb, var(--accent) 58%, transparent);
 }
 
 .fui-scan-sweep.is-sweeping {
@@ -197,7 +213,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   justify-content: space-between;
   gap: 14px;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(1, 4, 10, 0.78) 0%, rgba(1, 4, 10, 0.25) 68%, transparent 100%);
+  background: linear-gradient(180deg, rgba(2, 8, 4, 0.84) 0%, rgba(2, 8, 4, 0.28) 68%, transparent 100%);
+}
+
+:root[data-look="blueprint"] .fui-top {
+  background: linear-gradient(180deg, rgba(6, 16, 32, 0.84) 0%, rgba(6, 16, 32, 0.28) 68%, transparent 100%);
 }
 
 :root[data-theme="light"] .fui-top {
@@ -225,7 +245,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--ink);
-  text-shadow: 0 0 18px rgba(94, 237, 236, 0.25);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
 .brand-name em {
@@ -343,7 +363,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   border-radius: 50%;
   flex-shrink: 0;
 }
-.swatch-holo { background: #5eedec; box-shadow: 0 0 6px #5eedec; }
+.swatch-holo { background: #00f078; box-shadow: 0 0 8px #00f078; }
 .swatch-blueprint { background: #3b95e8; }
 .swatch-maquette { background: #f2eee6; border: 1px solid rgba(0,0,0,0.3); }
 
@@ -552,15 +572,15 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   flex-direction: column;
   align-items: flex-start;
   gap: 2.5px;
-  max-width: 196px;
-  padding: 5px 9px 5.5px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--surface-solid) 80%, transparent);
+  max-width: 184px;
+  padding: 4.5px 8.5px 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--surface-solid) 84%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--cell-color) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cell-color) 42%, transparent);
   border-top: 2px solid var(--cell-color);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.46), 0 0 14px color-mix(in srgb, var(--cell-color) 18%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.50), 0 0 14px color-mix(in srgb, var(--cell-color) 18%, transparent);
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -630,7 +650,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: 178px;
+  max-width: 166px;
   overflow: hidden;
 }
 .cell-mission-dot {
@@ -648,7 +668,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 164px;
+  max-width: 154px;
   transition: color 0.18s ease, opacity 0.22s ease;
 }
 .hive-cell.is-running .cell-status { color: var(--ink); }
@@ -678,20 +698,20 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
    ============================================================================ */
 .scifi-log-wall {
   position: fixed;
-  top: 66px;
-  left: 16px;
-  bottom: 70px;
-  width: 274px;
+  top: 64px;
+  left: 14px;
+  bottom: 68px;
+  width: 252px;
   z-index: 38;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: 5px;
   border: 1px solid var(--border);
-  border-right: 2px solid color-mix(in srgb, var(--accent) 48%, transparent);
-  background: color-mix(in srgb, var(--surface-solid) 58%, transparent);
+  border-right: 2px solid color-mix(in srgb, var(--accent) 52%, transparent);
+  background: color-mix(in srgb, var(--surface-solid) 66%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.40);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.44);
   overflow: hidden;
   animation: hud-flash-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
   transition: opacity 0.25s ease;
@@ -853,20 +873,20 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
    ============================================================================ */
 .department-panel {
   position: fixed;
-  top: 66px;
-  right: 16px;
-  bottom: 70px;
-  width: 294px;
+  top: 64px;
+  right: 14px;
+  bottom: 68px;
+  width: 266px;
   z-index: 40;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: 5px;
   border: 1px solid var(--border);
   border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   background: var(--surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.44);
   overflow: hidden;
   animation: hud-flash-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 240ms both;
   transition: opacity 0.25s ease;
@@ -1223,7 +1243,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .zoom-beam { fill: none; stroke: rgba(119, 186, 213, 0.36); stroke-width: 1.6; transition: all 0.18s ease; }
 .zoom-beam.is-live { stroke: var(--live); stroke-width: 2.2; filter: drop-shadow(0 0 6px var(--live)); }
 .zoom-beam.is-topic { stroke: color-mix(in srgb, var(--lens-color) 58%, transparent); stroke-width: 1.8; }
-.zoom-beam.is-portal { stroke: rgba(94, 237, 236, 0.30); stroke-dasharray: 4 5; }
+.zoom-beam.is-portal { stroke: color-mix(in srgb, var(--accent) 34%, transparent); stroke-dasharray: 4 5; }
 .zoom-beam.is-highlighted { stroke: var(--lens-color); stroke-width: 3; opacity: 1; filter: drop-shadow(0 0 8px var(--lens-color)); }
 .zoom-beam.is-dimmed { opacity: 0.15; }
 .zoom-pulse-dot { fill: var(--live); filter: drop-shadow(0 0 6px var(--live)); }

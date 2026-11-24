@@ -64,22 +64,22 @@ const deptRoles = {
   direction: '监管之眼',
   research: '定理攻关',
   review: '对抗复核',
-  verification: '真理枢纽',
+  verification: 'Lean 桥梁',
   books: '双语书稿',
   publication: '论文图谱',
   outreach: '学者合作',
-  studio: '工具视觉'
+  studio: '工程表达'
 };
 
 const hubMeta = {
-  direction: { tag: 'HUMAN IN THE LOOP', title: '方向策源' },
-  research: { tag: 'THEORY ENGINE', title: '课题攻坚台' },
-  review: { tag: 'CROSS CHECK', title: '独立复核台' },
-  verification: { tag: 'CORE HUB · LEAN CI', title: '形式验证枢纽' },
-  books: { tag: 'LIVING BOOKS', title: '双语书稿台' },
-  publication: { tag: 'MATHESIS & ATLAS', title: '论文知识台' },
-  outreach: { tag: 'COLLAB & REPLIES', title: '学术合作台' },
-  studio: { tag: 'INFRA & VISUALS', title: '工具工坊' }
+  direction: { tag: 'THE ARCHITECT · HUMAN', title: '方向策源' },
+  research: { tag: 'SECTOR 01 · THEORY', title: '课题攻坚台' },
+  review: { tag: 'SECTOR 01 · AUDIT', title: '独立复核台' },
+  verification: { tag: 'LEAN FORMAL BRIDGE', title: '形式验证桥梁' },
+  books: { tag: 'SECTOR 02 · CODEX', title: '双语书稿台' },
+  publication: { tag: 'SECTOR 02 · MATHESIS', title: '论文知识台' },
+  outreach: { tag: 'SECTOR 03 · COLLAB', title: '学术合作台' },
+  studio: { tag: 'SECTOR 04 · FOUNDRY', title: '工程与表达台' }
 };
 
 const deptColors = {
@@ -2723,31 +2723,30 @@ async function refreshLive() {
 }
 
 // ============================================================================
-// REAL-TIME 60FPS 3D BIOMIMETIC HOLOGRAPHIC STRATEGIC WAR TABLE (#holo-3d)
-// Independent supervisory Akasha Eye poised above deep space overseeing &
-// guiding a self-contained 24/7 AI closed-loop circular workflow below
-// centered on the Formal Verification DNA Lighthouse.
+// REAL-TIME 60FPS 3D MATRIX ARCHITECTURAL CAMPUS (#holo-3d)
+// Independent supervisory Akasha Eye (The Architect) poised above 4 spacious
+// sovereign department sectors connected through the central Lean Formal Bridge!
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 2.55, z: -3.15, r: 0.72, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [245, 183, 73]  },
-  verification: { x:  0.0,  y: 0.16, z:  0.35, r: 0.88, baseH: 1.52, apex: false, eye: false, order: 1, hex: [94, 237, 236]  },
-  research:     { x: -3.95, y: 0.0,  z: -1.85, r: 0.72, baseH: 1.34, apex: false, eye: false, order: 2, hex: [45, 227, 184]  },
-  review:       { x: -4.85, y: 0.0,  z:  1.25, r: 0.70, baseH: 1.28, apex: false, eye: false, order: 3, hex: [168, 138, 250] },
-  books:        { x:  3.95, y: 0.0,  z: -1.85, r: 0.72, baseH: 1.24, apex: false, eye: false, order: 4, hex: [199, 140, 219] },
-  studio:       { x:  4.85, y: 0.0,  z:  1.25, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [136, 184, 212] },
-  outreach:     { x: -2.75, y: 0.0,  z:  3.50, r: 0.66, baseH: 1.18, apex: false, eye: false, order: 6, hex: [240, 148, 90]  },
-  publication:  { x:  2.75, y: 0.0,  z:  3.50, r: 0.66, baseH: 1.26, apex: false, eye: false, order: 7, hex: [74, 216, 176]  }
+  direction:    { x:  0.0,  y: 3.65, z: -3.75, r: 0.72, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [244, 197, 83]  },
+  verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [0, 255, 208]   },
+  research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [29, 255, 130]  },
+  review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [184, 148, 255] },
+  books:        { x:  5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.22, apex: false, eye: false, order: 4, hex: [217, 150, 245] },
+  publication:  { x:  6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [61, 242, 180]  },
+  outreach:     { x: -3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 6, hex: [245, 161, 86]  },
+  studio:       { x:  3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [108, 214, 255] }
 };
 
 const holoCam = {
-  yaw: -0.26,
-  pitch: 0.70,
-  dist: 20.4,
+  yaw: -0.22,
+  pitch: 0.68,
+  dist: 22.0,
   targetYaw: 0.0,
-  targetPitch: 0.52,
-  targetDist: 16.6,
-  gazeX: -3.95,
-  gazeZ: -1.85,
+  targetPitch: 0.55,
+  targetDist: 18.8,
+  gazeX: -5.30,
+  gazeZ: -2.95,
   dragging: false,
   dragMoved: false,
   lastX: 0,
@@ -2757,6 +2756,7 @@ const holoCam = {
   raf: 0,
   stars: [],
   sparks: [],
+  matrixCols: [],
   pulses: [],
   flares: [],
   projectedTowers: new Map()
@@ -2803,12 +2803,25 @@ function initHoloParticles() {
   }
   for (let i = 0; i < 55; i++) {
     holoCam.sparks.push({
-      x: (rand() - 0.5) * 11.5,
+      x: (rand() - 0.5) * 14.5,
       y: rand() * 4.2,
-      z: (rand() - 0.5) * 8.5,
+      z: (rand() - 0.5) * 10.5,
       vy: 0.25 + rand() * 0.45,
       r: 0.9 + rand() * 1.1,
       hue: i % 3
+    });
+  }
+  // Matrix mathematical & formal-proof vertical code rain columns (far atmospheric layer)
+  const colCount = 46;
+  for (let i = 0; i < colCount; i++) {
+    holoCam.matrixCols.push({
+      u: (i + 0.35 + (rand() - 0.5) * 0.4) / colCount,
+      speed: 2.2 + rand() * 3.8,
+      phase: rand() * 40,
+      len: 8 + Math.floor(rand() * 10),
+      size: rand() > 0.72 ? 12 : 10,
+      seed: Math.floor(rand() * 997),
+      depth: 0.45 + rand() * 0.55
     });
   }
 }
@@ -2868,16 +2881,16 @@ function buildSciFiLogPool() {
   const depts = departments();
   const totalHandoffs = (view()?.handoffs || []).length;
 
-  // 1. High-density live missions across ALL 8 departments (interleaved so every dept shines!)
+  // 1. High-density live missions across ALL 8 departments (true multi-department routing!)
   const deptMeta = {
-    research:     { tag: 'PROOF',  tone: 'live',   target: 'verification' },
-    verification: { tag: 'VERIFY', tone: 'cyan',   target: 'books' },
-    books:        { tag: 'CODEX',  tone: 'violet', target: 'verification' },
-    publication:  { tag: 'PAPER',  tone: 'live',   target: 'verification' },
-    outreach:     { tag: 'COLLAB', tone: 'gold',   target: 'verification' },
-    studio:       { tag: 'FORGE',  tone: 'cyan',   target: 'books' },
+    research:     { tag: 'PROOF',  tone: 'live',   target: 'review' },
     review:       { tag: 'AUDIT',  tone: 'violet', target: 'verification' },
-    direction:    { tag: 'HUMAN',  tone: 'gold',   target: 'research' }
+    verification: { tag: 'BRIDGE', tone: 'cyan',   target: 'books' },
+    books:        { tag: 'CODEX',  tone: 'violet', target: 'publication' },
+    publication:  { tag: 'PAPER',  tone: 'live',   target: 'verification' },
+    outreach:     { tag: 'COLLAB', tone: 'gold',   target: 'research' },
+    studio:       { tag: 'FORGE',  tone: 'cyan',   target: 'publication' },
+    direction:    { tag: 'ARCH',   tone: 'gold',   target: 'research' }
   };
 
   const perDept = depts.map(d => ({ d, missions: departmentMissions(d) }));
@@ -2985,13 +2998,22 @@ function stepSciFiLog(dt) {
   scifiLog.missionAcc += dt;
   if (scifiLog.missionAcc >= 4.2) {
     scifiLog.missionAcc = 0;
+    const archFlowTarget = {
+      research: 'review',
+      review: 'verification',
+      verification: 'books',
+      books: 'publication',
+      publication: 'studio',
+      studio: 'outreach',
+      outreach: 'research'
+    };
     for (const [deptId, cell] of state.cells) {
       if (!cell.missions || cell.missions.length <= 1) continue;
       cell.missionIdx = ((cell.missionIdx || 0) + 1) % cell.missions.length;
       cell.status.textContent = cell.missions[cell.missionIdx];
       cell.button.classList.add('is-mission-shift');
       setTimeout(() => cell.button.classList.remove('is-mission-shift'), 420);
-      if (deptId !== 'verification') spawnSpokeFlare(deptId, 'verification');
+      if (archFlowTarget[deptId]) spawnSpokeFlare(deptId, archFlowTarget[deptId]);
     }
   }
 
@@ -3069,7 +3091,7 @@ function drawHolo3DFrame(dt = 0.016) {
   const isBlueprint = document.documentElement.dataset.look === 'blueprint';
   const isHolo = !isLight && !isBlueprint;
 
-  // 1. Background Atmosphere
+  // 1. Background Atmosphere (The Matrix Construct / Blueprint / Architectural Maquette)
   const bg = ctx.createRadialGradient(w * 0.5, h * 0.36, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
   if (isLight) {
     bg.addColorStop(0, '#f7f4ec');
@@ -3080,32 +3102,66 @@ function drawHolo3DFrame(dt = 0.016) {
     bg.addColorStop(0.55, '#0a182d');
     bg.addColorStop(1, '#061020');
   } else {
-    bg.addColorStop(0, '#07192b');
-    bg.addColorStop(0.45, '#020a14');
-    bg.addColorStop(1, '#010308');
+    bg.addColorStop(0, '#072213');
+    bg.addColorStop(0.42, '#020d06');
+    bg.addColorStop(1, '#010402');
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
+  initHoloParticles();
+
+  // Far-Background Matrix Mathematical & Lean Proof Code Rain (subtle, atmospheric, razor-sharp!)
   if (isHolo) {
-    const aura = ctx.createRadialGradient(w * 0.5, h * 0.16, 10, w * 0.5, h * 0.30, w * 0.48);
-    aura.addColorStop(0, 'rgba(94, 237, 236, 0.095)');
-    aura.addColorStop(0.38, 'rgba(184, 140, 232, 0.06)');
+    const aura = ctx.createRadialGradient(w * 0.5, h * 0.16, 10, w * 0.5, h * 0.32, w * 0.46);
+    aura.addColorStop(0, 'rgba(0, 255, 136, 0.085)');
+    aura.addColorStop(0.45, 'rgba(244, 197, 83, 0.032)');
     aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, w, h);
+
+    const matrixGlyphs = ['∀', '∃', '⊢', '∎', 'λ', 'Σ', 'π', '∫', '∈', '⊂', '≤', '≥', '⊕', '⊗', '∞', '∅', '0', '1', 'L', 'e', 'a', 'n', 'Q', 'E', 'D', '→', '↔', '≡', '¬', '∧'];
+    const tRain = (state.quiet || reduced) ? 3.5 : t;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const col of holoCam.matrixCols) {
+      const px = col.u * w;
+      // Gently attenuate in dead center so the 3D campus pops with crisp Matrix atmosphere on the flanks
+      const centerDist = Math.abs(col.u - 0.5) * 2;
+      const zoneFade = 0.44 + centerDist * 0.62;
+      const stepY = col.size + 4;
+      const rows = Math.ceil(h / stepY) + col.len + 6;
+      const headRow = Math.floor((tRain * col.speed + col.phase) % rows);
+      ctx.font = `600 ${col.size}px "Geist Mono", ui-monospace, Menlo, monospace`;
+      for (let k = 0; k < col.len; k++) {
+        const r = headRow - k;
+        const py = r * stepY;
+        if (py < -stepY || py > h) continue;
+        const gIdx = Math.abs((col.seed + r * 7 + Math.floor(tRain * 1.4) * (k === 0 ? 3 : 0)) % matrixGlyphs.length);
+        const ch = matrixGlyphs[gIdx];
+        if (k === 0) {
+          ctx.fillStyle = `rgba(218, 255, 232, ${(0.48 * col.depth * zoneFade).toFixed(3)})`;
+        } else {
+          const decay = Math.pow(1 - k / col.len, 1.38);
+          ctx.fillStyle = `rgba(0, 238, 122, ${(0.28 * decay * col.depth * zoneFade).toFixed(3)})`;
+        }
+        ctx.fillText(ch, px, py);
+      }
+    }
+    ctx.restore();
   }
 
-  // Symmetrical Hero Framing right between Left Intel Wall & Right Tactical HUD!
+  // Symmetrical Hero Framing across the expanded center Matrix campus!
   const cx = w * 0.5;
-  const cy = state.focused ? h * 0.52 : h * 0.56;
-  const fov = Math.min(w, h) * (w > 1360 ? 1.14 : w > 980 ? 1.02 : 0.96);
+  const cy = state.focused ? h * 0.52 : h * 0.535;
+  const fov = Math.min(w, h) * (w > 1360 ? 1.08 : w > 980 ? 0.98 : 0.92);
   const cosY = Math.cos(holoCam.yaw);
   const sinY = Math.sin(holoCam.yaw);
   const cosP = Math.cos(holoCam.pitch);
   const sinP = Math.sin(holoCam.pitch);
-  const lookY = 0.80;
-  const lookZ = 0.30;
+  const lookY = 0.55;
+  const lookZ = 0.45;
 
   const project = (wx, wy, wz) => {
     const x0 = wx;
@@ -3148,15 +3204,14 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.stroke();
   };
 
-  // 2. Parallax Starfield + Rising Holographic Dust Embers
-  initHoloParticles();
+  // 2. Parallax Starfield / Matrix Sparks
   if (!isLight) {
     for (const st of holoCam.stars) {
       const p = project(st.x, st.y, st.z);
       if (!p || p.x < -10 || p.x > w + 10 || p.y < -10 || p.y > h + 10) continue;
       ctx.fillStyle = isBlueprint
         ? `rgba(150,215,255,${(st.a * 0.55).toFixed(2)})`
-        : st.cyan ? `rgba(94,237,236,${st.a.toFixed(2)})` : `rgba(220,242,255,${st.a.toFixed(2)})`;
+        : st.cyan ? `rgba(0,255,148,${(st.a * 0.65).toFixed(2)})` : `rgba(190,255,220,${(st.a * 0.45).toFixed(2)})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, st.r, 0, Math.PI * 2); ctx.fill();
     }
     ctx.save();
@@ -3169,8 +3224,10 @@ function drawHolo3DFrame(dt = 0.016) {
       const p = project(sp.x, sp.y, sp.z);
       if (!p) continue;
       const fade = Math.sin((sp.y / 4.4) * Math.PI);
-      const col = sp.hue === 0 ? [94, 237, 236] : sp.hue === 1 ? [45, 227, 184] : [245, 183, 73];
-      ctx.fillStyle = rgba(col, fade * 0.55);
+      const col = isBlueprint
+        ? [150, 215, 255]
+        : (sp.hue === 0 ? [0, 255, 160] : sp.hue === 1 ? [29, 255, 130] : [244, 197, 83]);
+      ctx.fillStyle = rgba(col, fade * 0.52);
       ctx.beginPath(); ctx.arc(p.x, p.y, sp.r, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -3213,15 +3270,15 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // ==========================================================================
-  // 4. SELF-CONTAINED 24/7 AI CLOSED-LOOP CIRCULAR DISC + INDEPENDENT AKASHA EYE
-  // Below: an unbroken circular closed-loop workflow centered on Formal Verification.
-  // Above (independent): the Eye of Akasha overseeing, constraining & guiding agents!
+  // 4. MATRIX ARCHITECTURAL CAMPUS: 4 SOVEREIGN SECTORS + CENTRAL LEAN BRIDGE
+  //    + INDEPENDENT AKASHA EYE (THE ARCHITECT) ABOVE
+  // Spacious institutional wing architecture — Lean is the glowing central
+  // structural bridge connecting independent wings, NOT swallowing them!
   // ==========================================================================
-  const tier1RGB = [245, 183, 73];
-  const hubRGB = isBlueprint ? [150, 215, 255] : [94, 237, 236];
-  const arenaRGB = isBlueprint ? [125, 185, 245] : [65, 175, 205];
-  const hubX = 0.0, hubY = 0.16, hubZ = 0.35;
-  const rxOut = 5.15, rzOut = 3.72;
+  const tier1RGB = [244, 197, 83];
+  const hubRGB = isBlueprint ? [150, 215, 255] : [0, 255, 208];
+  const matrixRGB = isBlueprint ? [125, 185, 245] : [0, 235, 120];
+  const hubX = 0.0, hubY = 0.22, hubZ = -0.45;
   const eyeCfg = holoWorld.direction;
   const activeId = state.hovered || state.selected;
 
@@ -3230,18 +3287,39 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.gazeX += (gazeTarget.x - holoCam.gazeX) * 0.09;
   holoCam.gazeZ += (gazeTarget.z - holoCam.gazeZ) * 0.09;
 
-  // Symmetric Bidirectional Oversight & Telemetry Field between the ENTIRE Closed-Loop Disc & Akasha Eye!
-  // No lopsided single beam — the whole workflow below streams upward into the Eye, and the Eye oversees the whole ring!
+  // 4A. Crisp Receding 3D Matrix Construct Floor Grid
+  ctx.save();
+  for (let gx = -9; gx <= 9; gx += 1.5) {
+    const edgeFade = 1 - Math.abs(gx) / 11;
+    draw3DSeg(
+      project(gx, -0.04, -5.0),
+      project(gx, -0.04, 6.8),
+      rgba(matrixRGB, (isLight ? 0.07 : isBlueprint ? 0.11 : 0.095) * edgeFade),
+      0.8
+    );
+  }
+  for (let gz = -4.5; gz <= 6.5; gz += 1.5) {
+    const zFade = 1 - Math.abs(gz - 0.8) / 7.2;
+    draw3DSeg(
+      project(-9.2, -0.04, gz),
+      project(9.2, -0.04, gz),
+      rgba(matrixRGB, (isLight ? 0.07 : isBlueprint ? 0.11 : 0.095) * Math.max(0.25, zFade)),
+      0.8
+    );
+  }
+  ctx.restore();
+
+  // 4B. Symmetric Bidirectional Oversight & Telemetry Field between ENTIRE 4-Sector Campus & Akasha Eye!
   const eyeOrigin = project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
-  const rimL = project(hubX - rxOut * 0.94, 0.05, hubZ - rzOut * 0.14);
-  const rimR = project(hubX + rxOut * 0.94, 0.05, hubZ - rzOut * 0.14);
+  const rimL = project(-6.85, 0.05, -0.35);
+  const rimR = project( 6.85, 0.05, -0.35);
   const eyeBoost = activeId === 'direction' ? 1.55 : 1.0;
   if (eyeOrigin && rimL && rimR) {
     ctx.save();
     if (!isLight) ctx.globalCompositeOperation = 'lighter';
     const veil = ctx.createLinearGradient(eyeOrigin.x, eyeOrigin.y, eyeOrigin.x, Math.max(rimL.y, rimR.y));
-    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.12 : 0.15) * eyeBoost));
-    veil.addColorStop(0.52, rgba(tier1RGB, (isLight ? 0.04 : 0.042) * eyeBoost));
+    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.11 : 0.14) * eyeBoost));
+    veil.addColorStop(0.50, rgba(tier1RGB, (isLight ? 0.032 : 0.036) * eyeBoost));
     veil.addColorStop(1, rgba(tier1RGB, 0));
     ctx.fillStyle = veil;
     ctx.beginPath();
@@ -3251,12 +3329,12 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.closePath();
     ctx.fill();
 
-    // Symmetric boundary field lines + 2 balanced inner observation filaments embracing the whole closed-loop ring
+    // Four symmetric oversight sightlines embracing both sovereign wings + bridge
     const fieldAnchors = [
-      [hubX - rxOut * 0.94, 0.05, hubZ - rzOut * 0.14, 0.17],
-      [hubX - rxOut * 0.42, 0.05, hubZ - rzOut * 0.72, 0.11],
-      [hubX + rxOut * 0.42, 0.05, hubZ - rzOut * 0.72, 0.11],
-      [hubX + rxOut * 0.94, 0.05, hubZ - rzOut * 0.14, 0.17]
+      [-6.85, 0.05, -0.35, 0.16],
+      [-3.10, 0.05, -2.80, 0.10],
+      [ 3.10, 0.05, -2.80, 0.10],
+      [ 6.85, 0.05, -0.35, 0.16]
     ];
     ctx.lineWidth = 0.95;
     ctx.setLineDash([4, 7]);
@@ -3268,11 +3346,10 @@ function drawHolo3DFrame(dt = 0.016) {
     }
     ctx.setLineDash([]);
 
-    // Continuous upward observation/feedback streams rising symmetrically from ALL 7 sectors of the closed loop into the Eye!
+    // Continuous upward observation/feedback streams rising symmetrically from ALL 7 departments into the Eye!
     if (!state.quiet && !reduced) {
       const streamDepts = ['research', 'review', 'outreach', 'verification', 'publication', 'studio', 'books'];
       const sampleUp = (src, u) => {
-        // Gentle quadratic arc bowing slightly outward then converging cleanly into the Akasha Eye
         const ease = 1 - Math.pow(1 - u, 1.35);
         const mx = src.x * (1 - ease) + eyeCfg.x * ease;
         const mz = src.z * (1 - ease) + eyeCfg.z * ease;
@@ -3284,77 +3361,135 @@ function drawHolo3DFrame(dt = 0.016) {
         if (!src) continue;
         const col = isBlueprint ? [150, 215, 255] : src.hex;
         for (let wave = 0; wave < 2; wave++) {
-          const u = (t * 0.24 + i / streamDepts.length + wave * 0.5) % 1;
-          const uTail = Math.max(0, u - 0.12);
+          const u = (t * 0.23 + i / streamDepts.length + wave * 0.5) % 1;
+          const uTail = Math.max(0, u - 0.11);
           const ptHead = sampleUp(src, u);
           const ptTail = sampleUp(src, uTail);
           if (!ptHead || !ptTail) continue;
           const fade = Math.sin(u * Math.PI) * Math.min(1.25, eyeBoost);
-          // Delicate upward luminous comet streak (department tint -> golden Akasha reception)
           const stGrad = ctx.createLinearGradient(ptTail.x, ptTail.y, ptHead.x, ptHead.y);
           stGrad.addColorStop(0, rgba(col, 0));
-          stGrad.addColorStop(0.55, rgba(col, fade * (isLight ? 0.42 : 0.48)));
-          stGrad.addColorStop(1, rgba(isLight ? tier1RGB : [255, 245, 210], fade * (isLight ? 0.72 : 0.85)));
+          stGrad.addColorStop(0.55, rgba(col, fade * (isLight ? 0.40 : 0.48)));
+          stGrad.addColorStop(1, rgba(isLight ? tier1RGB : [255, 245, 210], fade * (isLight ? 0.70 : 0.85)));
           ctx.strokeStyle = stGrad;
-          ctx.lineWidth = isLight ? 1.5 : 1.4;
+          ctx.lineWidth = isLight ? 1.45 : 1.35;
           ctx.beginPath(); ctx.moveTo(ptTail.x, ptTail.y); ctx.lineTo(ptHead.x, ptHead.y); ctx.stroke();
-          ctx.fillStyle = rgba(isLight ? tier1RGB : [255, 248, 224], fade * 0.90);
-          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 1.8, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = rgba(col, fade * 0.36);
-          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 4.0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = rgba(isLight ? tier1RGB : [255, 248, 224], fade * 0.88);
+          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 1.7, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = rgba(col, fade * 0.34);
+          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 3.8, 0, Math.PI * 2); ctx.fill();
         }
       }
-      // Subtle downward golden supervisory pulse wave descending symmetrically from the Eye over the whole loop
-      const dw = (t * 0.28) % 1;
-      const wy = eyeCfg.y - 0.28 - dw * (eyeCfg.y - 0.40);
+      // Subtle downward golden supervisory pulse wave descending symmetrically over the entire campus
+      const dw = (t * 0.26) % 1;
+      const wy = eyeCfg.y - 0.30 - dw * (eyeCfg.y - 0.36);
       const wz = eyeCfg.z + dw * (hubZ - eyeCfg.z);
-      const wrx = 0.55 + dw * (rxOut * 0.74);
-      const wrz = 0.28 + dw * (rzOut * 0.56);
-      draw3DRing(0, wy, wz, wrx, wrz, 48, rgba(tier1RGB, Math.sin(dw * Math.PI) * (isLight ? 0.28 : 0.25) * eyeBoost), 1.1, [5, 7]);
+      const wrx = 0.65 + dw * 5.85;
+      const wrz = 0.30 + dw * 3.10;
+      draw3DRing(0, wy, wz, wrx, wrz, 48, rgba(tier1RGB, Math.sin(dw * Math.PI) * (isLight ? 0.26 : 0.24) * eyeBoost), 1.1, [5, 7]);
     }
     ctx.restore();
   }
 
-  // Translucent sculpted circular 24/7 closed-loop disc fill + crisp unbroken glowing rim
-  ctx.beginPath();
-  for (let i = 0; i <= 72; i++) {
-    const a = (i / 72) * Math.PI * 2;
-    const p = project(hubX + Math.cos(a) * rxOut, 0.0, hubZ + Math.sin(a) * rzOut);
-    if (!p) continue;
-    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-  }
-  ctx.closePath();
-  ctx.fillStyle = isLight ? 'rgba(248, 245, 238, 0.68)' : rgba(arenaRGB, 0.052);
-  ctx.fill();
-  ctx.strokeStyle = rgba(hubRGB, isLight ? 0.44 : 0.42);
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
+  // 4C. FOUR SOVEREIGN ARCHITECTURAL WING TERRACES (Clear Departmental Architecture!)
+  const drawSectorTerrace = (sx, sz, hx, hz, rgb, isHot = false) => {
+    const ch = 0.38; // architectural chamfered corners
+    const poly = [
+      [sx - hx + ch, sz - hz], [sx + hx - ch, sz - hz],
+      [sx + hx, sz - hz + ch], [sx + hx, sz + hz - ch],
+      [sx + hx - ch, sz + hz], [sx - hx + ch, sz + hz],
+      [sx - hx, sz + hz - ch], [sx - hx, sz - hz + ch]
+    ];
+    const pts = poly.map(([px, pz]) => project(px, 0.0, pz));
+    if (pts.some(p => !p)) return;
+    ctx.save();
+    ctx.beginPath();
+    pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.fillStyle = isLight ? 'rgba(249, 247, 240, 0.78)' : rgba(rgb, isHot ? 0.095 : 0.048);
+    ctx.fill();
+    ctx.strokeStyle = rgba(rgb, isLight ? (isHot ? 0.65 : 0.38) : (isHot ? 0.78 : 0.36));
+    ctx.lineWidth = isHot ? 1.8 : 1.25;
+    ctx.stroke();
 
-  // Continuous closed-loop outer flow ring + whisper-thin inner guide ring
-  draw3DRing(hubX, 0.015, hubZ, rxOut + 0.22, rzOut + 0.18, 72, rgba(arenaRGB, isLight ? 0.20 : 0.18), 1.1, [14, 9], t * 0.08);
-  draw3DRing(hubX, 0.01, hubZ, 2.95, 2.15, 64, rgba(hubRGB, isLight ? 0.14 : 0.12), 1.0, [4, 7]);
+    // Crisp illuminated architectural corner brackets on all 4 corners
+    const bLen = 0.55;
+    const corners = [
+      [[sx - hx, sz - hz + bLen], [sx - hx, sz - hz + ch], [sx - hx + ch, sz - hz], [sx - hx + bLen, sz - hz]],
+      [[sx + hx - bLen, sz - hz], [sx + hx - ch, sz - hz], [sx + hx, sz - hz + ch], [sx + hx, sz - hz + bLen]],
+      [[sx + hx, sz + hz - bLen], [sx + hx, sz + hz - ch], [sx + hx - ch, sz + hz], [sx + hx - bLen, sz + hz]],
+      [[sx - hx + bLen, sz + hz], [sx - hx + ch, sz + hz], [sx - hx, sz + hz - ch], [sx - hx, sz + hz - bLen]]
+    ];
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.80 : 0.92);
+    ctx.lineWidth = 2.0;
+    for (const br of corners) {
+      const bp = br.map(([bx, bz]) => project(bx, 0.025, bz));
+      if (bp.some(p => !p)) continue;
+      ctx.beginPath();
+      bp.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
 
-  // Crisp compass ticks etched cleanly around the closed-loop perimeter
-  for (let k = 0; k < 24; k++) {
-    const a = (k / 24) * Math.PI * 2;
-    const isCard = k % 6 === 0;
-    const k0 = isCard ? 0.94 : 0.975;
-    draw3DSeg(
-      project(hubX + Math.cos(a) * rxOut * k0, 0.015, hubZ + Math.sin(a) * rzOut * k0),
-      project(hubX + Math.cos(a) * rxOut, 0.015, hubZ + Math.sin(a) * rzOut),
-      rgba(hubRGB, isCard ? (isLight ? 0.44 : 0.55) : (isLight ? 0.16 : 0.20)),
-      isCard ? 1.6 : 0.9
-    );
-  }
+  const sec1Hot = activeId === 'research' || activeId === 'review';
+  const sec2Hot = activeId === 'books' || activeId === 'publication';
+  const sec3Hot = activeId === 'outreach';
+  const sec4Hot = activeId === 'studio';
+  const bridgeHot = activeId === 'verification';
 
-  // Sculpted elevated 3D octagonal CENTRAL VERIFICATION HUB DAIS!
-  const drawHubDais = (hx, hy, hz, rad, rgb) => {
+  // Left Wing: Sector 01 — Theory & Adversarial Audit (数学攻坚 + 独立评审)
+  drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [29, 255, 130], sec1Hot);
+  // Right Wing: Sector 02 — Codex & Knowledge Graph (理论书写 + 论文与知识)
+  drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [188, 152, 245], sec2Hot);
+  // Front-Left: Sector 03 — Independent Academic Outreach (学术交流)
+  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [245, 161, 86], sec3Hot);
+  // Front-Right: Sector 04 — Independent Tooling & Expression Foundry (工具与表达)
+  drawSectorTerrace( 3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [108, 214, 255], sec4Hot);
+
+  // 4D. SUSPENDED STRUCTURAL LEAN BRIDGE DECK + TWIN HORIZONTAL BRIDGE TRUSS SPANS!
+  // Visually establishes Formal Verification as the structural BRIDGE joining the wings!
+  const drawBridgeSpan = (xStart, xEnd, zCenter, yDeck, halfW, rgb, isHot) => {
+    const segs = 4;
+    const step = (xEnd - xStart) / segs;
+    const strokeMain = rgba(rgb, isLight ? (isHot ? 0.72 : 0.45) : (isHot ? 0.85 : 0.46));
+    const strokeTruss = rgba(rgb, isLight ? 0.28 : 0.24);
+    // Translucent bridge roadway fill
+    const deckCorners = [
+      project(xStart, yDeck, zCenter - halfW),
+      project(xEnd, yDeck, zCenter - halfW),
+      project(xEnd, yDeck, zCenter + halfW),
+      project(xStart, yDeck, zCenter + halfW)
+    ];
+    if (!deckCorners.some(p => !p)) {
+      ctx.beginPath();
+      deckCorners.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle = isLight ? rgba(rgb, 0.14) : rgba(rgb, isHot ? 0.14 : 0.075);
+      ctx.fill();
+    }
+    // North & South bridge side rails
+    draw3DSeg(project(xStart, yDeck, zCenter - halfW), project(xEnd, yDeck, zCenter - halfW), strokeMain, 1.5);
+    draw3DSeg(project(xStart, yDeck, zCenter + halfW), project(xEnd, yDeck, zCenter + halfW), strokeMain, 1.5);
+    // Architectural X-truss cross-bracing beneath the bridge deck
+    for (let i = 0; i < segs; i++) {
+      const xa = xStart + i * step, xb = xa + step;
+      draw3DSeg(project(xa, yDeck, zCenter - halfW), project(xb, yDeck, zCenter + halfW), strokeTruss, 0.9);
+      draw3DSeg(project(xa, yDeck, zCenter + halfW), project(xb, yDeck, zCenter - halfW), strokeTruss, 0.9);
+      draw3DSeg(project(xa, yDeck, zCenter - halfW), project(xa, yDeck, zCenter + halfW), strokeTruss, 0.9);
+    }
+  };
+  drawBridgeSpan(-3.67, -1.45, hubZ, hubY * 0.72, 0.44, hubRGB, bridgeHot || sec1Hot);
+  drawBridgeSpan( 1.45,  3.67, hubZ, hubY * 0.72, 0.44, hubRGB, bridgeHot || sec2Hot);
+
+  // Sculpted elevated 3D octagonal CENTRAL LEAN BRIDGE DECK!
+  const drawBridgeDeck = (hx, hy, hz, radX, radZ, rgb) => {
     const sides = 8;
     const topPts = [], botPts = [];
     for (let i = 0; i < sides; i++) {
       const a = (i / sides) * Math.PI * 2 + Math.PI / 8;
-      topPts.push(project(hx + Math.cos(a) * rad, hy, hz + Math.sin(a) * rad));
-      botPts.push(project(hx + Math.cos(a) * rad, 0.0, hz + Math.sin(a) * rad));
+      topPts.push(project(hx + Math.cos(a) * radX, hy, hz + Math.sin(a) * radZ));
+      botPts.push(project(hx + Math.cos(a) * radX, 0.0, hz + Math.sin(a) * radZ));
     }
     if (topPts.some(p => !p) || botPts.some(p => !p)) return;
     for (let i = 0; i < sides; i++) {
@@ -3367,46 +3502,27 @@ function drawHolo3DFrame(dt = 0.016) {
       ctx.closePath();
       ctx.fillStyle = isLight ? rgba(rgb, 0.16) : rgba(rgb, 0.18);
       ctx.fill();
-      ctx.strokeStyle = rgba(rgb, isLight ? 0.42 : 0.48);
+      ctx.strokeStyle = rgba(rgb, isLight ? 0.44 : 0.50);
       ctx.lineWidth = 1;
       ctx.stroke();
     }
     ctx.beginPath();
     topPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.closePath();
-    ctx.fillStyle = isLight ? 'rgba(235, 248, 250, 0.88)' : rgba(rgb, 0.15);
+    ctx.fillStyle = isLight ? 'rgba(235, 250, 246, 0.90)' : rgba(rgb, 0.14);
     ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.76 : 0.92);
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.78 : 0.94);
     ctx.lineWidth = 2.0;
     ctx.stroke();
-    draw3DRing(hx, 0.02, hz, rad * 1.18, rad * 1.18, 48, rgba(rgb, isLight ? 0.34 : 0.46), 1.3, [8, 6], t * 0.22);
-    draw3DRing(hx, hy + 0.01, hz, rad * 0.78, rad * 0.78, 32, rgba(rgb, isLight ? 0.36 : 0.56), 1.1, null, -t * 0.35);
+    draw3DRing(hx, 0.02, hz, radX * 1.18, radZ * 1.18, 40, rgba(rgb, isLight ? 0.34 : 0.46), 1.2, [8, 6], t * 0.22);
+    draw3DRing(hx, hy + 0.01, hz, radX * 0.78, radZ * 0.78, 32, rgba(rgb, isLight ? 0.36 : 0.56), 1.1, null, -t * 0.35);
   };
-  drawHubDais(hubX, hubY, hubZ, 1.48, hubRGB);
+  drawBridgeDeck(hubX, hubY, hubZ, 1.52, 1.22, hubRGB);
 
-  // Subtle 360° Radar Sweep Cone radiating cleanly inside the circular war table!
-  if (!state.quiet && !reduced && !isLight) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const sweepA = t * 0.95;
-    const cPt = project(hubX, 0.025, hubZ);
-    if (cPt) {
-      for (let s = 0; s < 8; s++) {
-        const a1 = sweepA - s * 0.055, a2 = sweepA - (s + 1) * 0.055;
-        const p1 = project(hubX + Math.cos(a1) * (rxOut - 0.15), 0.025, hubZ + Math.sin(a1) * (rzOut - 0.15));
-        const p2 = project(hubX + Math.cos(a2) * (rxOut - 0.15), 0.025, hubZ + Math.sin(a2) * (rzOut - 0.15));
-        if (!p1 || !p2) continue;
-        ctx.fillStyle = rgba(hubRGB, (1 - s / 8) * 0.036);
-        ctx.beginPath(); ctx.moveTo(cPt.x, cPt.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.closePath(); ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-
-  // Boot Shockwave Ring expanding radially from the Central Formal Verification Hub during 0..1.1s
+  // Boot Shockwave Ring expanding from the Central Bridge during 0..1.1s
   if (holoCam.bootAge < 1.1 && !state.quiet && !reduced) {
     const bu = holoCam.bootAge / 1.1;
-    draw3DRing(hubX, 0.04, hubZ, 0.5 + bu * 6.0, 0.5 + bu * 4.7, 64, rgba(hubRGB, (1 - bu) * 0.85), 2.4);
+    draw3DRing(hubX, 0.04, hubZ, 0.6 + bu * 7.2, 0.5 + bu * 5.2, 64, rgba(hubRGB, (1 - bu) * 0.85), 2.4);
   }
 
   // ==========================================================================
@@ -3493,38 +3609,19 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   };
 
-  // Helper: smooth curved 3D arc between two departments along the circular table
-  const arcPts = (fromId, toId, outward = 1.0, steps = 14) => {
-    const a = holoWorld[fromId], b = holoWorld[toId];
-    if (!a || !b) return [];
-    const angA = Math.atan2((a.z - hubZ) / rzOut, (a.x - hubX) / rxOut);
-    const angB = Math.atan2((b.z - hubZ) / rzOut, (b.x - hubX) / rxOut);
-    let diff = angB - angA;
-    if (diff > Math.PI) diff -= Math.PI * 2;
-    if (diff < -Math.PI) diff += Math.PI * 2;
-    const pts = [];
-    for (let i = 0; i <= steps; i++) {
-      const u = i / steps;
-      const ang = angA + diff * u;
-      const y = (a.y || 0.04) * (1 - u) + (b.y || 0.04) * u + 0.04;
-      pts.push([hubX + Math.cos(ang) * rxOut * outward, y, hubZ + Math.sin(ang) * rzOut * outward]);
-    }
-    return pts;
-  };
-
   // Helper: crisp unboxed whisper-clean holographic caption (NO heavy pill box clutter!)
-  const drawHoloText = (wx, wy, wz, text, rgb, isHot = false) => {
+  const drawHoloText = (wx, wy, wz, text, rgb, isHot = false, size = 9.5) => {
     const pt = project(wx, wy, wz);
     if (!pt) return;
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
-    ctx.font = `${isHot ? '700' : '600'} 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    ctx.font = `${isHot ? '700' : '600'} ${size}px "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineWidth = 3.2;
-    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.90)' : 'rgba(2, 9, 18, 0.90)';
+    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.92)' : 'rgba(2, 10, 5, 0.92)';
     ctx.strokeText(text, pt.x, pt.y);
-    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 1.0 : 0.85) : rgba(rgb, isHot ? 1.0 : 0.78);
+    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 1.0 : 0.86) : rgba(rgb, isHot ? 1.0 : 0.80);
     ctx.fillText(text, pt.x, pt.y);
     ctx.restore();
   };
@@ -3532,63 +3629,90 @@ function drawHolo3DFrame(dt = 0.016) {
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // 1. FOUR PRIMARY BIDIRECTIONAL RADIAL SPOKES INTO THE CENTRAL VERIFICATION HUB!
+  // 1. MULTI-DEPARTMENT ARCHITECTURAL CONDUITS (Sovereign Wings + Central Lean Bridge!)
   const thHot = activeId === 'research' || activeId === 'verification';
   const bkHot = activeId === 'books' || activeId === 'verification';
   const pbHot = activeId === 'publication' || activeId === 'verification';
   const coHot = activeId === 'outreach' || activeId === 'verification';
   const rvHot = activeId === 'review' || activeId === 'verification';
-
-  // NW Spoke: 数学攻坚 ⇄ 形式验证
-  drawConduit3D(
-    [[-3.20, 0.06, -1.42], [-1.22, 0.16, -0.28]],
-    isBlueprint ? [150, 215, 255] : [45, 227, 184],
-    { lw: thHot ? 3.2 : 2.3, alpha: thHot ? 0.98 : 0.78, particles: 4, speed: 0.46, bidir: true }
-  );
-  // W Spoke: 独立评审 ▸ 形式验证
-  drawConduit3D(
-    [[-4.02, 0.06, 1.05], [-1.45, 0.16, 0.50]],
-    isBlueprint ? [150, 215, 255] : [168, 138, 250],
-    { lw: rvHot ? 2.6 : 1.5, alpha: rvHot ? 0.94 : 0.45, particles: rvHot ? 3 : 1, speed: 0.42 }
-  );
-  // NE Spoke: 理论书写 ⇄ 形式验证
-  drawConduit3D(
-    [[3.20, 0.06, -1.42], [1.22, 0.16, -0.28]],
-    isBlueprint ? [150, 215, 255] : [199, 140, 219],
-    { lw: bkHot ? 3.2 : 2.3, alpha: bkHot ? 0.98 : 0.78, particles: 4, speed: 0.44, bidir: true }
-  );
-  // SE Spoke: 论文与知识 ⇄ 形式验证
-  drawConduit3D(
-    [[2.18, 0.06, 2.86], [0.95, 0.16, 1.48]],
-    isBlueprint ? [150, 215, 255] : [74, 216, 176],
-    { lw: pbHot ? 3.2 : 2.2, alpha: pbHot ? 0.98 : 0.74, particles: 4, speed: 0.42, bidir: true }
-  );
-  // SW Spoke: 学术交流 ⇄ 形式验证
-  drawConduit3D(
-    [[-2.18, 0.06, 2.86], [-0.95, 0.16, 1.48]],
-    isBlueprint ? [150, 215, 255] : [240, 148, 90],
-    { lw: coHot ? 3.2 : 2.2, alpha: coHot ? 0.98 : 0.74, particles: 4, speed: 0.42, bidir: true }
-  );
-
-  // 2. COMPLETE UNBROKEN CLOSED-LOOP PERIMETER ARCS AROUND THE 6 AI DEPARTMENTS!
   const rrHot = activeId === 'research' || activeId === 'review';
-  const sbHot = activeId === 'studio' || activeId === 'books';
-  const poHot = activeId === 'publication' || activeId === 'outreach';
+  const bpHot = activeId === 'books' || activeId === 'publication';
+  const stPubHot = activeId === 'studio' || activeId === 'publication' || activeId === 'books';
+  const stOutHot = activeId === 'studio' || activeId === 'outreach';
+  const outRetHot = activeId === 'outreach' || activeId === 'review' || activeId === 'research';
   const loopClosedHot = activeId === 'research' || activeId === 'books';
 
-  // Upper closed-loop bridge closing the 24/7 AI workflow circle across the north rim (理论书写 ↺ 数学攻坚)
-  drawConduit3D(arcPts('books', 'research', 0.96, 18), isBlueprint ? [150, 215, 255] : [94, 237, 236],
-    { lw: loopClosedHot ? 2.4 : 1.5, alpha: loopClosedHot ? 0.88 : 0.46, dashed: true, particles: 3, speed: 0.28, chevrons: true });
-  drawConduit3D(arcPts('research', 'review', 0.97, 10), isBlueprint ? [150, 215, 255] : [168, 138, 250],
-    { lw: rrHot ? 2.4 : 1.5, alpha: rrHot ? 0.92 : 0.46, particles: rrHot ? 2 : 1, speed: 0.44, bidir: true });
-  drawConduit3D(arcPts('review', 'outreach', 0.97, 10), [180, 155, 210],
-    { lw: 1.2, alpha: 0.28, particles: 1, speed: 0.26, chevrons: false });
-  drawConduit3D(arcPts('studio', 'books', 0.97, 10), [136, 184, 212],
-    { lw: sbHot ? 2.4 : 1.5, alpha: sbHot ? 0.92 : 0.46, particles: sbHot ? 2 : 1, speed: 0.40 });
-  drawConduit3D(arcPts('publication', 'studio', 0.97, 10), [110, 195, 200],
-    { lw: 1.2, alpha: 0.28, particles: 1, speed: 0.26, chevrons: false });
-  drawConduit3D(arcPts('publication', 'outreach', 0.96, 12), [240, 148, 90],
-    { lw: poHot ? 2.4 : 1.5, alpha: poHot ? 0.92 : 0.46, particles: poHot ? 2 : 1, speed: 0.36 });
+  // A. LEFT LEAN BRIDGE SPAN: Sector 01 (数学攻坚 / 独立评审) ⇄ Central Lean Bridge (形式验证)
+  drawConduit3D(
+    [[-4.45, 0.06, -2.40], [-3.20, 0.14, -0.68], [-1.35, 0.22, -0.55]],
+    isBlueprint ? [150, 215, 255] : [29, 255, 130],
+    { lw: thHot ? 3.0 : 2.1, alpha: thHot ? 0.96 : 0.76, particles: 4, speed: 0.44, bidir: true }
+  );
+  drawConduit3D(
+    [[-5.10, 0.06, 1.45], [-3.20, 0.14, -0.20], [-1.35, 0.22, -0.32]],
+    isBlueprint ? [150, 215, 255] : [184, 148, 255],
+    { lw: rvHot ? 2.5 : 1.5, alpha: rvHot ? 0.92 : 0.50, particles: rvHot ? 3 : 1, speed: 0.40 }
+  );
+
+  // B. RIGHT LEAN BRIDGE SPAN: Central Lean Bridge (形式验证) ⇄ Sector 02 (理论书写 / 论文与知识)
+  drawConduit3D(
+    [[1.35, 0.22, -0.55], [3.20, 0.14, -0.68], [4.45, 0.06, -2.40]],
+    isBlueprint ? [150, 215, 255] : [217, 150, 245],
+    { lw: bkHot ? 3.0 : 2.1, alpha: bkHot ? 0.96 : 0.76, particles: 4, speed: 0.42, bidir: true }
+  );
+  drawConduit3D(
+    [[1.35, 0.22, -0.32], [3.20, 0.14, -0.20], [5.10, 0.06, 1.45]],
+    isBlueprint ? [150, 215, 255] : [61, 242, 180],
+    { lw: pbHot ? 2.8 : 1.9, alpha: pbHot ? 0.94 : 0.68, particles: 3, speed: 0.40, bidir: true }
+  );
+
+  // C. SOUTH BRIDGE SPAN: Sector 03 (学术交流) ⇄ Central Lean Bridge (外部形式化验证请求)
+  drawConduit3D(
+    [[-2.75, 0.06, 4.45], [-1.45, 0.14, 2.25], [-0.45, 0.22, 0.78]],
+    isBlueprint ? [150, 215, 255] : [245, 161, 86],
+    { lw: coHot ? 2.8 : 1.9, alpha: coHot ? 0.94 : 0.64, particles: 3, speed: 0.38, bidir: true }
+  );
+
+  // D. SOVEREIGN INTRA-WING ARCHITECTURAL LOOPS (Departments have real internal architecture!)
+  // Sector 01 internal vertical loop: 数学攻坚 ⇄ 独立评审
+  drawConduit3D(
+    [[-5.40, 0.06, -2.05], [-5.75, 0.06, -0.45], [-5.95, 0.06, 1.15]],
+    isBlueprint ? [150, 215, 255] : [184, 148, 255],
+    { lw: rrHot ? 2.8 : 1.9, alpha: rrHot ? 0.96 : 0.68, particles: 2, speed: 0.44, bidir: true }
+  );
+  // Sector 02 internal vertical loop: 理论书写 ⇄ 论文与知识
+  drawConduit3D(
+    [[5.40, 0.06, -2.05], [5.75, 0.06, -0.45], [5.95, 0.06, 1.15]],
+    isBlueprint ? [150, 215, 255] : [61, 242, 180],
+    { lw: bpHot ? 2.8 : 1.9, alpha: bpHot ? 0.96 : 0.68, particles: 2, speed: 0.44, bidir: true }
+  );
+
+  // E. SOVEREIGN FRONT ENGINEERING & COLLABORATION ROUTES (工具与表达 is an independent platform department!)
+  // Sector 04 (工具与表达) ⇄ Sector 02 (论文与知识 / 理论书写): powers books, Mathesis & visualizers!
+  drawConduit3D(
+    [[4.25, 0.06, 4.55], [5.35, 0.06, 3.65], [5.85, 0.06, 2.85]],
+    isBlueprint ? [150, 215, 255] : [108, 214, 255],
+    { lw: stPubHot ? 2.8 : 1.9, alpha: stPubHot ? 0.94 : 0.66, particles: 3, speed: 0.40, bidir: true }
+  );
+  // Sector 04 (工具与表达) ⇄ Sector 03 (学术交流): live observatory & public scholarly showcase!
+  drawConduit3D(
+    [[1.65, 0.06, 5.35], [0.0, 0.06, 5.48], [-1.65, 0.06, 5.35]],
+    isBlueprint ? [150, 215, 255] : [108, 214, 255],
+    { lw: stOutHot ? 2.6 : 1.7, alpha: stOutHot ? 0.92 : 0.56, particles: 2, speed: 0.34, bidir: true }
+  );
+  // Sector 03 (学术交流) ▸ Sector 01 (独立评审 / 数学攻坚): external feedback closes into Theory Wing!
+  drawConduit3D(
+    [[-4.25, 0.06, 4.55], [-5.35, 0.06, 3.65], [-5.85, 0.06, 2.85]],
+    isBlueprint ? [150, 215, 255] : [245, 161, 86],
+    { lw: outRetHot ? 2.6 : 1.7, alpha: outRetHot ? 0.92 : 0.56, particles: 2, speed: 0.36 }
+  );
+
+  // F. NORTH AUTONOMOUS INSTITUTE RETURN ARC (closes the macro 24/7 AI workflow across both wings!)
+  drawConduit3D(
+    [[4.35, 0.12, -3.55], [2.40, 0.22, -4.35], [0.0, 0.24, -4.55], [-2.40, 0.22, -4.35], [-4.35, 0.12, -3.55]],
+    isBlueprint ? [150, 215, 255] : [0, 240, 145],
+    { lw: loopClosedHot ? 2.4 : 1.4, alpha: loopClosedHot ? 0.86 : 0.44, dashed: true, particles: 3, speed: 0.26, chevrons: true }
+  );
 
   // 3. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
   for (const fl of holoCam.flares) {
@@ -4091,12 +4215,14 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   }
 
-  // Whisper-clean unboxed holographic captions along the 4 hub spokes & closed-loop north arc
-  drawHoloText( 0.0,  0.14, -3.22, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [138, 240, 238], loopClosedHot);
-  drawHoloText(-2.15, 0.22, -0.95, '理论 ⇄ 验证请求', isLight ? [4, 120, 87] : [125, 255, 224], thHot);
-  drawHoloText( 2.15, 0.22, -0.95, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [229, 198, 255], bkHot);
-  drawHoloText(-1.08, 0.04,  3.68, '合作 ⇄ 验证请求', isLight ? [180, 83, 9] : [255, 209, 168], coHot);
-  drawHoloText( 1.08, 0.04,  3.68, '论文 ⇄ Lean 目标', isLight ? [4, 120, 87] : [157, 245, 220], pbHot);
+  // Whisper-clean unboxed architectural sector designations & bridge labels
+  drawHoloText(-6.45, 0.06, -4.65, 'SEC.01 // 理论与复核部', isLight ? [4, 120, 87] : [80, 255, 165], sec1Hot, 9);
+  drawHoloText( 6.45, 0.06, -4.65, 'SEC.02 // 著述与知识部', isLight ? [109, 40, 217] : [224, 192, 255], sec2Hot, 9);
+  drawHoloText( 0.0,  0.26, -4.75, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [135, 255, 198], loopClosedHot, 9);
+  drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [4, 120, 87] : [125, 255, 210], thHot || rvHot, 9);
+  drawHoloText( 2.58, 0.26, -1.16, 'Lean 桥梁 ⇄ 著述', isLight ? [109, 40, 217] : [225, 195, 255], bkHot || pbHot, 9);
+  drawHoloText(-1.92, 0.14,  2.85, '合作 ⇄ 验证请求', isLight ? [180, 83, 9] : [255, 210, 165], coHot, 9);
+  drawHoloText( 0.0,  0.08,  5.68, '公开展示 ⇄ 工程底座', isLight ? [3, 105, 161] : [155, 232, 255], stOutHot, 9);
 }
 
 function startHoloLoop() {
