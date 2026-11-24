@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#030712">
-  <meta name="description" content="trureturing live：24/7 AI 数学研究院实时指挥大屏。可视化三层蜂巢架构、公开工作席位、Lean CI 验证与跨部门研究接力。">
-  <title>TRURETURING // LIVE · 24/7 AI 研究院实时指挥大屏</title>
+  <meta name="theme-color" content="#02060E">
+  <meta name="description" content="trureturing live：24/7 AI 数学研究院全息空间指挥大屏。立体蜂巢部门架构、公开工作席位、Lean CI 验证与跨部门研究接力。">
+  <title>TRURETURING // LIVE · 全息空间指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v7">
-  <script type="module" src="assets/app.mjs?v=hive-v7"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v8">
+  <script type="module" src="assets/app.mjs?v=hive-v8"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入实时指挥大屏</a>
@@ -37,14 +37,19 @@
       </div>
 
       <div class="hud-controls">
+        <div class="style-switcher" role="group" aria-label="空间渲染风格">
+          <button type="button" data-look="holo" aria-pressed="true" title="Chrono 全息场"><i class="swatch-holo"></i><span>全息场</span></button>
+          <button type="button" data-look="blueprint" aria-pressed="false" title="工程蓝图"><i class="swatch-blueprint"></i><span>蓝图</span></button>
+          <button type="button" data-look="light" aria-pressed="false" title="白模沙盘"><i class="swatch-maquette"></i><span>白模</span></button>
+        </div>
         <div class="mode-switch" role="group" aria-label="现场视图">
-          <button type="button" data-mode="organization" aria-pressed="true">组织架构</button>
-          <button type="button" data-mode="journey" aria-pressed="false">接力追踪</button>
+          <button type="button" data-mode="organization" aria-pressed="true">架构</button>
+          <button type="button" data-mode="journey" aria-pressed="false">接力</button>
         </div>
         <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button>
         <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="切换动态 / 静看">静看</button>
         <button class="hud-icon-btn" id="expand-room" type="button" aria-label="全屏大屏" title="全屏大屏模式">⤢</button>
-        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换明暗模式" title="切换深空指挥大屏 / 明亮视图">☀</button>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换全息场 / 白模" title="一键切换深空全息场 / 白模沙盘">☀</button>
       </div>
     </div>
   </header>
@@ -89,11 +94,12 @@
       </div>
 
       <div class="research-room" id="research-room">
-        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院蜂巢架构大屏；悬浮预览部门，点击放大进入部门图">
+        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院全息蜂巢架构大屏；悬浮预览部门，点击放大进入部门图">
+          <svg id="holo-sky" class="holo-sky-canvas" viewBox="0 0 1200 760" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div class="board-hud-top">
             <div class="board-label">
               <span class="live-dot"></span>
-              <span>SYS // 24·7 AI AUTONOMOUS ARCHITECTURE</span>
+              <span>HOLO ARENA // 24·7 AI AUTONOMOUS ARCHITECTURE</span>
             </div>
             <div class="board-telemetry-code" id="board-clock">ORBITAL LOOP · ACTIVE</div>
           </div>

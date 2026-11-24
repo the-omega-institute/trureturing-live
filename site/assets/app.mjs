@@ -163,6 +163,8 @@ const technical = /\b(?:audit|reg audit|registration audit|cache|runner|workflow
 const noisyLogPattern = /\b(?:Draft PR \d+|Native watcher|Unknown constant|FILEMAP job|source head|exits nonzero|context-isolated|canonical report|merged delivery|Mathlib\/|\.lean:\d+|Threshold-\d+|frozen suppliers)\b|\[代码见原记录\]|https?:\/\//i;
 
 const cleanTitle = text => String(text || '')
+  .replace(/^[-*•\s]+/, '')
+  .replace(/\*\*([^*]+)\*\*/g, '$1')
   .replace(/^(?:research|math|docs|feat|fix|chore|refactor)(?:\([^)]*\))?\s*[:：]\s*/i, '')
   .replace(/^(?:Research (?:unit|line)(?:\s*\([^)]*\))?|Open problem\s*\(preregistration\)|Preregister)\s*[:—-]?\s*/i, '')
   .replace(/\b[a-f0-9]{7,64}\b/gi, '')
@@ -173,6 +175,7 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/Narayan Conjecture/i, 'Narayan 猜想 18.2 的构造性证明'],
     [/disjoint occupation.*cyclic band|project disjoint occupation/i, '循环带上的不相交占据系数投影'],
     [/quarter-grid.*prime triangle|characterize RH/i, '四分网格素数三角形与黎曼猜想刻画'],
     [/weighted mass of disjoint|bound the weighted mass|disjoint residual occupation mass/i, '不相交剩余占据的质量精确上界'],
@@ -432,21 +435,37 @@ function icon(id) {
 
 function hexShellSVG() {
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 200 173.2');
+  svg.setAttribute('viewBox', '0 0 200 198');
   svg.setAttribute('class', 'cell-hex-shell');
   svg.setAttribute('aria-hidden', 'true');
   const ptsOuter = '50,3 150,3 197,86.6 150,170.2 50,170.2 3,86.6';
   const ptsInner = '54,10 146,10 189,86.6 146,163.2 54,163.2 11,86.6';
-  const pulse = document.createElementNS(ns, 'polygon');
-  pulse.setAttribute('points', ptsOuter);
-  pulse.setAttribute('class', 'cell-hex-pulse');
-  const outer = document.createElementNS(ns, 'polygon');
-  outer.setAttribute('points', ptsOuter);
-  outer.setAttribute('class', 'cell-hex-outer');
-  const inner = document.createElementNS(ns, 'polygon');
-  inner.setAttribute('points', ptsInner);
-  inner.setAttribute('class', 'cell-hex-inner');
-  svg.append(pulse, outer, inner);
+  const ptsShadow = '50,25 150,25 197,108.6 150,192.2 50,192.2 3,108.6';
+  const ptsSheen = '54,10 146,10 189,86.6 11,86.6';
+  const wallLeft = '3,86.6 50,170.2 50,188.2 3,104.6';
+  const wallFront = '50,170.2 150,170.2 150,188.2 50,188.2';
+  const wallRight = '150,170.2 197,86.6 197,104.6 150,188.2';
+  const slice1 = 'M 3 92.6 L 50 176.2 L 150 176.2 L 197 92.6';
+  const slice2 = 'M 3 98.6 L 50 182.2 L 150 182.2 L 197 98.6';
+
+  const make = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+
+  svg.append(
+    make('polygon', { points: ptsShadow, class: 'cell-hex-shadow' }),
+    make('polygon', { points: wallLeft, class: 'cell-hex-wall is-left' }),
+    make('polygon', { points: wallFront, class: 'cell-hex-wall is-front' }),
+    make('polygon', { points: wallRight, class: 'cell-hex-wall is-right' }),
+    make('path', { d: slice1, class: 'cell-hex-slice' }),
+    make('path', { d: slice2, class: 'cell-hex-slice' }),
+    make('polygon', { points: ptsOuter, class: 'cell-hex-pulse' }),
+    make('polygon', { points: ptsOuter, class: 'cell-hex-outer' }),
+    make('polygon', { points: ptsSheen, class: 'cell-hex-sheen' }),
+    make('polygon', { points: ptsInner, class: 'cell-hex-inner' })
+  );
   return svg;
 }
 
@@ -615,8 +634,14 @@ function createCell(d, index) {
   const status = element('span', '', 'cell-status');
   const mode = element('span', d.execution === 'human' ? 'Human in the Loop' : execution[d.execution], 'cell-mode');
 
+  const landmark = element('span', '', 'cell-landmark');
+  landmark.setAttribute('aria-hidden', 'true');
+  const landmarkCap = element('span', '', 'cell-landmark-cap');
+  const landmarkPin = element('i', '', 'cell-landmark-pin');
+  landmark.append(landmarkCap, landmarkPin);
+
   content.append(topRow, head, seats, status, mode);
-  button.append(hexShellSVG(), content);
+  button.append(landmark, hexShellSVG(), content);
 
   button.addEventListener('click', () => selectDepartment(d.id, true, true));
   button.addEventListener('pointerenter', () => previewDepartment(d.id));
@@ -631,7 +656,7 @@ function createCell(d, index) {
       state.cells.get(next.id)?.button.focus();
     }
   });
-  return { button, status, title, mode, seats };
+  return { button, status, title, mode, seats, landmark, landmarkCap };
 }
 
 function previewDepartment(id) {
@@ -709,7 +734,21 @@ function renderHive() {
     renderCellSeats(d, cell.seats);
     cell.button.setAttribute('aria-pressed', String(d.id === state.selected));
     cell.button.setAttribute('aria-label', `${d.label}。${d.responsibility}。${departmentState(d)}`);
-    cell.button.classList.toggle('is-running', Boolean(countRunning(d)));
+    const running = countRunning(d);
+    cell.button.classList.toggle('is-running', Boolean(running));
+    if (cell.landmark && cell.landmarkCap) {
+      if (running) {
+        cell.landmarkCap.textContent = `${running} RUN`;
+        cell.landmark.classList.add('is-visible', 'is-live');
+        cell.landmark.classList.remove('is-human');
+      } else if (d.execution === 'human') {
+        cell.landmarkCap.textContent = 'HUMAN LOOP';
+        cell.landmark.classList.add('is-visible', 'is-human');
+        cell.landmark.classList.remove('is-live');
+      } else {
+        cell.landmark.classList.remove('is-visible', 'is-live', 'is-human');
+      }
+    }
     cell.button.classList.toggle('has-arrival', state.arrivals.some(a => a.department === d.id));
     cell.button.classList.toggle('is-focused', Boolean(state.focused && d.id === state.focused));
     cell.button.classList.toggle('is-dimmed', Boolean(state.focused && d.id !== state.focused));
@@ -2454,21 +2493,112 @@ async function refreshLive() {
   }
 }
 
-function applyTheme(theme) {
-  if (theme === 'light') {
-    document.documentElement.dataset.theme = 'light';
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#F2F5FA');
-    const btn = $('#theme-toggle');
+function renderHoloSky() {
+  const svg = $('#holo-sky');
+  if (!svg) return;
+  svg.replaceChildren();
+  const w = 1200;
+  const h = 760;
+  const isLight = document.documentElement.dataset.theme === 'light';
+  const isBlueprint = document.documentElement.dataset.look === 'blueprint';
+
+  const make = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    return el;
+  };
+
+  // 1. Chrono-Metaverse deterministic orbital starfield (sky.ts)
+  if (!isLight) {
+    let seed = 1337;
+    const rand = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+    const stars = make('g', { class: 'holo-stars' });
+    const count = isBlueprint ? 55 : 120;
+    for (let i = 0; i < count; i++) {
+      const sx = (rand() * w).toFixed(1);
+      const sy = (rand() * h * 0.62).toFixed(1);
+      const r = rand() > 0.84 ? '1.3' : '0.75';
+      const op = (0.16 + rand() * 0.52).toFixed(2);
+      const fill = isBlueprint
+        ? '#96d7ff'
+        : i % 5 === 0 ? '#5eedec' : '#d7eeff';
+      stars.append(make('circle', { cx: sx, cy: sy, r, fill, opacity: op }));
+    }
+    svg.append(stars);
+  }
+
+  // 2. Chrono-Metaverse 3D Perspective Architectural Floor Grid receding into horizon
+  const vpX = w * 0.5;
+  const vpY = -h * 0.24;
+  const startY = h * 0.08;
+  const gridStroke = isLight
+    ? 'rgba(120, 113, 102, 0.16)'
+    : isBlueprint
+      ? 'rgba(150, 215, 255, 0.16)'
+      : 'rgba(94, 237, 236, 0.09)';
+
+  const grid = make('g', { stroke: gridStroke, 'stroke-width': '1', fill: 'none' });
+  const cols = 16;
+  for (let i = -cols; i <= cols; i++) {
+    const bottomX = vpX + (i / (cols * 0.45)) * w;
+    const t = (startY - vpY) / (h - vpY);
+    const topX = vpX + (bottomX - vpX) * t;
+    grid.append(make('line', { x1: topX.toFixed(1), y1: startY.toFixed(1), x2: bottomX.toFixed(1), y2: h }));
+  }
+  const rows = 14;
+  for (let r = 0; r <= rows; r++) {
+    const p = Math.pow(r / rows, 1.55);
+    const y = (startY + p * (h - startY)).toFixed(1);
+    grid.append(make('line', { x1: 0, y1: y, x2: w, y2: y, opacity: (0.28 + p * 0.72).toFixed(2) }));
+  }
+  svg.append(grid);
+}
+
+function applyLook(look) {
+  const docEl = document.documentElement;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const btn = $('#theme-toggle');
+  if (look === 'light') {
+    docEl.dataset.theme = 'light';
+    delete docEl.dataset.look;
+    if (meta) meta.setAttribute('content', '#F2EEE6');
     if (btn) btn.textContent = '☾';
+  } else if (look === 'blueprint') {
+    delete docEl.dataset.theme;
+    docEl.dataset.look = 'blueprint';
+    if (meta) meta.setAttribute('content', '#0C192C');
+    if (btn) btn.textContent = '☀';
   } else {
-    delete document.documentElement.dataset.theme;
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#030712');
-    const btn = $('#theme-toggle');
+    delete docEl.dataset.theme;
+    delete docEl.dataset.look;
+    if (meta) meta.setAttribute('content', '#02060E');
     if (btn) btn.textContent = '☀';
   }
+  const activeLook = docEl.dataset.theme === 'light' ? 'light' : (docEl.dataset.look || 'holo');
+  for (const b of document.querySelectorAll('[data-look]')) {
+    b.setAttribute('aria-pressed', String(b.dataset.look === activeLook));
+  }
+  renderHoloSky();
 }
+
+function applyTheme(theme) {
+  applyLook(theme === 'light' ? 'light' : 'holo');
+}
+
+for (const lookBtn of document.querySelectorAll('[data-look]')) {
+  lookBtn.addEventListener('click', () => {
+    const next = lookBtn.dataset.look || 'holo';
+    applyLook(next);
+    try {
+      localStorage.setItem(themeKey, next);
+    } catch {}
+  });
+}
+
+window.addEventListener('resize', () => renderHoloSky(), { passive: true });
 
 // Dock tab switching
 for (const tab of document.querySelectorAll('[data-dock-tab]')) {
@@ -2607,8 +2737,11 @@ if (reduced) {
 
 try {
   const savedTheme = localStorage.getItem(themeKey);
-  if (savedTheme === 'light') applyTheme('light');
-} catch {}
+  if (savedTheme === 'light' || savedTheme === 'blueprint') applyLook(savedTheme);
+  else renderHoloSky();
+} catch {
+  renderHoloSky();
+}
 
 try {
   const saved = JSON.parse(localStorage.getItem(cacheKey));
