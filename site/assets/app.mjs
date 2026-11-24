@@ -66,8 +66,8 @@ const deptRoles = {
   review: '对抗复核',
   verification: 'Lean 桥梁',
   books: '双语书稿',
-  publication: '论文图谱',
-  outreach: '学者合作',
+  publication: '短文·论文',
+  outreach: '对外合作',
   studio: '工程表达'
 };
 
@@ -76,9 +76,9 @@ const hubMeta = {
   research: { tag: 'SECTOR 01 · THEORY', title: '课题攻坚台' },
   review: { tag: 'SECTOR 01 · AUDIT', title: '独立复核台' },
   verification: { tag: 'LEAN FORMAL BRIDGE', title: '形式验证桥梁' },
-  books: { tag: 'SECTOR 02 · CODEX', title: '双语书稿台' },
-  publication: { tag: 'SECTOR 02 · MATHESIS', title: '论文知识台' },
-  outreach: { tag: 'SECTOR 03 · COLLAB', title: '学术合作台' },
+  publication: { tag: 'OUTREACH ENGINE · PAPERS', title: '论文知识台' },
+  outreach: { tag: 'OUTREACH ENGINE · COLLAB', title: '对外合作台' },
+  books: { tag: 'SECTOR 03 · LIVING BOOKS', title: '双语书稿台' },
   studio: { tag: 'SECTOR 04 · FOUNDRY', title: '工程与表达台' }
 };
 
@@ -2732,9 +2732,9 @@ const holoWorld = {
   verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [0, 255, 208]   },
   research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [29, 255, 130]  },
   review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [184, 148, 255] },
-  books:        { x:  5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.22, apex: false, eye: false, order: 4, hex: [217, 150, 245] },
-  publication:  { x:  6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [61, 242, 180]  },
-  outreach:     { x: -3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 6, hex: [245, 161, 86]  },
+  publication:  { x:  5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.26, apex: false, eye: false, order: 4, hex: [61, 242, 180]  },
+  outreach:     { x:  6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [245, 161, 86]  },
+  books:        { x: -3.35, y: 0.0,  z:  5.35, r: 0.68, baseH: 1.18, apex: false, eye: false, order: 6, hex: [217, 150, 245] },
   studio:       { x:  3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [108, 214, 255] }
 };
 
@@ -2881,15 +2881,15 @@ function buildSciFiLogPool() {
   const depts = departments();
   const totalHandoffs = (view()?.handoffs || []).length;
 
-  // 1. High-density live missions across ALL 8 departments (true multi-department routing!)
+  // 1. High-density live missions across ALL 8 departments (true multi-department & Outreach Engine routing!)
   const deptMeta = {
     research:     { tag: 'PROOF',  tone: 'live',   target: 'review' },
     review:       { tag: 'AUDIT',  tone: 'violet', target: 'verification' },
-    verification: { tag: 'BRIDGE', tone: 'cyan',   target: 'books' },
-    books:        { tag: 'CODEX',  tone: 'violet', target: 'publication' },
-    publication:  { tag: 'PAPER',  tone: 'live',   target: 'verification' },
-    outreach:     { tag: 'COLLAB', tone: 'gold',   target: 'research' },
-    studio:       { tag: 'FORGE',  tone: 'cyan',   target: 'publication' },
+    verification: { tag: 'BRIDGE', tone: 'cyan',   target: 'publication' },
+    publication:  { tag: 'PAPER',  tone: 'live',   target: 'outreach' },
+    outreach:     { tag: 'COLLAB', tone: 'gold',   target: 'verification' },
+    books:        { tag: 'CODEX',  tone: 'violet', target: 'verification' },
+    studio:       { tag: 'FORGE',  tone: 'cyan',   target: 'books' },
     direction:    { tag: 'ARCH',   tone: 'gold',   target: 'research' }
   };
 
@@ -3001,11 +3001,11 @@ function stepSciFiLog(dt) {
     const archFlowTarget = {
       research: 'review',
       review: 'verification',
-      verification: 'books',
-      books: 'publication',
-      publication: 'studio',
-      studio: 'outreach',
-      outreach: 'research'
+      verification: 'publication',
+      publication: 'outreach',
+      outreach: 'verification',
+      books: 'verification',
+      studio: 'books'
     };
     for (const [deptId, cell] of state.cells) {
       if (!cell.missions || cell.missions.length <= 1) continue;
@@ -3433,17 +3433,17 @@ function drawHolo3DFrame(dt = 0.016) {
   };
 
   const sec1Hot = activeId === 'research' || activeId === 'review';
-  const sec2Hot = activeId === 'books' || activeId === 'publication';
-  const sec3Hot = activeId === 'outreach';
+  const sec2Hot = activeId === 'publication' || activeId === 'outreach';
+  const sec3Hot = activeId === 'books';
   const sec4Hot = activeId === 'studio';
   const bridgeHot = activeId === 'verification';
 
   // Left Wing: Sector 01 — Theory & Adversarial Audit (数学攻坚 + 独立评审)
   drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [29, 255, 130], sec1Hot);
-  // Right Wing: Sector 02 — Codex & Knowledge Graph (理论书写 + 论文与知识)
-  drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [188, 152, 245], sec2Hot);
-  // Front-Left: Sector 03 — Independent Academic Outreach (学术交流)
-  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [245, 161, 86], sec3Hot);
+  // Right Wing: Sector 02 — OUTREACH ENGINE (论文与知识 ⇄ 对外学术合作 ▸ 写回形式化)
+  drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [245, 168, 92], sec2Hot);
+  // Front-Left: Sector 03 — Independent Living Books Division (理论书写 · trureturing-books)
+  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [217, 150, 245], sec3Hot);
   // Front-Right: Sector 04 — Independent Tooling & Expression Foundry (工具与表达)
   drawSectorTerrace( 3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [108, 214, 255], sec4Hot);
 
@@ -3629,18 +3629,18 @@ function drawHolo3DFrame(dt = 0.016) {
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // 1. MULTI-DEPARTMENT ARCHITECTURAL CONDUITS (Sovereign Wings + Central Lean Bridge!)
+  // 1. MULTI-DEPARTMENT ARCHITECTURAL CONDUITS (Sovereign Wings + Central Lean Bridge + Outreach Engine!)
   const thHot = activeId === 'research' || activeId === 'verification';
-  const bkHot = activeId === 'books' || activeId === 'verification';
+  const rvHot = activeId === 'review' || activeId === 'verification';
   const pbHot = activeId === 'publication' || activeId === 'verification';
   const coHot = activeId === 'outreach' || activeId === 'verification';
-  const rvHot = activeId === 'review' || activeId === 'verification';
+  const bkHot = activeId === 'books' || activeId === 'verification';
   const rrHot = activeId === 'research' || activeId === 'review';
-  const bpHot = activeId === 'books' || activeId === 'publication';
-  const stPubHot = activeId === 'studio' || activeId === 'publication' || activeId === 'books';
-  const stOutHot = activeId === 'studio' || activeId === 'outreach';
-  const outRetHot = activeId === 'outreach' || activeId === 'review' || activeId === 'research';
-  const loopClosedHot = activeId === 'research' || activeId === 'books';
+  const poHot = activeId === 'publication' || activeId === 'outreach';
+  const stBkHot = activeId === 'studio' || activeId === 'books';
+  const stOutHot = activeId === 'studio' || activeId === 'outreach' || activeId === 'publication';
+  const bkRevHot = activeId === 'books' || activeId === 'review' || activeId === 'research';
+  const loopClosedHot = activeId === 'research' || activeId === 'publication' || activeId === 'outreach';
 
   // A. LEFT LEAN BRIDGE SPAN: Sector 01 (数学攻坚 / 独立评审) ⇄ Central Lean Bridge (形式验证)
   drawConduit3D(
@@ -3654,60 +3654,63 @@ function drawHolo3DFrame(dt = 0.016) {
     { lw: rvHot ? 2.5 : 1.5, alpha: rvHot ? 0.92 : 0.50, particles: rvHot ? 3 : 1, speed: 0.40 }
   );
 
-  // B. RIGHT LEAN BRIDGE SPAN: Central Lean Bridge (形式验证) ⇄ Sector 02 (理论书写 / 论文与知识)
+  // B. RIGHT LEAN BRIDGE SPAN — THE OUTREACH ENGINE LOOP:
+  //    trureturing (Lean) ▸ 论文与知识 ⇄ 对外合作 ⇄ 论文 ▸ 写回形式化 (Lean)!
+  // Upper lane: Lean 桥梁 ▸ 论文与知识 (verified results -> short notes, DOIs, Mathesis papers)
   drawConduit3D(
     [[1.35, 0.22, -0.55], [3.20, 0.14, -0.68], [4.45, 0.06, -2.40]],
-    isBlueprint ? [150, 215, 255] : [217, 150, 245],
-    { lw: bkHot ? 3.0 : 2.1, alpha: bkHot ? 0.96 : 0.76, particles: 4, speed: 0.42, bidir: true }
-  );
-  drawConduit3D(
-    [[1.35, 0.22, -0.32], [3.20, 0.14, -0.20], [5.10, 0.06, 1.45]],
     isBlueprint ? [150, 215, 255] : [61, 242, 180],
-    { lw: pbHot ? 2.8 : 1.9, alpha: pbHot ? 0.94 : 0.68, particles: 3, speed: 0.40, bidir: true }
+    { lw: pbHot ? 3.0 : 2.1, alpha: pbHot ? 0.96 : 0.78, particles: 4, speed: 0.44, bidir: true }
+  );
+  // Lower lane: 学术交流 (对外合作) ▸ Lean 桥梁 (write-back formalization requests!)
+  drawConduit3D(
+    [[5.10, 0.06, 1.45], [3.20, 0.14, -0.20], [1.35, 0.22, -0.32]],
+    isBlueprint ? [150, 215, 255] : [245, 161, 86],
+    { lw: coHot ? 3.0 : 2.1, alpha: coHot ? 0.96 : 0.76, particles: 4, speed: 0.42 }
   );
 
-  // C. SOUTH BRIDGE SPAN: Sector 03 (学术交流) ⇄ Central Lean Bridge (外部形式化验证请求)
+  // C. SOUTH-LEFT LEAN BRIDGE SPAN: Sector 03 (独立理论书写部) ⇄ Central Lean Bridge
   drawConduit3D(
     [[-2.75, 0.06, 4.45], [-1.45, 0.14, 2.25], [-0.45, 0.22, 0.78]],
-    isBlueprint ? [150, 215, 255] : [245, 161, 86],
-    { lw: coHot ? 2.8 : 1.9, alpha: coHot ? 0.94 : 0.64, particles: 3, speed: 0.38, bidir: true }
+    isBlueprint ? [150, 215, 255] : [217, 150, 245],
+    { lw: bkHot ? 2.8 : 2.0, alpha: bkHot ? 0.96 : 0.72, particles: 3, speed: 0.40, bidir: true }
   );
 
-  // D. SOVEREIGN INTRA-WING ARCHITECTURAL LOOPS (Departments have real internal architecture!)
+  // D. SOVEREIGN INTRA-WING LOOPS!
   // Sector 01 internal vertical loop: 数学攻坚 ⇄ 独立评审
   drawConduit3D(
     [[-5.40, 0.06, -2.05], [-5.75, 0.06, -0.45], [-5.95, 0.06, 1.15]],
     isBlueprint ? [150, 215, 255] : [184, 148, 255],
     { lw: rrHot ? 2.8 : 1.9, alpha: rrHot ? 0.96 : 0.68, particles: 2, speed: 0.44, bidir: true }
   );
-  // Sector 02 internal vertical loop: 理论书写 ⇄ 论文与知识
+  // Sector 02 (OUTREACH ENGINE) internal bidirectional loop: 短文·论文 ⇄ 对外合作 ⇄ 合作论文!
   drawConduit3D(
     [[5.40, 0.06, -2.05], [5.75, 0.06, -0.45], [5.95, 0.06, 1.15]],
-    isBlueprint ? [150, 215, 255] : [61, 242, 180],
-    { lw: bpHot ? 2.8 : 1.9, alpha: bpHot ? 0.96 : 0.68, particles: 2, speed: 0.44, bidir: true }
+    isBlueprint ? [150, 215, 255] : [245, 161, 86],
+    { lw: poHot ? 3.0 : 2.2, alpha: poHot ? 0.98 : 0.78, particles: 3, speed: 0.44, bidir: true }
   );
 
-  // E. SOVEREIGN FRONT ENGINEERING & COLLABORATION ROUTES (工具与表达 is an independent platform department!)
-  // Sector 04 (工具与表达) ⇄ Sector 02 (论文与知识 / 理论书写): powers books, Mathesis & visualizers!
-  drawConduit3D(
-    [[4.25, 0.06, 4.55], [5.35, 0.06, 3.65], [5.85, 0.06, 2.85]],
-    isBlueprint ? [150, 215, 255] : [108, 214, 255],
-    { lw: stPubHot ? 2.8 : 1.9, alpha: stPubHot ? 0.94 : 0.66, particles: 3, speed: 0.40, bidir: true }
-  );
-  // Sector 04 (工具与表达) ⇄ Sector 03 (学术交流): live observatory & public scholarly showcase!
+  // E. INDEPENDENT BOOK & ENGINEERING PLATFORM ROUTES!
+  // Sector 04 (工具与表达) ▸ Sector 03 (理论书写): 书稿模板 · mdbook 在线书库!
   drawConduit3D(
     [[1.65, 0.06, 5.35], [0.0, 0.06, 5.48], [-1.65, 0.06, 5.35]],
     isBlueprint ? [150, 215, 255] : [108, 214, 255],
-    { lw: stOutHot ? 2.6 : 1.7, alpha: stOutHot ? 0.92 : 0.56, particles: 2, speed: 0.34, bidir: true }
+    { lw: stBkHot ? 2.6 : 1.8, alpha: stBkHot ? 0.94 : 0.62, particles: 2, speed: 0.36 }
   );
-  // Sector 03 (学术交流) ▸ Sector 01 (独立评审 / 数学攻坚): external feedback closes into Theory Wing!
+  // Sector 04 (工具与表达) ▸ Sector 02 (Outreach Engine): 可视化 · 影像 · 公开展示!
+  drawConduit3D(
+    [[4.25, 0.06, 4.55], [5.35, 0.06, 3.65], [5.85, 0.06, 2.85]],
+    isBlueprint ? [150, 215, 255] : [108, 214, 255],
+    { lw: stOutHot ? 2.6 : 1.8, alpha: stOutHot ? 0.94 : 0.60, particles: 2, speed: 0.38 }
+  );
+  // Sector 03 (理论书写) ⇄ Sector 01 (独立评审 / 数学攻坚): 书稿论证复核与草稿同步!
   drawConduit3D(
     [[-4.25, 0.06, 4.55], [-5.35, 0.06, 3.65], [-5.85, 0.06, 2.85]],
-    isBlueprint ? [150, 215, 255] : [245, 161, 86],
-    { lw: outRetHot ? 2.6 : 1.7, alpha: outRetHot ? 0.92 : 0.56, particles: 2, speed: 0.36 }
+    isBlueprint ? [150, 215, 255] : [217, 150, 245],
+    { lw: bkRevHot ? 2.6 : 1.7, alpha: bkRevHot ? 0.92 : 0.56, particles: 2, speed: 0.36, bidir: true }
   );
 
-  // F. NORTH AUTONOMOUS INSTITUTE RETURN ARC (closes the macro 24/7 AI workflow across both wings!)
+  // F. NORTH AUTONOMOUS INSTITUTE RETURN ARC (Outreach Engine replies & open conjectures ↺ Theory Wing!)
   drawConduit3D(
     [[4.35, 0.12, -3.55], [2.40, 0.22, -4.35], [0.0, 0.24, -4.55], [-2.40, 0.22, -4.35], [-4.35, 0.12, -3.55]],
     isBlueprint ? [150, 215, 255] : [0, 240, 145],
@@ -4216,13 +4219,13 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // Whisper-clean unboxed architectural sector designations & bridge labels
-  drawHoloText(-6.45, 0.06, -4.65, 'SEC.01 // 理论与复核部', isLight ? [4, 120, 87] : [80, 255, 165], sec1Hot, 9);
-  drawHoloText( 6.45, 0.06, -4.65, 'SEC.02 // 著述与知识部', isLight ? [109, 40, 217] : [224, 192, 255], sec2Hot, 9);
+  drawHoloText(-6.25, 0.06, -4.65, 'SEC.01 // 理论与复核部', isLight ? [4, 120, 87] : [80, 255, 165], sec1Hot, 9);
+  drawHoloText( 5.85, 0.06, -4.65, 'OUTREACH // 论文与合作', isLight ? [180, 83, 9] : [255, 210, 155], sec2Hot, 9);
   drawHoloText( 0.0,  0.26, -4.75, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [135, 255, 198], loopClosedHot, 9);
   drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [4, 120, 87] : [125, 255, 210], thHot || rvHot, 9);
-  drawHoloText( 2.58, 0.26, -1.16, 'Lean 桥梁 ⇄ 著述', isLight ? [109, 40, 217] : [225, 195, 255], bkHot || pbHot, 9);
-  drawHoloText(-1.92, 0.14,  2.85, '合作 ⇄ 验证请求', isLight ? [180, 83, 9] : [255, 210, 165], coHot, 9);
-  drawHoloText( 0.0,  0.08,  5.68, '公开展示 ⇄ 工程底座', isLight ? [3, 105, 161] : [155, 232, 255], stOutHot, 9);
+  drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [180, 83, 9] : [255, 214, 165], pbHot || coHot, 9);
+  drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [232, 198, 255], bkHot, 9);
+  drawHoloText( 0.0,  0.08,  5.68, '出版模板 ◂ 工程底座', isLight ? [3, 105, 161] : [155, 232, 255], stBkHot, 9);
 }
 
 function startHoloLoop() {
