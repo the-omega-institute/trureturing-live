@@ -61,7 +61,7 @@ const deptCodes = {
 };
 
 const deptRoles = {
-  direction: '人类舵手',
+  direction: '监管之眼',
   research: '定理攻关',
   review: '对抗复核',
   verification: '真理枢纽',
@@ -186,6 +186,8 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/qubit-qutrit product-anchor|arbitrary MUB pairs/i, '任意 MUB 对上的量子比特–三态乘积锚点凸性'],
+    [/cyclic band.*positive Fej[eé]r|Fej[eé]r weights/i, '正 Fejér 权重下的循环带上界证明'],
     [/phase cancellation.*serial four-port|four-port matching chains/i, '串行四端口匹配链中的相位抵消证明'],
     [/high-density sci-fi strategic war map/i, '实时大屏：科幻指挥室高密度战略沙盘'],
     [/Bargmann-Gram spherical trig|quaternion Fractran/i, 'Bargmann–Gram 球面三角与四元数 Fractran'],
@@ -2722,28 +2724,30 @@ async function refreshLive() {
 
 // ============================================================================
 // REAL-TIME 60FPS 3D BIOMIMETIC HOLOGRAPHIC STRATEGIC WAR TABLE (#holo-3d)
-// Unified circular sci-fi command hologram: Formal Verification DNA Lighthouse
-// at dead center, 7 unmistakable bespoke 3D department sculptures around the
-// orbital ring (with restrained, poised Golden Compass Helm at 12 o'clock).
+// Independent supervisory Akasha Eye poised above deep space overseeing &
+// guiding a self-contained 24/7 AI closed-loop circular workflow below
+// centered on the Formal Verification DNA Lighthouse.
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 0.18, z: -3.95, r: 0.56, baseH: 0.92, apex: true,  order: 0, hex: [245, 183, 73]  },
-  verification: { x:  0.0,  y: 0.16, z:  0.05, r: 0.88, baseH: 1.56, apex: false, order: 1, hex: [94, 237, 236]  },
-  research:     { x: -3.85, y: 0.0,  z: -2.45, r: 0.72, baseH: 1.36, apex: false, order: 2, hex: [45, 227, 184]  },
-  review:       { x: -4.85, y: 0.0,  z:  1.20, r: 0.70, baseH: 1.30, apex: false, order: 3, hex: [168, 138, 250] },
-  books:        { x:  3.85, y: 0.0,  z: -2.45, r: 0.72, baseH: 1.24, apex: false, order: 4, hex: [199, 140, 219] },
-  studio:       { x:  4.85, y: 0.0,  z:  1.20, r: 0.68, baseH: 1.22, apex: false, order: 5, hex: [136, 184, 212] },
-  outreach:     { x: -2.75, y: 0.0,  z:  3.45, r: 0.66, baseH: 1.20, apex: false, order: 6, hex: [240, 148, 90]  },
-  publication:  { x:  2.75, y: 0.0,  z:  3.45, r: 0.66, baseH: 1.28, apex: false, order: 7, hex: [74, 216, 176]  }
+  direction:    { x:  0.0,  y: 2.55, z: -3.15, r: 0.72, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [245, 183, 73]  },
+  verification: { x:  0.0,  y: 0.16, z:  0.35, r: 0.88, baseH: 1.52, apex: false, eye: false, order: 1, hex: [94, 237, 236]  },
+  research:     { x: -3.95, y: 0.0,  z: -1.85, r: 0.72, baseH: 1.34, apex: false, eye: false, order: 2, hex: [45, 227, 184]  },
+  review:       { x: -4.85, y: 0.0,  z:  1.25, r: 0.70, baseH: 1.28, apex: false, eye: false, order: 3, hex: [168, 138, 250] },
+  books:        { x:  3.95, y: 0.0,  z: -1.85, r: 0.72, baseH: 1.24, apex: false, eye: false, order: 4, hex: [199, 140, 219] },
+  studio:       { x:  4.85, y: 0.0,  z:  1.25, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [136, 184, 212] },
+  outreach:     { x: -2.75, y: 0.0,  z:  3.50, r: 0.66, baseH: 1.18, apex: false, eye: false, order: 6, hex: [240, 148, 90]  },
+  publication:  { x:  2.75, y: 0.0,  z:  3.50, r: 0.66, baseH: 1.26, apex: false, eye: false, order: 7, hex: [74, 216, 176]  }
 };
 
 const holoCam = {
-  yaw: -0.28,
-  pitch: 0.72,
-  dist: 20.2,
+  yaw: -0.26,
+  pitch: 0.70,
+  dist: 20.4,
   targetYaw: 0.0,
-  targetPitch: 0.56,
-  targetDist: 16.4,
+  targetPitch: 0.52,
+  targetDist: 16.6,
+  gazeX: -3.95,
+  gazeZ: -1.85,
   dragging: false,
   dragMoved: false,
   lastX: 0,
@@ -3092,16 +3096,16 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.fillRect(0, 0, w, h);
   }
 
-  // Symmetrical Hero Framing right between Left Log Wall & Right Tactical HUD!
+  // Symmetrical Hero Framing right between Left Intel Wall & Right Tactical HUD!
   const cx = w * 0.5;
-  const cy = state.focused ? h * 0.52 : h * 0.54;
-  const fov = Math.min(w, h) * (w > 1360 ? 1.15 : w > 980 ? 1.02 : 0.96);
+  const cy = state.focused ? h * 0.52 : h * 0.56;
+  const fov = Math.min(w, h) * (w > 1360 ? 1.14 : w > 980 ? 1.02 : 0.96);
   const cosY = Math.cos(holoCam.yaw);
   const sinY = Math.sin(holoCam.yaw);
   const cosP = Math.cos(holoCam.pitch);
   const sinP = Math.sin(holoCam.pitch);
-  const lookY = 0.65;
-  const lookZ = 0.25;
+  const lookY = 0.80;
+  const lookZ = 0.30;
 
   const project = (wx, wy, wz) => {
     const x0 = wx;
@@ -3209,17 +3213,51 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // ==========================================================================
-  // 4. UNIFIED CIRCULAR HOLOGRAPHIC WAR TABLE (ZERO CLUTTER, PURE DEPTH!)
-  // One clean sculpted orbital disc, elevated central Verification Hub dais,
-  // whisper-thin compass ticks & subtle radar sweep. No floating boxes or grids!
+  // 4. SELF-CONTAINED 24/7 AI CLOSED-LOOP CIRCULAR DISC + INDEPENDENT AKASHA EYE
+  // Below: an unbroken circular closed-loop workflow centered on Formal Verification.
+  // Above (independent): the Eye of Akasha overseeing, constraining & guiding agents!
   // ==========================================================================
   const tier1RGB = [245, 183, 73];
   const hubRGB = isBlueprint ? [150, 215, 255] : [94, 237, 236];
   const arenaRGB = isBlueprint ? [125, 185, 245] : [65, 175, 205];
-  const hubX = 0.0, hubY = 0.16, hubZ = 0.05;
-  const rxOut = 5.18, rzOut = 4.18;
+  const hubX = 0.0, hubY = 0.16, hubZ = 0.35;
+  const rxOut = 5.15, rzOut = 3.72;
+  const eyeCfg = holoWorld.direction;
+  const activeId = state.hovered || state.selected;
 
-  // Translucent sculpted circular war-table disc fill + clean bevel rim
+  // Smoothly track the Akasha Eye's living gaze toward the active AI department below!
+  const gazeTarget = (activeId && activeId !== 'direction' && holoWorld[activeId]) ? holoWorld[activeId] : holoWorld.verification;
+  holoCam.gazeX += (gazeTarget.x - holoCam.gazeX) * 0.09;
+  holoCam.gazeZ += (gazeTarget.z - holoCam.gazeZ) * 0.09;
+
+  // Gossamer translucent golden supervisory oversight veil descending from Akasha Eye over the closed-loop disc
+  const eyeOrigin = project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
+  const rimL = project(hubX - rxOut * 0.92, 0.05, hubZ - rzOut * 0.18);
+  const rimR = project(hubX + rxOut * 0.92, 0.05, hubZ - rzOut * 0.18);
+  if (eyeOrigin && rimL && rimR) {
+    ctx.save();
+    if (!isLight) ctx.globalCompositeOperation = 'lighter';
+    const veil = ctx.createLinearGradient(eyeOrigin.x, eyeOrigin.y, eyeOrigin.x, Math.max(rimL.y, rimR.y));
+    veil.addColorStop(0, rgba(tier1RGB, isLight ? 0.10 : 0.12));
+    veil.addColorStop(0.55, rgba(tier1RGB, isLight ? 0.03 : 0.032));
+    veil.addColorStop(1, rgba(tier1RGB, 0));
+    ctx.fillStyle = veil;
+    ctx.beginPath();
+    ctx.moveTo(eyeOrigin.x, eyeOrigin.y);
+    ctx.lineTo(rimL.x, rimL.y);
+    ctx.lineTo(rimR.x, rimR.y);
+    ctx.closePath();
+    ctx.fill();
+    // Delicate outer boundary sightlines framing the supervisory field
+    ctx.strokeStyle = rgba(tier1RGB, isLight ? 0.16 : 0.14);
+    ctx.lineWidth = 0.9;
+    ctx.setLineDash([4, 7]);
+    ctx.beginPath(); ctx.moveTo(eyeOrigin.x, eyeOrigin.y); ctx.lineTo(rimL.x, rimL.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(eyeOrigin.x, eyeOrigin.y); ctx.lineTo(rimR.x, rimR.y); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Translucent sculpted circular 24/7 closed-loop disc fill + crisp unbroken glowing rim
   ctx.beginPath();
   for (let i = 0; i <= 72; i++) {
     const a = (i / 72) * Math.PI * 2;
@@ -3228,17 +3266,17 @@ function drawHolo3DFrame(dt = 0.016) {
     if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
   }
   ctx.closePath();
-  ctx.fillStyle = isLight ? 'rgba(248, 245, 238, 0.66)' : rgba(arenaRGB, 0.048);
+  ctx.fillStyle = isLight ? 'rgba(248, 245, 238, 0.68)' : rgba(arenaRGB, 0.052);
   ctx.fill();
-  ctx.strokeStyle = rgba(arenaRGB, isLight ? 0.36 : 0.34);
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = rgba(hubRGB, isLight ? 0.44 : 0.42);
+  ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  // Outer perimeter precision orbital ring + whisper-thin middle track ring
-  draw3DRing(hubX, 0.01, hubZ, rxOut + 0.24, rzOut + 0.20, 72, rgba(arenaRGB, isLight ? 0.18 : 0.16), 1.0, [14, 10]);
-  draw3DRing(hubX, 0.01, hubZ, 2.95, 2.30, 64, rgba(hubRGB, isLight ? 0.14 : 0.12), 1.0, [4, 7]);
+  // Continuous closed-loop outer flow ring + whisper-thin inner guide ring
+  draw3DRing(hubX, 0.015, hubZ, rxOut + 0.22, rzOut + 0.18, 72, rgba(arenaRGB, isLight ? 0.20 : 0.18), 1.1, [14, 9], t * 0.08);
+  draw3DRing(hubX, 0.01, hubZ, 2.95, 2.15, 64, rgba(hubRGB, isLight ? 0.14 : 0.12), 1.0, [4, 7]);
 
-  // Crisp cardinal & minor compass ticks etched cleanly on the outer rim
+  // Crisp compass ticks etched cleanly around the closed-loop perimeter
   for (let k = 0; k < 24; k++) {
     const a = (k / 24) * Math.PI * 2;
     const isCard = k % 6 === 0;
@@ -3314,11 +3352,10 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // ==========================================================================
-  // 5. PURE HUB-AND-SPOKE RADIAL BEAMS + SMOOTH ORBITAL ARC FLOWS
-  // Zero jagged right-angle pipes! Smooth curved perimeter arcs + 4 glowing
-  // bidirectional radial spokes straight into the Central Verification Hub!
+  // 5. CLOSED-LOOP WORKFLOW CONDUITS + AKASHA EYE SUPERVISORY GUIDANCE BEAM
+  // Below: complete self-contained 24/7 closed-loop around Formal Verification.
+  // Above: living golden supervisory focus ray from the Eye of Akasha!
   // ==========================================================================
-  const activeId = state.hovered || state.selected;
 
   // Helper: render a smooth 3D polyline conduit with directional chevrons & photons
   const drawConduit3D = (waypoints, colorRGB, opts = {}) => {
@@ -3446,53 +3483,71 @@ function drawHolo3DFrame(dt = 0.016) {
 
   // NW Spoke: 数学攻坚 ⇄ 形式验证
   drawConduit3D(
-    [[-3.12, 0.06, -1.96], [-1.22, 0.16, -0.58]],
+    [[-3.20, 0.06, -1.42], [-1.22, 0.16, -0.28]],
     isBlueprint ? [150, 215, 255] : [45, 227, 184],
     { lw: thHot ? 3.2 : 2.3, alpha: thHot ? 0.98 : 0.78, particles: 4, speed: 0.46, bidir: true }
   );
   // W Spoke: 独立评审 ▸ 形式验证
   drawConduit3D(
-    [[-4.02, 0.06, 1.00], [-1.45, 0.16, 0.25]],
+    [[-4.02, 0.06, 1.05], [-1.45, 0.16, 0.50]],
     isBlueprint ? [150, 215, 255] : [168, 138, 250],
     { lw: rvHot ? 2.6 : 1.5, alpha: rvHot ? 0.94 : 0.45, particles: rvHot ? 3 : 1, speed: 0.42 }
   );
   // NE Spoke: 理论书写 ⇄ 形式验证
   drawConduit3D(
-    [[3.12, 0.06, -1.96], [1.22, 0.16, -0.58]],
+    [[3.20, 0.06, -1.42], [1.22, 0.16, -0.28]],
     isBlueprint ? [150, 215, 255] : [199, 140, 219],
     { lw: bkHot ? 3.2 : 2.3, alpha: bkHot ? 0.98 : 0.78, particles: 4, speed: 0.44, bidir: true }
   );
   // SE Spoke: 论文与知识 ⇄ 形式验证
   drawConduit3D(
-    [[2.18, 0.06, 2.80], [0.95, 0.16, 1.18]],
+    [[2.18, 0.06, 2.86], [0.95, 0.16, 1.48]],
     isBlueprint ? [150, 215, 255] : [74, 216, 176],
     { lw: pbHot ? 3.2 : 2.2, alpha: pbHot ? 0.98 : 0.74, particles: 4, speed: 0.42, bidir: true }
   );
   // SW Spoke: 学术交流 ⇄ 形式验证
   drawConduit3D(
-    [[-2.18, 0.06, 2.80], [-0.95, 0.16, 1.18]],
+    [[-2.18, 0.06, 2.86], [-0.95, 0.16, 1.48]],
     isBlueprint ? [150, 215, 255] : [240, 148, 90],
     { lw: coHot ? 3.2 : 2.2, alpha: coHot ? 0.98 : 0.74, particles: 4, speed: 0.42, bidir: true }
   );
 
-  // 2. SMOOTH CURVED ORBITAL PERIMETER ARCS (cleanly hugging the war-table circle!)
-  const dirHot = activeId === 'direction' || activeId === 'research';
+  // 2. COMPLETE UNBROKEN CLOSED-LOOP PERIMETER ARCS AROUND THE 6 AI DEPARTMENTS!
   const rrHot = activeId === 'research' || activeId === 'review';
   const sbHot = activeId === 'studio' || activeId === 'books';
   const poHot = activeId === 'publication' || activeId === 'outreach';
+  const loopClosedHot = activeId === 'research' || activeId === 'books';
+  const dirHot = activeId === 'direction';
   const fbHot = activeId === 'outreach' || activeId === 'direction';
 
-  drawConduit3D(arcPts('direction', 'research', 0.97, 12), tier1RGB,
-    { lw: dirHot ? 2.6 : 1.7, alpha: dirHot ? 0.94 : 0.56, particles: 2, speed: 0.34 });
+  // Upper closed-loop bridge closing the 24/7 AI workflow circle across the north rim (理论书写 ↺ 数学攻坚)
+  drawConduit3D(arcPts('books', 'research', 0.96, 18), isBlueprint ? [150, 215, 255] : [94, 237, 236],
+    { lw: loopClosedHot ? 2.4 : 1.5, alpha: loopClosedHot ? 0.88 : 0.46, dashed: true, particles: 3, speed: 0.28, chevrons: true });
   drawConduit3D(arcPts('research', 'review', 0.97, 10), isBlueprint ? [150, 215, 255] : [168, 138, 250],
-    { lw: rrHot ? 2.4 : 1.4, alpha: rrHot ? 0.92 : 0.42, particles: rrHot ? 2 : 0, speed: 0.45, bidir: true });
+    { lw: rrHot ? 2.4 : 1.5, alpha: rrHot ? 0.92 : 0.46, particles: rrHot ? 2 : 1, speed: 0.44, bidir: true });
+  drawConduit3D(arcPts('review', 'outreach', 0.97, 10), [180, 155, 210],
+    { lw: 1.2, alpha: 0.28, particles: 1, speed: 0.26, chevrons: false });
   drawConduit3D(arcPts('studio', 'books', 0.97, 10), [136, 184, 212],
-    { lw: sbHot ? 2.4 : 1.4, alpha: sbHot ? 0.92 : 0.42, particles: sbHot ? 2 : 0, speed: 0.40 });
+    { lw: sbHot ? 2.4 : 1.5, alpha: sbHot ? 0.92 : 0.46, particles: sbHot ? 2 : 1, speed: 0.40 });
+  drawConduit3D(arcPts('publication', 'studio', 0.97, 10), [110, 195, 200],
+    { lw: 1.2, alpha: 0.28, particles: 1, speed: 0.26, chevrons: false });
   drawConduit3D(arcPts('publication', 'outreach', 0.96, 12), [240, 148, 90],
-    { lw: poHot ? 2.4 : 1.4, alpha: poHot ? 0.92 : 0.42, particles: poHot ? 2 : 1, speed: 0.36 });
-  // Whisper-thin outer western macro-feedback arc: 学术交流 ↺ 研究方向
-  drawConduit3D(arcPts('outreach', 'direction', 1.10, 24), [240, 148, 90],
-    { lw: fbHot ? 2.2 : 1.1, alpha: fbHot ? 0.86 : 0.24, dashed: true, particles: fbHot ? 2 : 1, speed: 0.20, chevrons: fbHot });
+    { lw: poHot ? 2.4 : 1.5, alpha: poHot ? 0.92 : 0.46, particles: poHot ? 2 : 1, speed: 0.36 });
+
+  // 3. INDEPENDENT AKASHA EYE SUPERVISORY GUIDANCE BEAM & FEEDBACK UPLINK!
+  // Living golden supervisory laser ray descending from the Eye straight onto the active AI department!
+  const gTgt = gazeTarget;
+  drawConduit3D(
+    [[eyeCfg.x, eyeCfg.y - 0.16, eyeCfg.z], [gTgt.x, (gTgt.y || 0) + 0.95, gTgt.z]],
+    tier1RGB,
+    { lw: dirHot ? 2.6 : 1.8, alpha: dirHot ? 0.92 : 0.62, dashed: false, particles: 3, speed: 0.42, chevrons: true }
+  );
+  // Subtle upward feedback uplink curving from 学术交流 back to the Eye of Akasha
+  drawConduit3D(
+    [[-3.35, 0.08, 3.30], [-5.55, 0.35, 1.40], [-5.25, 1.55, -2.05], [-0.95, eyeCfg.y, eyeCfg.z]],
+    [240, 148, 90],
+    { lw: fbHot ? 2.2 : 1.1, alpha: fbHot ? 0.86 : 0.24, dashed: true, particles: fbHot ? 2 : 1, speed: 0.22, chevrons: fbHot }
+  );
 
   // 3. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
   for (const fl of holoCam.flares) {
@@ -3535,49 +3590,123 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.save();
     if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-    // Pedestal Hex Base Plate (grounded neatly on the circular war table)
-    draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.96 * bootK, cfg.r * 0.96 * bootK, 6, rgba(rgb, glowA * 0.72), isSel ? 1.9 : 1.2, null, Math.PI / 6);
-    draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.56 * bootK, cfg.r * 0.56 * bootK, 6, rgba(rgb, glowA * 0.38), 0.9, null, Math.PI / 6);
-    if (isSel) {
-      draw3DRing(cx3, yBase + 0.04, cz3, cfg.r * 1.36, cfg.r * 1.36, 6, rgba(rgb, 0.92), 1.8, [10, 6], t * 0.5);
+    // Pedestal Hex Base Plate (for the 7 grounded closed-loop entities — NOT the independent floating Eye!)
+    if (!cfg.eye) {
+      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.96 * bootK, cfg.r * 0.96 * bootK, 6, rgba(rgb, glowA * 0.72), isSel ? 1.9 : 1.2, null, Math.PI / 6);
+      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.56 * bootK, cfg.r * 0.56 * bootK, 6, rgba(rgb, glowA * 0.38), 0.9, null, Math.PI / 6);
+      if (isSel) {
+        draw3DRing(cx3, yBase + 0.04, cz3, cfg.r * 1.36, cfg.r * 1.36, 6, rgba(rgb, 0.92), 1.8, [10, 6], t * 0.5);
+      }
     }
 
     if (id === 'direction') {
-      // 01 HUMAN HELM (研究方向): Restrained, Regal Golden 4-Point Compass Rose Star!
-      // Compact & poised — integrates smoothly on the North rim without dominating the screen!
-      const sy = yBase + 0.56 * bootK;
-      draw3DSeg(project(cx3, yBase + 0.02, cz3), project(cx3, sy - 0.24 * bootK, cz3), rgba(rgb, 0.55), 1.6);
-      // Thin brass-gold outer compass ring + 8-tick bezel
-      draw3DRing(cx3, sy, cz3, 0.52 * bootK, 0.52 * bootK, 32, rgba(rgb, glowA * 0.85), 1.5, null, t * 0.22);
-      // Sculpted 3D 4-Pointed Star Compass Rose Needle (pointing North/South/East/West)
-      const rTip = 0.46 * bootK, rMid = 0.14 * bootK, hTop = 0.22 * bootK;
-      const topP = project(cx3, sy + hTop, cz3);
-      const botP = project(cx3, sy - hTop * 0.7, cz3);
-      const pts8 = [];
-      for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2 + Math.sin(t * 0.5) * 0.08;
-        const rad = k % 2 === 0 ? rTip : rMid;
-        pts8.push(project(cx3 + Math.cos(a) * rad, sy, cz3 + Math.sin(a) * rad));
-      }
-      if (topP && !pts8.some(p => !p)) {
+      // 01 INDEPENDENT SUPERVISORY LAYER: THE EYE OF AKASHA (阿卡西之眼 · 人类监管与指引)
+      // Hovering independently above the closed-loop workflow, with a living tracking iris!
+      const sy = yBase + Math.sin(t * 1.4) * 0.05;
+      const ePt = project(cx3, sy, cz3);
+      if (ePt) {
+        const sc = Math.max(0.65, ePt.s / 62) * bootK;
+        const wEye = 56 * sc;
+        const hEye = 24 * sc;
+
+        ctx.save();
+        ctx.translate(ePt.x, ePt.y);
+
+        // 1. Delicate outer Akasha sacred-geometry halo & rotating dashed constraint ring
+        ctx.strokeStyle = rgba(rgb, isLight ? 0.42 : 0.38);
+        ctx.lineWidth = 1.1;
+        ctx.setLineDash([4, 6]);
         ctx.beginPath();
-        pts8.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.fillStyle = rgba(rgb, fillA * 1.15);
-        ctx.fill();
-        ctx.strokeStyle = rgba([255, 238, 185], glowA);
-        ctx.lineWidth = 1.4;
+        ctx.arc(0, 0, wEye * 0.82, t * 0.25, t * 0.25 + Math.PI * 2);
         ctx.stroke();
-        for (let k = 0; k < 8; k += 2) {
-          draw3DSeg(topP, pts8[k], rgba([255, 240, 195], glowA * 0.9), 1.2);
-          if (botP) draw3DSeg(botP, pts8[k], rgba(rgb, glowA * 0.55), 1.0);
+        ctx.setLineDash([]);
+
+        // Delicate celestial eyebrow crown & lower supervisory arc
+        ctx.strokeStyle = rgba(rgb, isLight ? 0.58 : 0.52);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-wEye * 1.08, 0);
+        ctx.quadraticCurveTo(0, -hEye * 1.72, wEye * 1.08, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-wEye * 0.88, hEye * 0.12);
+        ctx.quadraticCurveTo(0, hEye * 1.55, wEye * 0.88, hEye * 0.12);
+        ctx.stroke();
+
+        // Subtle golden cardinal lashes / optical telemetry ticks around the eye
+        for (let k = -2; k <= 2; k++) {
+          const ang = -Math.PI / 2 + k * 0.32;
+          const r1 = hEye * 1.38, r2 = hEye * (k === 0 ? 1.85 : 1.62);
+          ctx.strokeStyle = rgba(rgb, isLight ? 0.65 : 0.68);
+          ctx.lineWidth = k === 0 ? 1.6 : 1.0;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(ang) * r1 * 1.25, Math.sin(ang) * r1);
+          ctx.lineTo(Math.cos(ang) * r2 * 1.25, Math.sin(ang) * r2);
+          ctx.stroke();
         }
-      }
-      // Subtle warm center gem (NOT a giant blinding fireball!)
-      const cGem = project(cx3, sy + 0.04, cz3);
-      if (cGem) {
-        ctx.fillStyle = rgba([255, 248, 220], 0.95);
-        ctx.beginPath(); ctx.arc(cGem.x, cGem.y, 3.6, 0, Math.PI * 2); ctx.fill();
+
+        // 2. Sculpted Almond (Vesica Piscis) Eye Aperture with luminous sclera glass fill
+        ctx.beginPath();
+        ctx.moveTo(-wEye, 0);
+        ctx.quadraticCurveTo(0, -hEye * 1.35, wEye, 0);
+        ctx.quadraticCurveTo(0,  hEye * 1.35, -wEye, 0);
+        ctx.closePath();
+        ctx.fillStyle = isLight ? 'rgba(255, 250, 236, 0.88)' : 'rgba(18, 14, 6, 0.78)';
+        ctx.fill();
+        ctx.strokeStyle = rgba([255, 224, 140], glowA);
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        // 3. Living Tracking Iris & Optical Aperture Blades (follows active department!)
+        ctx.save();
+        ctx.clip(); // Keep iris cleanly inside the almond eyelids!
+        const gxOff = Math.max(-1, Math.min(1, holoCam.gazeX / 5.2)) * (wEye * 0.24);
+        const gyOff = Math.max(-0.3, Math.min(1, (holoCam.gazeZ + 1.5) / 5.5)) * (hEye * 0.20);
+        const rIris = hEye * 0.76;
+
+        // Soft golden-cyan iris aura
+        const ig = ctx.createRadialGradient(gxOff, gyOff, 2, gxOff, gyOff, rIris * 1.25);
+        ig.addColorStop(0, rgba([255, 248, 215], 0.96));
+        ig.addColorStop(0.36, rgba(rgb, 0.88));
+        ig.addColorStop(0.75, rgba(isBlueprint ? [150, 215, 255] : [94, 237, 236], 0.55));
+        ig.addColorStop(1, rgba(rgb, 0));
+        ctx.fillStyle = ig;
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 1.25, 0, Math.PI * 2); ctx.fill();
+
+        // Precision segmented iris ring + 12 rotating optical aperture spokes
+        ctx.strokeStyle = rgba([255, 235, 165], 0.95);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = rgba([94, 237, 236], 0.78);
+        ctx.lineWidth = 1.0;
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 0.58, 0, Math.PI * 2); ctx.stroke();
+        for (let b = 0; b < 12; b++) {
+          const ba = (b / 12) * Math.PI * 2 + t * 0.45;
+          ctx.strokeStyle = rgba(rgb, 0.55);
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(gxOff + Math.cos(ba) * rIris * 0.56, gyOff + Math.sin(ba) * rIris * 0.56);
+          ctx.lineTo(gxOff + Math.cos(ba) * rIris * 0.98, gyOff + Math.sin(ba) * rIris * 0.98);
+          ctx.stroke();
+        }
+
+        // Sharp dark vertical diamond pupil + bright white specular glint (living gaze!)
+        ctx.fillStyle = isLight ? '#2c1e06' : '#050810';
+        ctx.beginPath();
+        ctx.arc(gxOff, gyOff, rIris * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 252, 240, 0.98)';
+        ctx.beginPath();
+        ctx.arc(gxOff - rIris * 0.14, gyOff - rIris * 0.14, Math.max(1.8, rIris * 0.12), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Crisp inner corner diamond nodes at left & right eye tips
+        for (const sx of [-wEye, wEye]) {
+          ctx.fillStyle = rgba([255, 236, 175], 0.95);
+          ctx.beginPath(); ctx.arc(sx, 0, 2.4, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
       }
     } else if (id === 'research') {
       // 02 MATH RESEARCH (数学攻坚): Emerald Firing Neural-Brain Cortex Polyhedron!
@@ -3869,18 +3998,20 @@ function drawHolo3DFrame(dt = 0.016) {
     const pulseObj = holoCam.pulses.find(p => p.id === d.id);
     const pulseBoost = pulseObj ? (1 - pulseObj.age) : 0;
 
-    // Ground glow aura
-    const gPt = project(cfg.x, yBase + 0.02, cfg.z);
-    if (gPt) {
-      const gRad = cfg.r * gPt.s * (isSel ? 1.9 : running ? 1.45 : 1.1) * bootK;
-      const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
-      glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.38 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
-      glow.addColorStop(1, rgba(rgb, 0));
-      ctx.fillStyle = glow;
-      ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+    // Ground glow aura (for grounded workflow entities; Eye floats cleanly above in deep space!)
+    if (!cfg.eye) {
+      const gPt = project(cfg.x, yBase + 0.02, cfg.z);
+      if (gPt) {
+        const gRad = cfg.r * gPt.s * (isSel ? 1.9 : running ? 1.45 : 1.1) * bootK;
+        const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
+        glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.38 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
+        glow.addColorStop(1, rgba(rgb, 0));
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+      }
     }
 
-    if (isSel && !isLight) {
+    if (isSel && !isLight && !cfg.eye) {
       const topBeam = project(cfg.x, yBase + hEntity + 1.05, cfg.z);
       const botBeam = project(cfg.x, yBase, cfg.z);
       if (topBeam && botBeam) {
@@ -3899,13 +4030,13 @@ function drawHolo3DFrame(dt = 0.016) {
 
     drawBiomimetic(d.id, cfg, hEntity, yBase, rgb, isSel, running, bootK, pulseBoost);
 
-    // Anchor sleek mission card cleanly above North Helm or below each orbital sculpture (ZERO occlusion!)
+    // Anchor sleek mission card cleanly above Akasha Eye or below each closed-loop sculpture!
     const anchorPt = cfg.apex
-      ? project(cfg.x, yBase + 1.02, cfg.z)
+      ? project(cfg.x, yBase + 0.72, cfg.z)
       : project(cfg.x, yBase - 0.06, cfg.z + cfg.r * (d.id === 'verification' ? 0.94 : 0.74));
-    const bodyCenter = project(cfg.x, yBase + hEntity * 0.5, cfg.z);
+    const bodyCenter = project(cfg.x, yBase + (cfg.eye ? 0.0 : hEntity * 0.5), cfg.z);
     if (anchorPt && bodyCenter) {
-      holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(42, cfg.r * bodyCenter.s * 1.45) });
+      holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(46, cfg.r * bodyCenter.s * 1.45) });
       const cell = state.cells.get(d.id);
       if (cell) {
         const depthScale = Math.max(0.84, Math.min(1.04, 14.5 / anchorPt.z));
@@ -3919,11 +4050,12 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   }
 
-  // Whisper-clean unboxed holographic captions along the 4 hub spokes (NO floating box clutter!)
-  drawHoloText(-2.15, 0.22, -1.35, '理论 ⇄ 验证请求', isLight ? [4, 120, 87] : [125, 255, 224], thHot);
-  drawHoloText( 2.15, 0.22, -1.35, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [229, 198, 255], bkHot);
-  drawHoloText(-1.08, 0.04,  3.20, '合作 ▸ 验证请求', isLight ? [180, 83, 9] : [255, 209, 168], coHot);
-  drawHoloText( 1.08, 0.04,  3.20, '论文 ⇄ Lean 目标', isLight ? [4, 120, 87] : [157, 245, 220], pbHot);
+  // Whisper-clean unboxed holographic captions along the 4 hub spokes & closed-loop north arc
+  drawHoloText( 0.0,  0.14, -3.22, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [138, 240, 238], loopClosedHot);
+  drawHoloText(-2.15, 0.22, -0.95, '理论 ⇄ 验证请求', isLight ? [4, 120, 87] : [125, 255, 224], thHot);
+  drawHoloText( 2.15, 0.22, -0.95, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [229, 198, 255], bkHot);
+  drawHoloText(-1.08, 0.04,  3.42, '合作 ▸ 验证请求', isLight ? [180, 83, 9] : [255, 209, 168], coHot);
+  drawHoloText( 1.08, 0.04,  3.42, '论文 ⇄ Lean 目标', isLight ? [4, 120, 87] : [157, 245, 220], pbHot);
 }
 
 function startHoloLoop() {
