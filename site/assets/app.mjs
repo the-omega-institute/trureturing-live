@@ -3,6 +3,7 @@ const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
 const cacheKey = 'trureturing-live.hive.content.v7';
 const themeKey = 'trureturing-live.theme.v2';
+const logModeKey = 'trureturing-live.log-mode.v1';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const state = {
@@ -2618,6 +2619,7 @@ function renderLive() {
     renderLiveOps();
     renderBooks();
     if (state.mode === 'journey') renderJourney();
+    renderLatestSciFiLog();
     updateControls();
   });
 }
@@ -3336,15 +3338,38 @@ const scifiLog = {
   nextGap: 0.34,
   cursor: 0,
   pktCount: 0,
-  paused: false,
   hoverPaused: false,
-  seeded: false
+  seeded: false,
+  mode: 'latest',
+  latestSignature: null,
+  latestKeys: new Set()
 };
 
 function fmtClockMs(offsetMs = 0) {
   const d = new Date(Date.now() + offsetMs);
   const pad = (n, len = 2) => String(n).padStart(len, '0');
   return `${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
+}
+
+// One readable log entry for a real public activity; null for CI boilerplate.
+function activityLogEntry(a) {
+  if (['research', 'books'].includes(a.department) && technical.test(a.label)) return null;
+  const d = department(a.department);
+  const title = cleanWorkTitle(a, d || { id: a.department });
+  if (isGenericAutomationTitle(title)) return null;
+  if (a.kind === 'automation') {
+    return { tag: 'VERIFY', tone: 'cyan', deptId: a.department, targetId: 'research', text: `形式验证 ▸ 核验：${title}` };
+  }
+  if (a.department === 'books') {
+    return { tag: 'CODEX', tone: 'violet', deptId: 'books', targetId: 'verification', text: `理论书写 ▸ ${title}` };
+  }
+  if (a.department === 'publication') {
+    return { tag: 'PAPER', tone: 'live', deptId: 'publication', targetId: 'verification', text: `论文与知识 ▸ ${title}` };
+  }
+  if (a.department === 'studio') {
+    return { tag: 'FORGE', tone: 'cyan', deptId: 'studio', targetId: 'books', text: `工具与表达 ▸ ${title}` };
+  }
+  return { tag: 'PROOF', tone: 'live', deptId: a.department, targetId: 'verification', text: `${d?.label || '数学攻坚'} ▸ ${title}` };
 }
 
 function buildSciFiLogPool() {
@@ -3390,21 +3415,8 @@ function buildSciFiLogPool() {
 
   // 2. Concrete deduplicated recent non-boilerplate activities (NEVER bare CI noise!)
   for (const a of (view()?.recent || []).slice(0, 40)) {
-    if (['research', 'books'].includes(a.department) && technical.test(a.label)) continue;
-    const d = department(a.department);
-    const title = cleanWorkTitle(a, d || { id: a.department });
-    if (isGenericAutomationTitle(title)) continue;
-    if (a.kind === 'automation') {
-      add({ tag: 'VERIFY', tone: 'cyan', deptId: a.department, targetId: 'research', text: `形式验证 ▸ 核验：${title}` });
-    } else if (a.department === 'books') {
-      add({ tag: 'CODEX', tone: 'violet', deptId: 'books', targetId: 'verification', text: `理论书写 ▸ ${title}` });
-    } else if (a.department === 'publication') {
-      add({ tag: 'PAPER', tone: 'live', deptId: 'publication', targetId: 'verification', text: `论文与知识 ▸ ${title}` });
-    } else if (a.department === 'studio') {
-      add({ tag: 'FORGE', tone: 'cyan', deptId: 'studio', targetId: 'books', text: `工具与表达 ▸ ${title}` });
-    } else {
-      add({ tag: 'PROOF', tone: 'live', deptId: a.department, targetId: 'verification', text: `${d?.label || '数学攻坚'} ▸ ${title}` });
-    }
+    const entry = activityLogEntry(a);
+    if (entry) add(entry);
   }
 
   // 3. Cross-department real citation relays
@@ -3422,17 +3434,11 @@ function buildSciFiLogPool() {
   return pool.length ? pool : [{ tag: 'BOOT', tone: 'cyan', deptId: 'verification', text: '正在接入全院实时研究战报流…' }];
 }
 
-function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
-  const container = $('#scifi-log-stream');
-  if (!container) return;
-  scifiLog.pktCount += 1;
-  const pktEl = $('#log-pkt-count');
-  if (pktEl) pktEl.textContent = `PKT #${String(scifiLog.pktCount).padStart(4, '0')}`;
-
-  const row = element('button', '', `scifi-log-line is-${entry.tone || 'cyan'}${animate ? ' is-fresh' : ''}`);
+function sciFiLogRow(entry, fresh, clock) {
+  const row = element('button', '', `scifi-log-line is-${entry.tone || 'cyan'}${fresh ? ' is-fresh' : ''}`);
   row.type = 'button';
   row.append(
-    element('span', fmtClockMs(offsetMs), 'log-ts'),
+    element('span', clock, 'log-ts'),
     element('span', entry.tag, 'log-tag'),
     element('span', entry.text, 'log-msg')
   );
@@ -3442,7 +3448,16 @@ function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
       else previewDepartment(entry.deptId);
     });
   }
-  container.append(row);
+  return row;
+}
+
+function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
+  const container = $('#scifi-log-stream');
+  if (!container) return;
+  scifiLog.pktCount += 1;
+  const pktEl = $('#log-pkt-count');
+  if (pktEl) pktEl.textContent = `PKT #${String(scifiLog.pktCount).padStart(4, '0')}`;
+  container.append(sciFiLogRow(entry, animate, fmtClockMs(offsetMs)));
   while (container.children.length > 30) container.firstElementChild?.remove();
 
   if (animate && entry.deptId) {
@@ -3453,12 +3468,77 @@ function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
   }
 }
 
+// Latest mode: real public events in time order, newest last; rows change only on a new observation.
+function eventClock(value) {
+  const t = timestamp(value);
+  if (!Number.isFinite(t)) return '--:--:--';
+  const d = new Date(t);
+  const pad = n => String(n).padStart(2, '0');
+  return Date.now() - t < 86400000
+    ? `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    : `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// Each distinct line appears once, at the time of its newest event.
+function latestSciFiLogEntries() {
+  const byLine = new Map();
+  const rows = (view()?.recent || [])
+    .filter(a => Number.isFinite(timestamp(a.at)))
+    .sort((a, b) => timestamp(a.at) - timestamp(b.at));
+  for (const a of rows) {
+    const entry = activityLogEntry(a);
+    if (!entry) continue;
+    const line = `${entry.tag}:${entry.text}`;
+    byLine.delete(line);
+    byLine.set(line, { ...entry, key: eventKey(a), at: a.at });
+  }
+  return [...byLine.values()].slice(-30);
+}
+
+function renderLatestSciFiLog() {
+  const container = $('#scifi-log-stream');
+  if (!container || scifiLog.mode !== 'latest' || !view()) return;
+  const entries = latestSciFiLogEntries();
+  const signature = entries.map(e => e.key).join('|');
+  if (signature === scifiLog.latestSignature) return;
+  const firstPaint = scifiLog.latestSignature === null;
+  const shown = scifiLog.latestKeys;
+  container.replaceChildren(...entries.map(e => sciFiLogRow(e, !firstPaint && !shown.has(e.key), eventClock(e.at))));
+  if (!entries.length) container.append(sciFiLogRow({ tag: 'IDLE', tone: 'muted', text: '暂无新的公开事件' }, false, '--:--:--'));
+  scifiLog.latestKeys = new Set(entries.map(e => e.key));
+  scifiLog.latestSignature = signature;
+  const pktEl = $('#log-pkt-count');
+  if (pktEl) pktEl.textContent = `${entries.length} 条最新`;
+}
+
+function setLogMode(mode) {
+  scifiLog.mode = mode === 'cycle' ? 'cycle' : 'latest';
+  for (const btn of document.querySelectorAll('[data-log-mode]')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.logMode === scifiLog.mode));
+  }
+  const badge = $('#log-rate-badge');
+  if (badge) badge.textContent = scifiLog.mode === 'cycle' ? 'HIGH-DENSITY INTEL · 轮播' : 'LATEST · 最新在下';
+  $('#scifi-log-stream')?.replaceChildren();
+  scifiLog.seeded = false;
+  scifiLog.acc = 0;
+  scifiLog.cursor = 0;
+  scifiLog.latestSignature = null;
+  scifiLog.latestKeys = new Set();
+  renderLatestSciFiLog();
+}
+
 function stepSciFiLog(dt) {
   const container = $('#scifi-log-stream');
   if (!container || /jsdom/i.test(navigator.userAgent || '')) return;
 
-  // Seed initial burst of 22 staggered high-density lines immediately on frame 1!
-  if (!scifiLog.seeded && view()) {
+  const motion = !state.quiet && !reduced;
+  const rolling = scifiLog.mode === 'cycle' && motion && !scifiLog.hoverPaused;
+  const spec = $('#log-spectrum');
+  if (spec) spec.classList.toggle('is-paused', !rolling);
+  if (!view()) return;
+
+  // Cycle mode seeds an initial burst of 22 staggered high-density lines on its first frame.
+  if (scifiLog.mode === 'cycle' && !scifiLog.seeded) {
     scifiLog.seeded = true;
     const pool = buildSciFiLogPool();
     for (let i = 0; i < 22; i++) {
@@ -3467,11 +3547,7 @@ function stepSciFiLog(dt) {
     scifiLog.cursor = 22;
   }
 
-  const spec = $('#log-spectrum');
-  const activeRun = !state.quiet && !reduced && !scifiLog.paused && !scifiLog.hoverPaused;
-  if (spec) spec.classList.toggle('is-paused', !activeRun);
-
-  if (!activeRun || !view()) return;
+  if (!motion) return;
 
   // Cycle live department mission readouts smoothly across active tasks every ~4.2s
   scifiLog.missionAcc += dt;
@@ -3496,6 +3572,7 @@ function stepSciFiLog(dt) {
     }
   }
 
+  if (!rolling) return;
   scifiLog.acc += dt;
   if (scifiLog.acc >= scifiLog.nextGap) {
     scifiLog.acc = 0;
@@ -3512,14 +3589,19 @@ if (logWallEl) {
   logWallEl.addEventListener('pointerenter', () => { scifiLog.hoverPaused = true; });
   logWallEl.addEventListener('pointerleave', () => { scifiLog.hoverPaused = false; });
 }
-$('#log-pause-btn')?.addEventListener('click', () => {
-  scifiLog.paused = !scifiLog.paused;
-  const btn = $('#log-pause-btn');
-  if (btn) {
-    btn.textContent = scifiLog.paused ? 'HOLD' : 'LIVE';
-    btn.classList.toggle('is-paused', scifiLog.paused);
-  }
-});
+for (const btn of document.querySelectorAll('[data-log-mode]')) {
+  btn.addEventListener('click', () => {
+    setLogMode(btn.dataset.logMode);
+    try {
+      localStorage.setItem(logModeKey, scifiLog.mode);
+    } catch {}
+  });
+}
+try {
+  setLogMode(localStorage.getItem(logModeKey) || 'latest');
+} catch {
+  setLogMode('latest');
+}
 
 // ============================================================================
 // MAIN 3D BIOMIMETIC RENDER FRAME
