@@ -3327,6 +3327,335 @@ function renderHoloSky() {
 }
 
 // ============================================================================
+// MATRIX XP FLIGHTS
+// Each new real matrix entry launches a comet from its log line to its
+// department building. Arrival effects are ranked by importance, and launches
+// are paced so bursts read as a steady stream of gains rather than noise.
+// ============================================================================
+const XP_QUEUE_CAP = 12;
+const XP_MAX_ACTIVE = 4;
+const XP_GLOBAL_GAP = 380;
+const XP_DEPT_GAP = 2400;
+const XP_TIER_GAP = { 3: 2600, 2: 1100, 1: 450, '-1': 900 };
+const XP_TTL = { 3: 60000, 2: 25000, 1: 15000, '-1': 15000 };
+const XP_FLIGHT_MS = { 3: 1500, 2: 1150, 1: 900, '-1': 800 };
+const XP_GOLD = [244, 197, 83];
+const XP_RED = [251, 113, 133];
+const xpFlowTarget = {
+  direction: 'research',
+  research: 'review',
+  review: 'verification',
+  verification: 'publication',
+  publication: 'outreach',
+  outreach: 'verification',
+  books: 'verification',
+  studio: 'books'
+};
+const xpFx = { queue: [], flights: [], bursts: [], mem: { lastLaunch: null, lastByTier: {}, lastByDept: {} }, painted: false };
+
+// Importance of a public event: 3 = a result landed (level up), 2 = a new
+// question or submission, 1 = routine checks and discussion, -1 = failed check,
+// 0 = no flight.
+function xpPlanFor(a) {
+  if (a.kind === 'contribution' && a.status === 'merged') return { tier: 3, label: '成果合入' };
+  if (a.kind === 'automation') {
+    if (a.status === 'failed') return { tier: -1, label: '检验未通过' };
+    if (a.status === 'cancelled') return { tier: 0, label: '' };
+    return { tier: 1, label: a.status === 'succeeded' ? '核验通过' : '核验' };
+  }
+  if (a.kind === 'task') return { tier: 2, label: '新课题' };
+  if (a.kind === 'contribution') return { tier: 2, label: '新提交' };
+  if (a.kind === 'discussion') return { tier: 1, label: '讨论' };
+  return { tier: 1, label: '动态' };
+}
+
+const xpRank = q => (q.tier === 3 ? 3 : q.tier === 2 ? 2 : q.tier === 1 ? 1 : 0.5);
+
+function enqueueXp(queue, item, now) {
+  if (!item.tier) return queue;
+  const next = queue.map(q => ({ ...q }));
+  if (Math.abs(item.tier) === 1) {
+    const same = next.find(q => q.deptId === item.deptId && q.tier === item.tier);
+    if (same) {
+      same.count += 1;
+      same.key = item.key;
+      return next;
+    }
+  }
+  next.push({ ...item, count: 1, queuedAt: now });
+  while (next.length > XP_QUEUE_CAP) {
+    let drop = 0;
+    next.forEach((q, i) => { if (xpRank(q) < xpRank(next[drop])) drop = i; });
+    next.splice(drop, 1);
+  }
+  return next;
+}
+
+function nextXpLaunch(queue, now, mem, active) {
+  // A missing time means never launched, which places no gap constraint.
+  if (active >= XP_MAX_ACTIVE || now - (mem.lastLaunch ?? -Infinity) < XP_GLOBAL_GAP) return -1;
+  let best = -1;
+  queue.forEach((q, i) => {
+    if (now - q.queuedAt > XP_TTL[q.tier]) return;
+    if (now - (mem.lastByTier[q.tier] ?? -Infinity) < XP_TIER_GAP[q.tier]) return;
+    if (Math.abs(q.tier) === 1 && now - (mem.lastByDept[q.deptId] ?? -Infinity) < XP_DEPT_GAP) return;
+    if (best < 0 || xpRank(q) > xpRank(queue[best])) best = i;
+  });
+  return best;
+}
+
+function queueXpFlight(entry, now = performance.now()) {
+  if (reduced || state.quiet || document.hidden || !entry.deptId) return;
+  xpFx.queue = enqueueXp(xpFx.queue, { key: entry.key, deptId: entry.deptId, tier: entry.tier, label: entry.xpLabel }, now);
+}
+
+const xpColor = item => (item.tier === 3 ? XP_GOLD : item.tier === -1 ? XP_RED : holoWorld[item.deptId]?.hex || [94, 237, 236]);
+const xpOnScreen = r => r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+
+function xpSourcePoint(key) {
+  const stream = $('#scifi-log-stream');
+  const area = stream?.getBoundingClientRect();
+  if (!stream || !area || !xpOnScreen(area)) {
+    const metrics = $('#institute-metrics')?.getBoundingClientRect();
+    return metrics && xpOnScreen(metrics) ? { x: metrics.left + metrics.width / 2, y: metrics.bottom } : null;
+  }
+  const row = [...stream.querySelectorAll('[data-log-key]')].find(r => r.dataset.logKey === key);
+  const box = row?.getBoundingClientRect();
+  if (row && box.bottom > area.top && box.top < area.bottom) {
+    row.classList.remove('is-xp-launch');
+    void row.offsetWidth;
+    row.classList.add('is-xp-launch');
+    const tag = row.querySelector('.log-tag')?.getBoundingClientRect() || box;
+    return { x: tag.left + tag.width / 2, y: tag.top + tag.height / 2 };
+  }
+  return { x: area.left + area.width / 2, y: area.bottom - 14 };
+}
+
+function xpTargetPoint(deptId) {
+  if (state.mode !== 'organization' || state.focused) return null;
+  const canvas = $('#holo-3d');
+  const tower = holoCam.projectedTowers.get(deptId);
+  if (canvas && tower) {
+    const c = canvas.getBoundingClientRect();
+    const p = { x: c.left + tower.x, y: c.top + tower.y, r: tower.r };
+    if (p.x > c.left && p.x < c.right && p.y > c.top && p.y < c.bottom && p.y > 0 && p.y < innerHeight) return p;
+  }
+  const cell = state.cells.get(deptId)?.button?.getBoundingClientRect();
+  return cell && xpOnScreen(cell) ? { x: cell.left + cell.width / 2, y: cell.top + cell.height / 2, r: 30 } : null;
+}
+
+function xpBezier(from, to, e) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  let nx = -dy / len;
+  let ny = dx / len;
+  if (ny > 0) { nx = -nx; ny = -ny; }
+  const lift = Math.min(220, len * 0.32);
+  const cx = (from.x + to.x) / 2 + nx * lift;
+  const cy = (from.y + to.y) / 2 + ny * lift;
+  const k = 1 - e;
+  return { x: k * k * from.x + 2 * k * e * cx + e * e * to.x, y: k * k * from.y + 2 * k * e * cy + e * e * to.y };
+}
+
+function xpParticles(n, speed, lift) {
+  return Array.from({ length: n }, () => {
+    const a = Math.random() * Math.PI * 2;
+    const v = speed * (0.35 + Math.random() * 0.65);
+    return { vx: Math.cos(a) * v, vy: Math.sin(a) * v - lift * Math.random() };
+  });
+}
+
+function flashXpCell(deptId, cls, ms) {
+  const button = state.cells.get(deptId)?.button;
+  if (!button) return;
+  button.classList.remove(cls);
+  void button.offsetWidth;
+  button.classList.add(cls);
+  setTimeout(() => button.classList.remove(cls), ms);
+}
+
+// Texts arriving at a department that still shows one stack upward instead of overlapping.
+function xpTextTop(deptId, base, now, bursts = xpFx.bursts) {
+  let shift = 0;
+  for (const b of bursts) {
+    if (b.kind === 'text' && b.deptId === deptId && now - b.start < b.dur) shift += b.pop ? 56 : 24;
+  }
+  return base - shift;
+}
+
+function xpArrive(item, target, now) {
+  const rgb = xpColor(item);
+  const { x, y } = target;
+  const top = xpTextTop(item.deptId, y - (target.r || 30) * 0.9, now);
+  if (item.tier === 3) {
+    for (let k = 0; k < 3; k++) xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now + k * 140, dur: 950, maxR: 64 + k * 38, width: 3.2 - k * 0.7 });
+    xpFx.bursts.push({ kind: 'sparks', x, y, rgb, start: now, dur: 1300, parts: xpParticles(36, 230, 160) });
+    xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 2100, text: 'LEVEL UP', sub: `${department(item.deptId)?.label || ''} · ${item.label} +1`, size: 26, rise: 48, pop: true });
+    flashXpCell(item.deptId, 'is-level-up', 1700);
+    spawnHoloPulse(item.deptId, 1.25);
+    if (xpFlowTarget[item.deptId]) spawnSpokeFlare(item.deptId, xpFlowTarget[item.deptId]);
+  } else if (item.tier === 2) {
+    xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now, dur: 700, maxR: 40, width: 2.4 });
+    xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now + 110, dur: 760, maxR: 62, width: 1.6 });
+    xpFx.bursts.push({ kind: 'sparks', x, y, rgb, start: now, dur: 900, parts: xpParticles(16, 130, 60) });
+    xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 1400, text: `+1 ${item.label}`, size: 15, rise: 36 });
+    flashXpCell(item.deptId, 'is-xp-hit', 900);
+    spawnHoloPulse(item.deptId, 0.95);
+  } else if (item.tier === -1) {
+    xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now, dur: 620, maxR: 26, width: 2 });
+    xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 1200, text: `✕ ${item.label}`, size: 12, rise: 22 });
+  } else {
+    xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now, dur: 540, maxR: 26, width: 1.8 });
+    xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 1050, text: `+${item.count} ${item.label}`, size: 13, rise: 26 });
+    spawnHoloPulse(item.deptId, 0.6);
+  }
+}
+
+function launchXpFlight(item, now) {
+  xpFx.mem.lastLaunch = now;
+  xpFx.mem.lastByTier[item.tier] = now;
+  xpFx.mem.lastByDept[item.deptId] = now;
+  const target = xpTargetPoint(item.deptId);
+  if (!target) return;
+  const from = xpSourcePoint(item.key);
+  if (!from) {
+    xpArrive(item, target, now);
+    return;
+  }
+  xpFx.flights.push({ item, from, target, start: now, dur: XP_FLIGHT_MS[item.tier], trail: [], sparks: [] });
+}
+
+function drawXpComet(ctx, f, pos, now) {
+  const rgb = xpColor(f.item);
+  const size = f.item.tier === 3 ? 7 : f.item.tier === 2 ? 5 : 3.4;
+  ctx.lineCap = 'round';
+  for (let i = 1; i < f.trail.length; i++) {
+    const a = i / f.trail.length;
+    ctx.strokeStyle = rgba(rgb, 0.55 * a);
+    ctx.lineWidth = size * 1.6 * a;
+    ctx.beginPath();
+    ctx.moveTo(f.trail[i - 1].x, f.trail[i - 1].y);
+    ctx.lineTo(f.trail[i].x, f.trail[i].y);
+    ctx.stroke();
+  }
+  const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size * 4.2);
+  glow.addColorStop(0, rgba([255, 255, 255], 0.95));
+  glow.addColorStop(0.25, rgba(rgb, 0.9));
+  glow.addColorStop(1, rgba(rgb, 0));
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, size * 4.2, 0, Math.PI * 2);
+  ctx.fill();
+  if (f.item.tier >= 2 && Math.random() < (f.item.tier === 3 ? 0.9 : 0.45)) {
+    f.sparks.push({ x: pos.x, y: pos.y, vx: (Math.random() - 0.5) * 70, vy: (Math.random() - 0.5) * 70, born: now });
+  }
+  f.sparks = f.sparks.filter(s => {
+    const age = (now - s.born) / 1000;
+    if (age > 0.55) return false;
+    const k = 1 - age / 0.55;
+    ctx.fillStyle = rgba(rgb, 0.8 * k);
+    ctx.beginPath();
+    ctx.arc(s.x + s.vx * age, s.y + s.vy * age, 1.6 * k + 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    return true;
+  });
+}
+
+function drawXpBurst(ctx, b, now, light) {
+  const age = now - b.start;
+  if (age < 0) return true;
+  const p = age / b.dur;
+  if (p >= 1) return false;
+  if (b.kind === 'ring') {
+    ctx.strokeStyle = rgba(b.rgb, 0.85 * (1 - p));
+    ctx.lineWidth = b.width * (1 - p) + 0.6;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.maxR * (1 - Math.pow(1 - p, 3)), 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (b.kind === 'sparks') {
+    const t = age / 1000;
+    ctx.fillStyle = rgba(b.rgb, 0.9 * (1 - p));
+    for (const s of b.parts) {
+      ctx.beginPath();
+      ctx.arc(b.x + s.vx * t, b.y + s.vy * t + 110 * t * t, 2.2 * (1 - p) + 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    const alpha = Math.min(1, p / 0.12) * (p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1);
+    const y = b.y - b.rise * (1 - Math.pow(1 - p, 2));
+    const scale = b.pop ? 1 + 0.45 * Math.max(0, 1 - p / 0.16) : 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = b.pop ? 5 : 3;
+    ctx.strokeStyle = light ? `rgba(255, 255, 255, ${0.85 * alpha})` : `rgba(1, 6, 3, ${0.8 * alpha})`;
+    ctx.fillStyle = rgba(b.rgb, alpha);
+    ctx.font = `800 ${(b.size * scale).toFixed(1)}px "Geist Mono", ui-monospace, Menlo, "PingFang SC", monospace`;
+    ctx.strokeText(b.text, b.x, y);
+    ctx.fillText(b.text, b.x, y);
+    if (b.sub) {
+      ctx.font = '700 12px "Geist Mono", ui-monospace, Menlo, "PingFang SC", monospace';
+      ctx.lineWidth = 3;
+      ctx.strokeText(b.sub, b.x, y + 17);
+      ctx.fillText(b.sub, b.x, y + 17);
+    }
+    ctx.restore();
+  }
+  return true;
+}
+
+function xpLayer() {
+  const canvas = $('#xp-layer');
+  if (!canvas) return null;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.round(innerWidth * dpr);
+  const h = Math.round(innerHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  const ctx = canvas.getContext('2d');
+  if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+function stepXpFlights(now) {
+  if (!xpFx.queue.length && !xpFx.flights.length && !xpFx.bursts.length && !xpFx.painted) return;
+  const ctx = xpLayer();
+  if (!ctx) return;
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  if (state.quiet || reduced) {
+    xpFx.queue = [];
+    xpFx.flights = [];
+    xpFx.bursts = [];
+    xpFx.painted = false;
+    return;
+  }
+  xpFx.queue = xpFx.queue.filter(q => now - q.queuedAt <= XP_TTL[q.tier]);
+  const next = nextXpLaunch(xpFx.queue, now, xpFx.mem, xpFx.flights.length);
+  if (next >= 0) launchXpFlight(xpFx.queue.splice(next, 1)[0], now);
+  const light = document.documentElement.dataset.theme === 'light';
+  ctx.globalCompositeOperation = light ? 'source-over' : 'lighter';
+  xpFx.flights = xpFx.flights.filter(f => {
+    f.target = xpTargetPoint(f.item.deptId) || f.target;
+    const p = Math.min(1, (now - f.start) / f.dur);
+    const pos = xpBezier(f.from, f.target, p * p * (3 - 2 * p));
+    f.trail.push(pos);
+    if (f.trail.length > 22) f.trail.shift();
+    drawXpComet(ctx, f, pos, now);
+    if (p < 1) return true;
+    xpArrive(f.item, f.target, now);
+    return false;
+  });
+  xpFx.bursts = xpFx.bursts.filter(b => drawXpBurst(ctx, b, now, light));
+  ctx.globalCompositeOperation = 'source-over';
+  xpFx.painted = xpFx.flights.length > 0 || xpFx.bursts.length > 0;
+}
+
+// ============================================================================
 // HIGH-DENSITY SCI-FI WAR-ROOM INTEL STREAM (#scifi-log-stream)
 // Purges repetitive CI/Actions boilerplate; broadcasts concrete theorems,
 // verifications, book chapters, Mathesis papers & engineering intel while
@@ -3342,6 +3671,8 @@ const scifiLog = {
   seeded: false,
   mode: 'cycle',
   history: new Map(),
+  primed: false,
+  holdUntil: 0,
   painted: false,
   stick: true,
   unseen: 0
@@ -3496,7 +3827,8 @@ function collectSciFiLogHistory() {
     if (scifiLog.history.has(key)) continue;
     const entry = activityLogEntry(a);
     if (!entry) continue;
-    scifiLog.history.set(key, { ...entry, key, at: a.at, t });
+    const plan = xpPlanFor(a);
+    scifiLog.history.set(key, { ...entry, key, at: a.at, t, tier: plan.tier, xpLabel: plan.label });
     added.add(key);
   }
   if (scifiLog.history.size > LOG_SCROLLBACK) {
@@ -3528,6 +3860,9 @@ function renderLatestSciFiLog() {
   if (!container || !view()) return;
   // The scrollback records every observation, including those seen while rolling.
   const added = collectSciFiLogHistory();
+  const announce = scifiLog.primed;
+  scifiLog.primed = true;
+  if (announce && added.size) announceMatrixArrivals(added);
   if (scifiLog.mode !== 'latest') return;
   if (scifiLog.painted && !added.size) return;
   const firstPaint = !scifiLog.painted;
@@ -3536,6 +3871,7 @@ function renderLatestSciFiLog() {
   container.replaceChildren(...entries.map(e => {
     const row = sciFiLogRow(e, !firstPaint && added.has(e.key), eventClock(e.at));
     row.dataset.logKey = e.key;
+    row.dataset.xpTier = String(e.tier ?? 0);
     return row;
   }));
   if (!entries.length) container.append(sciFiLogRow({ tag: 'IDLE', tone: 'muted', text: '暂无新的公开事件' }, false, '--:--:--'));
@@ -3549,6 +3885,32 @@ function renderLatestSciFiLog() {
   updateLogJump();
   const pktEl = $('#log-pkt-count');
   if (pktEl) pktEl.textContent = `${entries.length} 条`;
+}
+
+// A real entry joins the rolling stream at once; rolling holds briefly so the
+// line stays in view while its comet launches.
+function appendRealCycleLine(entry) {
+  const container = $('#scifi-log-stream');
+  if (!container) return;
+  const row = sciFiLogRow(entry, true, eventClock(entry.at));
+  row.classList.add('is-real');
+  row.dataset.logKey = entry.key;
+  row.dataset.xpTier = String(entry.tier ?? 0);
+  container.append(row);
+  while (container.children.length > 30) container.firstElementChild?.remove();
+  scifiLog.holdUntil = performance.now() + 1800;
+}
+
+function announceMatrixArrivals(added) {
+  const now = Date.now();
+  const entries = [...added]
+    .map(key => scifiLog.history.get(key))
+    .filter(e => e && now - e.t < 900000)
+    .sort(byLogTime);
+  for (const entry of entries) {
+    if (scifiLog.mode === 'cycle') appendRealCycleLine(entry);
+    queueXpFlight(entry);
+  }
 }
 
 function updateLogBadge() {
@@ -3590,7 +3952,7 @@ function stepSciFiLog(dt) {
   if (!container || /jsdom/i.test(navigator.userAgent || '')) return;
 
   const motion = !state.quiet && !reduced;
-  const rolling = scifiLog.mode === 'cycle' && motion && !scifiLog.hoverPaused;
+  const rolling = scifiLog.mode === 'cycle' && motion && !scifiLog.hoverPaused && performance.now() >= scifiLog.holdUntil;
   const spec = $('#log-spectrum');
   if (spec) spec.classList.toggle('is-paused', !rolling);
   updateLogBadge();
@@ -4880,6 +5242,7 @@ function startHoloLoop() {
     if (!document.hidden) {
       drawHolo3DFrame(dt);
       stepSciFiLog(dt);
+      stepXpFlights(now);
     }
     holoCam.raf = requestAnimationFrame(tick);
   };

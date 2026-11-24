@@ -371,3 +371,69 @@ test('clicking a panel background returns one level up; controls, text and drags
     assert.equal(doc.querySelector('[data-dock-tab="live-ops"]').getAttribute('aria-selected'),'false');
   }finally{dom.window.close();}
 });
+
+test('matrix arrivals are ranked by importance and throttled like XP gains',async()=>{
+  const {dom,win}=await boot();try{
+    const plan=a=>win.xpPlanFor(a).tier;
+    assert.equal(plan({kind:'contribution',status:'merged',department:'research'}),3);
+    assert.equal(plan({kind:'task',status:'open',department:'research'}),2);
+    assert.equal(plan({kind:'contribution',status:'open',department:'books'}),2);
+    assert.equal(plan({kind:'automation',status:'succeeded',department:'verification'}),1);
+    assert.equal(plan({kind:'discussion',status:'open',department:'research'}),1);
+    assert.equal(plan({kind:'automation',status:'failed',department:'verification'}),-1);
+    assert.equal(plan({kind:'automation',status:'cancelled',department:'verification'}),0);
+    const t0=1000,fresh=()=>({lastLaunch:0,lastByTier:{},lastByDept:{}});
+    let q=[];
+    q=win.enqueueXp(q,{key:'a',deptId:'verification',tier:1},t0);
+    q=win.enqueueXp(q,{key:'b',deptId:'verification',tier:1},t0+10);
+    assert.equal(q.length,1,'common gains of one department merge into one flight');
+    assert.equal(q[0].count,2);
+    assert.equal(q[0].key,'b','the merged flight leaves from the newest line');
+    q=win.enqueueXp(q,{key:'skip',deptId:'verification',tier:0},t0+15);
+    assert.equal(q.length,1,'tier 0 has no flight');
+    q=win.enqueueXp(q,{key:'c',deptId:'research',tier:3},t0+20);
+    q=win.enqueueXp(q,{key:'d',deptId:'books',tier:2},t0+30);
+    assert.equal(q[win.nextXpLaunch(q,t0+100,fresh(),0)].key,'c','the most important arrival flies first');
+    assert.equal(win.nextXpLaunch(q,t0+100,{...fresh(),lastLaunch:t0+90},0),-1,'launches keep a global gap');
+    assert.equal(win.nextXpLaunch(q,t0+100,fresh(),4),-1,'at most four flights at once');
+    assert.equal(q[win.nextXpLaunch(q,t0+100,{...fresh(),lastByTier:{3:t0+50}},0)].key,'d','a tier on cooldown lets other tiers fly');
+    assert.equal(win.nextXpLaunch(q,t0+100,{...fresh(),lastByTier:{3:t0+50,2:t0+60},lastByDept:{verification:t0+70}},0),-1,'a department receives common gains at a measured pace');
+    assert.equal(win.nextXpLaunch(win.enqueueXp([],{key:'z',deptId:'books',tier:1},t0),t0+60000,fresh(),0),-1,'stale common gains expire');
+    assert.equal(win.nextXpLaunch(win.enqueueXp([],{key:'y',deptId:'research',tier:3},t0),t0+45000,fresh(),0),0,'a level-up waits longer before expiring');
+    let big=[];
+    for(let i=0;i<30;i++)big=win.enqueueXp(big,{key:'k'+i,deptId:'d'+i,tier:1},t0+i);
+    big=win.enqueueXp(big,{key:'gold',deptId:'research',tier:3},t0+40);
+    assert.ok(big.length<=12,'the queue is bounded');
+    assert.ok(big.some(item=>item.key==='gold'),'dropping keeps the important arrivals');
+    const showing=[{kind:'text',deptId:'research',start:t0,dur:2000,pop:true},{kind:'ring',deptId:'research',start:t0,dur:2000}];
+    assert.equal(win.xpTextTop('research',300,t0+100,showing),300-56,'a new label stacks above a level-up still showing');
+    assert.equal(win.xpTextTop('books',300,t0+100,showing),300,'other departments are unaffected');
+    assert.equal(win.xpTextTop('research',300,t0+2500,showing),300,'finished labels free their slot');
+  }finally{dom.window.close();}
+});
+
+test('a new matrix entry carries its importance, and 轮播 shows the real entry at once',async()=>{
+  const {dom,doc,responses,tick}=await boot();try{
+    const stream=doc.querySelector('#scifi-log-stream');
+    assert.equal(doc.querySelector('[data-log-mode="cycle"]').getAttribute('aria-pressed'),'true');
+    const next=structuredClone(responses.live),at=new Date(Date.now()+500).toISOString();
+    const merged=activity('merged-1','research','contribution',{status:'merged',at,task:task(77),url:`https://github.com/${repository}/pull/77`});
+    next.organization.observed_at=new Date(Date.now()+1000).toISOString();
+    next.organization.recent=[...next.organization.recent,merged];
+    responses.live=next;await tick(15000);
+    const real=stream.querySelector('[data-log-key^="merged-1/"]');
+    assert.ok(real,'the real entry is inserted into the rolling log');
+    assert.ok(real.classList.contains('is-real'));
+    assert.equal(real.dataset.xpTier,'3');
+    doc.querySelector('[data-log-mode="latest"]').click();
+    const again=structuredClone(responses.live);
+    const ci=activity('ci-xp','verification','automation',{status:'succeeded',at:new Date(Date.now()+1500).toISOString()});
+    again.organization.observed_at=new Date(Date.now()+2000).toISOString();
+    again.organization.recent=[...again.organization.recent,ci];
+    responses.live=again;await tick(15000);
+    const last=[...stream.querySelectorAll('.scifi-log-line')].at(-1);
+    assert.ok(last.dataset.logKey.startsWith('ci-xp/'));
+    assert.equal(last.dataset.xpTier,'1');
+    assert.equal(stream.querySelector('[data-log-key^="merged-1/"]').dataset.xpTier,'3');
+  }finally{dom.window.close();}
+});
