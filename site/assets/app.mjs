@@ -60,6 +60,17 @@ const deptCodes = {
   studio: '08'
 };
 
+const deptRoles = {
+  direction: '人类舵手',
+  research: '定理攻关',
+  review: '对抗复核',
+  verification: '真理枢纽',
+  books: '双语书稿',
+  publication: '论文图谱',
+  outreach: '学者合作',
+  studio: '工具视觉'
+};
+
 const hubMeta = {
   direction: { tag: 'HUMAN IN THE LOOP', title: '方向策源' },
   research: { tag: 'THEORY ENGINE', title: '课题攻坚台' },
@@ -175,6 +186,8 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/phase cancellation.*serial four-port|four-port matching chains/i, '串行四端口匹配链中的相位抵消证明'],
+    [/high-density sci-fi strategic war map/i, '实时大屏：科幻指挥室高密度战略沙盘'],
     [/Bargmann-Gram spherical trig|quaternion Fractran/i, 'Bargmann–Gram 球面三角与四元数 Fractran'],
     [/triple-contact fibres|Huang energy/i, '由 Huang 能量界定三重接触纤维'],
     [/prime primitive-root character sieve|exact threshold.*primitive-root/i, '素数原根特征筛的精确阈值证明'],
@@ -795,10 +808,11 @@ function createCell(d, index) {
   const glyph = element('span', '', 'cell-icon');
   glyph.append(icon(d.id));
   const title = element('strong', d.label, 'cell-title');
+  const roleTag = element('span', deptRoles[d.id] || '', 'cell-role-tag');
   const landmark = element('span', '', 'cell-landmark');
   const landmarkCap = element('span', '', 'cell-landmark-cap');
   landmark.append(landmarkCap);
-  head.append(liveDot, glyph, title, landmark);
+  head.append(liveDot, glyph, title, roleTag, landmark);
 
   const meta = element('span', '', 'cell-meta-row');
   const missionDot = element('span', '▸', 'cell-mission-dot');
@@ -915,19 +929,17 @@ function renderHive() {
     cell.button.classList.toggle('is-running', Boolean(running));
     if (cell.landmark && cell.landmarkCap) {
       if (d.execution === 'human') {
-        cell.landmarkCap.textContent = 'HUMAN LOOP';
-        cell.landmark.classList.add('is-visible', 'is-human');
-        cell.landmark.classList.remove('is-live');
+        cell.landmark.classList.remove('is-visible', 'is-live', 'is-human');
       } else if (d.id === 'verification' && running) {
-        cell.landmarkCap.textContent = `${running} 核验中`;
+        cell.landmarkCap.textContent = `${running} 核验`;
         cell.landmark.classList.add('is-visible', 'is-live');
         cell.landmark.classList.remove('is-human');
       } else if (running) {
-        cell.landmarkCap.textContent = d.id === 'books' ? `${running} 构建` : `${running} 活跃`;
+        cell.landmarkCap.textContent = `${running}`;
         cell.landmark.classList.add('is-visible', 'is-live');
         cell.landmark.classList.remove('is-human');
       } else if (q.waiting) {
-        cell.landmarkCap.textContent = `${q.label} 课题`;
+        cell.landmarkCap.textContent = `${q.label}`;
         cell.landmark.classList.add('is-visible');
         cell.landmark.classList.remove('is-live', 'is-human');
       } else {
@@ -2709,29 +2721,29 @@ async function refreshLive() {
 }
 
 // ============================================================================
-// REAL-TIME 60FPS 3D BIOMIMETIC HOLOGRAPHIC ECOSYSTEM ENGINE (#holo-3d)
-// Formal-Verification-as-Central-Hub radial command citadel:
-// Apex Human Control -> Central Lean Verification Hub <- 4 Request Streams
-// (Theory Advancement, Book Writing, Papers/Mathesis, Academic Collaboration)
+// REAL-TIME 60FPS 3D BIOMIMETIC HOLOGRAPHIC STRATEGIC WAR TABLE (#holo-3d)
+// Unified circular sci-fi command hologram: Formal Verification DNA Lighthouse
+// at dead center, 7 unmistakable bespoke 3D department sculptures around the
+// orbital ring (with restrained, poised Golden Compass Helm at 12 o'clock).
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 1.56, z: -4.55, r: 0.70, baseH: 1.02, floating: true,  tier: 1, order: 0, hex: [245, 183, 73]  },
-  verification: { x:  0.0,  y: 0.14, z:  0.10, r: 0.90, baseH: 1.54, floating: false, tier: 2, order: 1, hex: [94, 237, 236]  },
-  research:     { x: -4.05, y: 0.0,  z: -1.70, r: 0.72, baseH: 1.38, floating: false, tier: 2, order: 2, hex: [45, 227, 184]  },
-  review:       { x: -4.55, y: 0.0,  z:  1.00, r: 0.68, baseH: 1.24, floating: false, tier: 2, order: 3, hex: [168, 138, 250] },
-  books:        { x:  4.05, y: 0.0,  z: -1.70, r: 0.68, baseH: 1.24, floating: false, tier: 2, order: 4, hex: [199, 140, 219] },
-  studio:       { x:  4.55, y: 0.0,  z:  1.00, r: 0.64, baseH: 1.14, floating: false, tier: 3, order: 5, hex: [136, 184, 212] },
-  outreach:     { x: -3.10, y: 0.0,  z:  3.35, r: 0.64, baseH: 1.15, floating: false, tier: 3, order: 6, hex: [240, 148, 90]  },
-  publication:  { x:  3.10, y: 0.0,  z:  3.35, r: 0.64, baseH: 1.22, floating: false, tier: 3, order: 7, hex: [74, 216, 176]  }
+  direction:    { x:  0.0,  y: 0.18, z: -3.95, r: 0.56, baseH: 0.92, apex: true,  order: 0, hex: [245, 183, 73]  },
+  verification: { x:  0.0,  y: 0.16, z:  0.05, r: 0.88, baseH: 1.56, apex: false, order: 1, hex: [94, 237, 236]  },
+  research:     { x: -3.85, y: 0.0,  z: -2.45, r: 0.72, baseH: 1.36, apex: false, order: 2, hex: [45, 227, 184]  },
+  review:       { x: -4.85, y: 0.0,  z:  1.20, r: 0.70, baseH: 1.30, apex: false, order: 3, hex: [168, 138, 250] },
+  books:        { x:  3.85, y: 0.0,  z: -2.45, r: 0.72, baseH: 1.24, apex: false, order: 4, hex: [199, 140, 219] },
+  studio:       { x:  4.85, y: 0.0,  z:  1.20, r: 0.68, baseH: 1.22, apex: false, order: 5, hex: [136, 184, 212] },
+  outreach:     { x: -2.75, y: 0.0,  z:  3.45, r: 0.66, baseH: 1.20, apex: false, order: 6, hex: [240, 148, 90]  },
+  publication:  { x:  2.75, y: 0.0,  z:  3.45, r: 0.66, baseH: 1.28, apex: false, order: 7, hex: [74, 216, 176]  }
 };
 
 const holoCam = {
-  yaw: -0.32,
-  pitch: 0.76,
-  dist: 20.8,
+  yaw: -0.28,
+  pitch: 0.72,
+  dist: 20.2,
   targetYaw: 0.0,
-  targetPitch: 0.58,
-  targetDist: 16.8,
+  targetPitch: 0.56,
+  targetDist: 16.4,
   dragging: false,
   dragMoved: false,
   lastX: 0,
@@ -3197,123 +3209,49 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // ==========================================================================
-  // 4. THREE SOLID 3D ARCHITECTURAL DECK PLATFORMS (CRYSTAL-CLEAR HIERARCHY!)
-  // TIER 01 (Human Apex) -> TIER 02 (24/7 AI Loop Deck) -> TIER 03 (Delivery)
+  // 4. UNIFIED CIRCULAR HOLOGRAPHIC WAR TABLE (ZERO CLUTTER, PURE DEPTH!)
+  // One clean sculpted orbital disc, elevated central Verification Hub dais,
+  // whisper-thin compass ticks & subtle radar sweep. No floating boxes or grids!
   // ==========================================================================
-  const gridColor = isLight ? [120, 113, 102] : isBlueprint ? [150, 215, 255] : [94, 237, 236];
-  const half = 6.2;
-  for (let i = -6; i <= 6; i++) {
-    const fade = 1 - Math.abs(i) / 7.2;
-    const alpha = (isLight ? 0.08 : isBlueprint ? 0.10 : 0.045) * fade;
-    draw3DSeg(project(i, -0.22, -half), project(i, -0.22, half), rgba(gridColor, alpha), 1);
-    draw3DSeg(project(-half, -0.22, i), project(half, -0.22, i), rgba(gridColor, alpha), 1);
+  const tier1RGB = [245, 183, 73];
+  const hubRGB = isBlueprint ? [150, 215, 255] : [94, 237, 236];
+  const arenaRGB = isBlueprint ? [125, 185, 245] : [65, 175, 205];
+  const hubX = 0.0, hubY = 0.16, hubZ = 0.05;
+  const rxOut = 5.18, rzOut = 4.18;
+
+  // Translucent sculpted circular war-table disc fill + clean bevel rim
+  ctx.beginPath();
+  for (let i = 0; i <= 72; i++) {
+    const a = (i / 72) * Math.PI * 2;
+    const p = project(hubX + Math.cos(a) * rxOut, 0.0, hubZ + Math.sin(a) * rzOut);
+    if (!p) continue;
+    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = isLight ? 'rgba(248, 245, 238, 0.66)' : rgba(arenaRGB, 0.048);
+  ctx.fill();
+  ctx.strokeStyle = rgba(arenaRGB, isLight ? 0.36 : 0.34);
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // Outer perimeter precision orbital ring + whisper-thin middle track ring
+  draw3DRing(hubX, 0.01, hubZ, rxOut + 0.24, rzOut + 0.20, 72, rgba(arenaRGB, isLight ? 0.18 : 0.16), 1.0, [14, 10]);
+  draw3DRing(hubX, 0.01, hubZ, 2.95, 2.30, 64, rgba(hubRGB, isLight ? 0.14 : 0.12), 1.0, [4, 7]);
+
+  // Crisp cardinal & minor compass ticks etched cleanly on the outer rim
+  for (let k = 0; k < 24; k++) {
+    const a = (k / 24) * Math.PI * 2;
+    const isCard = k % 6 === 0;
+    const k0 = isCard ? 0.94 : 0.975;
+    draw3DSeg(
+      project(hubX + Math.cos(a) * rxOut * k0, 0.015, hubZ + Math.sin(a) * rzOut * k0),
+      project(hubX + Math.cos(a) * rxOut, 0.015, hubZ + Math.sin(a) * rzOut),
+      rgba(hubRGB, isCard ? (isLight ? 0.44 : 0.55) : (isLight ? 0.16 : 0.20)),
+      isCard ? 1.6 : 0.9
+    );
   }
 
-  // Helper to draw a sculpted 3D translucent architectural glass deck terrace with corner brackets & nameplate
-  const drawDeckSlab = (x1, x2, z1, z2, y, rgb, tagLeft, tagRight, isPrimary = false) => {
-    const thick = 0.16;
-    const c = [
-      project(x1, y, z1),
-      project(x2, y, z1),
-      project(x2, y, z2),
-      project(x1, y, z2)
-    ];
-    const bL = project(x1, y - thick, z2);
-    const bR = project(x2, y - thick, z2);
-    if (c.some(p => !p) || !bL || !bR) return;
-
-    // Front extruded glass thickness face
-    ctx.beginPath();
-    ctx.moveTo(c[3].x, c[3].y);
-    ctx.lineTo(c[2].x, c[2].y);
-    ctx.lineTo(bR.x, bR.y);
-    ctx.lineTo(bL.x, bL.y);
-    ctx.closePath();
-    ctx.fillStyle = isLight ? rgba(rgb, 0.14) : rgba(rgb, isPrimary ? 0.18 : 0.10);
-    ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.34 : (isPrimary ? 0.55 : 0.28));
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Top translucent architectural glass surface
-    ctx.beginPath();
-    ctx.moveTo(c[0].x, c[0].y);
-    ctx.lineTo(c[1].x, c[1].y);
-    ctx.lineTo(c[2].x, c[2].y);
-    ctx.lineTo(c[3].x, c[3].y);
-    ctx.closePath();
-    ctx.fillStyle = isLight
-      ? (isPrimary ? 'rgba(245, 250, 248, 0.72)' : 'rgba(252, 249, 242, 0.68)')
-      : rgba(rgb, isPrimary ? 0.085 : 0.045);
-    ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? (isPrimary ? 0.52 : 0.30) : (isPrimary ? 0.62 : 0.30));
-    ctx.lineWidth = isPrimary ? 1.6 : 1.1;
-    ctx.stroke();
-
-    // Glowing L-shaped sci-fi corner brackets on all 4 corners
-    const bLen = 0.42;
-    const corners = [
-      [[x1, z1 + bLen], [x1, z1], [x1 + bLen, z1]],
-      [[x2 - bLen, z1], [x2, z1], [x2, z1 + bLen]],
-      [[x2, z2 - bLen], [x2, z2], [x2 - bLen, z2]],
-      [[x1 + bLen, z2], [x1, z2], [x1, z2 - bLen]]
-    ];
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.85 : 0.92);
-    ctx.lineWidth = isPrimary ? 2.2 : 1.7;
-    for (const tri of corners) {
-      const pts = tri.map(([px, pz]) => project(px, y + 0.01, pz));
-      if (pts.some(p => !p)) continue;
-      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); ctx.lineTo(pts[2].x, pts[2].y); ctx.stroke();
-    }
-
-    // Optional crisp architectural deck labels (only placed where unobstructed)
-    if (tagLeft || tagRight) {
-      ctx.save();
-      ctx.font = '700 10px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillStyle = isLight ? rgba(rgb, 0.95) : rgba(rgb, isPrimary ? 0.96 : 0.88);
-      const lPt = project(x1 + 0.22, y + 0.02, z1 + 0.28);
-      if (lPt && tagLeft) {
-        ctx.textAlign = 'left';
-        ctx.fillText(tagLeft, lPt.x, lPt.y);
-      }
-      const rPt = project(x2 - 0.22, y + 0.02, z1 + 0.28);
-      if (rPt && tagRight) {
-        ctx.textAlign = 'right';
-        ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif';
-        ctx.fillStyle = isLight ? 'rgba(63,61,54,0.78)' : 'rgba(181,219,232,0.78)';
-        ctx.fillText(tagRight, rPt.x, rPt.y);
-      }
-      ctx.restore();
-    }
-  };
-
-  // Helper to draw a crisp floating holographic pill badge at any open 3D anchor
-  const drawHoloBadge = (wx, wy, wz, text, rgb, lightText, darkText, small = false) => {
-    const pt = project(wx, wy, wz);
-    if (!pt) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.font = small
-      ? '600 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif'
-      : '700 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-    const pad = small ? 12 : 18;
-    const hBox = small ? 17 : 20;
-    const tw = ctx.measureText(text).width + pad;
-    ctx.fillStyle = isLight ? 'rgba(252, 250, 245, 0.92)' : 'rgba(3, 14, 24, 0.88)';
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.58 : (small ? 0.55 : 0.82));
-    ctx.lineWidth = small ? 1.0 : 1.3;
-    ctx.beginPath();
-    ctx.roundRect(pt.x - tw / 2, pt.y - hBox / 2, tw, hBox, hBox / 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = isLight ? lightText : darkText;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, pt.x, pt.y);
-    ctx.restore();
-  };
-
-  // Helper to draw the sculpted elevated 3D octagonal CENTRAL VERIFICATION HUB DAIS!
+  // Sculpted elevated 3D octagonal CENTRAL VERIFICATION HUB DAIS!
   const drawHubDais = (hx, hy, hz, rad, rgb) => {
     const sides = 8;
     const topPts = [], botPts = [];
@@ -3323,7 +3261,6 @@ function drawHolo3DFrame(dt = 0.016) {
       botPts.push(project(hx + Math.cos(a) * rad, 0.0, hz + Math.sin(a) * rad));
     }
     if (topPts.some(p => !p) || botPts.some(p => !p)) return;
-    // Extruded glowing side faces (front hemisphere)
     for (let i = 0; i < sides; i++) {
       const j = (i + 1) % sides;
       ctx.beginPath();
@@ -3338,59 +3275,32 @@ function drawHolo3DFrame(dt = 0.016) {
       ctx.lineWidth = 1;
       ctx.stroke();
     }
-    // Elevated translucent glass top surface
     ctx.beginPath();
     topPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.closePath();
-    ctx.fillStyle = isLight ? 'rgba(235, 248, 250, 0.85)' : rgba(rgb, 0.14);
+    ctx.fillStyle = isLight ? 'rgba(235, 248, 250, 0.88)' : rgba(rgb, 0.15);
     ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.72 : 0.88);
-    ctx.lineWidth = 1.9;
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.76 : 0.92);
+    ctx.lineWidth = 2.0;
     ctx.stroke();
-    // Concentric orbital hub docking rings around the central dais
-    draw3DRing(hx, 0.02, hz, rad * 1.18, rad * 1.18, 48, rgba(rgb, isLight ? 0.34 : 0.45), 1.3, [8, 6], t * 0.22);
-    draw3DRing(hx, hy + 0.01, hz, rad * 0.80, rad * 0.80, 32, rgba(rgb, isLight ? 0.36 : 0.55), 1.1, null, -t * 0.35);
+    draw3DRing(hx, 0.02, hz, rad * 1.18, rad * 1.18, 48, rgba(rgb, isLight ? 0.34 : 0.46), 1.3, [8, 6], t * 0.22);
+    draw3DRing(hx, hy + 0.01, hz, rad * 0.78, rad * 0.78, 32, rgba(rgb, isLight ? 0.36 : 0.56), 1.1, null, -t * 0.35);
   };
+  drawHubDais(hubX, hubY, hubZ, 1.48, hubRGB);
 
-  // Draw the Apex Human Deck + Unified 24/7 Radial Arena + Elevated Central Verification Hub!
-  const tier1RGB = [245, 183, 73];
-  const hubRGB = isBlueprint ? [150, 215, 255] : [94, 237, 236];
-  const arenaRGB = isBlueprint ? [125, 185, 245] : [65, 175, 205];
-  const hubX = 0.0, hubY = 0.14, hubZ = 0.10;
-
-  drawDeckSlab(-3.05, 3.05, -5.22, -3.72, 1.42, tier1RGB, 'HUMAN IN THE LOOP', '提出方向 · 约束与把关', false);
-  drawDeckSlab(-5.45, 5.45, -2.75,  4.35, 0.00, arenaRGB, '', '', false);
-  drawHubDais(hubX, hubY, hubZ, 1.56, hubRGB);
-
-  // Sci-Fi War-Room Tactical Range Rings & Azimuth Compass Ticks etched around the Hub!
-  draw3DRing(hubX, 0.015, hubZ, 2.85, 2.15, 64, rgba(hubRGB, isLight ? 0.14 : 0.16), 1.0, [4, 6]);
-  draw3DRing(hubX, 0.015, hubZ, 4.55, 3.35, 72, rgba(arenaRGB, isLight ? 0.14 : 0.14), 1.0, [10, 8]);
-  for (let k = 0; k < 16; k++) {
-    const a = (k / 16) * Math.PI * 2;
-    const isCard = k % 4 === 0;
-    const r0 = isCard ? 4.30 : 4.44;
-    const r1 = 4.65;
-    draw3DSeg(
-      project(hubX + Math.cos(a) * r0, 0.018, hubZ + Math.sin(a) * (r0 * 0.74)),
-      project(hubX + Math.cos(a) * r1, 0.018, hubZ + Math.sin(a) * (r1 * 0.74)),
-      rgba(hubRGB, isCard ? (isLight ? 0.36 : 0.48) : (isLight ? 0.18 : 0.22)),
-      isCard ? 1.5 : 1.0
-    );
-  }
-
-  // Subtle 360° Radar Sweep Cone radiating from the Central Formal Verification Hub!
+  // Subtle 360° Radar Sweep Cone radiating cleanly inside the circular war table!
   if (!state.quiet && !reduced && !isLight) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const sweepA = t * 1.05;
-    const cPt = project(hubX, 0.03, hubZ);
+    const sweepA = t * 0.95;
+    const cPt = project(hubX, 0.025, hubZ);
     if (cPt) {
       for (let s = 0; s < 8; s++) {
         const a1 = sweepA - s * 0.055, a2 = sweepA - (s + 1) * 0.055;
-        const p1 = project(hubX + Math.cos(a1) * 4.5, 0.03, hubZ + Math.sin(a1) * 3.1);
-        const p2 = project(hubX + Math.cos(a2) * 4.5, 0.03, hubZ + Math.sin(a2) * 3.1);
+        const p1 = project(hubX + Math.cos(a1) * (rxOut - 0.15), 0.025, hubZ + Math.sin(a1) * (rzOut - 0.15));
+        const p2 = project(hubX + Math.cos(a2) * (rxOut - 0.15), 0.025, hubZ + Math.sin(a2) * (rzOut - 0.15));
         if (!p1 || !p2) continue;
-        ctx.fillStyle = rgba(hubRGB, (1 - s / 8) * 0.045);
+        ctx.fillStyle = rgba(hubRGB, (1 - s / 8) * 0.036);
         ctx.beginPath(); ctx.moveTo(cPt.x, cPt.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.closePath(); ctx.fill();
       }
     }
@@ -3400,24 +3310,24 @@ function drawHolo3DFrame(dt = 0.016) {
   // Boot Shockwave Ring expanding radially from the Central Formal Verification Hub during 0..1.1s
   if (holoCam.bootAge < 1.1 && !state.quiet && !reduced) {
     const bu = holoCam.bootAge / 1.1;
-    draw3DRing(hubX, 0.04, hubZ, 0.5 + bu * 6.4, 0.5 + bu * 4.9, 64, rgba(hubRGB, (1 - bu) * 0.85), 2.4);
+    draw3DRing(hubX, 0.04, hubZ, 0.5 + bu * 6.0, 0.5 + bu * 4.7, 64, rgba(hubRGB, (1 - bu) * 0.85), 2.4);
   }
 
   // ==========================================================================
-  // 5. HUB-AND-SPOKE 3D CONDUITS: FOUR STREAMS CONVERGING ON FORMAL VERIFICATION!
-  // Theory Advancement, Book Writing, Papers/Mathesis & Collaboration ALL send
-  // formalization requests INTO the Central Verification Hub & draw truth OUT!
+  // 5. PURE HUB-AND-SPOKE RADIAL BEAMS + SMOOTH ORBITAL ARC FLOWS
+  // Zero jagged right-angle pipes! Smooth curved perimeter arcs + 4 glowing
+  // bidirectional radial spokes straight into the Central Verification Hub!
   // ==========================================================================
   const activeId = state.hovered || state.selected;
 
-  // Helper: render a 3D polyline conduit with glowing rail, animated chevrons & flowing light packets
+  // Helper: render a smooth 3D polyline conduit with directional chevrons & photons
   const drawConduit3D = (waypoints, colorRGB, opts = {}) => {
     const { lw = 1.6, alpha = 0.55, dashed = false, particles = 0, speed = 0.35, chevrons = true, bidir = false } = opts;
     const pts = waypoints.map(([x, y, z]) => project(x, y, z));
     if (pts.some(p => !p)) return;
 
     ctx.save();
-    if (dashed) ctx.setLineDash([6, 6]);
+    if (dashed) ctx.setLineDash([5, 6]);
     ctx.beginPath();
     pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.strokeStyle = rgba(colorRGB, alpha);
@@ -3427,7 +3337,6 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.stroke();
     ctx.restore();
 
-    // Compute total 2D projected length for evenly spaced directional chevrons & photons
     const segLens = [];
     let total = 0;
     for (let i = 0; i < pts.length - 1; i++) {
@@ -3453,123 +3362,139 @@ function drawHolo3DFrame(dt = 0.016) {
       return { x: pts[0].x, y: pts[0].y, ang: 0 };
     };
 
-    // Crisp directional chevrons along the bus (makes inward request / outward truth crystal clear!)
     if (chevrons) {
-      const chCount = Math.max(1, Math.min(4, Math.floor(total / 90)));
+      const chCount = Math.max(1, Math.min(3, Math.floor(total / 100)));
       ctx.strokeStyle = rgba(colorRGB, Math.min(1, alpha + 0.35));
-      ctx.lineWidth = Math.max(1.4, lw * 0.85);
+      ctx.lineWidth = Math.max(1.3, lw * 0.85);
       for (let c = 0; c < chCount; c++) {
         const u = (c + 0.5) / chCount;
         const s = sampleAt(u);
         ctx.save();
         ctx.translate(s.x, s.y);
         ctx.rotate(s.ang);
-        ctx.beginPath(); ctx.moveTo(-4.5, -3.6); ctx.lineTo(3.5, 0); ctx.lineTo(-4.5, 3.6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-4.2, -3.3); ctx.lineTo(3.2, 0); ctx.lineTo(-4.2, 3.3); ctx.stroke();
         ctx.restore();
         if (bidir) {
-          const s2 = sampleAt(Math.max(0.14, u - 0.16));
+          const s2 = sampleAt(Math.max(0.16, u - 0.18));
           ctx.save();
           ctx.translate(s2.x, s2.y);
           ctx.rotate(s2.ang + Math.PI);
-          ctx.beginPath(); ctx.moveTo(-4.5, -3.6); ctx.lineTo(3.5, 0); ctx.lineTo(-4.5, 3.6); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-4.2, -3.3); ctx.lineTo(3.2, 0); ctx.lineTo(-4.2, 3.3); ctx.stroke();
           ctx.restore();
         }
       }
     }
 
-    // Streaming high-speed glowing energy packets (bidirectional photons on hub spokes!)
     if (particles > 0 && !state.quiet && !reduced && !isStale()) {
       for (let k = 0; k < particles; k++) {
         const rawU = (t * speed + k / particles) % 1;
         const u = (bidir && k % 2 === 1) ? (1 - rawU) : rawU;
         const s = sampleAt(u);
-        ctx.fillStyle = rgba([230, 255, 250], 0.96);
-        ctx.beginPath(); ctx.arc(s.x, s.y, 2.7, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = rgba(colorRGB, 0.44);
-        ctx.beginPath(); ctx.arc(s.x, s.y, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba([235, 255, 252], 0.95);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(colorRGB, 0.42);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 5.0, 0, Math.PI * 2); ctx.fill();
       }
     }
+  };
+
+  // Helper: smooth curved 3D arc between two departments along the circular table
+  const arcPts = (fromId, toId, outward = 1.0, steps = 14) => {
+    const a = holoWorld[fromId], b = holoWorld[toId];
+    if (!a || !b) return [];
+    const angA = Math.atan2((a.z - hubZ) / rzOut, (a.x - hubX) / rxOut);
+    const angB = Math.atan2((b.z - hubZ) / rzOut, (b.x - hubX) / rxOut);
+    let diff = angB - angA;
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const ang = angA + diff * u;
+      const y = (a.y || 0.04) * (1 - u) + (b.y || 0.04) * u + 0.04;
+      pts.push([hubX + Math.cos(ang) * rxOut * outward, y, hubZ + Math.sin(ang) * rzOut * outward]);
+    }
+    return pts;
+  };
+
+  // Helper: crisp unboxed whisper-clean holographic caption (NO heavy pill box clutter!)
+  const drawHoloText = (wx, wy, wz, text, rgb, isHot = false) => {
+    const pt = project(wx, wy, wz);
+    if (!pt) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = `${isHot ? '700' : '600'} 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.90)' : 'rgba(2, 9, 18, 0.90)';
+    ctx.strokeText(text, pt.x, pt.y);
+    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 1.0 : 0.85) : rgba(rgb, isHot ? 1.0 : 0.78);
+    ctx.fillText(text, pt.x, pt.y);
+    ctx.restore();
   };
 
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // A. HUMAN APEX -> RESEARCH: Golden Steering Downlink (研究方向 ▸ 数学攻坚)
-  const dirHot = activeId === 'direction' || activeId === 'research';
-  drawConduit3D(
-    [[0.0, 1.44, -3.72], [-4.05, 1.44, -3.72], [-4.05, 0.08, -2.75], [-4.05, 0.08, -2.35]],
-    tier1RGB,
-    { lw: dirHot ? 2.8 : 2.0, alpha: dirHot ? 0.96 : 0.68, particles: 3, speed: 0.34 }
-  );
-
-  // B. FOUR CORE BIDIRECTIONAL SPOKES CONVERGING INTO CENTRAL FORMAL VERIFICATION HUB!
-  // B1. NW Spoke: 数学攻坚 (理论推进) ⇄ 形式验证枢纽 + 独立评审
+  // 1. FOUR PRIMARY BIDIRECTIONAL RADIAL SPOKES INTO THE CENTRAL VERIFICATION HUB!
   const thHot = activeId === 'research' || activeId === 'verification';
-  const rrHot = activeId === 'research' || activeId === 'review';
-  const rvHot = activeId === 'review' || activeId === 'verification';
-  drawConduit3D(
-    [[-3.25, 0.06, -1.35], [-1.32, 0.16, -0.48]],
-    isBlueprint ? [150, 215, 255] : [45, 227, 184],
-    { lw: thHot ? 3.2 : 2.4, alpha: thHot ? 0.98 : 0.80, particles: 4, speed: 0.46, bidir: true }
-  );
-  drawConduit3D(
-    [[-4.12, 0.05, -0.92], [-4.50, 0.05, 0.25]],
-    isBlueprint ? [150, 215, 255] : [168, 138, 250],
-    { lw: rrHot ? 2.6 : 1.7, alpha: rrHot ? 0.94 : 0.56, particles: rrHot ? 3 : 1, speed: 0.48, bidir: true }
-  );
-  drawConduit3D(
-    [[-3.75, 0.06, 0.82], [-1.52, 0.16, 0.28]],
-    isBlueprint ? [150, 215, 255] : [168, 138, 250],
-    { lw: rvHot ? 2.8 : 1.8, alpha: rvHot ? 0.94 : 0.58, particles: rvHot ? 3 : 2, speed: 0.42 }
-  );
-
-  // B2. NE Spoke: 理论书写 (写书) ⇄ 形式验证枢纽 + 工具与表达支撑
   const bkHot = activeId === 'books' || activeId === 'verification';
-  const sbHot = activeId === 'studio' || activeId === 'books';
-  drawConduit3D(
-    [[3.25, 0.06, -1.35], [1.32, 0.16, -0.48]],
-    isBlueprint ? [150, 215, 255] : [199, 140, 219],
-    { lw: bkHot ? 3.2 : 2.4, alpha: bkHot ? 0.98 : 0.80, particles: 4, speed: 0.44, bidir: true }
-  );
-  drawConduit3D(
-    [[4.50, 0.05, 0.25], [4.12, 0.05, -0.92]],
-    [136, 184, 212],
-    { lw: sbHot ? 2.6 : 1.6, alpha: sbHot ? 0.92 : 0.50, particles: sbHot ? 2 : 1, speed: 0.40 }
-  );
-
-  // B3. SE Spoke: 论文与知识 (Mathesis / 论文) ⇄ 形式验证枢纽
   const pbHot = activeId === 'publication' || activeId === 'verification';
-  drawConduit3D(
-    [[2.48, 0.06, 2.75], [1.06, 0.16, 1.25]],
-    isBlueprint ? [150, 215, 255] : [74, 216, 176],
-    { lw: pbHot ? 3.2 : 2.3, alpha: pbHot ? 0.98 : 0.78, particles: 4, speed: 0.42, bidir: true }
-  );
-
-  // B4. SW Spoke: 学术交流与合作 (合作 / 专家回复) ⇄ 形式验证枢纽
   const coHot = activeId === 'outreach' || activeId === 'verification';
+  const rvHot = activeId === 'review' || activeId === 'verification';
+
+  // NW Spoke: 数学攻坚 ⇄ 形式验证
   drawConduit3D(
-    [[-2.48, 0.06, 2.75], [-1.06, 0.16, 1.25]],
+    [[-3.12, 0.06, -1.96], [-1.22, 0.16, -0.58]],
+    isBlueprint ? [150, 215, 255] : [45, 227, 184],
+    { lw: thHot ? 3.2 : 2.3, alpha: thHot ? 0.98 : 0.78, particles: 4, speed: 0.46, bidir: true }
+  );
+  // W Spoke: 独立评审 ▸ 形式验证
+  drawConduit3D(
+    [[-4.02, 0.06, 1.00], [-1.45, 0.16, 0.25]],
+    isBlueprint ? [150, 215, 255] : [168, 138, 250],
+    { lw: rvHot ? 2.6 : 1.5, alpha: rvHot ? 0.94 : 0.45, particles: rvHot ? 3 : 1, speed: 0.42 }
+  );
+  // NE Spoke: 理论书写 ⇄ 形式验证
+  drawConduit3D(
+    [[3.12, 0.06, -1.96], [1.22, 0.16, -0.58]],
+    isBlueprint ? [150, 215, 255] : [199, 140, 219],
+    { lw: bkHot ? 3.2 : 2.3, alpha: bkHot ? 0.98 : 0.78, particles: 4, speed: 0.44, bidir: true }
+  );
+  // SE Spoke: 论文与知识 ⇄ 形式验证
+  drawConduit3D(
+    [[2.18, 0.06, 2.80], [0.95, 0.16, 1.18]],
+    isBlueprint ? [150, 215, 255] : [74, 216, 176],
+    { lw: pbHot ? 3.2 : 2.2, alpha: pbHot ? 0.98 : 0.74, particles: 4, speed: 0.42, bidir: true }
+  );
+  // SW Spoke: 学术交流 ⇄ 形式验证
+  drawConduit3D(
+    [[-2.18, 0.06, 2.80], [-0.95, 0.16, 1.18]],
     isBlueprint ? [150, 215, 255] : [240, 148, 90],
-    { lw: coHot ? 3.2 : 2.3, alpha: coHot ? 0.98 : 0.78, particles: 4, speed: 0.42, bidir: true }
+    { lw: coHot ? 3.2 : 2.2, alpha: coHot ? 0.98 : 0.74, particles: 4, speed: 0.42, bidir: true }
   );
 
-  // C. DISSEMINATION & MACRO-FEEDBACK OUTER RAILS
-  // C1. 论文与知识 ▸ 学术交流
+  // 2. SMOOTH CURVED ORBITAL PERIMETER ARCS (cleanly hugging the war-table circle!)
+  const dirHot = activeId === 'direction' || activeId === 'research';
+  const rrHot = activeId === 'research' || activeId === 'review';
+  const sbHot = activeId === 'studio' || activeId === 'books';
   const poHot = activeId === 'publication' || activeId === 'outreach';
-  drawConduit3D(
-    [[2.28, 0.05, 3.35], [-2.28, 0.05, 3.35]],
-    [240, 148, 90],
-    { lw: poHot ? 2.6 : 1.6, alpha: poHot ? 0.94 : 0.48, particles: poHot ? 3 : 1, speed: 0.36 }
-  );
-  // C2. Far-left macro-feedback loop: 学术交流 ↺ 研究方向 (x = -5.65)
   const fbHot = activeId === 'outreach' || activeId === 'direction';
-  drawConduit3D(
-    [[-3.82, 0.05, 3.35], [-5.65, 0.05, 3.35], [-5.65, 0.05, -2.75], [-5.65, 1.44, -4.45], [-3.05, 1.44, -4.45]],
-    [240, 148, 90],
-    { lw: fbHot ? 2.4 : 1.3, alpha: fbHot ? 0.90 : 0.34, dashed: true, particles: fbHot ? 3 : 1, speed: 0.22 }
-  );
 
-  // D. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
+  drawConduit3D(arcPts('direction', 'research', 0.97, 12), tier1RGB,
+    { lw: dirHot ? 2.6 : 1.7, alpha: dirHot ? 0.94 : 0.56, particles: 2, speed: 0.34 });
+  drawConduit3D(arcPts('research', 'review', 0.97, 10), isBlueprint ? [150, 215, 255] : [168, 138, 250],
+    { lw: rrHot ? 2.4 : 1.4, alpha: rrHot ? 0.92 : 0.42, particles: rrHot ? 2 : 0, speed: 0.45, bidir: true });
+  drawConduit3D(arcPts('studio', 'books', 0.97, 10), [136, 184, 212],
+    { lw: sbHot ? 2.4 : 1.4, alpha: sbHot ? 0.92 : 0.42, particles: sbHot ? 2 : 0, speed: 0.40 });
+  drawConduit3D(arcPts('publication', 'outreach', 0.96, 12), [240, 148, 90],
+    { lw: poHot ? 2.4 : 1.4, alpha: poHot ? 0.92 : 0.42, particles: poHot ? 2 : 1, speed: 0.36 });
+  // Whisper-thin outer western macro-feedback arc: 学术交流 ↺ 研究方向
+  drawConduit3D(arcPts('outreach', 'direction', 1.10, 24), [240, 148, 90],
+    { lw: fbHot ? 2.2 : 1.1, alpha: fbHot ? 0.86 : 0.24, dashed: true, particles: fbHot ? 2 : 1, speed: 0.20, chevrons: fbHot });
+
+  // 3. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
   for (const fl of holoCam.flares) {
     const a = holoWorld[fl.fromId], b = holoWorld[fl.toId];
     if (!a || !b) continue;
@@ -3578,7 +3503,7 @@ function drawHolo3DFrame(dt = 0.016) {
     const ptAt = frac => {
       const lx = a.x + (b.x - a.x) * frac;
       const lz = a.z + (b.z - a.z) * frac;
-      const ly = (a.y || 0.08) + ((b.y || 0.14) - (a.y || 0.08)) * frac + Math.sin(frac * Math.PI) * 0.45;
+      const ly = (a.y || 0.08) + ((b.y || 0.16) - (a.y || 0.08)) * frac + Math.sin(frac * Math.PI) * 0.42;
       return project(lx, ly, lz);
     };
     const pHead = ptAt(u), pTail = ptAt(tailU);
@@ -3591,9 +3516,9 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.lineWidth = 2.6;
     ctx.beginPath(); ctx.moveTo(pTail.x, pTail.y); ctx.lineTo(pHead.x, pHead.y); ctx.stroke();
     ctx.fillStyle = rgba([255, 255, 255], fade);
-    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 3.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 3.0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = rgba(fl.rgb, fade * 0.45);
-    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 7.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 6.8, 0, Math.PI * 2); ctx.fill();
   }
 
   ctx.restore();
@@ -3610,140 +3535,153 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.save();
     if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-    // Pedestal Hex Base Plate (for grounded entities)
-    if (!cfg.floating) {
-      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.96 * bootK, cfg.r * 0.96 * bootK, 6, rgba(rgb, glowA * 0.72), isSel ? 1.9 : 1.2, null, Math.PI / 6);
-      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.58 * bootK, cfg.r * 0.58 * bootK, 6, rgba(rgb, glowA * 0.40), 0.9, null, Math.PI / 6);
-      if (isSel) {
-        draw3DRing(cx3, yBase + 0.04, cz3, cfg.r * 1.38, cfg.r * 1.38, 6, rgba(rgb, 0.9), 1.8, [10, 6], t * 0.5);
-      }
+    // Pedestal Hex Base Plate (grounded neatly on the circular war table)
+    draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.96 * bootK, cfg.r * 0.96 * bootK, 6, rgba(rgb, glowA * 0.72), isSel ? 1.9 : 1.2, null, Math.PI / 6);
+    draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.56 * bootK, cfg.r * 0.56 * bootK, 6, rgba(rgb, glowA * 0.38), 0.9, null, Math.PI / 6);
+    if (isSel) {
+      draw3DRing(cx3, yBase + 0.04, cz3, cfg.r * 1.36, cfg.r * 1.36, 6, rgba(rgb, 0.92), 1.8, [10, 6], t * 0.5);
     }
 
     if (id === 'direction') {
-      // 01 HUMAN IN THE LOOP: Golden Solar Astrolabe & Dyson Corona
-      const sy = yBase + 0.55 * bootK;
-      const corePt = project(cx3, sy, cz3);
-      if (corePt) {
-        const sunR = Math.max(8, 0.34 * corePt.s * bootK);
-        const sg = ctx.createRadialGradient(corePt.x, corePt.y, 1, corePt.x, corePt.y, sunR * 2.1);
-        sg.addColorStop(0, rgba([255, 245, 200], 0.95));
-        sg.addColorStop(0.45, rgba(rgb, 0.78));
-        sg.addColorStop(1, rgba(rgb, 0));
-        ctx.fillStyle = sg;
-        ctx.beginPath(); ctx.arc(corePt.x, corePt.y, sunR * 2.1, 0, Math.PI * 2); ctx.fill();
+      // 01 HUMAN HELM (研究方向): Restrained, Regal Golden 4-Point Compass Rose Star!
+      // Compact & poised — integrates smoothly on the North rim without dominating the screen!
+      const sy = yBase + 0.56 * bootK;
+      draw3DSeg(project(cx3, yBase + 0.02, cz3), project(cx3, sy - 0.24 * bootK, cz3), rgba(rgb, 0.55), 1.6);
+      // Thin brass-gold outer compass ring + 8-tick bezel
+      draw3DRing(cx3, sy, cz3, 0.52 * bootK, 0.52 * bootK, 32, rgba(rgb, glowA * 0.85), 1.5, null, t * 0.22);
+      // Sculpted 3D 4-Pointed Star Compass Rose Needle (pointing North/South/East/West)
+      const rTip = 0.46 * bootK, rMid = 0.14 * bootK, hTop = 0.22 * bootK;
+      const topP = project(cx3, sy + hTop, cz3);
+      const botP = project(cx3, sy - hTop * 0.7, cz3);
+      const pts8 = [];
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2 + Math.sin(t * 0.5) * 0.08;
+        const rad = k % 2 === 0 ? rTip : rMid;
+        pts8.push(project(cx3 + Math.cos(a) * rad, sy, cz3 + Math.sin(a) * rad));
       }
-      // 2 Intersecting Tilted Armillary Meridian Rings
-      for (let ri = 0; ri < 2; ri++) {
+      if (topP && !pts8.some(p => !p)) {
         ctx.beginPath();
-        const rad = (0.72 + ri * 0.22) * bootK;
-        const rot = t * (ri === 0 ? 0.55 : -0.38);
-        for (let i = 0; i <= 36; i++) {
-          const a = (i / 36) * Math.PI * 2;
-          const lx = Math.cos(a) * rad;
-          const ly = Math.sin(a) * rad * (ri === 0 ? 0.82 : 0.45);
-          const lz = Math.sin(a) * rad * (ri === 0 ? 0.56 : 0.89);
-          const rx = lx * Math.cos(rot) - lz * Math.sin(rot);
-          const rz = lx * Math.sin(rot) + lz * Math.cos(rot);
-          const pt = project(cx3 + rx, sy + ly, cz3 + rz);
-          if (!pt) continue;
-          if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
-        }
-        ctx.strokeStyle = rgba(rgb, glowA * (ri === 0 ? 0.92 : 0.65));
-        ctx.lineWidth = ri === 0 ? 1.8 : 1.2;
+        pts8.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fillStyle = rgba(rgb, fillA * 1.15);
+        ctx.fill();
+        ctx.strokeStyle = rgba([255, 238, 185], glowA);
+        ctx.lineWidth = 1.4;
         ctx.stroke();
+        for (let k = 0; k < 8; k += 2) {
+          draw3DSeg(topP, pts8[k], rgba([255, 240, 195], glowA * 0.9), 1.2);
+          if (botP) draw3DSeg(botP, pts8[k], rgba(rgb, glowA * 0.55), 1.0);
+        }
       }
-      draw3DRing(cx3, sy, cz3, 0.96 * bootK, 0.96 * bootK, 32, rgba(rgb, 0.48), 1.1, [5, 6], t * 0.25);
+      // Subtle warm center gem (NOT a giant blinding fireball!)
+      const cGem = project(cx3, sy + 0.04, cz3);
+      if (cGem) {
+        ctx.fillStyle = rgba([255, 248, 220], 0.95);
+        ctx.beginPath(); ctx.arc(cGem.x, cGem.y, 3.6, 0, Math.PI * 2); ctx.fill();
+      }
     } else if (id === 'research') {
-      // 02 MATH RESEARCH: Emerald Biomimetic Neural-Brain Crystalline Core
-      const cy3 = yBase + hEntity * 0.58 * bootK;
-      const rad = 0.72 * bootK;
-      const spin = t * 0.32;
-      // Outer glowing neural geodesic cage + internal firing synaptic nodes
+      // 02 MATH RESEARCH (数学攻坚): Emerald Firing Neural-Brain Cortex Polyhedron!
+      const cy3 = yBase + hEntity * 0.56 * bootK;
+      const rad = 0.68 * bootK;
+      const spin = t * 0.30;
       const nodes = [];
-      for (let i = 0; i < 10; i++) {
-        const phi = Math.acos(1 - 2 * ((i + 0.5) / 10));
+      for (let i = 0; i < 12; i++) {
+        const phi = Math.acos(1 - 2 * ((i + 0.5) / 12));
         const theta = Math.PI * (1 + Math.sqrt(5)) * i + spin;
         const nx = cx3 + Math.sin(phi) * Math.cos(theta) * rad;
-        const ny = cy3 + Math.cos(phi) * rad * 0.92;
+        const ny = cy3 + Math.cos(phi) * rad * 0.88;
         const nz = cz3 + Math.sin(phi) * Math.sin(theta) * rad;
         nodes.push({ p: project(nx, ny, nz), x: nx, y: ny, z: nz });
       }
-      // Synaptic dendritic web
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y, nodes[i].z - nodes[j].z);
-          if (dist < rad * 1.42) {
-            const fire = Math.sin(t * 4.2 + i * 1.3 + j) > 0.65;
-            draw3DSeg(nodes[i].p, nodes[j].p, rgba(fire ? [220, 255, 245] : rgb, fire ? 0.92 : glowA * 0.52), fire ? 1.7 : 1.0);
+          if (dist < rad * 1.28) {
+            const fire = Math.sin(t * 4.5 + i * 1.3 + j) > 0.62;
+            draw3DSeg(nodes[i].p, nodes[j].p, rgba(fire ? [225, 255, 245] : rgb, fire ? 0.95 : glowA * 0.55), fire ? 1.8 : 1.0);
           }
         }
       }
-      // Glowing synapse orbs
       for (let i = 0; i < nodes.length; i++) {
         const pt = nodes[i].p;
         if (!pt) continue;
-        ctx.fillStyle = rgba(i % 3 === 0 ? [220, 255, 245] : rgb, 0.92);
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(i % 3 === 0 ? [225, 255, 245] : rgb, 0.94);
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.8, 0, Math.PI * 2); ctx.fill();
       }
-      // Radiant inner brain core + pedestal stalk
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3 - rad * 0.85, cz3), rgba(rgb, 0.55), 2.2);
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3 - rad * 0.82, cz3), rgba(rgb, 0.55), 2.2);
       const midPt = project(cx3, cy3, cz3);
       if (midPt) {
-        const g = ctx.createRadialGradient(midPt.x, midPt.y, 1, midPt.x, midPt.y, Math.max(10, rad * midPt.s * 0.9));
-        g.addColorStop(0, rgba([210, 255, 240], 0.65));
+        const g = ctx.createRadialGradient(midPt.x, midPt.y, 1, midPt.x, midPt.y, Math.max(10, rad * midPt.s * 0.85));
+        g.addColorStop(0, rgba([215, 255, 242], 0.62));
         g.addColorStop(0.55, rgba(rgb, 0.22));
         g.addColorStop(1, rgba(rgb, 0));
         ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(midPt.x, midPt.y, Math.max(10, rad * midPt.s * 0.9), 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(midPt.x, midPt.y, Math.max(10, rad * midPt.s * 0.85), 0, Math.PI * 2); ctx.fill();
       }
-      draw3DRing(cx3, cy3, cz3, rad * 1.32, rad * 1.32, 32, rgba(rgb, 0.52), 1.2, [6, 5], -t * 0.45);
+      draw3DRing(cx3, cy3, cz3, rad * 1.30, rad * 1.30, 32, rgba(rgb, 0.48), 1.2, [6, 5], -t * 0.42);
     } else if (id === 'review') {
-      // 03 INDEPENDENT REVIEW: Violet Twin-Lens Gyroscopic Equilibrium Scanner
-      const cy3 = yBase + hEntity * 0.56 * bootK;
-      const rad = 0.64 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3 - 0.55 * bootK, cz3), rgba(rgb, 0.45), 1.8);
-      // Floating central crystal diamond octahedron
-      const sp = t * 0.55;
-      const dV = [
-        project(cx3, cy3 + 0.48 * bootK, cz3),
-        project(cx3, cy3 - 0.48 * bootK, cz3),
-        ...[0, 1, 2, 3].map(k => project(cx3 + Math.cos(sp + k * Math.PI / 2) * 0.34 * bootK, cy3, cz3 + Math.sin(sp + k * Math.PI / 2) * 0.34 * bootK))
-      ];
-      for (const [u, v] of [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,3],[3,4],[4,5],[5,2]]) {
-        draw3DSeg(dV[u], dV[v], rgba(rgb, glowA * 0.88), 1.35);
+      // 03 INDEPENDENT REVIEW (独立评审): Unmistakable 3D Holographic Justice Balance Scales (平衡天平)!
+      const hPole = 1.05 * bootK;
+      const tilt = Math.sin(t * 1.35) * 0.14;
+      const arm = 0.66 * bootK;
+      const baseP = project(cx3, 0.04, cz3);
+      const fulcP = project(cx3, hPole, cz3);
+      draw3DSeg(baseP, fulcP, rgba(rgb, glowA * 0.92), 2.6);
+      // Fulcrum glowing amethyst eye crown
+      const eyeTop = project(cx3, hPole + 0.28 * bootK, cz3);
+      draw3DSeg(fulcP, eyeTop, rgba([230, 215, 255], glowA), 1.8);
+      if (eyeTop) {
+        ctx.fillStyle = rgba([235, 225, 255], 0.96);
+        ctx.beginPath(); ctx.arc(eyeTop.x, eyeTop.y, 4.0, 0, Math.PI * 2); ctx.fill();
       }
-      // Twin counter-rotating orthogonal inspection rings
-      for (let ri = 0; ri < 2; ri++) {
-        ctx.beginPath();
-        const rGyro = rad * (1.05 + ri * 0.24);
-        const rot = t * (ri === 0 ? 0.72 : -0.54);
-        for (let i = 0; i <= 32; i++) {
-          const a = (i / 32) * Math.PI * 2;
-          const gx = Math.cos(a) * rGyro;
-          const gy = Math.sin(a) * rGyro * (ri === 0 ? 0.92 : 0.35);
-          const gz = Math.sin(a) * rGyro * (ri === 0 ? 0.38 : 0.94);
-          const pt = project(cx3 + gx * Math.cos(rot) - gz * Math.sin(rot), cy3 + gy, cz3 + gx * Math.sin(rot) + gz * Math.cos(rot));
-          if (!pt) continue;
-          if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+      // Oscillating horizontal balance beam + twin suspended glowing scale pans!
+      const lx = cx3 - Math.cos(tilt) * arm, ly = hPole + Math.sin(tilt) * arm;
+      const rx = cx3 + Math.cos(tilt) * arm, ry = hPole - Math.sin(tilt) * arm;
+      draw3DSeg(project(lx, ly, cz3), project(rx, ry, cz3), rgba([230, 215, 255], glowA), 2.3);
+      for (const [px, py] of [[lx, ly], [rx, ry]]) {
+        const panY = py - 0.42 * bootK;
+        const rPan = 0.30 * bootK;
+        const topArm = project(px, py, cz3);
+        // 3 suspension chains down to glowing scale pan
+        for (let k = 0; k < 3; k++) {
+          const a = (k / 3) * Math.PI * 2 + t * 0.35;
+          draw3DSeg(topArm, project(px + Math.cos(a) * rPan, panY, cz3 + Math.sin(a) * rPan), rgba(rgb, glowA * 0.65), 1.0);
         }
-        ctx.strokeStyle = rgba(rgb, glowA * 0.85);
-        ctx.lineWidth = 1.6;
-        ctx.stroke();
+        // Solid translucent hexagonal scale pan dish
+        const panPts = [];
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
+          panPts.push(project(px + Math.cos(a) * rPan, panY, cz3 + Math.sin(a) * rPan));
+        }
+        if (!panPts.some(p => !p)) {
+          ctx.beginPath();
+          panPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+          ctx.closePath();
+          ctx.fillStyle = rgba(rgb, fillA * 1.4);
+          ctx.fill();
+          ctx.strokeStyle = rgba([230, 215, 255], glowA);
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
       }
     } else if (id === 'verification') {
-      // CENTRAL HUB: Ice-Cyan DNA Double-Helix Proof Reactor Monolith standing on the elevated core dais!
+      // CENTRAL HUB (形式验证): Hero Ice-Cyan DNA Double-Helix Proof Lighthouse + Diamond Crown!
       const hHelix = hEntity * bootK;
-      const rH = 0.62 * bootK;
+      const rH = 0.60 * bootK;
       const turns = 2.2;
       const steps = 28;
-      // Subtle translucent outer crystal containment columns (4 corner ribs)
       for (let k = 0; k < 4; k++) {
         const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-        draw3DSeg(project(cx3 + Math.cos(a) * (rH * 1.25), yBase + 0.04, cz3 + Math.sin(a) * (rH * 1.25)),
-          project(cx3 + Math.cos(a) * (rH * 1.25), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.25)), rgba(rgb, 0.30), 1.0);
+        draw3DSeg(project(cx3 + Math.cos(a) * (rH * 1.24), yBase + 0.04, cz3 + Math.sin(a) * (rH * 1.24)),
+          project(cx3 + Math.cos(a) * (rH * 1.24), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.24)), rgba(rgb, 0.30), 1.0);
       }
-      draw3DRing(cx3, yBase + hHelix, cz3, rH * 1.25, rH * 1.25, 4, rgba(rgb, 0.72), 1.5, null, Math.PI / 4);
-      // Twin Spiraling DNA Proof Helices + Horizontal Verification Rungs
+      draw3DRing(cx3, yBase + hHelix, cz3, rH * 1.24, rH * 1.24, 4, rgba(rgb, 0.78), 1.6, null, Math.PI / 4);
+      // Crystalline apex beacon above the DNA column
+      const apexTop = project(cx3, yBase + hHelix + 0.36 * bootK, cz3);
+      for (let k = 0; k < 4; k++) {
+        const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+        draw3DSeg(apexTop, project(cx3 + Math.cos(a) * (rH * 1.24), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.24)), rgba([215, 255, 255], glowA * 0.75), 1.3);
+      }
       const sA = [], sB = [];
       for (let i = 0; i <= steps; i++) {
         const u = i / steps;
@@ -3752,55 +3690,77 @@ function drawHolo3DFrame(dt = 0.016) {
         sA.push(project(cx3 + Math.cos(a) * rH, py, cz3 + Math.sin(a) * rH));
         sB.push(project(cx3 + Math.cos(a + Math.PI) * rH, py, cz3 + Math.sin(a + Math.PI) * rH));
         if (i % 3 === 0) {
-          draw3DSeg(sA[i], sB[i], rgba(running ? [180, 255, 250] : rgb, running ? 0.76 : 0.38), 1.25);
+          draw3DSeg(sA[i], sB[i], rgba(running ? [190, 255, 252] : rgb, running ? 0.78 : 0.40), 1.25);
         }
       }
       for (const strand of [sA, sB]) {
         ctx.beginPath();
         strand.forEach((pt, idx) => { if (pt) idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y); });
         ctx.strokeStyle = rgba(rgb, glowA);
-        ctx.lineWidth = 2.3;
+        ctx.lineWidth = 2.4;
         ctx.stroke();
       }
-      // Ascending White-Cyan Laser Proof-Check Scan Ring
       if (running && !state.quiet && !reduced) {
         const su = (t * 0.58) % 1;
-        draw3DRing(cx3, yBase + 0.08 + su * hHelix, cz3, rH * 1.38, rH * 1.38, 12, rgba([245, 255, 255], 0.94), 2.2);
+        draw3DRing(cx3, yBase + 0.08 + su * hHelix, cz3, rH * 1.38, rH * 1.38, 12, rgba([245, 255, 255], 0.95), 2.2);
       }
     } else if (id === 'books') {
-      // 05 THEORY BOOKS: Quantum-Violet Stacked Levitating Holographic Codex Plates!
-      const layers = 4;
-      const wP = 0.66 * bootK, dP = 0.46 * bootK;
-      for (let lv = 0; lv < layers; lv++) {
-        const bob = Math.sin(t * 1.7 + lv * 0.9) * 0.05;
-        const py = 0.24 + lv * (hEntity * 0.23) * bootK + bob;
-        const wingLift = 0.14 * bootK;
-        // Open-book V-wing holographic folio plate (left wing + spine + right wing)
-        const spF = project(cx3, py, cz3 + dP), spB = project(cx3, py, cz3 - dP);
-        const lF = project(cx3 - wP, py + wingLift, cz3 + dP), lB = project(cx3 - wP, py + wingLift, cz3 - dP);
-        const rF = project(cx3 + wP, py + wingLift, cz3 + dP), rB = project(cx3 + wP, py + wingLift, cz3 - dP);
-        for (const quad of [[spF, lF, lB, spB], [spF, rF, rB, spB]]) {
-          if (quad.some(p => !p)) continue;
+      // 05 THEORY BOOKS (理论书写): Unmistakable 3D Open Hardcover Codex with Turning Luminous Page!
+      const py = 0.34 * bootK + Math.sin(t * 1.5) * 0.04;
+      const wLeaf = 0.78 * bootK, dLeaf = 0.54 * bootK, lift = 0.22 * bootK;
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, py, cz3), rgba(rgb, 0.52), 2.0);
+      // Thick book cover base + 3 crisp stacked open-wing pages
+      for (let lv = 0; lv < 3; lv++) {
+        const yL = py + lv * 0.11 * bootK;
+        const arch = (lv === 2 ? 0.28 : 0.14 + lv * 0.06) * bootK;
+        const spF = project(cx3, yL, cz3 + dLeaf), spB = project(cx3, yL, cz3 - dLeaf);
+        const lMF = project(cx3 - wLeaf * 0.52, yL + arch, cz3 + dLeaf), lMB = project(cx3 - wLeaf * 0.52, yL + arch, cz3 - dLeaf);
+        const lEF = project(cx3 - wLeaf, yL + lift * 0.55, cz3 + dLeaf), lEB = project(cx3 - wLeaf, yL + lift * 0.55, cz3 - dLeaf);
+        const rMF = project(cx3 + wLeaf * 0.52, yL + arch, cz3 + dLeaf), rMB = project(cx3 + wLeaf * 0.52, yL + arch, cz3 - dLeaf);
+        const rEF = project(cx3 + wLeaf, yL + lift * 0.55, cz3 + dLeaf), rEB = project(cx3 + wLeaf, yL + lift * 0.55, cz3 - dLeaf);
+        for (const poly of [[spF, lMF, lEF, lEB, lMB, spB], [spF, rMF, rEF, rEB, rMB, spB]]) {
+          if (poly.some(p => !p)) continue;
           ctx.beginPath();
-          quad.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+          poly.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
           ctx.closePath();
-          ctx.fillStyle = rgba(rgb, fillA * (0.75 + lv * 0.15));
+          ctx.fillStyle = rgba(rgb, fillA * (lv === 2 ? 1.35 : 0.75));
           ctx.fill();
-          ctx.strokeStyle = rgba(rgb, glowA * (0.62 + lv * 0.12));
-          ctx.lineWidth = lv === layers - 1 ? 1.8 : 1.2;
+          ctx.strokeStyle = rgba(lv === 2 ? [238, 215, 255] : rgb, glowA * (lv === 2 ? 0.96 : 0.55));
+          ctx.lineWidth = lv === 2 ? 1.8 : 1.1;
           ctx.stroke();
         }
       }
+      // Animated translucent page turning smoothly across the book spine!
+      const turnA = ((t * 0.55) % 1) * Math.PI;
+      const yTop = py + 0.26 * bootK;
+      const tX = cx3 + Math.cos(turnA) * wLeaf * 0.88;
+      const tY = yTop + Math.sin(turnA) * wLeaf * 0.78;
+      const turnPoly = [
+        project(cx3, yTop, cz3 + dLeaf * 0.92),
+        project(tX, tY, cz3 + dLeaf * 0.92),
+        project(tX, tY, cz3 - dLeaf * 0.92),
+        project(cx3, yTop, cz3 - dLeaf * 0.92)
+      ];
+      if (!turnPoly.some(p => !p)) {
+        ctx.beginPath();
+        turnPoly.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+        ctx.closePath();
+        ctx.fillStyle = rgba([240, 222, 255], Math.sin(turnA) * 0.28);
+        ctx.fill();
+        ctx.strokeStyle = rgba([250, 238, 255], Math.sin(turnA) * 0.92);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     } else if (id === 'publication') {
-      // 06 PAPERS & KNOWLEDGE: Mint Branching Crystalline Knowledge Tree!
+      // 06 PAPERS & KNOWLEDGE (论文与知识): Mint Crystal Knowledge Constellation Tree + Paper Scrolls!
       const hTree = hEntity * bootK;
       const basePt = project(cx3, 0.04, cz3);
-      const forkPt = project(cx3, hTree * 0.46, cz3);
-      draw3DSeg(basePt, forkPt, rgba(rgb, glowA * 0.9), 2.5);
+      const forkPt = project(cx3, hTree * 0.44, cz3);
+      draw3DSeg(basePt, forkPt, rgba(rgb, glowA * 0.95), 2.6);
       const branches = [
-        [0, 1.0, 0],
-        [-0.62, 0.84, 0.25], [0.62, 0.84, 0.25],
-        [-0.42, 0.78, -0.52], [0.42, 0.78, -0.52],
+        [0, 1.02, 0],
+        [-0.64, 0.84, 0.24], [0.64, 0.84, 0.24],
+        [-0.44, 0.78, -0.50], [0.44, 0.78, -0.50],
         [0, 0.72, 0.62]
       ];
       const tips = [];
@@ -3811,69 +3771,75 @@ function drawHolo3DFrame(dt = 0.016) {
         const rz = bx * Math.sin(rot) + bz * Math.cos(rot);
         const tip = project(cx3 + rx * bootK, by * hTree, cz3 + rz * bootK);
         tips.push(tip);
-        draw3DSeg(forkPt, tip, rgba(rgb, glowA * 0.72), 1.4);
+        draw3DSeg(forkPt, tip, rgba(rgb, glowA * 0.76), 1.5);
       }
-      // Constellation filament links + glowing knowledge star nodes
       for (let i = 1; i < tips.length; i++) {
-        draw3DSeg(tips[0], tips[i], rgba(rgb, 0.30), 0.8);
+        draw3DSeg(tips[0], tips[i], rgba(rgb, 0.34), 0.9);
+        draw3DSeg(tips[i], tips[(i % (tips.length - 1)) + 1], rgba(rgb, 0.26), 0.8);
       }
       for (let i = 0; i < tips.length; i++) {
         if (!tips[i]) continue;
-        ctx.fillStyle = rgba(i === 0 ? [225, 255, 245] : rgb, 0.95);
-        ctx.beginPath(); ctx.arc(tips[i].x, tips[i].y, i === 0 ? 4.2 : 3.0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(i === 0 ? [225, 255, 245] : rgb, 0.96);
+        ctx.beginPath(); ctx.arc(tips[i].x, tips[i].y, i === 0 ? 4.6 : 3.2, 0, Math.PI * 2); ctx.fill();
       }
     } else if (id === 'outreach') {
-      // 07 ACADEMIC OUTREACH: Coral Parabolic Signal Beacon + Expanding Wavefronts!
-      const hDish = hEntity * 0.68 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, hDish, cz3), rgba(rgb, glowA * 0.85), 2.4);
-      // 3D Parabolic Dish Cup tilted skyward
-      draw3DRing(cx3, hDish + 0.10, cz3, 0.34 * bootK, 0.34 * bootK, 16, rgba(rgb, glowA * 0.7), 1.3);
-      draw3DRing(cx3, hDish + 0.30, cz3, 0.68 * bootK, 0.68 * bootK, 20, rgba(rgb, glowA), 1.9);
-      for (let k = 0; k < 6; k++) {
-        const a = (k / 6) * Math.PI * 2 + t * 0.3;
-        draw3DSeg(project(cx3, hDish, cz3), project(cx3 + Math.cos(a) * 0.68 * bootK, hDish + 0.30, cz3 + Math.sin(a) * 0.68 * bootK), rgba(rgb, 0.52), 1.0);
+      // 07 ACADEMIC OUTREACH (学术交流): Coral Deep-Space Parabolic Radio Dish + Expanding Signal Waves!
+      const hDish = hEntity * 0.58 * bootK;
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, hDish, cz3), rgba(rgb, glowA * 0.88), 2.5);
+      draw3DRing(cx3, hDish + 0.10, cz3, 0.36 * bootK, 0.36 * bootK, 16, rgba(rgb, glowA * 0.75), 1.4);
+      draw3DRing(cx3, hDish + 0.30, cz3, 0.72 * bootK, 0.72 * bootK, 20, rgba([255, 212, 175], glowA), 2.1);
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2 + t * 0.25;
+        draw3DSeg(project(cx3, hDish, cz3), project(cx3 + Math.cos(a) * 0.72 * bootK, hDish + 0.30, cz3 + Math.sin(a) * 0.72 * bootK), rgba(rgb, 0.56), 1.0);
       }
-      // Central emitter tip + 3 expanding radio broadcast rings rising outward!
       const tip = project(cx3, hDish + 0.56 * bootK, cz3);
-      draw3DSeg(project(cx3, hDish, cz3), tip, rgba([255, 230, 200], 0.9), 1.6);
-      if (tip) { ctx.fillStyle = rgba([255, 230, 200], 0.95); ctx.beginPath(); ctx.arc(tip.x, tip.y, 3.2, 0, Math.PI * 2); ctx.fill(); }
+      draw3DSeg(project(cx3, hDish, cz3), tip, rgba([255, 232, 205], 0.95), 1.8);
+      if (tip) { ctx.fillStyle = rgba([255, 235, 210], 0.98); ctx.beginPath(); ctx.arc(tip.x, tip.y, 3.6, 0, Math.PI * 2); ctx.fill(); }
       for (let wv = 0; wv < 3; wv++) {
-        const u = (t * 0.55 + wv / 3) % 1;
-        const rad = (0.28 + u * 0.95) * bootK;
-        draw3DRing(cx3, hDish + 0.48 + u * 0.88, cz3, rad, rad, 24, rgba(rgb, (1 - u) * 0.85), 1.5);
+        const u = (t * 0.52 + wv / 3) % 1;
+        const rad = (0.28 + u * 0.90) * bootK;
+        draw3DRing(cx3, hDish + 0.48 + u * 0.82, cz3, rad, rad, 24, rgba(rgb, (1 - u) * 0.88), 1.6);
       }
     } else {
-      // 08 STUDIO & TOOLING: Titanium Interlocking Rotating 3D Precision Gears!
-      const cy3 = 0.68 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3, cz3), rgba(rgb, 0.55), 2.0);
-      const drawGear = (gy, rIn, rOut, dir) => {
+      // 08 STUDIO & TOOLING (工具与表达): Titanium Interlocking 3D Foundry Gears + Wireframe Holo Cube!
+      const cy3 = 0.52 * bootK;
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3, cz3), rgba(rgb, 0.58), 2.2);
+      const drawGear = (gx, gy, gz, rIn, rOut, dir, vertical = false) => {
         ctx.beginPath();
-        const teeth = 8;
-        const pts = teeth * 4;
+        const teeth = 8, pts = teeth * 4;
         for (let i = 0; i <= pts; i++) {
-          const a = (i / pts) * Math.PI * 2 + t * 0.55 * dir;
+          const a = (i / pts) * Math.PI * 2 + t * 0.60 * dir;
           const rG = (i % 4 < 2 ? rOut : rIn) * bootK;
-          const pt = project(cx3 + Math.cos(a) * rG, gy, cz3 + Math.sin(a) * rG);
+          const pt = vertical
+            ? project(gx + Math.cos(a) * rG, gy + Math.sin(a) * rG, gz)
+            : project(gx + Math.cos(a) * rG, gy, gz + Math.sin(a) * rG);
           if (!pt) continue;
           if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
         }
-        ctx.fillStyle = rgba(rgb, fillA);
+        ctx.fillStyle = rgba(rgb, fillA * 1.25);
         ctx.fill();
-        ctx.strokeStyle = rgba(rgb, glowA * 0.9);
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = rgba([210, 235, 250], glowA * 0.95);
+        ctx.lineWidth = 1.6;
         ctx.stroke();
       };
-      drawGear(cy3 - 0.16 * bootK, 0.46, 0.62, 1);
-      drawGear(cy3 + 0.24 * bootK, 0.34, 0.48, -1.4);
-      draw3DRing(cx3, cy3 + 0.56 * bootK, cz3, 0.24 * bootK, 0.24 * bootK, 6, rgba(rgb, glowA), 1.4, null, t * 0.8);
+      drawGear(cx3 - 0.16 * bootK, cy3, cz3, 0.44, 0.60, 1, false);
+      drawGear(cx3 + 0.34 * bootK, cy3 + 0.38 * bootK, cz3, 0.28, 0.42, -1.4, true);
+      // Floating wireframe holographic projector cube hovering above the gears
+      const cY = cy3 + 0.72 * bootK, cs = 0.22 * bootK, rot = t * 0.7;
+      const cubeV = [-1, 1].flatMap(sy => [0, 1, 2, 3].map(k => {
+        const a = rot + k * Math.PI / 2 + Math.PI / 4;
+        return project(cx3 - 0.16 * bootK + Math.cos(a) * cs * 1.4, cY + sy * cs, cz3 + Math.sin(a) * cs * 1.4);
+      }));
+      for (const [u, v] of [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]) {
+        draw3DSeg(cubeV[u], cubeV[v], rgba([180, 240, 255], glowA * 0.85), 1.15);
+      }
     }
 
-    // Synchronized Live Log Pulse Shockwave Ring!
+    // Synchronized Live Intel Pulse Shockwave Ring!
     for (const p of holoCam.pulses) {
       if (p.id !== id) continue;
-      const py = cfg.floating ? yBase : 0.04;
       const rad = cfg.r * (0.95 + p.age * 1.45);
-      draw3DRing(cx3, py, cz3, rad, rad, 24, rgba(rgb, (1 - p.age) * 0.92 * p.strength), 2.2);
+      draw3DRing(cx3, yBase + 0.04, cz3, rad, rad, 24, rgba(rgb, (1 - p.age) * 0.92 * p.strength), 2.2);
     }
 
     ctx.restore();
@@ -3891,44 +3857,41 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.projectedTowers.clear();
 
   for (const { d, cfg } of sorted) {
-    // Staggered rapid sci-fi boot materialization (65ms stagger, snappy ease-out!)
     const rawBoot = Math.max(0, Math.min(1, (holoCam.bootAge - cfg.order * 0.065) / 0.42));
     const bootK = 1 - Math.pow(1 - rawBoot, 3);
     if (bootK <= 0.02) continue;
 
     const hEntity = towerHeight(d.id);
-    const yBase = cfg.floating ? cfg.y + Math.sin(t * 1.5) * 0.07 : (cfg.y || 0);
+    const yBase = cfg.y || 0;
     const running = Boolean(countRunning(d));
     const isSel = d.id === activeId;
     const rgb = isBlueprint ? [150, 215, 255] : cfg.hex;
     const pulseObj = holoCam.pulses.find(p => p.id === d.id);
     const pulseBoost = pulseObj ? (1 - pulseObj.age) : 0;
 
-    // Ground glow aura + Active Tactical Target Lock-On Vertical Beam & Brackets!
-    if (!cfg.floating) {
-      const gPt = project(cfg.x, yBase + 0.02, cfg.z);
-      if (gPt) {
-        const gRad = cfg.r * gPt.s * (isSel ? 1.9 : running ? 1.45 : 1.1) * bootK;
-        const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
-        glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.38 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
-        glow.addColorStop(1, rgba(rgb, 0));
-        ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.52, 0, 0, Math.PI * 2); ctx.fill();
-      }
+    // Ground glow aura
+    const gPt = project(cfg.x, yBase + 0.02, cfg.z);
+    if (gPt) {
+      const gRad = cfg.r * gPt.s * (isSel ? 1.9 : running ? 1.45 : 1.1) * bootK;
+      const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
+      glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.38 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
+      glow.addColorStop(1, rgba(rgb, 0));
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.52, 0, 0, Math.PI * 2); ctx.fill();
     }
 
     if (isSel && !isLight) {
-      const topBeam = project(cfg.x, yBase + hEntity + 1.15, cfg.z);
+      const topBeam = project(cfg.x, yBase + hEntity + 1.05, cfg.z);
       const botBeam = project(cfg.x, yBase, cfg.z);
       if (topBeam && botBeam) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         const bgGrad = ctx.createLinearGradient(botBeam.x, botBeam.y, topBeam.x, topBeam.y);
-        bgGrad.addColorStop(0, rgba(rgb, 0.32));
-        bgGrad.addColorStop(0.65, rgba(rgb, 0.08));
+        bgGrad.addColorStop(0, rgba(rgb, 0.30));
+        bgGrad.addColorStop(0.65, rgba(rgb, 0.07));
         bgGrad.addColorStop(1, rgba(rgb, 0));
         ctx.strokeStyle = bgGrad;
-        ctx.lineWidth = Math.max(12, cfg.r * botBeam.s * 0.55);
+        ctx.lineWidth = Math.max(12, cfg.r * botBeam.s * 0.52);
         ctx.beginPath(); ctx.moveTo(botBeam.x, botBeam.y); ctx.lineTo(topBeam.x, topBeam.y); ctx.stroke();
         ctx.restore();
       }
@@ -3936,10 +3899,10 @@ function drawHolo3DFrame(dt = 0.016) {
 
     drawBiomimetic(d.id, cfg, hEntity, yBase, rgb, isSel, running, bootK, pulseBoost);
 
-    // Anchor ultra-compact label CLEANLY BELOW each entity's base pedestal (ZERO occlusion of 3D form!)
-    const anchorPt = cfg.floating
-      ? project(cfg.x, yBase + 1.18, cfg.z)
-      : project(cfg.x, yBase - 0.08, cfg.z + cfg.r * (d.id === 'verification' ? 0.92 : 0.72));
+    // Anchor sleek mission card cleanly above North Helm or below each orbital sculpture (ZERO occlusion!)
+    const anchorPt = cfg.apex
+      ? project(cfg.x, yBase + 1.02, cfg.z)
+      : project(cfg.x, yBase - 0.06, cfg.z + cfg.r * (d.id === 'verification' ? 0.94 : 0.74));
     const bodyCenter = project(cfg.x, yBase + hEntity * 0.5, cfg.z);
     if (anchorPt && bodyCenter) {
       holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(42, cfg.r * bodyCenter.s * 1.45) });
@@ -3950,19 +3913,17 @@ function drawHolo3DFrame(dt = 0.016) {
         cell.button.style.top = `${anchorPt.y.toFixed(1)}px`;
         cell.button.style.zIndex = String(isSel ? 40 : Math.round(30 - anchorPt.z));
         cell.button.style.setProperty('--depth-scale', depthScale.toFixed(3));
-        cell.button.classList.toggle('is-apex-label', Boolean(cfg.floating));
+        cell.button.classList.toggle('is-apex-label', Boolean(cfg.apex));
         cell.button.classList.add('is-projected');
       }
     }
   }
 
-  // Draw Hub Crown & Four Spoke Badges AFTER 3D sculptures so ZERO wireframe ever crosses text!
-  drawHoloBadge(0.0, 0.12, -2.76, '★ CORE HUB // 形式验证枢纽 · 24/7 LEAN CI & 真理账本', hubRGB, '#0369a1', '#9ff9ff');
-  drawHoloBadge(-2.22, 0.22, -1.05, '理论推进 ⇄ 验证请求', [45, 227, 184], '#047857', '#7dffe0', true);
-  drawHoloBadge( 2.22, 0.22, -1.05, '写书 ⇄ 验证请求', [199, 140, 219], '#6d28d9', '#e5c6ff', true);
-  drawHoloBadge(-1.25, 0.04,  3.22, '合作 ▸ 验证请求', [240, 148, 90], '#b45309', '#ffd1a8', true);
-  drawHoloBadge( 1.25, 0.04,  3.22, '论文 ⇄ Lean 目标', [74, 216, 176], '#047857', '#9df5dc', true);
-  drawHoloBadge(0.0, -0.52, 5.45, '四路汇聚验证枢纽 · 理论推进 ⇄ 写书 ⇄ 论文 ⇄ 合作 持续生成形式化请求', arenaRGB, '#2a5678', '#a8d8f8');
+  // Whisper-clean unboxed holographic captions along the 4 hub spokes (NO floating box clutter!)
+  drawHoloText(-2.15, 0.22, -1.35, '理论 ⇄ 验证请求', isLight ? [4, 120, 87] : [125, 255, 224], thHot);
+  drawHoloText( 2.15, 0.22, -1.35, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [229, 198, 255], bkHot);
+  drawHoloText(-1.08, 0.04,  3.20, '合作 ▸ 验证请求', isLight ? [180, 83, 9] : [255, 209, 168], coHot);
+  drawHoloText( 1.08, 0.04,  3.20, '论文 ⇄ Lean 目标', isLight ? [4, 120, 87] : [157, 245, 220], pbHot);
 }
 
 function startHoloLoop() {
