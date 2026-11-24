@@ -60,13 +60,15 @@ jobs:
         if: steps.config.outputs.ready == 'true'
         run: |
           set +e
+          npm ci --ignore-scripts > /tmp/probe-npm.log 2>&1
+          npm_rc=$?
           python3 -m unittest discover -s tests -v > /tmp/probe-py.log 2>&1
           py_rc=$?
-          node --test tests/*.test.mjs > /tmp/probe-js.log 2>&1
+          npm test > /tmp/probe-js.log 2>&1
           js_rc=$?
           live_code=$(curl -sS -o /dev/null -w '%{http_code}' https://live.trureturing.org/ || echo "000")
           atlas_code=$(curl -sS -o /dev/null -w '%{http_code}' https://www.trureturing.org/data/atlas-startup.v1.json || echo "000")
-          echo "py_rc=$py_rc js_rc=$js_rc live_code=$live_code atlas_code=$atlas_code"
+          echo "npm_rc=$npm_rc py_rc=$py_rc js_rc=$js_rc live_code=$live_code atlas_code=$atlas_code"
           echo "py_rc=$py_rc" >> "$GITHUB_OUTPUT"
           echo "js_rc=$js_rc" >> "$GITHUB_OUTPUT"
           echo "live_code=$live_code" >> "$GITHUB_OUTPUT"
@@ -79,8 +81,9 @@ jobs:
       - name: Run read-only live-health Codex diagnosis
         if: steps.config.outputs.ready == 'true'
         env:
-          OPENAI_API_KEY: ${{ secrets.NYXID_LIVE_HEALTH_KEY }}
-          OPENAI_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          NYXID_API_KEY: ${{ secrets.NYXID_LIVE_HEALTH_KEY }}
+          NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          CODEX_MODEL: ${{ vars.NYXID_LIVE_CODEX_MODEL }}
           AUDIT_NOTE: ${{ inputs.note }}
           PY_RC: ${{ steps.probe.outputs.py_rc }}
           JS_RC: ${{ steps.probe.outputs.js_rc }}
@@ -88,17 +91,40 @@ jobs:
           ATLAS_CODE: ${{ steps.probe.outputs.atlas_code }}
         run: |
           set -euo pipefail
+          model="${CODEX_MODEL:-gpt-5.4}"
+          codex_home="$RUNNER_TEMP/codex-home"
+          mkdir -p "$codex_home"
+          cat <<EOF > "$codex_home/config.toml"
+          approval_policy = "never"
+          model_provider = "nyxid"
+          model = "${model}"
+          disable_response_storage = true
+
+          [model_providers.nyxid]
+          name = "nyxid"
+          base_url = "${NYXID_BASE_URL}"
+          wire_api = "responses"
+          env_key = "NYXID_API_KEY"
+          EOF
+
           cat <<'EOF' > /tmp/health-prompt.txt
           You are the read-only live-health caretaker for the-omega-institute/trureturing-live (NyxID org: Omega Live Ops).
           HARD BOUNDARIES:
           - DO NOT modify repository files or run git commit/push.
-          - Only inspect read-only probe results and local repo files to decide whether an actionable display/feed/upstream anomaly exists.
-          - If everything is healthy (py_rc=0, js_rc=0, live_code=200, atlas_code=200, and no broken data contract), write exactly "HEALTHY" to /tmp/health-verdict.txt.
-          - If there IS a concrete anomaly, write "ALERT" to /tmp/health-verdict.txt and write a concise, actionable markdown diagnostic report (under 25 lines, zero secrets/usernames) to /tmp/health-report.md.
+          - Inspect only the probe summary and (if any check failed) the probe logs / local files.
+          - Your final response MUST follow this exact format:
+            - If everything is healthy (py_rc=0, js_rc=0, live_code=200, atlas_code=200, and no broken data contract), output a single line:
+              HEALTHY
+            - If there IS a concrete anomaly, output `ALERT` on the first line, followed by a concise actionable markdown diagnostic report (under 25 lines, zero secrets/usernames).
           EOF
           printf "\nProbe summary: py_rc=%s js_rc=%s live_code=%s atlas_code=%s\nOperator note: %s\n" \
             "$PY_RC" "$JS_RC" "$LIVE_CODE" "$ATLAS_CODE" "$AUDIT_NOTE" >> /tmp/health-prompt.txt
-          codex exec --full-auto --sandbox read-only "$(cat /tmp/health-prompt.txt)"
+
+          CODEX_HOME="$codex_home" codex exec \
+            --ephemeral \
+            --sandbox read-only \
+            --output-last-message /tmp/health-out.txt \
+            - < /tmp/health-prompt.txt
 
       - name: File deduplicated health issue with github-event-v2 footer
         if: steps.config.outputs.ready == 'true'
@@ -108,9 +134,16 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          verdict=$(tr -d '[:space:]' < /tmp/health-verdict.txt 2>/dev/null || echo "HEALTHY")
-          if [ "$verdict" != "ALERT" ] || [ ! -s /tmp/health-report.md ]; then
+          first_line=$(awk 'NF {print; exit}' /tmp/health-out.txt 2>/dev/null | tr -d '\r' || echo "HEALTHY")
+          echo "Codex health verdict: $first_line"
+          if [ "$first_line" != "ALERT" ]; then
             echo "Live observatory healthy; no issue filed."
+            exit 0
+          fi
+
+          tail -n +2 /tmp/health-out.txt > /tmp/health-report.md
+          if [ ! -s /tmp/health-report.md ]; then
+            echo "ALERT verdict had empty body; skipping."
             exit 0
           fi
 

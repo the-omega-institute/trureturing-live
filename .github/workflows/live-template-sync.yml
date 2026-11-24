@@ -82,11 +82,28 @@ jobs:
       - name: Run scoped template-sync Codex mission
         if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
         env:
-          OPENAI_API_KEY: ${{ secrets.NYXID_LIVE_TEMPLATE_SYNC_KEY }}
-          OPENAI_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          NYXID_API_KEY: ${{ secrets.NYXID_LIVE_TEMPLATE_SYNC_KEY }}
+          NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          CODEX_MODEL: ${{ vars.NYXID_LIVE_CODEX_MODEL }}
           SYNC_NOTE: ${{ inputs.note }}
         run: |
           set -euo pipefail
+          model="${CODEX_MODEL:-gpt-5.4}"
+          codex_home="$RUNNER_TEMP/codex-home"
+          mkdir -p "$codex_home"
+          cat <<EOF > "$codex_home/config.toml"
+          approval_policy = "never"
+          model_provider = "nyxid"
+          model = "${model}"
+          disable_response_storage = true
+
+          [model_providers.nyxid]
+          name = "nyxid"
+          base_url = "${NYXID_BASE_URL}"
+          wire_api = "responses"
+          env_key = "NYXID_API_KEY"
+          EOF
+
           cat <<'EOF' > /tmp/sync-prompt.txt
           You are the scoped live-template-sync caretaker (NyxID org: Omega Live Ops).
           - source-live/ is the read-only reference observatory (trureturing-live).
@@ -99,7 +116,11 @@ jobs:
           - Do NOT run git push or gh pr create.
           EOF
           printf "\nOperator note: %s\n" "$SYNC_NOTE" >> /tmp/sync-prompt.txt
-          codex exec --full-auto --sandbox workspace-write "$(cat /tmp/sync-prompt.txt)"
+
+          CODEX_HOME="$codex_home" codex exec \
+            --ephemeral \
+            --sandbox workspace-write \
+            - < /tmp/sync-prompt.txt
 
       - name: Verify template checks & open sync PR with github-event-v2 footer
         if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
