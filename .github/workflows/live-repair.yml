@@ -80,15 +80,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Codex CLI
+      - name: Install test dependencies & Codex CLI
         if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
-        run: npm install -g @openai/codex
+        run: |
+          npm ci --ignore-scripts
+          npm install -g @openai/codex
 
       - name: Run scoped live-repair Codex mission
         if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
         env:
-          OPENAI_API_KEY: ${{ secrets.NYXID_LIVE_REPAIR_KEY }}
-          OPENAI_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          NYXID_API_KEY: ${{ secrets.NYXID_LIVE_REPAIR_KEY }}
+          NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          CODEX_MODEL: ${{ vars.NYXID_LIVE_CODEX_MODEL }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           MISSION: ${{ inputs.mission }}
@@ -96,6 +99,22 @@ jobs:
           OPERATOR_NOTE: ${{ inputs.note }}
         run: |
           set -euo pipefail
+          model="${CODEX_MODEL:-gpt-5.4}"
+          codex_home="$RUNNER_TEMP/codex-home"
+          mkdir -p "$codex_home"
+          cat <<EOF > "$codex_home/config.toml"
+          approval_policy = "never"
+          model_provider = "nyxid"
+          model = "${model}"
+          disable_response_storage = true
+
+          [model_providers.nyxid]
+          name = "nyxid"
+          base_url = "${NYXID_BASE_URL}"
+          wire_api = "responses"
+          env_key = "NYXID_API_KEY"
+          EOF
+
           issue_ctx=""
           if [[ "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then
             issue_ctx=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title,body --jq '"\(.title)\n\(.body)"' || true)
@@ -106,12 +125,16 @@ jobs:
           - Only make small, surgical presentation/display/scene/sync fixes inside site/ or scripts/ or tests/.
           - NEVER alter workflow security gates, deployment rate limits, secrets, or research architecture.
           - NEVER expose GitHub usernames in UI code or comments.
-          - Run `python3 -m unittest discover -s tests` and `node --test tests/*.test.mjs` and ensure all tests pass.
+          - Run `python3 -m unittest discover -s tests` and `npm test` and ensure all tests pass.
           - Do NOT run git push or gh pr create; leave clean working-tree changes only if a real fix is warranted.
           EOF
           printf "\nMission: %s\nOperator note: %s\nLinked issue #%s:\n%s\n" \
             "$MISSION" "$OPERATOR_NOTE" "$ISSUE_NUMBER" "$issue_ctx" >> /tmp/repair-prompt.txt
-          codex exec --full-auto --sandbox workspace-write "$(cat /tmp/repair-prompt.txt)"
+
+          CODEX_HOME="$codex_home" codex exec \
+            --ephemeral \
+            --sandbox workspace-write \
+            - < /tmp/repair-prompt.txt
 
       - name: Verify tests & open PR with github-event-v2 footer
         if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
@@ -128,7 +151,7 @@ jobs:
           fi
 
           python3 -m unittest discover -s tests -v
-          node --test tests/*.test.mjs
+          npm test
 
           git config user.name "omega-live-repair[bot]"
           git config user.email "omega-live-repair[bot]@users.noreply.github.com"
@@ -153,7 +176,7 @@ jobs:
           Automated scoped \`${MISSION}\` patch prepared by **live-repair** (NyxID org: \`Omega Live Ops\`).
           ${ref_line}
 
-          - Verified locally with \`python3 -m unittest discover -s tests\` and \`node --test tests/*.test.mjs\`.
+          - Verified locally with \`python3 -m unittest discover -s tests\` and \`npm test\`.
           - Merging into \`main\` triggers the exclusive Pages deploy pipeline (\`<= 10 deploys/hour\`).
 
           ${event_line}
