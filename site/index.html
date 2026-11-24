@@ -7,8 +7,8 @@
   <meta name="description" content="trureturing live：24/7 AI 数学研究院 3D 矩阵架构指挥大屏。四学部独立架构、Lean 形式验证桥梁与跨部门研究接力。">
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v24">
-  <script type="module" src="assets/app.mjs?v=hive-v24"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v25">
+  <script type="module" src="assets/app.mjs?v=hive-v25"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -129,8 +129,11 @@
           </div>
         </div>
         <div class="log-wall-sub">
-          <span id="log-rate-badge">HIGH-DENSITY INTEL · LIVE</span>
-          <button type="button" class="log-pause-btn" id="log-pause-btn" title="暂停/恢复战报滚屏">LIVE</button>
+          <span id="log-rate-badge">LATEST · 最新在下</span>
+          <div class="log-mode-switch" role="group" aria-label="战报显示方式">
+            <button type="button" data-log-mode="latest" aria-pressed="true" title="按时间列出真实的最新事件，有新事件才追加">最新</button>
+            <button type="button" data-log-mode="cycle" aria-pressed="false" title="循环滚动播放全院动态">轮播</button>
+          </div>
         </div>
         <div class="scifi-log-stream" id="scifi-log-stream" aria-live="off"></div>
       </aside>
