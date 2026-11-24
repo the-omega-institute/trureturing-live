@@ -4975,33 +4975,37 @@ $('#theme-toggle')?.addEventListener('click', () => {
   } catch {}
 });
 
-$('#expand-room').addEventListener('click', async () => {
-  const room = $('#research-room');
-  if (document.fullscreenElement) {
-    await document.exitFullscreen();
-    return;
-  }
-  if (room.classList.contains('is-expanded')) {
-    room.classList.remove('is-expanded');
-    document.body.style.overflow = '';
-    return;
-  }
-  if (room.requestFullscreen) {
-    try {
-      await room.requestFullscreen();
-      return;
-    } catch {}
-  }
-  room.classList.add('is-expanded');
-  document.body.style.overflow = 'hidden';
+// Whole-page fullscreen: header, 3D campus, readouts and relay rail stay together.
+const fullscreenButton = $('#expand-room');
+const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+
+function syncFullscreenButton() {
+  const on = Boolean(fullscreenElement());
+  fullscreenButton.setAttribute('aria-pressed', String(on));
+  fullscreenButton.setAttribute('aria-label', on ? '退出全屏' : '进入全屏');
+  fullscreenButton.title = on ? '退出全屏（Esc）' : '全屏显示';
+  fullscreenButton.querySelector('span').textContent = on ? '退出全屏' : '全屏';
+}
+
+fullscreenButton.hidden = !(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+fullscreenButton.addEventListener('click', async () => {
+  const root = document.documentElement;
+  try {
+    if (fullscreenElement()) {
+      await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen());
+    } else {
+      await (root.requestFullscreen ? root.requestFullscreen({ navigationUI: 'hide' }) : root.webkitRequestFullscreen());
+    }
+  } catch {}
+  syncFullscreenButton();
 });
+document.addEventListener('fullscreenchange', syncFullscreenButton);
+document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if ($('#telemetry-dock')?.classList.contains('is-open')) closeDockDrawer();
     if (state.focused) closeDepartmentLens();
-    $('#research-room').classList.remove('is-expanded');
-    document.body.style.overflow = '';
   }
 });
 

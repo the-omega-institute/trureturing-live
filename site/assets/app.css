@@ -405,6 +405,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .follow-button[aria-pressed="false"] i { background: var(--dim); box-shadow: none; }
 
+.fullscreen-button svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.fullscreen-button .fs-exit,
+.fullscreen-button[aria-pressed="true"] .fs-enter { display: none; }
+.fullscreen-button[aria-pressed="true"] .fs-exit { display: block; }
+@media (orientation: landscape) and (max-width: 1365px) {
+  .fullscreen-button span { display: none; }
+}
+
 .connection-note {
   position: fixed;
   top: 56px;
