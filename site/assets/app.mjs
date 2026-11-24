@@ -3230,16 +3230,18 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.gazeX += (gazeTarget.x - holoCam.gazeX) * 0.09;
   holoCam.gazeZ += (gazeTarget.z - holoCam.gazeZ) * 0.09;
 
-  // Gossamer translucent golden supervisory oversight veil descending from Akasha Eye over the closed-loop disc
+  // Symmetric Bidirectional Oversight & Telemetry Field between the ENTIRE Closed-Loop Disc & Akasha Eye!
+  // No lopsided single beam — the whole workflow below streams upward into the Eye, and the Eye oversees the whole ring!
   const eyeOrigin = project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
-  const rimL = project(hubX - rxOut * 0.92, 0.05, hubZ - rzOut * 0.18);
-  const rimR = project(hubX + rxOut * 0.92, 0.05, hubZ - rzOut * 0.18);
+  const rimL = project(hubX - rxOut * 0.94, 0.05, hubZ - rzOut * 0.14);
+  const rimR = project(hubX + rxOut * 0.94, 0.05, hubZ - rzOut * 0.14);
+  const eyeBoost = activeId === 'direction' ? 1.55 : 1.0;
   if (eyeOrigin && rimL && rimR) {
     ctx.save();
     if (!isLight) ctx.globalCompositeOperation = 'lighter';
     const veil = ctx.createLinearGradient(eyeOrigin.x, eyeOrigin.y, eyeOrigin.x, Math.max(rimL.y, rimR.y));
-    veil.addColorStop(0, rgba(tier1RGB, isLight ? 0.10 : 0.12));
-    veil.addColorStop(0.55, rgba(tier1RGB, isLight ? 0.03 : 0.032));
+    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.12 : 0.15) * eyeBoost));
+    veil.addColorStop(0.52, rgba(tier1RGB, (isLight ? 0.04 : 0.042) * eyeBoost));
     veil.addColorStop(1, rgba(tier1RGB, 0));
     ctx.fillStyle = veil;
     ctx.beginPath();
@@ -3248,12 +3250,68 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.lineTo(rimR.x, rimR.y);
     ctx.closePath();
     ctx.fill();
-    // Delicate outer boundary sightlines framing the supervisory field
-    ctx.strokeStyle = rgba(tier1RGB, isLight ? 0.16 : 0.14);
-    ctx.lineWidth = 0.9;
+
+    // Symmetric boundary field lines + 2 balanced inner observation filaments embracing the whole closed-loop ring
+    const fieldAnchors = [
+      [hubX - rxOut * 0.94, 0.05, hubZ - rzOut * 0.14, 0.17],
+      [hubX - rxOut * 0.42, 0.05, hubZ - rzOut * 0.72, 0.11],
+      [hubX + rxOut * 0.42, 0.05, hubZ - rzOut * 0.72, 0.11],
+      [hubX + rxOut * 0.94, 0.05, hubZ - rzOut * 0.14, 0.17]
+    ];
+    ctx.lineWidth = 0.95;
     ctx.setLineDash([4, 7]);
-    ctx.beginPath(); ctx.moveTo(eyeOrigin.x, eyeOrigin.y); ctx.lineTo(rimL.x, rimL.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(eyeOrigin.x, eyeOrigin.y); ctx.lineTo(rimR.x, rimR.y); ctx.stroke();
+    for (const [ax, ay, az, al] of fieldAnchors) {
+      const pA = project(ax, ay, az);
+      if (!pA) continue;
+      ctx.strokeStyle = rgba(tier1RGB, Math.min(0.65, (isLight ? al * 1.2 : al) * eyeBoost));
+      ctx.beginPath(); ctx.moveTo(eyeOrigin.x, eyeOrigin.y); ctx.lineTo(pA.x, pA.y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Continuous upward observation/feedback streams rising symmetrically from ALL 7 sectors of the closed loop into the Eye!
+    if (!state.quiet && !reduced) {
+      const streamDepts = ['research', 'review', 'outreach', 'verification', 'publication', 'studio', 'books'];
+      const sampleUp = (src, u) => {
+        // Gentle quadratic arc bowing slightly outward then converging cleanly into the Akasha Eye
+        const ease = 1 - Math.pow(1 - u, 1.35);
+        const mx = src.x * (1 - ease) + eyeCfg.x * ease;
+        const mz = src.z * (1 - ease) + eyeCfg.z * ease;
+        const my = ((src.y || 0) + 0.55) * (1 - u) + (eyeCfg.y - 0.10) * u;
+        return project(mx, my, mz);
+      };
+      for (let i = 0; i < streamDepts.length; i++) {
+        const src = holoWorld[streamDepts[i]];
+        if (!src) continue;
+        const col = isBlueprint ? [150, 215, 255] : src.hex;
+        for (let wave = 0; wave < 2; wave++) {
+          const u = (t * 0.24 + i / streamDepts.length + wave * 0.5) % 1;
+          const uTail = Math.max(0, u - 0.12);
+          const ptHead = sampleUp(src, u);
+          const ptTail = sampleUp(src, uTail);
+          if (!ptHead || !ptTail) continue;
+          const fade = Math.sin(u * Math.PI) * Math.min(1.25, eyeBoost);
+          // Delicate upward luminous comet streak (department tint -> golden Akasha reception)
+          const stGrad = ctx.createLinearGradient(ptTail.x, ptTail.y, ptHead.x, ptHead.y);
+          stGrad.addColorStop(0, rgba(col, 0));
+          stGrad.addColorStop(0.55, rgba(col, fade * (isLight ? 0.42 : 0.48)));
+          stGrad.addColorStop(1, rgba(isLight ? tier1RGB : [255, 245, 210], fade * (isLight ? 0.72 : 0.85)));
+          ctx.strokeStyle = stGrad;
+          ctx.lineWidth = isLight ? 1.5 : 1.4;
+          ctx.beginPath(); ctx.moveTo(ptTail.x, ptTail.y); ctx.lineTo(ptHead.x, ptHead.y); ctx.stroke();
+          ctx.fillStyle = rgba(isLight ? tier1RGB : [255, 248, 224], fade * 0.90);
+          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 1.8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = rgba(col, fade * 0.36);
+          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 4.0, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // Subtle downward golden supervisory pulse wave descending symmetrically from the Eye over the whole loop
+      const dw = (t * 0.28) % 1;
+      const wy = eyeCfg.y - 0.28 - dw * (eyeCfg.y - 0.40);
+      const wz = eyeCfg.z + dw * (hubZ - eyeCfg.z);
+      const wrx = 0.55 + dw * (rxOut * 0.74);
+      const wrz = 0.28 + dw * (rzOut * 0.56);
+      draw3DRing(0, wy, wz, wrx, wrz, 48, rgba(tier1RGB, Math.sin(dw * Math.PI) * (isLight ? 0.28 : 0.25) * eyeBoost), 1.1, [5, 7]);
+    }
     ctx.restore();
   }
 
@@ -3517,8 +3575,6 @@ function drawHolo3DFrame(dt = 0.016) {
   const sbHot = activeId === 'studio' || activeId === 'books';
   const poHot = activeId === 'publication' || activeId === 'outreach';
   const loopClosedHot = activeId === 'research' || activeId === 'books';
-  const dirHot = activeId === 'direction';
-  const fbHot = activeId === 'outreach' || activeId === 'direction';
 
   // Upper closed-loop bridge closing the 24/7 AI workflow circle across the north rim (理论书写 ↺ 数学攻坚)
   drawConduit3D(arcPts('books', 'research', 0.96, 18), isBlueprint ? [150, 215, 255] : [94, 237, 236],
@@ -3533,21 +3589,6 @@ function drawHolo3DFrame(dt = 0.016) {
     { lw: 1.2, alpha: 0.28, particles: 1, speed: 0.26, chevrons: false });
   drawConduit3D(arcPts('publication', 'outreach', 0.96, 12), [240, 148, 90],
     { lw: poHot ? 2.4 : 1.5, alpha: poHot ? 0.92 : 0.46, particles: poHot ? 2 : 1, speed: 0.36 });
-
-  // 3. INDEPENDENT AKASHA EYE SUPERVISORY GUIDANCE BEAM & FEEDBACK UPLINK!
-  // Living golden supervisory laser ray descending from the Eye straight onto the active AI department!
-  const gTgt = gazeTarget;
-  drawConduit3D(
-    [[eyeCfg.x, eyeCfg.y - 0.16, eyeCfg.z], [gTgt.x, (gTgt.y || 0) + 0.95, gTgt.z]],
-    tier1RGB,
-    { lw: dirHot ? 2.6 : 1.8, alpha: dirHot ? 0.92 : 0.62, dashed: false, particles: 3, speed: 0.42, chevrons: true }
-  );
-  // Subtle upward feedback uplink curving from 学术交流 back to the Eye of Akasha
-  drawConduit3D(
-    [[-3.35, 0.08, 3.30], [-5.55, 0.35, 1.40], [-5.25, 1.55, -2.05], [-0.95, eyeCfg.y, eyeCfg.z]],
-    [240, 148, 90],
-    { lw: fbHot ? 2.2 : 1.1, alpha: fbHot ? 0.86 : 0.24, dashed: true, particles: fbHot ? 2 : 1, speed: 0.22, chevrons: fbHot }
-  );
 
   // 3. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
   for (const fl of holoCam.flares) {
@@ -4054,8 +4095,8 @@ function drawHolo3DFrame(dt = 0.016) {
   drawHoloText( 0.0,  0.14, -3.22, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [138, 240, 238], loopClosedHot);
   drawHoloText(-2.15, 0.22, -0.95, '理论 ⇄ 验证请求', isLight ? [4, 120, 87] : [125, 255, 224], thHot);
   drawHoloText( 2.15, 0.22, -0.95, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [229, 198, 255], bkHot);
-  drawHoloText(-1.08, 0.04,  3.42, '合作 ▸ 验证请求', isLight ? [180, 83, 9] : [255, 209, 168], coHot);
-  drawHoloText( 1.08, 0.04,  3.42, '论文 ⇄ Lean 目标', isLight ? [4, 120, 87] : [157, 245, 220], pbHot);
+  drawHoloText(-1.08, 0.04,  3.68, '合作 ⇄ 验证请求', isLight ? [180, 83, 9] : [255, 209, 168], coHot);
+  drawHoloText( 1.08, 0.04,  3.68, '论文 ⇄ Lean 目标', isLight ? [4, 120, 87] : [157, 245, 220], pbHot);
 }
 
 function startHoloLoop() {
