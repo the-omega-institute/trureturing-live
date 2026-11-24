@@ -48,6 +48,14 @@
           <svg id="hive-routes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div id="hive-cells" class="hive-cells"><p class="loading">研究、互评与书写，正在这里相遇…</p></div>
           <div class="hive-legend"><span><i class="legend-session"></i>独立会话</span><span><i class="legend-action"></i>自动引擎</span><span><i class="legend-connection"></i>研究连接</span></div>
+          <div id="department-lens" class="department-lens" hidden aria-live="polite">
+            <div class="lens-head"><div><p class="eyebrow">DEPARTMENT IN MOTION</p><h3 id="lens-title">数学攻坚</h3><p id="lens-responsibility">正在读取这个部门怎样工作。</p></div><button id="lens-back" type="button" class="lens-back">← 回到全院架构</button></div>
+            <div id="lens-metrics" class="lens-metrics"></div>
+            <div class="lens-method"><span>输入</span><i>→</i><strong id="lens-input">问题与公开认领</strong><i>→</i><strong id="lens-output">可检验的论证</strong><i>→</i><span>交给下一个部门</span></div>
+            <div class="lens-heading"><h4>公开工作席位正在做什么</h4><span id="lens-freshness"></span></div>
+            <div id="lens-agents" class="lens-agents"><p class="loading">正在读取工作席位…</p></div>
+            <p class="lens-note">“待接力”只统计当前公开采样中仍开放或等待的任务；它是队列信号，不是完整库存。</p>
+          </div>
         </div>
         <aside class="department-panel" id="department-panel" aria-labelledby="department-title">
           <div class="department-top"><span id="department-mode" class="execution-label">独立会话</span><span class="small-label" id="department-state">正在连接</span></div>

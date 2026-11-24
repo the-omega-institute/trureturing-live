@@ -3,9 +3,19 @@ const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
 const cacheKey = 'trureturing-live.hive.content.v2';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const state = {snapshot:null,stream:null,selected:'research',mode:'organization',follow:true,quiet:reduced,filter:'all',limit:9,topic:null,cells:new Map(),seen:new Set(),animated:new Set(),arrivals:[],snapshotBusy:false,liveBusy:false};
+const state = {snapshot:null,stream:null,selected:'research',focused:null,mode:'organization',follow:true,quiet:reduced,filter:'all',limit:9,topic:null,cells:new Map(),seen:new Set(),animated:new Set(),arrivals:[],snapshotBusy:false,liveBusy:false};
 const positions = {direction:[48,49],research:[20,25],review:[46,14],verification:[74,25],books:[80,57],publication:[58,82],outreach:[31,82],studio:[16,54]};
 const execution = {human:'人的方向与判断',sessions:'独立研究会话',actions:'Actions 自动引擎',mixed:'会话与自动化协作'};
+const methodByDepartment = {
+  direction:['人的方向','问题与判断','数学攻坚'],
+  research:['数学攻坚','问题与公开认领','可检验的论证'],
+  review:['独立评审','待复核的论证','修订意见'],
+  verification:['形式验证','研究提交与 CI','通过或需要修订的检查'],
+  books:['理论书写','已检验的研究','可继续阅读的章节'],
+  publication:['论文与知识','研究结果','公开的论证与索引'],
+  outreach:['学术交流','研究说明','新的问题与讨论'],
+  studio:['工具与表达','研究需要的工具','可复用的表达与出版']
+};
 const glyphPaths = {
   direction:['M12 3v18M3 12h18','m7 7 5-4 5 4M7 17l5 4 5-4'],
   research:['M17 4H6l7 8-7 8h11'],
@@ -107,6 +117,7 @@ function person(actor){
 function peopleFor(items){const people=new Map();for(const a of items)if(a.actor)people.set(`${a.actor.kind}:${a.actor.id}`,a.actor);return [...people.values()];}
 function actorLabel(actor){return actor?.kind==='agent'&&actor.tool?`${actor.tool} · ${actor.label||actor.id}`:actor?.label||actor?.id||'公开账号';}
 function actorTasks(d,actor){return d.activities.filter(a=>a.actor?.id===actor.id&&a.actor?.kind===actor.kind).sort((a,b)=>Number(active(b))-Number(active(a))||timestamp(b.at)-timestamp(a.at));}
+function publicSeatCount(d){const keys=new Set((d.participants||[]).map(actor=>`${actor.kind}:${actor.id}`));for(const a of d.activities)if(a.actor)keys.add(`${a.actor.kind}:${a.actor.id}`);return keys.size;}
 function actorTaskTitle(a,d){
   if(a.kind==='automation')return sourceLabel(a);
   if(a.task&&['research','books'].includes(d.id))return copyFor(a).title;
@@ -133,13 +144,43 @@ function renderAgentRoster(d){
     card.append(taskList);container.append(card);
   }
 }
+function renderDepartmentLens(d){
+  const lens=$('#department-lens'),room=$('#research-room');if(!lens||!room)return;
+  if(!d||state.mode!=='organization'||!state.focused){lens.hidden=true;room.classList.remove('is-department-focused');return;}
+  lens.hidden=false;room.classList.add('is-department-focused');
+  $('#lens-title').textContent=d.label;$('#lens-responsibility').textContent=d.responsibility;
+  const method=methodByDepartment[d.id]||[d.label,'公开工作','交给下一个部门'];$('#lens-input').textContent=method[1];$('#lens-output').textContent=method[2];
+  const stats=queueStats(d),freshness=view()?.observed_at?`${relative(view().observed_at)}更新`:'等待现场';$('#lens-freshness').textContent=freshness;
+  const metric=(value,label,className='')=>{const item=element('div','','lens-metric'+(className?' '+className:''));item.append(element('strong',String(value)),element('span',label));return item;};
+  $('#lens-metrics').replaceChildren(metric(publicSeatCount(d),'公开席位'),metric(stats.running,'正在执行','is-running'),metric(stats.label,'可见待接力',stats.waiting?'is-queued':''),metric(stats.recent,'近 24 小时记录'));
+  const actors=new Map((d.participants||[]).map(actor=>[`${actor.kind}:${actor.id}`,actor]));for(const a of d.activities)if(a.actor)actors.set(`${a.actor.kind}:${a.actor.id}`,a.actor);
+  const roster=[...actors.values()].sort((a,b)=>{const at=actorTasks(d,a),bt=actorTasks(d,b);return Number(bt.some(active))-Number(at.some(active))||timestamp(bt[0]?.at)-timestamp(at[0]?.at)||actorLabel(a).localeCompare(actorLabel(b));});
+  const container=$('#lens-agents');container.replaceChildren();
+  if(!roster.length){container.append(element('p','这个部门目前没有可公开展示的工作席位。','lens-empty'));return;}
+  for(const actor of roster){
+    const tasks=actorTasks(d,actor),running=tasks.filter(active),card=element('article','','lens-agent');card.dataset.focusKey=`lens-agent:${d.id}:${actor.kind}:${actor.id}`;
+    const head=element('div','','lens-agent-head'),identity=element('div','','lens-agent-identity');identity.append(person(actor),element('span',actor.kind==='agent'?'明确标注的 agent':'公开账号','agent-kind'));head.append(identity,element('span',running.length?`${running.length} 项执行中`:tasks.length?'最近参与':'已登记','lens-agent-status'+(running.length?' is-running':'')));card.append(head);
+    const lane=element('div','','lens-task-lane');
+    if(tasks.length){for(const a of tasks.slice(0,3)){const row=a.task?element('button','','lens-task'):external('',a.url,'lens-task');if(a.task)row.type='button';row.dataset.focusKey=`lens-task:${a.id}`;const status=element('span',phase(a),'lens-task-status'+(active(a)?' is-running':''));row.append(status,element('strong',actorTaskTitle(a,d)),element('small',a.kind==='automation'?progress(a).summary:copyFor(a).question));if(a.task)row.addEventListener('click',()=>selectTopic(a));lane.append(row);}}
+    else lane.append(element('p','等待新的公开工作记录。','lens-empty'));
+    card.append(lane);container.append(card);
+  }
+}
 function preserveFocus(render){const selected=document.activeElement?.dataset.focusKey;render();if(selected){const target=[...document.querySelectorAll('[data-focus-key]')].find(el=>el.dataset.focusKey===selected);target?.focus({preventScroll:true});}}
 function icon(id){const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');for(const d of glyphPaths[id]||glyphPaths.research){const p=document.createElementNS(ns,'path');p.setAttribute('d',d);svg.append(p);}return svg;}
 function countRunning(d){return isStale()?null:(d.running_automations||0)+(d.running_sessions||0);}
+function queueStats(d){
+  const waiting=d.activities.filter(a=>['waiting','queued','requested'].includes(a.status)||(a.kind==='task'&&['open','claimed'].includes(a.status))).length;
+  const running=Math.max(d.activities.filter(active).length||0,(d.running_automations||0)+(d.running_sessions||0));
+  const recent=d.activities.filter(a=>timestamp(a.at)>Date.now()-86400000).length;
+  return {waiting,running,recent,sampled:d.activities.length>=100,label:waiting?`${waiting}${d.activities.length>=100?'+':''}`:'0'};
+}
 function departmentState(d){
   if(d.execution==='human')return '问题从这里出发';
   const count=countRunning(d);if(count===null)return '等待新的进展';
+  const queue=queueStats(d);if(count&&queue.waiting)return `${count} 项执行 · ${queue.label} 项待接力`;
   if(count)return `${count} 项工作正在执行`;
+  if(queue.waiting)return `${queue.label} 项待接力`;
   const waiting=d.activities.filter(a=>active(a)&&a.status==='waiting').length;if(waiting)return `${waiting} 项工作等待接力`;
   return d.activities.length?'新的想法持续汇入':'等待下一段探索';
 }
@@ -174,7 +215,7 @@ function createCell(d,index){
 function renderHive(){
   const list=departments(),container=$('#hive-cells');if(!list.length)return;
   if(!state.cells.size)container.replaceChildren();
-  list.forEach((d,i)=>{if(!state.cells.has(d.id)){const cell=createCell(d,i);state.cells.set(d.id,cell);container.append(cell.button);}const cell=state.cells.get(d.id);cell.title.textContent=d.label;cell.status.textContent=departmentState(d);cell.button.setAttribute('aria-pressed',String(d.id===state.selected));cell.button.setAttribute('aria-label',`${d.label}。${d.responsibility}。${departmentState(d)}`);cell.button.classList.toggle('is-running',Boolean(countRunning(d)));cell.button.classList.toggle('has-arrival',state.arrivals.some(a=>a.department===d.id));});
+  list.forEach((d,i)=>{if(!state.cells.has(d.id)){const cell=createCell(d,i);state.cells.set(d.id,cell);container.append(cell.button);}const cell=state.cells.get(d.id);cell.title.textContent=d.label;cell.status.textContent=departmentState(d);cell.button.setAttribute('aria-pressed',String(d.id===state.selected));cell.button.setAttribute('aria-label',`${d.label}。${d.responsibility}。${departmentState(d)}`);cell.button.classList.toggle('is-running',Boolean(countRunning(d)));cell.button.classList.toggle('has-arrival',state.arrivals.some(a=>a.department===d.id));cell.button.classList.toggle('is-focused',Boolean(state.focused&&d.id===state.focused));cell.button.classList.toggle('is-dimmed',Boolean(state.focused&&d.id!==state.focused));});
   renderRoutes();
 }
 function pathBetween(from,to,bend=0){const p=positions[from],q=positions[to];if(!p||!q)return null;return `M ${p[0]} ${p[1]} Q ${(p[0]+q[0])/2+bend} ${(p[1]+q[1])/2-bend} ${q[0]} ${q[1]}`;}
@@ -215,7 +256,8 @@ function renderDepartment(){
   if(!work.length&&d.execution!=='human')container.append(element('p',d.id==='review'?'新的复核意见会在这里汇入。也可以沿着课题，继续阅读公开讨论。':'新的进展会在这里汇入。先沿着已有的研究线索继续探索。','loading'));
   const related=new Set((view()?.routes||[]).filter(r=>r.from===d.id||r.to===d.id).map(r=>r.from===d.id?r.to:r.from));const links=$('#department-connections');links.replaceChildren();if(related.size){links.append(element('span','接力的方向','people-label'));for(const id of related){const target=department(id);if(!target)continue;const button=element('button',`${target.label} ↗`,'connection-chip');button.type='button';button.dataset.focusKey=`connection:${id}`;button.addEventListener('click',()=>selectDepartment(id));links.append(button);}}
 }
-function selectDepartment(id,manual=true){if(!department(id))return;state.selected=id;if(manual)state.follow=false;updateControls();renderHive();preserveFocus(renderDepartment);}
+function selectDepartment(id,manual=true){if(!department(id))return;state.selected=id;if(manual)state.follow=false;updateControls();renderHive();preserveFocus(renderDepartment);if(manual&&state.mode==='organization'){state.focused=id;renderHive();renderDepartmentLens(department(id));}}
+function closeDepartmentLens(){state.focused=null;$('#research-room')?.classList.remove('is-department-focused');if($('#department-lens'))$('#department-lens').hidden=true;renderHive();renderDepartment();}
 function questionTopics(){
   const topics=new Map();
   const rows=activities().filter(a=>['research','books'].includes(a.department)&&['task','contribution'].includes(a.kind)&&a.task&&!technical.test(a.label)).sort((a,b)=>timestamp(b.at)-timestamp(a.at));
@@ -267,8 +309,8 @@ function renderPapers(){
   if(!publications.length){const empty=element('div','','paper-empty');empty.append(element('p','研究正在长成可以阅读、讨论与继续推进的论文。'),external('阅读公开研究 ↗','https://www.trureturing.org/research','text-link'));container.append(empty);}
 }
 function updateControls(){for(const button of document.querySelectorAll('[data-mode]'))button.setAttribute('aria-pressed',String(button.dataset.mode===state.mode));$('#follow-live').setAttribute('aria-pressed',String(state.follow));$('#follow-live span').textContent=state.follow?'跟随最新':'已固定视角';$('#research-room').dataset.mode=state.mode;$('#journey-panel').hidden=state.mode!=='journey';}
-function setMode(mode){state.mode=mode;updateControls();if(mode==='journey')renderJourney();else{renderHive();renderDepartment();}}
-function renderLive(){preserveFocus(()=>{renderHealth();renderMetrics();renderHive();renderDepartment();renderQuestions();renderActivity();renderBooks();if(state.mode==='journey')renderJourney();updateControls();});}
+function setMode(mode){state.mode=mode;if(mode!=='organization'){state.focused=null;$('#research-room')?.classList.remove('is-department-focused');if($('#department-lens'))$('#department-lens').hidden=true;}updateControls();if(mode==='journey')renderJourney();else{renderHive();renderDepartment();renderDepartmentLens(department(state.focused));}}
+function renderLive(){preserveFocus(()=>{renderHealth();renderMetrics();renderHive();renderDepartment();renderDepartmentLens(department(state.focused));renderQuestions();renderActivity();renderBooks();if(state.mode==='journey')renderJourney();updateControls();});}
 function validSnapshot(data){return data?.schema==='trureturing-live.v1'&&Number.isFinite(timestamp(data.collected_at))&&Array.isArray(data.repositories);}
 function validStream(data){const org=data?.organization;return data?.schema==='trureturing-live-stream.v1'&&Number.isFinite(timestamp(data.observed_at))&&Array.isArray(data.messages)&&org?.schema==='ai-org.live.v1'&&org.organization?.id==='trureturing'&&Number.isFinite(timestamp(org.observed_at))&&Array.isArray(org.departments)&&org.departments.every(d=>typeof d.id==='string'&&Array.isArray(d.activities)&&Array.isArray(d.participants))&&Array.isArray(org.sources)&&Array.isArray(org.recent);}
 async function refreshSnapshot(){if(state.snapshotBusy)return;state.snapshotBusy=true;try{const response=await fetch(new URL('data/snapshot.json',document.baseURI),{cache:'no-store',signal:AbortSignal.timeout(18000)});if(!response.ok)throw new Error('unavailable');const data=await response.json();if(!validSnapshot(data)||state.snapshot&&timestamp(data.collected_at)<timestamp(state.snapshot.collected_at))return;const changed=state.snapshot?.collected_at!==data.collected_at;state.snapshot=data;if(changed){renderLive();renderPapers();try{localStorage.setItem(cacheKey,JSON.stringify(data));}catch{}}}catch{if(!state.snapshot)renderPapers();}finally{state.snapshotBusy=false;}}
@@ -284,6 +326,7 @@ for(const button of document.querySelectorAll('[data-method-department]'))button
 for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{state.filter=button.dataset.filter;state.limit=9;for(const sibling of document.querySelectorAll('[data-filter]'))sibling.setAttribute('aria-pressed',String(sibling===button));renderQuestions();});
 $('#more-questions').addEventListener('click',()=>{state.limit+=9;renderQuestions();});
 $('#journey-back').addEventListener('click',()=>setMode('organization'));
+$('#lens-back').addEventListener('click',()=>closeDepartmentLens());
 $('#follow-live').addEventListener('click',()=>{state.follow=!state.follow;if(state.follow){state.selected=view()?.recent?.[0]?.department||'research';setMode('organization');}updateControls();renderLive();});
 $('#motion-toggle').addEventListener('click',()=>{state.quiet=!state.quiet;document.body.classList.toggle('quiet',state.quiet);$('#motion-toggle').setAttribute('aria-pressed',String(state.quiet));renderRoutes();});
 $('#expand-room').addEventListener('click',async()=>{const room=$('#research-room');if(document.fullscreenElement){await document.exitFullscreen();return;}if(room.classList.contains('is-expanded')){room.classList.remove('is-expanded');document.body.style.overflow='';return;}if(room.requestFullscreen){try{await room.requestFullscreen();return;}catch{}}room.classList.add('is-expanded');document.body.style.overflow='hidden';});
