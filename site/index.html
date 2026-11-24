@@ -7,11 +7,12 @@
   <meta name="description" content="trureturing live：24/7 AI 数学研究院 3D 全息空间指挥大屏。立体蜂巢架构、实时 Lean CI 验证与跨部门研究接力。">
   <title>TRURETURING // LIVE · 3D 全息空间指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v10">
-  <script type="module" src="assets/app.mjs?v=hive-v10"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v11">
+  <script type="module" src="assets/app.mjs?v=hive-v11"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
+  <div class="fui-scan-sweep" id="fui-scan-sweep" aria-hidden="true"></div>
 
   <div class="cinema-stage" id="institute">
     <!-- Top Floating Borderless FUI HUD -->
@@ -108,6 +109,27 @@
           </div>
         </div>
       </div>
+
+      <!-- Left High-Speed Sci-Fi Telemetry Log Wall (Synced to 3D Tower Pulses!) -->
+      <aside class="scifi-log-wall" id="scifi-log-wall" aria-label="实时高速全息日志流">
+        <div class="log-wall-head">
+          <div class="log-wall-title">
+            <i class="log-live-led"></i>
+            <span>LIVE.LOG // STREAM</span>
+          </div>
+          <div class="log-wall-meta">
+            <span class="log-spectrum" id="log-spectrum" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </span>
+            <span class="log-pkt-count" id="log-pkt-count">PKT #0000</span>
+          </div>
+        </div>
+        <div class="log-wall-sub">
+          <span id="log-rate-badge">TX 4.2/s · LIVE</span>
+          <button type="button" class="log-pause-btn" id="log-pause-btn" title="暂停/恢复日志滚屏">LIVE</button>
+        </div>
+        <div class="scifi-log-stream" id="scifi-log-stream" aria-live="off"></div>
+      </aside>
 
       <!-- Floating Translucent Right FUI Telemetry Readout (No Heavy Box Wall!) -->
       <aside class="department-panel" id="department-panel" aria-labelledby="department-title">
