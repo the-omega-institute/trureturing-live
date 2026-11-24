@@ -158,7 +158,7 @@ const fresh = a => Boolean(a.fresh && !isStale());
 const active = a => fresh(a) && ['working', 'waiting'].includes(a.status) && ['automation', 'session'].includes(a.kind);
 const sourceLabel = a => view()?.sources.find(s => s.id === a.source)?.label || '研究有了新的进展';
 
-const technical = /\b(?:audit|reg audit|registration audit|cache|runner|workflow|roster|stratalint|lint|heartbeat|registration|worktree|bootstrap|toolchain|CI|template)\b|four-slot|compilation|protected judge|trusted judge|judge reuse|current dev|tools preview|Adopt tested tools|编译判官|禁止流水账|流水线|缓存|工具接入|审计|登记|加载器|合并规则/i;
+const technical = /\b(?:audit|reg audit|registration audit|cache|runner|workflow|roster|stratalint|lint|heartbeat|registration|worktree|bootstrap|toolchain|CI|template|oracle broker|Codex CLI|memory envelope)\b|Skills\*\*|four-slot|compilation|protected judge|trusted judge|judge reuse|current dev|tools preview|Adopt tested tools|编译判官|禁止流水账|流水线|缓存|工具接入|审计|登记|加载器|合并规则/i;
 
 const noisyLogPattern = /\b(?:Draft PR \d+|Native watcher|Unknown constant|FILEMAP job|source head|exits nonzero|context-isolated|canonical report|merged delivery|Mathlib\/|\.lean:\d+|Threshold-\d+|frozen suppliers)\b|\[代码见原记录\]|https?:\/\//i;
 
@@ -543,10 +543,9 @@ function renderTicker() {
   const item = recent.find(a => active(a)) || recent[0];
   if (!item) return;
   const d = department(item.department);
-  const actor = item.actor?.label || execution[d?.execution] || '研究院';
   const title = actorTaskTitle(item, d || { id: item.department });
   state.tickerTarget = item;
-  $('#ticker-text').textContent = `${d?.label || '研究院'} · ${actor} · ${phase(item)}：${title}`;
+  $('#ticker-text').textContent = `${d?.label || '研究院'} · ${phase(item)}：${title}`;
   $('#ticker-time').textContent = `${relative(item.at)} · 查看 →`;
 }
 
@@ -699,22 +698,19 @@ function updateHoverHint(id) {
 function renderCellSeats(d, container) {
   container.replaceChildren();
   if (d.execution === 'human') {
-    const pip = element('span', '人', 'seat-pip');
-    pip.title = '人的方向与问题提出';
-    container.append(pip);
+    const bar = element('span', '', 'cell-pulse-bars');
+    bar.append(element('i', '', 'pulse-bar is-human'), element('i', '', 'pulse-bar is-human'), element('i', '', 'pulse-bar is-human'));
+    container.append(bar);
     return;
   }
-  const roster = departmentRoster(d);
-  if (!roster.length) return;
-  for (const actor of roster.slice(0, 4)) {
-    const busy = !isStale() && actorTasks(d, actor).some(active);
-    const pip = element('span', seatMonogram(actor), 'seat-pip' + (busy ? ' is-active' : ''));
-    pip.title = actorLabel(actor);
-    container.append(pip);
+  const run = countRunning(d) || 0;
+  const q = queueStats(d);
+  const activeCount = Math.min(5, run ? Math.max(2, Math.min(5, run)) : (q.waiting ? 2 : (d.activities.length ? 1 : 0)));
+  const bar = element('span', '', 'cell-pulse-bars');
+  for (let i = 0; i < 5; i++) {
+    bar.append(element('i', '', 'pulse-bar' + (i < activeCount ? (run ? ' is-live' : ' is-warm') : '')));
   }
-  if (roster.length > 4) {
-    container.append(element('span', `+${roster.length - 4}`, 'seat-pip-more'));
-  }
+  container.append(bar);
 }
 
 function renderHive() {
@@ -1231,11 +1227,11 @@ function primaryWork(d) {
     const work = items
       .filter(a => (a.kind === 'session' && active(a)) || (['task', 'contribution'].includes(a.kind) && !technical.test(a.label)))
       .sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at))
-      .slice(0, 3);
+      .slice(0, 6);
     const building = d.id === 'books' && items.find(a => a.kind === 'automation' && active(a));
-    return building ? [building, ...work.slice(0, 2)] : work;
+    return building ? [building, ...work.slice(0, 5)] : work;
   }
-  return items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at)).slice(0, 3);
+  return items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at)).slice(0, 6);
 }
 
 function renderDepartment() {
@@ -1285,14 +1281,15 @@ function renderDepartment() {
     timeEl.dateTime = a.at;
     meta.append(element('span', phase(a), 'work-state'), timeEl);
     const title = ['automation', 'session'].includes(a.kind)
-      ? sourceLabel(a)
+      ? (findLinkedTaskActivity(a.task) ? `${sourceLabel(a)} · ${copyFor(findLinkedTaskActivity(a.task)).title}` : sourceLabel(a))
       : ['studio', 'verification', 'publication', 'outreach'].includes(d.id)
         ? sourceLabel(a)
         : copyFor(a).title;
     card.append(meta, element('strong', title));
     const bottom = element('div', '', 'work-bottom');
+    const areaTag = a.kind === 'automation' ? 'Lean CI / Actions' : copyFor(a).area;
     bottom.append(
-      element('span', a.actor?.kind === 'agent' && a.actor.tool ? a.actor.tool : a.actor?.label || execution[d.execution]),
+      element('span', areaTag),
       element('span', task ? '追踪接力 ↗' : '查看 ↗', 'work-arrow')
     );
     card.append(bottom);
@@ -1392,18 +1389,18 @@ function departmentTopicNodes(d) {
   return [...map.values()];
 }
 
-function updateLensSpotlight(d, actor) {
+function updateLensSpotlight(d, actor, idx = 1) {
   const spot = $('#lens-spotlight');
   if (!spot) return;
   spot.replaceChildren();
   if (!actor) {
-    spot.append(element('span', '悬浮或点击任意席位高亮其研究连线 · 点击右侧线索跟随全院接力 · 点击左右门户直达上下游部门'));
+    spot.append(element('span', '悬浮通道高亮研究光束 · 点击右侧线索追踪全院接力 · 点击左右门户直达上下游'));
     return;
   }
   const tasks = actorTasks(d, actor);
-  spot.append(element('strong', `${actorLabel(actor)}：`));
+  spot.append(element('strong', `通道 ${String(idx).padStart(2, '0')}：`));
   if (!tasks.length) {
-    spot.append(element('span', '当前待命中，等待新的公开研究记录。'));
+    spot.append(element('span', '当前待命中，等待新的研究任务。'));
     return;
   }
   for (const a of tasks.slice(0, 3)) {
@@ -1483,10 +1480,9 @@ function renderDepartmentLens(d) {
     return item;
   };
   $('#lens-metrics').replaceChildren(
-    metric(publicSeatCount(d), '公开席位'),
     metric(isStale() ? '—' : stats.running, '正在执行', !isStale() && stats.running ? 'is-running' : ''),
     metric(stats.label, '可见待接力', stats.waiting ? 'is-queued' : ''),
-    metric(d.observed_activities || stats.recent, '近期记录')
+    metric(d.observed_activities || stats.recent, '近期推进')
   );
 
   // 3. Central Department Medallion Hub (#lens-hub)
@@ -1498,7 +1494,7 @@ function renderDepartmentLens(d) {
     hubEl.replaceChildren(
       element('span', meta.tag, 'map-hub-code'),
       element('strong', meta.title, 'map-hub-title'),
-      element('span', runCount ? `${runCount} 项运行中` : d.execution === 'human' ? '方向起点' : `${publicSeatCount(d)} 席位协同`, 'map-hub-stat')
+      element('span', runCount ? `${runCount} 项运行中` : d.execution === 'human' ? '方向起点' : stats.waiting ? `${stats.label} 待接力` : '24/7 待命', 'map-hub-stat')
     );
   }
 
@@ -1561,7 +1557,7 @@ function renderDepartmentLens(d) {
     // Subtle spatial column headers
     svg.append(
       svgText(76, 24, 'IN // 上游输入', 'zoom-zone-label'),
-      svgText(310, 24, 'SEATS // 公开席位', 'zoom-zone-label'),
+      svgText(310, 24, 'STREAMS // 并行通道', 'zoom-zone-label'),
       svgText(590, 24, 'CORE // 部门枢纽', 'zoom-zone-label'),
       svgText(872, 24, 'ACTIVE // 流转线索', 'zoom-zone-label'),
       svgText(1122, 24, 'OUT // 下游交棒', 'zoom-zone-label')
@@ -1662,8 +1658,8 @@ function renderDepartmentLens(d) {
   renderPortals($('#lens-upstream'), upIds, upSlots, 'in');
   renderPortals($('#lens-downstream'), downIds, downSlots, 'out');
 
-  // 7. Render Spatial Work-Seat Nodes (#lens-agents)
-  const buildSeatCard = (actor, pos) => {
+  // 7. Render Spatial Workstream Nodes (#lens-agents — task-centric, no account clutter)
+  const buildSeatCard = (actor, pos, idx) => {
     const tasks = actorTasks(d, actor);
     const running = !isStale() ? tasks.filter(active) : [];
     const card = element('article', '', 'lens-agent' + (running.length ? ' is-busy' : ''));
@@ -1675,22 +1671,19 @@ function renderDepartmentLens(d) {
     }
 
     const head = element('div', '', 'lens-agent-head');
-    const identity = element('div', '', 'lens-agent-identity');
-    identity.append(person(actor));
-    head.append(identity, element('span', actor.kind === 'agent' ? '明确标注的 agent' : '公开账号', 'agent-kind'));
-
-    const metaRow = element('div', '', 'lens-agent-meta-row');
+    const code = String(idx + 1).padStart(2, '0');
+    const chLabel = element('span', `通道 ${code}`, 'lens-channel-label');
     const stEl = element('span', '', 'lens-agent-status' + (running.length ? ' is-running' : ''));
     stEl.append(
       element('i'),
-      document.createTextNode(running.length ? `${running.length} 项执行中` : tasks.length ? `${relative(tasks[0].at)}活跃` : '已登记')
+      document.createTextNode(running.length ? `${running.length} 项执行中` : tasks.length ? `${relative(tasks[0].at)}活跃` : '待命中')
     );
-    metaRow.append(stEl);
-    card.append(head, metaRow);
+    const hiddenId = element('span', actorLabel(actor), 'visually-hidden');
+    head.append(chLabel, stEl, hiddenId);
+    card.append(head);
 
     const lane = element('div', '', 'lens-task-lane');
     if (tasks.length) {
-      // Prioritize real mathematical topics over maintenance/audit records on seat cards
       const ranked = [...tasks].sort((a, b) =>
         Number(active(b)) - Number(active(a))
         || Number(technical.test(a.label)) - Number(technical.test(b.label))
@@ -1717,13 +1710,13 @@ function renderDepartmentLens(d) {
         lane.append(row);
       }
     } else {
-      lane.append(element('p', '待命中 · 等待新任务', 'lens-empty-seat'));
+      lane.append(element('p', '通道就绪 · 等待新任务', 'lens-empty-seat'));
     }
     card.append(lane);
 
     card.addEventListener('pointerenter', () => {
       highlightZoomSeat(actor.id);
-      updateLensSpotlight(d, actor);
+      updateLensSpotlight(d, actor, idx + 1);
     });
     card.addEventListener('pointerleave', () => {
       highlightZoomSeat(state.hoveredSeat);
@@ -1731,7 +1724,7 @@ function renderDepartmentLens(d) {
     card.addEventListener('click', () => {
       state.hoveredSeat = state.hoveredSeat === actor.id ? null : actor.id;
       highlightZoomSeat(state.hoveredSeat);
-      updateLensSpotlight(d, state.hoveredSeat ? actor : null);
+      updateLensSpotlight(d, state.hoveredSeat ? actor : null, idx + 1);
     });
     return card;
   };
@@ -1749,15 +1742,15 @@ function renderDepartmentLens(d) {
       'div',
       d.execution === 'human'
         ? '人类研究指引区：提出新的数学问题与战略方向，驱动下方 AI 部门 24/7 自治接力。'
-        : '当前采样窗口内暂无活跃席位，新的公开推进记录出现后会实时点亮这里。',
+        : '当前采样窗口内暂无活跃推进，新的研究任务出现后会实时点亮这里。',
       'lens-empty-map'
     ));
   } else {
     primarySeats.forEach((actor, idx) => {
-      seatContainer.append(buildSeatCard(actor, seatSlots[idx]));
+      seatContainer.append(buildSeatCard(actor, seatSlots[idx], idx));
     });
     if (extraContainer && extraSeats.length) {
-      for (const actor of extraSeats) extraContainer.append(buildSeatCard(actor, null));
+      extraSeats.forEach((actor, i) => extraContainer.append(buildSeatCard(actor, null, primarySeats.length + i)));
     }
   }
 
@@ -1776,7 +1769,7 @@ function renderDepartmentLens(d) {
       top.append(element('span', t.tag), element('span', t.status));
       const foot = element('div', '', 'map-topic-foot');
       foot.append(
-        element('span', t.actors.length ? `${t.actors.length} 席位参与` : '跨部门线索'),
+        element('span', t.running ? '正在运转' : '持续流转'),
         element('span', hasTask ? '跟随接力 →' : '查看动态 ↗')
       );
       node.append(top, element('strong', t.title), foot);
@@ -2010,8 +2003,7 @@ function renderActivity() {
       : update.title;
     card.append(
       top,
-      element('strong', headline),
-      element('span', a.actor?.kind === 'agent' && a.actor.tool ? `${a.actor.tool} · ${a.actor.label}` : a.actor?.label || execution[d?.execution] || '共同推进', 'activity-byline')
+      element('strong', headline)
     );
     card.addEventListener('click', () => {
       if (a.task) selectTopic(a);
@@ -2103,11 +2095,7 @@ function renderLiveFeed() {
     const who = element('div', '', 'feed-who');
     const dot = element('i', '', 'feed-dept-dot');
     dot.style.background = deptColors[entry.deptId] || 'var(--accent)';
-    who.append(dot, element('span', entry.actor, 'feed-actor'));
-    if (entry.mentions.length) {
-      who.append(element('span', `→ ${entry.mentions.slice(0, 2).map(n => '@' + n).join(' ')}`, 'feed-arrow-to'));
-    }
-    who.append(element('span', d?.label || entry.deptId, 'feed-dept-tag'));
+    who.append(dot, element('span', d?.label || entry.deptId, 'feed-dept-tag'));
     head.append(who, element('time', relative(entry.at), 'feed-time'));
 
     row.append(head, element('div', entry.title, 'feed-title'));

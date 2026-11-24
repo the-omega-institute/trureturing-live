@@ -1410,39 +1410,37 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  min-height: 18px;
+  min-height: 12px;
+  margin: 1px 0;
 }
 
-.seat-pip {
-  min-width: 18px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 3px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
+.cell-pulse-bars {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: var(--ink-2);
-  background: rgba(148, 163, 184, 0.12);
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  gap: 3px;
 }
 
-.seat-pip.is-active {
-  color: #030711;
+.pulse-bar {
+  display: inline-block;
+  width: 11px;
+  height: 3.5px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.pulse-bar.is-live {
   background: var(--live);
-  border-color: var(--live);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--live) 70%, transparent);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--live) 75%, transparent);
 }
 
-.seat-pip-more {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--muted);
-  margin-left: 1px;
+.pulse-bar.is-warm {
+  background: var(--cell-color);
+  opacity: 0.78;
+}
+
+.pulse-bar.is-human {
+  background: var(--gold);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--gold) 65%, transparent);
 }
 
 .cell-status {
@@ -2379,14 +2377,15 @@ button:focus-visible {
   justify-content: space-between;
   gap: 6px;
   min-width: 0;
+  margin-bottom: 6px;
 }
 
-.lens-agent-identity {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
+.lens-channel-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--lens-color);
 }
 
 .lens-agent-meta-row {

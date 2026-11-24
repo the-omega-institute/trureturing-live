@@ -7,8 +7,8 @@
   <meta name="description" content="trureturing live：24/7 AI 数学研究院全息空间指挥大屏。立体蜂巢部门架构、公开工作席位、Lean CI 验证与跨部门研究接力。">
   <title>TRURETURING // LIVE · 全息空间指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v8">
-  <script type="module" src="assets/app.mjs?v=hive-v8"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v9">
+  <script type="module" src="assets/app.mjs?v=hive-v9"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入实时指挥大屏</a>
@@ -161,7 +161,7 @@
                 <strong id="lens-output">可检验的论证</strong>
               </div>
               <div id="lens-spotlight" class="lens-spotlight">
-                <span>悬浮席位高亮研究光束 · 点击右侧线索追踪全院接力</span>
+                <span>悬浮通道高亮研究光束 · 点击右侧线索追踪全院接力 · 点击左右门户直达上下游</span>
               </div>
             </div>
           </div>
@@ -178,23 +178,22 @@
               <button type="button" id="open-lens-button" class="open-lens-btn">放大部门图 ⤢</button>
             </div>
             <p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
-            <div class="department-people" id="department-people"></div>
+            <div class="department-people visually-hidden" id="department-people"></div>
           </div>
 
           <div class="panel-scroll-body">
             <div class="panel-heading">
-              <h4>公开工作席位</h4>
-              <span id="department-agent-count"></span>
-            </div>
-            <div id="department-agents" class="department-agents"><p class="loading">正在同步席位…</p></div>
-
-            <div class="panel-heading work-heading">
               <h4 id="department-work-title">实时推进</h4>
               <span id="department-work-count"></span>
             </div>
             <div id="department-work" class="department-work"><p class="loading">等待现场信号…</p></div>
 
             <div id="department-connections" class="department-connections"></div>
+
+            <div class="visually-hidden" aria-hidden="true">
+              <span id="department-agent-count"></span>
+              <div id="department-agents" class="department-agents"></div>
+            </div>
           </div>
         </aside>
 
