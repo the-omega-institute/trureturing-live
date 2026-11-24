@@ -330,3 +330,44 @@ test('the war-room log opens rolling; 最新 is a scrollable terminal of real ev
     assert.equal(lines().length,before+2+45);
   }finally{dom.window.close();}
 });
+
+test('clicking a panel background returns one level up; controls, text and drags do not',async()=>{
+  const {dom,doc,win}=await boot();try{
+    const press=(el,{x=10,y=10,dx=0}={})=>{
+      el.dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:x,clientY:y}));
+      el.dispatchEvent(new win.MouseEvent('click',{bubbles:true,button:0,clientX:x+dx,clientY:y}));
+    };
+    const lens=doc.querySelector('#department-lens');
+    doc.querySelector('[data-method-department="verification"]').click();
+    assert.equal(lens.hidden,false);
+    press(doc.querySelector('#lens-title'));
+    assert.equal(lens.hidden,false,'text inside the lens is not background');
+    const control=lens.querySelector('#lens-switcher button, .lens-agent, #lens-back');
+    assert.ok(control);
+    if(control.id!=='lens-back'){press(control);}
+    doc.querySelector('[data-method-department="verification"]').click();
+    assert.equal(lens.hidden,false);
+    press(lens,{dx:40});
+    assert.equal(lens.hidden,false,'a drag that ends elsewhere is not a click on the background');
+    press(lens);
+    assert.equal(lens.hidden,true,'the lens background returns to the 3D institute');
+
+    const journey=doc.querySelector('#journey-panel');
+    doc.querySelector('[data-mode="journey"]').click();
+    assert.equal(journey.hidden,false);
+    press(doc.querySelector('#journey-title'));
+    assert.equal(journey.hidden,false);
+    press(doc.querySelector('.journey-detail'));
+    assert.equal(journey.hidden,true,'the journey background returns to the 3D institute');
+    assert.equal(doc.querySelector('[data-mode="organization"]').getAttribute('aria-pressed'),'true');
+
+    const dock=doc.querySelector('#telemetry-dock');
+    doc.querySelector('[data-dock-tab="live-ops"]').click();
+    assert.ok(dock.classList.contains('is-open'));
+    press(doc.querySelector('#dock-drawer-title'));
+    assert.ok(dock.classList.contains('is-open'));
+    press(dock);
+    assert.ok(!dock.classList.contains('is-open'),'the drawer background closes the drawer');
+    assert.equal(doc.querySelector('[data-dock-tab="live-ops"]').getAttribute('aria-selected'),'false');
+  }finally{dom.window.close();}
+});
