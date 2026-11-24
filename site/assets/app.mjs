@@ -158,11 +158,13 @@ const fresh = a => Boolean(a.fresh && !isStale());
 const active = a => fresh(a) && ['working', 'waiting'].includes(a.status) && ['automation', 'session'].includes(a.kind);
 const sourceLabel = a => view()?.sources.find(s => s.id === a.source)?.label || '研究有了新的进展';
 
-const technical = /\b(?:audit|reg audit|registration audit|cache|runner|workflow|roster|stratalint|lint|heartbeat|registration|worktree|bootstrap|toolchain|CI|template)\b|four-slot|compilation|protected judge|trusted judge|judge reuse|current dev|tools preview|Adopt tested tools|编译判官|禁止流水账|流水线|缓存|工具接入|审计|登记|加载器|合并规则/i;
+const technical = /\b(?:audit|reg audit|registration audit|cache|runner|workflow|roster|stratalint|lint|heartbeat|registration|worktree|bootstrap|toolchain|CI|template|oracle broker|Codex CLI|memory envelope)\b|Skills\*\*|four-slot|compilation|protected judge|trusted judge|judge reuse|current dev|tools preview|Adopt tested tools|编译判官|禁止流水账|流水线|缓存|工具接入|审计|登记|加载器|合并规则/i;
 
 const noisyLogPattern = /\b(?:Draft PR \d+|Native watcher|Unknown constant|FILEMAP job|source head|exits nonzero|context-isolated|canonical report|merged delivery|Mathlib\/|\.lean:\d+|Threshold-\d+|frozen suppliers)\b|\[代码见原记录\]|https?:\/\//i;
 
 const cleanTitle = text => String(text || '')
+  .replace(/^[-*•\s]+/, '')
+  .replace(/\*\*([^*]+)\*\*/g, '$1')
   .replace(/^(?:research|math|docs|feat|fix|chore|refactor)(?:\([^)]*\))?\s*[:：]\s*/i, '')
   .replace(/^(?:Research (?:unit|line)(?:\s*\([^)]*\))?|Open problem\s*\(preregistration\)|Preregister)\s*[:—-]?\s*/i, '')
   .replace(/\b[a-f0-9]{7,64}\b/gi, '')
@@ -173,6 +175,7 @@ const cleanTitle = text => String(text || '')
 function humanTitle(value) {
   const text = cleanTitle(value);
   const patterns = [
+    [/Narayan Conjecture/i, 'Narayan 猜想 18.2 的构造性证明'],
     [/disjoint occupation.*cyclic band|project disjoint occupation/i, '循环带上的不相交占据系数投影'],
     [/quarter-grid.*prime triangle|characterize RH/i, '四分网格素数三角形与黎曼猜想刻画'],
     [/weighted mass of disjoint|bound the weighted mass|disjoint residual occupation mass/i, '不相交剩余占据的质量精确上界'],
@@ -432,21 +435,37 @@ function icon(id) {
 
 function hexShellSVG() {
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 200 173.2');
+  svg.setAttribute('viewBox', '0 0 200 198');
   svg.setAttribute('class', 'cell-hex-shell');
   svg.setAttribute('aria-hidden', 'true');
   const ptsOuter = '50,3 150,3 197,86.6 150,170.2 50,170.2 3,86.6';
   const ptsInner = '54,10 146,10 189,86.6 146,163.2 54,163.2 11,86.6';
-  const pulse = document.createElementNS(ns, 'polygon');
-  pulse.setAttribute('points', ptsOuter);
-  pulse.setAttribute('class', 'cell-hex-pulse');
-  const outer = document.createElementNS(ns, 'polygon');
-  outer.setAttribute('points', ptsOuter);
-  outer.setAttribute('class', 'cell-hex-outer');
-  const inner = document.createElementNS(ns, 'polygon');
-  inner.setAttribute('points', ptsInner);
-  inner.setAttribute('class', 'cell-hex-inner');
-  svg.append(pulse, outer, inner);
+  const ptsShadow = '50,25 150,25 197,108.6 150,192.2 50,192.2 3,108.6';
+  const ptsSheen = '54,10 146,10 189,86.6 11,86.6';
+  const wallLeft = '3,86.6 50,170.2 50,188.2 3,104.6';
+  const wallFront = '50,170.2 150,170.2 150,188.2 50,188.2';
+  const wallRight = '150,170.2 197,86.6 197,104.6 150,188.2';
+  const slice1 = 'M 3 92.6 L 50 176.2 L 150 176.2 L 197 92.6';
+  const slice2 = 'M 3 98.6 L 50 182.2 L 150 182.2 L 197 98.6';
+
+  const make = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+
+  svg.append(
+    make('polygon', { points: ptsShadow, class: 'cell-hex-shadow' }),
+    make('polygon', { points: wallLeft, class: 'cell-hex-wall is-left' }),
+    make('polygon', { points: wallFront, class: 'cell-hex-wall is-front' }),
+    make('polygon', { points: wallRight, class: 'cell-hex-wall is-right' }),
+    make('path', { d: slice1, class: 'cell-hex-slice' }),
+    make('path', { d: slice2, class: 'cell-hex-slice' }),
+    make('polygon', { points: ptsOuter, class: 'cell-hex-pulse' }),
+    make('polygon', { points: ptsOuter, class: 'cell-hex-outer' }),
+    make('polygon', { points: ptsSheen, class: 'cell-hex-sheen' }),
+    make('polygon', { points: ptsInner, class: 'cell-hex-inner' })
+  );
   return svg;
 }
 
@@ -524,10 +543,9 @@ function renderTicker() {
   const item = recent.find(a => active(a)) || recent[0];
   if (!item) return;
   const d = department(item.department);
-  const actor = item.actor?.label || execution[d?.execution] || '研究院';
   const title = actorTaskTitle(item, d || { id: item.department });
   state.tickerTarget = item;
-  $('#ticker-text').textContent = `${d?.label || '研究院'} · ${actor} · ${phase(item)}：${title}`;
+  $('#ticker-text').textContent = `${d?.label || '研究院'} · ${phase(item)}：${title}`;
   $('#ticker-time').textContent = `${relative(item.at)} · 查看 →`;
 }
 
@@ -615,8 +633,14 @@ function createCell(d, index) {
   const status = element('span', '', 'cell-status');
   const mode = element('span', d.execution === 'human' ? 'Human in the Loop' : execution[d.execution], 'cell-mode');
 
+  const landmark = element('span', '', 'cell-landmark');
+  landmark.setAttribute('aria-hidden', 'true');
+  const landmarkCap = element('span', '', 'cell-landmark-cap');
+  const landmarkPin = element('i', '', 'cell-landmark-pin');
+  landmark.append(landmarkCap, landmarkPin);
+
   content.append(topRow, head, seats, status, mode);
-  button.append(hexShellSVG(), content);
+  button.append(landmark, hexShellSVG(), content);
 
   button.addEventListener('click', () => selectDepartment(d.id, true, true));
   button.addEventListener('pointerenter', () => previewDepartment(d.id));
@@ -631,7 +655,7 @@ function createCell(d, index) {
       state.cells.get(next.id)?.button.focus();
     }
   });
-  return { button, status, title, mode, seats };
+  return { button, status, title, mode, seats, landmark, landmarkCap };
 }
 
 function previewDepartment(id) {
@@ -674,22 +698,19 @@ function updateHoverHint(id) {
 function renderCellSeats(d, container) {
   container.replaceChildren();
   if (d.execution === 'human') {
-    const pip = element('span', '人', 'seat-pip');
-    pip.title = '人的方向与问题提出';
-    container.append(pip);
+    const bar = element('span', '', 'cell-pulse-bars');
+    bar.append(element('i', '', 'pulse-bar is-human'), element('i', '', 'pulse-bar is-human'), element('i', '', 'pulse-bar is-human'));
+    container.append(bar);
     return;
   }
-  const roster = departmentRoster(d);
-  if (!roster.length) return;
-  for (const actor of roster.slice(0, 4)) {
-    const busy = !isStale() && actorTasks(d, actor).some(active);
-    const pip = element('span', seatMonogram(actor), 'seat-pip' + (busy ? ' is-active' : ''));
-    pip.title = actorLabel(actor);
-    container.append(pip);
+  const run = countRunning(d) || 0;
+  const q = queueStats(d);
+  const activeCount = Math.min(5, run ? Math.max(2, Math.min(5, run)) : (q.waiting ? 2 : (d.activities.length ? 1 : 0)));
+  const bar = element('span', '', 'cell-pulse-bars');
+  for (let i = 0; i < 5; i++) {
+    bar.append(element('i', '', 'pulse-bar' + (i < activeCount ? (run ? ' is-live' : ' is-warm') : '')));
   }
-  if (roster.length > 4) {
-    container.append(element('span', `+${roster.length - 4}`, 'seat-pip-more'));
-  }
+  container.append(bar);
 }
 
 function renderHive() {
@@ -709,7 +730,21 @@ function renderHive() {
     renderCellSeats(d, cell.seats);
     cell.button.setAttribute('aria-pressed', String(d.id === state.selected));
     cell.button.setAttribute('aria-label', `${d.label}。${d.responsibility}。${departmentState(d)}`);
-    cell.button.classList.toggle('is-running', Boolean(countRunning(d)));
+    const running = countRunning(d);
+    cell.button.classList.toggle('is-running', Boolean(running));
+    if (cell.landmark && cell.landmarkCap) {
+      if (running) {
+        cell.landmarkCap.textContent = `${running} RUN`;
+        cell.landmark.classList.add('is-visible', 'is-live');
+        cell.landmark.classList.remove('is-human');
+      } else if (d.execution === 'human') {
+        cell.landmarkCap.textContent = 'HUMAN LOOP';
+        cell.landmark.classList.add('is-visible', 'is-human');
+        cell.landmark.classList.remove('is-live');
+      } else {
+        cell.landmark.classList.remove('is-visible', 'is-live', 'is-human');
+      }
+    }
     cell.button.classList.toggle('has-arrival', state.arrivals.some(a => a.department === d.id));
     cell.button.classList.toggle('is-focused', Boolean(state.focused && d.id === state.focused));
     cell.button.classList.toggle('is-dimmed', Boolean(state.focused && d.id !== state.focused));
@@ -1192,11 +1227,11 @@ function primaryWork(d) {
     const work = items
       .filter(a => (a.kind === 'session' && active(a)) || (['task', 'contribution'].includes(a.kind) && !technical.test(a.label)))
       .sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at))
-      .slice(0, 3);
+      .slice(0, 6);
     const building = d.id === 'books' && items.find(a => a.kind === 'automation' && active(a));
-    return building ? [building, ...work.slice(0, 2)] : work;
+    return building ? [building, ...work.slice(0, 5)] : work;
   }
-  return items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at)).slice(0, 3);
+  return items.sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at)).slice(0, 6);
 }
 
 function renderDepartment() {
@@ -1246,14 +1281,15 @@ function renderDepartment() {
     timeEl.dateTime = a.at;
     meta.append(element('span', phase(a), 'work-state'), timeEl);
     const title = ['automation', 'session'].includes(a.kind)
-      ? sourceLabel(a)
+      ? (findLinkedTaskActivity(a.task) ? `${sourceLabel(a)} · ${copyFor(findLinkedTaskActivity(a.task)).title}` : sourceLabel(a))
       : ['studio', 'verification', 'publication', 'outreach'].includes(d.id)
         ? sourceLabel(a)
         : copyFor(a).title;
     card.append(meta, element('strong', title));
     const bottom = element('div', '', 'work-bottom');
+    const areaTag = a.kind === 'automation' ? 'Lean CI / Actions' : copyFor(a).area;
     bottom.append(
-      element('span', a.actor?.kind === 'agent' && a.actor.tool ? a.actor.tool : a.actor?.label || execution[d.execution]),
+      element('span', areaTag),
       element('span', task ? '追踪接力 ↗' : '查看 ↗', 'work-arrow')
     );
     card.append(bottom);
@@ -1353,18 +1389,18 @@ function departmentTopicNodes(d) {
   return [...map.values()];
 }
 
-function updateLensSpotlight(d, actor) {
+function updateLensSpotlight(d, actor, idx = 1) {
   const spot = $('#lens-spotlight');
   if (!spot) return;
   spot.replaceChildren();
   if (!actor) {
-    spot.append(element('span', '悬浮或点击任意席位高亮其研究连线 · 点击右侧线索跟随全院接力 · 点击左右门户直达上下游部门'));
+    spot.append(element('span', '悬浮通道高亮研究光束 · 点击右侧线索追踪全院接力 · 点击左右门户直达上下游'));
     return;
   }
   const tasks = actorTasks(d, actor);
-  spot.append(element('strong', `${actorLabel(actor)}：`));
+  spot.append(element('strong', `通道 ${String(idx).padStart(2, '0')}：`));
   if (!tasks.length) {
-    spot.append(element('span', '当前待命中，等待新的公开研究记录。'));
+    spot.append(element('span', '当前待命中，等待新的研究任务。'));
     return;
   }
   for (const a of tasks.slice(0, 3)) {
@@ -1444,10 +1480,9 @@ function renderDepartmentLens(d) {
     return item;
   };
   $('#lens-metrics').replaceChildren(
-    metric(publicSeatCount(d), '公开席位'),
     metric(isStale() ? '—' : stats.running, '正在执行', !isStale() && stats.running ? 'is-running' : ''),
     metric(stats.label, '可见待接力', stats.waiting ? 'is-queued' : ''),
-    metric(d.observed_activities || stats.recent, '近期记录')
+    metric(d.observed_activities || stats.recent, '近期推进')
   );
 
   // 3. Central Department Medallion Hub (#lens-hub)
@@ -1459,7 +1494,7 @@ function renderDepartmentLens(d) {
     hubEl.replaceChildren(
       element('span', meta.tag, 'map-hub-code'),
       element('strong', meta.title, 'map-hub-title'),
-      element('span', runCount ? `${runCount} 项运行中` : d.execution === 'human' ? '方向起点' : `${publicSeatCount(d)} 席位协同`, 'map-hub-stat')
+      element('span', runCount ? `${runCount} 项运行中` : d.execution === 'human' ? '方向起点' : stats.waiting ? `${stats.label} 待接力` : '24/7 待命', 'map-hub-stat')
     );
   }
 
@@ -1522,7 +1557,7 @@ function renderDepartmentLens(d) {
     // Subtle spatial column headers
     svg.append(
       svgText(76, 24, 'IN // 上游输入', 'zoom-zone-label'),
-      svgText(310, 24, 'SEATS // 公开席位', 'zoom-zone-label'),
+      svgText(310, 24, 'STREAMS // 并行通道', 'zoom-zone-label'),
       svgText(590, 24, 'CORE // 部门枢纽', 'zoom-zone-label'),
       svgText(872, 24, 'ACTIVE // 流转线索', 'zoom-zone-label'),
       svgText(1122, 24, 'OUT // 下游交棒', 'zoom-zone-label')
@@ -1623,8 +1658,8 @@ function renderDepartmentLens(d) {
   renderPortals($('#lens-upstream'), upIds, upSlots, 'in');
   renderPortals($('#lens-downstream'), downIds, downSlots, 'out');
 
-  // 7. Render Spatial Work-Seat Nodes (#lens-agents)
-  const buildSeatCard = (actor, pos) => {
+  // 7. Render Spatial Workstream Nodes (#lens-agents — task-centric, no account clutter)
+  const buildSeatCard = (actor, pos, idx) => {
     const tasks = actorTasks(d, actor);
     const running = !isStale() ? tasks.filter(active) : [];
     const card = element('article', '', 'lens-agent' + (running.length ? ' is-busy' : ''));
@@ -1636,22 +1671,19 @@ function renderDepartmentLens(d) {
     }
 
     const head = element('div', '', 'lens-agent-head');
-    const identity = element('div', '', 'lens-agent-identity');
-    identity.append(person(actor));
-    head.append(identity, element('span', actor.kind === 'agent' ? '明确标注的 agent' : '公开账号', 'agent-kind'));
-
-    const metaRow = element('div', '', 'lens-agent-meta-row');
+    const code = String(idx + 1).padStart(2, '0');
+    const chLabel = element('span', `通道 ${code}`, 'lens-channel-label');
     const stEl = element('span', '', 'lens-agent-status' + (running.length ? ' is-running' : ''));
     stEl.append(
       element('i'),
-      document.createTextNode(running.length ? `${running.length} 项执行中` : tasks.length ? `${relative(tasks[0].at)}活跃` : '已登记')
+      document.createTextNode(running.length ? `${running.length} 项执行中` : tasks.length ? `${relative(tasks[0].at)}活跃` : '待命中')
     );
-    metaRow.append(stEl);
-    card.append(head, metaRow);
+    const hiddenId = element('span', actorLabel(actor), 'visually-hidden');
+    head.append(chLabel, stEl, hiddenId);
+    card.append(head);
 
     const lane = element('div', '', 'lens-task-lane');
     if (tasks.length) {
-      // Prioritize real mathematical topics over maintenance/audit records on seat cards
       const ranked = [...tasks].sort((a, b) =>
         Number(active(b)) - Number(active(a))
         || Number(technical.test(a.label)) - Number(technical.test(b.label))
@@ -1678,13 +1710,13 @@ function renderDepartmentLens(d) {
         lane.append(row);
       }
     } else {
-      lane.append(element('p', '待命中 · 等待新任务', 'lens-empty-seat'));
+      lane.append(element('p', '通道就绪 · 等待新任务', 'lens-empty-seat'));
     }
     card.append(lane);
 
     card.addEventListener('pointerenter', () => {
       highlightZoomSeat(actor.id);
-      updateLensSpotlight(d, actor);
+      updateLensSpotlight(d, actor, idx + 1);
     });
     card.addEventListener('pointerleave', () => {
       highlightZoomSeat(state.hoveredSeat);
@@ -1692,7 +1724,7 @@ function renderDepartmentLens(d) {
     card.addEventListener('click', () => {
       state.hoveredSeat = state.hoveredSeat === actor.id ? null : actor.id;
       highlightZoomSeat(state.hoveredSeat);
-      updateLensSpotlight(d, state.hoveredSeat ? actor : null);
+      updateLensSpotlight(d, state.hoveredSeat ? actor : null, idx + 1);
     });
     return card;
   };
@@ -1710,15 +1742,15 @@ function renderDepartmentLens(d) {
       'div',
       d.execution === 'human'
         ? '人类研究指引区：提出新的数学问题与战略方向，驱动下方 AI 部门 24/7 自治接力。'
-        : '当前采样窗口内暂无活跃席位，新的公开推进记录出现后会实时点亮这里。',
+        : '当前采样窗口内暂无活跃推进，新的研究任务出现后会实时点亮这里。',
       'lens-empty-map'
     ));
   } else {
     primarySeats.forEach((actor, idx) => {
-      seatContainer.append(buildSeatCard(actor, seatSlots[idx]));
+      seatContainer.append(buildSeatCard(actor, seatSlots[idx], idx));
     });
     if (extraContainer && extraSeats.length) {
-      for (const actor of extraSeats) extraContainer.append(buildSeatCard(actor, null));
+      extraSeats.forEach((actor, i) => extraContainer.append(buildSeatCard(actor, null, primarySeats.length + i)));
     }
   }
 
@@ -1737,7 +1769,7 @@ function renderDepartmentLens(d) {
       top.append(element('span', t.tag), element('span', t.status));
       const foot = element('div', '', 'map-topic-foot');
       foot.append(
-        element('span', t.actors.length ? `${t.actors.length} 席位参与` : '跨部门线索'),
+        element('span', t.running ? '正在运转' : '持续流转'),
         element('span', hasTask ? '跟随接力 →' : '查看动态 ↗')
       );
       node.append(top, element('strong', t.title), foot);
@@ -1971,8 +2003,7 @@ function renderActivity() {
       : update.title;
     card.append(
       top,
-      element('strong', headline),
-      element('span', a.actor?.kind === 'agent' && a.actor.tool ? `${a.actor.tool} · ${a.actor.label}` : a.actor?.label || execution[d?.execution] || '共同推进', 'activity-byline')
+      element('strong', headline)
     );
     card.addEventListener('click', () => {
       if (a.task) selectTopic(a);
@@ -2064,11 +2095,7 @@ function renderLiveFeed() {
     const who = element('div', '', 'feed-who');
     const dot = element('i', '', 'feed-dept-dot');
     dot.style.background = deptColors[entry.deptId] || 'var(--accent)';
-    who.append(dot, element('span', entry.actor, 'feed-actor'));
-    if (entry.mentions.length) {
-      who.append(element('span', `→ ${entry.mentions.slice(0, 2).map(n => '@' + n).join(' ')}`, 'feed-arrow-to'));
-    }
-    who.append(element('span', d?.label || entry.deptId, 'feed-dept-tag'));
+    who.append(dot, element('span', d?.label || entry.deptId, 'feed-dept-tag'));
     head.append(who, element('time', relative(entry.at), 'feed-time'));
 
     row.append(head, element('div', entry.title, 'feed-title'));
@@ -2454,21 +2481,112 @@ async function refreshLive() {
   }
 }
 
-function applyTheme(theme) {
-  if (theme === 'light') {
-    document.documentElement.dataset.theme = 'light';
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#F2F5FA');
-    const btn = $('#theme-toggle');
+function renderHoloSky() {
+  const svg = $('#holo-sky');
+  if (!svg) return;
+  svg.replaceChildren();
+  const w = 1200;
+  const h = 760;
+  const isLight = document.documentElement.dataset.theme === 'light';
+  const isBlueprint = document.documentElement.dataset.look === 'blueprint';
+
+  const make = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    return el;
+  };
+
+  // 1. Chrono-Metaverse deterministic orbital starfield (sky.ts)
+  if (!isLight) {
+    let seed = 1337;
+    const rand = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+    const stars = make('g', { class: 'holo-stars' });
+    const count = isBlueprint ? 55 : 120;
+    for (let i = 0; i < count; i++) {
+      const sx = (rand() * w).toFixed(1);
+      const sy = (rand() * h * 0.62).toFixed(1);
+      const r = rand() > 0.84 ? '1.3' : '0.75';
+      const op = (0.16 + rand() * 0.52).toFixed(2);
+      const fill = isBlueprint
+        ? '#96d7ff'
+        : i % 5 === 0 ? '#5eedec' : '#d7eeff';
+      stars.append(make('circle', { cx: sx, cy: sy, r, fill, opacity: op }));
+    }
+    svg.append(stars);
+  }
+
+  // 2. Chrono-Metaverse 3D Perspective Architectural Floor Grid receding into horizon
+  const vpX = w * 0.5;
+  const vpY = -h * 0.24;
+  const startY = h * 0.08;
+  const gridStroke = isLight
+    ? 'rgba(120, 113, 102, 0.16)'
+    : isBlueprint
+      ? 'rgba(150, 215, 255, 0.16)'
+      : 'rgba(94, 237, 236, 0.09)';
+
+  const grid = make('g', { stroke: gridStroke, 'stroke-width': '1', fill: 'none' });
+  const cols = 16;
+  for (let i = -cols; i <= cols; i++) {
+    const bottomX = vpX + (i / (cols * 0.45)) * w;
+    const t = (startY - vpY) / (h - vpY);
+    const topX = vpX + (bottomX - vpX) * t;
+    grid.append(make('line', { x1: topX.toFixed(1), y1: startY.toFixed(1), x2: bottomX.toFixed(1), y2: h }));
+  }
+  const rows = 14;
+  for (let r = 0; r <= rows; r++) {
+    const p = Math.pow(r / rows, 1.55);
+    const y = (startY + p * (h - startY)).toFixed(1);
+    grid.append(make('line', { x1: 0, y1: y, x2: w, y2: y, opacity: (0.28 + p * 0.72).toFixed(2) }));
+  }
+  svg.append(grid);
+}
+
+function applyLook(look) {
+  const docEl = document.documentElement;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const btn = $('#theme-toggle');
+  if (look === 'light') {
+    docEl.dataset.theme = 'light';
+    delete docEl.dataset.look;
+    if (meta) meta.setAttribute('content', '#F2EEE6');
     if (btn) btn.textContent = '☾';
+  } else if (look === 'blueprint') {
+    delete docEl.dataset.theme;
+    docEl.dataset.look = 'blueprint';
+    if (meta) meta.setAttribute('content', '#0C192C');
+    if (btn) btn.textContent = '☀';
   } else {
-    delete document.documentElement.dataset.theme;
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#030712');
-    const btn = $('#theme-toggle');
+    delete docEl.dataset.theme;
+    delete docEl.dataset.look;
+    if (meta) meta.setAttribute('content', '#02060E');
     if (btn) btn.textContent = '☀';
   }
+  const activeLook = docEl.dataset.theme === 'light' ? 'light' : (docEl.dataset.look || 'holo');
+  for (const b of document.querySelectorAll('[data-look]')) {
+    b.setAttribute('aria-pressed', String(b.dataset.look === activeLook));
+  }
+  renderHoloSky();
 }
+
+function applyTheme(theme) {
+  applyLook(theme === 'light' ? 'light' : 'holo');
+}
+
+for (const lookBtn of document.querySelectorAll('[data-look]')) {
+  lookBtn.addEventListener('click', () => {
+    const next = lookBtn.dataset.look || 'holo';
+    applyLook(next);
+    try {
+      localStorage.setItem(themeKey, next);
+    } catch {}
+  });
+}
+
+window.addEventListener('resize', () => renderHoloSky(), { passive: true });
 
 // Dock tab switching
 for (const tab of document.querySelectorAll('[data-dock-tab]')) {
@@ -2607,8 +2725,11 @@ if (reduced) {
 
 try {
   const savedTheme = localStorage.getItem(themeKey);
-  if (savedTheme === 'light') applyTheme('light');
-} catch {}
+  if (savedTheme === 'light' || savedTheme === 'blueprint') applyLook(savedTheme);
+  else renderHoloSky();
+} catch {
+  renderHoloSky();
+}
 
 try {
   const saved = JSON.parse(localStorage.getItem(cacheKey));

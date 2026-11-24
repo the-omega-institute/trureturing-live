@@ -1,126 +1,172 @@
 :root {
   color-scheme: dark;
-  --bg: #030711;
-  --bg-deep: #050c1b;
-  --surface: rgba(8, 17, 34, 0.84);
-  --surface-solid: #081224;
-  --surface-soft: rgba(11, 22, 43, 0.72);
-  --surface-elevated: rgba(14, 28, 54, 0.92);
-  --ink: #edf6ff;
-  --ink-2: #bfd6ee;
-  --muted: #7694b6;
-  --dim: #4c6889;
-  --border: rgba(56, 189, 248, 0.16);
-  --border-strong: rgba(56, 189, 248, 0.38);
-  --border-glow: rgba(56, 189, 248, 0.65);
+  /* Chrono-Metaverse Holo Arena (全息场) shader palette */
+  --bg: #01050c;
+  --bg-deep: #030b14;
+  --surface: rgba(5, 14, 24, 0.84);
+  --surface-solid: #050f1a;
+  --surface-soft: rgba(8, 21, 35, 0.72);
+  --surface-elevated: rgba(9, 25, 40, 0.92);
+  --ink: #ecf8ff;
+  --ink-2: #b8dce8;
+  --muted: #6f99ad;
+  --dim: #466a7d;
+  --border: rgba(94, 237, 236, 0.16);
+  --border-strong: rgba(94, 237, 236, 0.42);
+  --border-glow: rgba(94, 237, 236, 0.72);
 
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.72);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 22px 64px rgba(0, 0, 0, 0.78);
 
-  --accent: #38bdf8;
-  --accent-soft: rgba(56, 189, 248, 0.14);
-  --gold: #f5b749;
-  --gold-soft: rgba(245, 183, 73, 0.15);
-  --live: #10f5a0;
-  --live-ink: #6effc7;
-  --live-soft: rgba(16, 245, 160, 0.14);
-  --warn: #fbbf24;
-  --warn-soft: rgba(251, 191, 36, 0.15);
+  --accent: #5eedec;
+  --accent-soft: rgba(94, 237, 236, 0.13);
+  --gold: #e8a855;
+  --gold-soft: rgba(232, 168, 85, 0.15);
+  --live: #2de3b8;
+  --live-ink: #79ffdf;
+  --live-soft: rgba(45, 227, 184, 0.14);
+  --warn: #e8a855;
+  --warn-soft: rgba(232, 168, 85, 0.15);
   --danger: #fb7185;
   --danger-soft: rgba(251, 113, 133, 0.16);
 
-  --c-direction: #f5b749;
-  --t-direction: rgba(245, 183, 73, 0.16);
-  --c-research: #10f5a0;
-  --t-research: rgba(16, 245, 160, 0.15);
-  --c-review: #818cf8;
-  --t-review: rgba(129, 140, 248, 0.16);
-  --c-verification: #38bdf8;
-  --t-verification: rgba(56, 189, 248, 0.16);
-  --c-books: #c084fc;
-  --t-books: rgba(192, 132, 252, 0.16);
-  --c-publication: #34d399;
-  --t-publication: rgba(52, 211, 153, 0.15);
-  --c-outreach: #fb923c;
-  --t-outreach: rgba(251, 146, 60, 0.16);
-  --c-studio: #94a3b8;
-  --t-studio: rgba(148, 163, 184, 0.15);
+  --c-direction: #e8a855;
+  --t-direction: rgba(232, 168, 85, 0.16);
+  --c-research: #2de3b8;
+  --t-research: rgba(45, 227, 184, 0.15);
+  --c-review: #b88ce8;
+  --t-review: rgba(184, 140, 232, 0.16);
+  --c-verification: #5eedec;
+  --t-verification: rgba(94, 237, 236, 0.16);
+  --c-books: #c78cdb;
+  --t-books: rgba(199, 140, 219, 0.16);
+  --c-publication: #4ad8b0;
+  --t-publication: rgba(74, 216, 176, 0.15);
+  --c-outreach: #e8925a;
+  --t-outreach: rgba(232, 146, 90, 0.16);
+  --c-studio: #8cb2c4;
+  --t-studio: rgba(140, 178, 196, 0.15);
 
-  --hex-fill: rgba(6, 14, 29, 0.92);
-  --hex-fill-hover: rgba(10, 23, 46, 0.96);
-  --hex-stroke: rgba(71, 121, 173, 0.42);
-  --hex-ghost: rgba(56, 189, 248, 0.08);
-  --route-stroke: rgba(102, 163, 219, 0.42);
-  --route-active: #38bdf8;
-  --handoff-stroke: #f5b749;
-  --grid-dot: rgba(56, 189, 248, 0.11);
+  --hex-fill: rgba(4, 15, 25, 0.90);
+  --hex-fill-hover: rgba(7, 24, 38, 0.96);
+  --hex-stroke: rgba(94, 237, 236, 0.32);
+  --hex-ghost: rgba(94, 237, 236, 0.065);
+  --route-stroke: rgba(119, 186, 213, 0.42);
+  --route-active: #5eedec;
+  --handoff-stroke: #e8a855;
+  --grid-dot: rgba(94, 237, 236, 0.07);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
 
   font: 13.5px/1.5 var(--font-sans);
   background: var(--bg);
   color: var(--ink);
 }
 
+:root[data-look="blueprint"] {
+  color-scheme: dark;
+  /* Chrono-Metaverse Engineering Blueprint (工程蓝图) */
+  --bg: #081222;
+  --bg-deep: #0c192c;
+  --surface: rgba(13, 29, 53, 0.88);
+  --surface-solid: #0d1d35;
+  --surface-soft: rgba(18, 39, 71, 0.78);
+  --surface-elevated: rgba(20, 46, 84, 0.94);
+  --ink: #eef7ff;
+  --ink-2: #b8dcff;
+  --muted: #76a6d6;
+  --dim: #4c77a6;
+  --border: rgba(150, 215, 255, 0.24);
+  --border-strong: rgba(150, 215, 255, 0.56);
+  --border-glow: rgba(150, 215, 255, 0.85);
+
+  --accent: #96d7ff;
+  --accent-soft: rgba(150, 215, 255, 0.16);
+  --live: #6be8ff;
+  --live-ink: #b8f4ff;
+  --live-soft: rgba(107, 232, 255, 0.16);
+  --gold: #ffd17a;
+  --gold-soft: rgba(255, 209, 122, 0.16);
+
+  --c-direction: #ffd17a;
+  --c-research: #7ee8ff;
+  --c-review: #a5b4fc;
+  --c-verification: #96d7ff;
+  --c-books: #c4b5fd;
+  --c-publication: #6ee7b7;
+  --c-outreach: #fdba74;
+  --c-studio: #93c5fd;
+
+  --hex-fill: rgba(14, 34, 64, 0.88);
+  --hex-fill-hover: rgba(20, 48, 88, 0.96);
+  --hex-stroke: rgba(150, 215, 255, 0.45);
+  --hex-ghost: rgba(150, 215, 255, 0.10);
+  --route-stroke: rgba(150, 215, 255, 0.48);
+  --route-active: #96d7ff;
+  --handoff-stroke: #ffd17a;
+  --grid-dot: rgba(150, 215, 255, 0.12);
+}
+
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #eef2f7;
-  --bg-deep: #e4eaf3;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-solid: #ffffff;
-  --surface-soft: rgba(244, 247, 252, 0.92);
+  /* Chrono-Metaverse Architectural Maquette (白模沙盘) */
+  --bg: #ede9e0;
+  --bg-deep: #f5f2eb;
+  --surface: rgba(252, 250, 245, 0.94);
+  --surface-solid: #fcfaf5;
+  --surface-soft: rgba(242, 238, 230, 0.94);
   --surface-elevated: #ffffff;
-  --ink: #0f172a;
-  --ink-2: #334155;
-  --muted: #52637a;
-  --dim: #7b8ca3;
-  --border: rgba(15, 23, 42, 0.12);
-  --border-strong: rgba(2, 132, 199, 0.36);
-  --border-glow: rgba(2, 132, 199, 0.6);
+  --ink: #1b1a17;
+  --ink-2: #424039;
+  --muted: #6b675c;
+  --dim: #928d80;
+  --border: rgba(27, 26, 23, 0.12);
+  --border-strong: rgba(15, 118, 110, 0.36);
+  --border-glow: rgba(15, 118, 110, 0.6);
 
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --shadow-sm: 0 1px 3px rgba(27, 26, 23, 0.06);
+  --shadow-md: 0 8px 24px rgba(27, 26, 23, 0.08);
+  --shadow-lg: 0 16px 40px rgba(27, 26, 23, 0.11);
 
-  --accent: #0284c7;
-  --accent-soft: rgba(2, 132, 199, 0.1);
+  --accent: #0f766e;
+  --accent-soft: rgba(15, 118, 110, 0.1);
   --gold: #b45309;
-  --gold-soft: rgba(217, 119, 6, 0.12);
+  --gold-soft: rgba(180, 83, 9, 0.11);
   --live: #059669;
   --live-ink: #047857;
   --live-soft: rgba(5, 150, 105, 0.11);
-  --warn: #d97706;
-  --warn-soft: rgba(217, 119, 6, 0.12);
+  --warn: #b45309;
+  --warn-soft: rgba(217, 119, 6, 0.11);
   --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.1);
 
   --c-direction: #b45309;
-  --t-direction: rgba(217, 119, 6, 0.12);
+  --t-direction: rgba(217, 119, 6, 0.11);
   --c-research: #047857;
-  --t-research: rgba(5, 150, 105, 0.11);
+  --t-research: rgba(5, 150, 105, 0.1);
   --c-review: #4338ca;
   --t-review: rgba(67, 56, 202, 0.1);
   --c-verification: #0369a1;
-  --t-verification: rgba(2, 132, 199, 0.11);
+  --t-verification: rgba(2, 132, 199, 0.1);
   --c-books: #7e22ce;
   --t-books: rgba(126, 34, 206, 0.1);
   --c-publication: #15803d;
   --t-publication: rgba(21, 128, 61, 0.1);
   --c-outreach: #c2410c;
   --t-outreach: rgba(194, 65, 12, 0.1);
-  --c-studio: #334155;
-  --t-studio: rgba(51, 65, 85, 0.1);
+  --c-studio: #475569;
+  --t-studio: rgba(71, 85, 105, 0.1);
 
-  --hex-fill: rgba(255, 255, 255, 0.96);
+  --hex-fill: rgba(255, 253, 249, 0.96);
   --hex-fill-hover: #ffffff;
-  --hex-stroke: rgba(100, 116, 139, 0.34);
-  --hex-ghost: rgba(100, 116, 139, 0.12);
-  --route-stroke: rgba(100, 116, 139, 0.42);
-  --route-active: #0284c7;
-  --handoff-stroke: #d97706;
-  --grid-dot: rgba(15, 23, 42, 0.08);
+  --hex-stroke: rgba(120, 113, 102, 0.34);
+  --hex-ghost: rgba(120, 113, 102, 0.12);
+  --route-stroke: rgba(120, 113, 102, 0.44);
+  --route-active: #0f766e;
+  --handoff-stroke: #b45309;
+  --grid-dot: rgba(27, 26, 23, 0.06);
 }
 
 *,
@@ -399,13 +445,58 @@ button:focus-visible {
   flex-shrink: 0;
 }
 
-/* Right Controls */
+/* Right Controls + Chrono Style Gallery Switcher */
 .hud-controls {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   flex-shrink: 0;
 }
+
+.style-switcher {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.style-switcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.style-switcher button:hover {
+  color: var(--ink);
+}
+
+.style-switcher button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-solid));
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+.style-switcher i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.swatch-holo { background: #5eedec; box-shadow: 0 0 6px #5eedec; }
+.swatch-blueprint { background: #2d80c7; }
+.swatch-maquette { background: #f2eee6; border-color: rgba(0, 0, 0, 0.25) !important; }
 
 .mode-switch {
   display: inline-flex;
@@ -705,18 +796,31 @@ button:focus-visible {
   flex-direction: column;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 48%, rgba(16, 245, 160, 0.085), transparent 44%),
-    radial-gradient(circle at 22% 48%, rgba(56, 189, 248, 0.07), transparent 36%),
-    radial-gradient(circle at 78% 48%, rgba(56, 189, 248, 0.085), transparent 36%),
-    radial-gradient(circle at 50% 14%, rgba(245, 183, 73, 0.09), transparent 34%),
-    linear-gradient(180deg, #050c1a 0%, #030814 100%);
+    radial-gradient(ellipse 68% 42% at 50% 48%, rgba(45, 227, 184, 0.075), transparent 56%),
+    radial-gradient(ellipse 52% 36% at 50% 10%, rgba(199, 140, 219, 0.08), transparent 50%),
+    linear-gradient(180deg, #020812 0%, #01050c 100%);
+}
+
+:root[data-look="blueprint"] .hive-board {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(56, 132, 205, 0.16), transparent 58%),
+    linear-gradient(180deg, #0d1d35 0%, #081222 100%);
 }
 
 :root[data-theme="light"] .hive-board {
   background:
-    radial-gradient(circle at 50% 48%, rgba(5, 150, 105, 0.06), transparent 45%),
-    radial-gradient(circle at 50% 14%, rgba(217, 119, 6, 0.07), transparent 35%),
-    linear-gradient(180deg, #f8fafd 0%, #eef3f9 100%);
+    radial-gradient(circle at 50% 48%, rgba(15, 118, 110, 0.05), transparent 48%),
+    radial-gradient(circle at 50% 14%, rgba(180, 83, 9, 0.055), transparent 36%),
+    linear-gradient(180deg, #f6f3ec 0%, #ece7dc 100%);
+}
+
+.holo-sky-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .hive-board::before {
@@ -724,10 +828,8 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    radial-gradient(var(--grid-dot) 1px, transparent 1px),
-    repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.018) 0 1px, transparent 1px 4px);
-  background-size: 28px 28px, 100% 4px;
+  z-index: 1;
+  background-image: repeating-linear-gradient(0deg, rgba(94, 237, 236, 0.016) 0 1px, transparent 1px 4px);
 }
 
 .board-hud-top {
@@ -1022,7 +1124,8 @@ button:focus-visible {
 }
 
 /* ============================================================================
-   VOLUMETRIC HOLOGRAPHIC HEX CELLS (.hive-cell)
+   3D EXTRUDED HOLOGRAPHIC GLASS HEX PAVILIONS (.hive-cell)
+   Chrono-Metaverse Holo Arena dual-pane glass + projection slice aesthetics
    ============================================================================ */
 .hive-cell {
   --cell-color: var(--accent);
@@ -1030,14 +1133,14 @@ button:focus-visible {
   left: var(--x);
   top: var(--y);
   width: 20.6%;
-  aspect-ratio: 200 / 173.2;
-  transform: translate(-50%, -50%);
+  aspect-ratio: 200 / 198;
+  transform: translate(-50%, -44%);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   z-index: 3;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, filter 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, filter 0.2s ease;
 }
 
 .hive-cell[data-department="direction"] { --cell-color: var(--c-direction); }
@@ -1058,9 +1161,66 @@ button:focus-visible {
   pointer-events: none;
 }
 
+.cell-hex-shadow {
+  fill: rgba(0, 0, 0, 0.56);
+  filter: blur(4px);
+}
+
+:root[data-theme="light"] .cell-hex-shadow {
+  fill: rgba(27, 26, 23, 0.14);
+}
+
+.cell-hex-wall {
+  stroke: color-mix(in srgb, var(--cell-color) 42%, var(--hex-stroke));
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  transition: fill 0.18s ease, stroke 0.18s ease;
+}
+
+.cell-hex-wall.is-left {
+  fill: color-mix(in srgb, var(--cell-color) 16%, #020810);
+}
+
+.cell-hex-wall.is-front {
+  fill: color-mix(in srgb, var(--cell-color) 24%, #030e19);
+}
+
+.cell-hex-wall.is-right {
+  fill: color-mix(in srgb, var(--cell-color) 32%, #051624);
+}
+
+:root[data-theme="light"] .cell-hex-wall.is-left {
+  fill: color-mix(in srgb, var(--cell-color) 12%, #d4cec2);
+}
+
+:root[data-theme="light"] .cell-hex-wall.is-front {
+  fill: color-mix(in srgb, var(--cell-color) 18%, #e2dcd1);
+}
+
+:root[data-theme="light"] .cell-hex-wall.is-right {
+  fill: color-mix(in srgb, var(--cell-color) 24%, #ece7dd);
+}
+
+.cell-hex-slice {
+  fill: none;
+  stroke: color-mix(in srgb, var(--cell-color) 46%, transparent);
+  stroke-width: 0.85;
+  opacity: 0.72;
+}
+
+.cell-hex-sheen {
+  fill: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent);
+  fill: color-mix(in srgb, var(--cell-color) 7%, transparent);
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .cell-hex-sheen {
+  fill: rgba(255, 255, 255, 0.4);
+}
+
 .cell-hex-outer {
   fill: var(--hex-fill);
-  stroke: color-mix(in srgb, var(--cell-color) 46%, var(--hex-stroke));
+  stroke: color-mix(in srgb, var(--cell-color) 52%, var(--hex-stroke));
   stroke-width: 2.2;
   stroke-linejoin: round;
   transition: fill 0.18s ease, stroke 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
@@ -1068,7 +1228,7 @@ button:focus-visible {
 
 .cell-hex-inner {
   fill: none;
-  stroke: color-mix(in srgb, var(--cell-color) 20%, transparent);
+  stroke: color-mix(in srgb, var(--cell-color) 24%, transparent);
   stroke-width: 1;
   stroke-linejoin: round;
 }
@@ -1078,14 +1238,13 @@ button:focus-visible {
   stroke: var(--cell-color);
   stroke-width: 2;
   opacity: 0;
-  transform-origin: center;
-  transform-box: fill-box;
+  transform-origin: 100px 86.6px;
 }
 
 .hive-cell.is-running .cell-hex-outer {
   stroke: var(--cell-color);
   stroke-width: 2.6;
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--cell-color) 42%, transparent));
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--cell-color) 44%, transparent));
 }
 
 .hive-cell.is-running .cell-hex-pulse {
@@ -1094,7 +1253,7 @@ button:focus-visible {
 
 .hive-cell:hover,
 .hive-cell[aria-pressed="true"] {
-  transform: translate(-50%, -50%) scale(1.055);
+  transform: translate(-50%, -48%) scale(1.055);
   z-index: 8;
 }
 
@@ -1103,12 +1262,17 @@ button:focus-visible {
   fill: var(--hex-fill-hover);
   stroke: var(--cell-color);
   stroke-width: 3.1;
-  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--cell-color) 62%, transparent));
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--cell-color) 65%, transparent));
+}
+
+.hive-cell:hover .cell-hex-wall,
+.hive-cell[aria-pressed="true"] .cell-hex-wall {
+  stroke: var(--cell-color);
 }
 
 .hive-cell:hover .cell-hex-inner,
 .hive-cell[aria-pressed="true"] .cell-hex-inner {
-  stroke: color-mix(in srgb, var(--cell-color) 45%, transparent);
+  stroke: color-mix(in srgb, var(--cell-color) 48%, transparent);
 }
 
 .hive-cell.has-arrival .cell-hex-outer {
@@ -1120,10 +1284,58 @@ button:focus-visible {
   opacity: 0.25;
 }
 
+/* Chrono-Metaverse Floating Architectural Landmark Pin (.viewer__landmark) */
+.cell-landmark {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.cell-landmark.is-visible {
+  display: flex;
+}
+
+.cell-landmark-cap {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  background: var(--live);
+  color: #020810;
+  border: 1.5px solid var(--surface-solid);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--live) 55%, transparent);
+}
+
+.cell-landmark.is-human .cell-landmark-cap {
+  background: var(--gold);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--gold) 50%, transparent);
+}
+
+.cell-landmark-pin {
+  display: block;
+  width: 1.5px;
+  height: 8px;
+  background: var(--live);
+}
+
+.cell-landmark.is-human .cell-landmark-pin {
+  background: var(--gold);
+}
+
 .cell-content {
   position: relative;
   z-index: 2;
   width: 78%;
+  margin-top: -10%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1198,39 +1410,37 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  min-height: 18px;
+  min-height: 12px;
+  margin: 1px 0;
 }
 
-.seat-pip {
-  min-width: 18px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 3px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
+.cell-pulse-bars {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: var(--ink-2);
-  background: rgba(148, 163, 184, 0.12);
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  gap: 3px;
 }
 
-.seat-pip.is-active {
-  color: #030711;
+.pulse-bar {
+  display: inline-block;
+  width: 11px;
+  height: 3.5px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.pulse-bar.is-live {
   background: var(--live);
-  border-color: var(--live);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--live) 70%, transparent);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--live) 75%, transparent);
 }
 
-.seat-pip-more {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--muted);
-  margin-left: 1px;
+.pulse-bar.is-warm {
+  background: var(--cell-color);
+  opacity: 0.78;
+}
+
+.pulse-bar.is-human {
+  background: var(--gold);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--gold) 65%, transparent);
 }
 
 .cell-status {
@@ -2167,14 +2377,15 @@ button:focus-visible {
   justify-content: space-between;
   gap: 6px;
   min-width: 0;
+  margin-bottom: 6px;
 }
 
-.lens-agent-identity {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
+.lens-channel-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--lens-color);
 }
 
 .lens-agent-meta-row {
