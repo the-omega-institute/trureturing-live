@@ -4,13 +4,17 @@ A public research observatory for the trureturing ecosystem. Explore active GitH
 Actions, research questions and pull requests across the public repositories;
 follow each observation back to its source.
 
-The homepage maps eight departments around human research direction. Select a
-department to read its responsibility, actual public participants and recent work;
-follow a mathematical question through its explicit issue, contribution, check and
-book references. Independent research sessions and Actions engines have distinct
-roles. New observed activity can move the viewpoint; selecting a department fixes
-it until the reader resumes following. The interface presents research in plain
-language and links back to public sources.
+The homepage opens with the institute's operating method: human direction,
+mathematical attack, independent review, formal checks, and books/publication/outreach.
+The eight departments are drawn as one architecture with responsibility paths and
+explicit public-reference connections. Select a department to open its workbench:
+every public participant observed in that department gets a work-seat row with its
+recent tasks and source links. Independent research sessions and Actions engines
+have distinct roles. New observed activity can move the viewpoint; selecting a
+department fixes it until the reader resumes following. A separate question view
+follows one mathematical line through its explicit issue, contribution, check and
+book references. The interface presents research in plain language and links back
+to public sources.
 
 Production domain: **https://live.trureturing.org/**.
 The GitHub Pages project URL
