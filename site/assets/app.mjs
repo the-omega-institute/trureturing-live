@@ -3641,7 +3641,8 @@ function drawHolo3DFrame(dt = 0.016) {
   // Symmetrical Hero Framing across the expanded center Matrix campus!
   const cx = w * 0.5;
   const cy = state.focused ? h * 0.52 : h * 0.535;
-  const fov = Math.min(w, h) * (w > 1360 ? 1.08 : w > 980 ? 0.98 : 0.92);
+  // Portrait boards are width-limited: keep the whole campus inside the frame.
+  const fov = Math.min(Math.min(w, h) * (w > 1360 ? 1.08 : w > 980 ? 0.98 : 0.92), w * 0.84);
   const cosY = Math.cos(holoCam.yaw);
   const sinY = Math.sin(holoCam.yaw);
   const cosP = Math.cos(holoCam.pitch);
@@ -4787,6 +4788,12 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       const hit = hitTowerAt(e.clientX, e.clientY);
       if (hit) selectDepartment(hit, true, true);
     }
+  });
+
+  window.addEventListener('pointercancel', () => {
+    if (!holoCam.dragging) return;
+    holoCam.dragging = false;
+    boardEl.classList.remove('is-dragging');
   });
 
   boardEl.addEventListener('wheel', e => {
