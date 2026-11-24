@@ -1,7 +1,7 @@
 const $ = selector => document.querySelector(selector);
 const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
-const cacheKey = 'trureturing-live.hive.content.v2';
+const cacheKey = 'trureturing-live.hive.content.v3';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state = {snapshot:null,stream:null,selected:'research',focused:null,mode:'organization',follow:true,quiet:reduced,filter:'all',limit:9,topic:null,cells:new Map(),seen:new Set(),animated:new Set(),arrivals:[],snapshotBusy:false,liveBusy:false};
 const positions = {direction:[48,49],research:[20,25],review:[46,14],verification:[74,25],books:[80,57],publication:[58,82],outreach:[31,82],studio:[16,54]};
