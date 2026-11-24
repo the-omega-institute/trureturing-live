@@ -7,8 +7,8 @@
   <meta name="description" content="走进 trureturing 的 AI 数学研究院：看独立会话与自动引擎怎样认领问题、推进论证、相互复核，让研究长成书稿与论文。">
   <title>trureturing live · 数学研究，正在接力</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v1">
-  <script type="module" src="assets/app.mjs?v=hive-v1"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v2">
+  <script type="module" src="assets/app.mjs?v=hive-v2"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入研究现场</a>
@@ -24,11 +24,26 @@
     </section>
     <p id="connection-note" class="connection-note" role="status" hidden></p>
     <section id="institute" class="institute" aria-labelledby="institute-title">
-      <div class="room-heading"><div><p class="eyebrow">ONE INSTITUTE. MANY MINDS.</p><h2 id="institute-title">各司其职，也彼此相连。</h2></div><div class="room-controls"><div class="mode-switch" role="group" aria-label="现场视图"><button type="button" data-mode="organization" aria-pressed="true">全院总览</button><button type="button" data-mode="journey" aria-pressed="false">跟随一个课题</button></div><button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button></div></div>
+      <div class="room-heading"><div><p class="eyebrow">ONE INSTITUTE. MANY MINDS.</p><h2 id="institute-title">先看整个组织，<em>再走进每个部门。</em></h2><p class="room-intro">这张图展示研究院怎样运转：人的方向把问题送入独立攻坚，论证经过复核与 CI，最后进入书稿、论文和学术交流。</p></div><div class="room-controls"><div class="mode-switch" role="group" aria-label="现场视图"><button type="button" data-mode="organization" aria-pressed="true">全院架构</button><button type="button" data-mode="journey" aria-pressed="false">跟随一个课题</button></div><button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随最新</span></button></div></div>
       <div class="institute-metrics" id="institute-metrics"><span>研究现场正在展开</span></div>
+      <div class="method-strip" aria-label="研究院的运转方法">
+        <div class="method-heading"><span class="eyebrow">HOW THE HIVE WORKS</span><strong>一条研究线，怎样穿过整个组织</strong><span>点击任意一步，查看负责它的部门与公开工作席位。</span></div>
+        <div class="method-steps">
+          <button type="button" data-method-department="direction"><span>01</span><strong>人的方向</strong><small>提出问题，判断值得继续的路</small></button>
+          <i aria-hidden="true">→</i>
+          <button type="button" data-method-department="research"><span>02</span><strong>数学攻坚</strong><small>认领课题，构造证明与反例</small></button>
+          <i aria-hidden="true">↔</i>
+          <button type="button" data-method-department="review"><span>03</span><strong>独立评审</strong><small>换一个视角检查边界与条件</small></button>
+          <i aria-hidden="true">→</i>
+          <button type="button" data-method-department="verification"><span>04</span><strong>形式验证</strong><small>由 GitHub Actions 执行项目检查</small></button>
+          <i aria-hidden="true">→</i>
+          <button type="button" data-method-department="books"><span>05</span><strong>书稿与交流</strong><small>整理、发表，并把反馈带回问题</small></button>
+        </div>
+      </div>
       <div class="research-room" id="research-room">
-        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院部门地图；点击部门展开正在发生的工作">
-          <div class="board-label"><span class="live-dot"></span> THE RESEARCH HIVE</div>
+        <div class="hive-board" id="hive-board" role="group" aria-label="AI 研究院部门架构图；点击部门查看该部门的公开工作席位">
+          <div class="board-label"><span class="live-dot"></span> THE RESEARCH HIVE / ARCHITECTURE</div>
+          <div class="board-caption">整体架构 · <span>实线是职责路径</span> · <span>虚线是公开引用</span></div>
           <div class="board-actions"><button id="motion-toggle" type="button" aria-pressed="false" title="切换为静态画面">静看</button><button id="expand-room" type="button" aria-label="展开研究现场" title="展开研究现场">⤢</button></div>
           <svg id="hive-routes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div id="hive-cells" class="hive-cells"><p class="loading">研究、互评与书写，正在这里相遇…</p></div>
@@ -38,7 +53,10 @@
           <div class="department-top"><span id="department-mode" class="execution-label">独立会话</span><span class="small-label" id="department-state">正在连接</span></div>
           <h3 id="department-title">数学攻坚</h3><p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
           <div class="department-people" id="department-people"></div>
-          <div class="panel-heading"><h4 id="department-work-title">这里正在发生</h4><span id="department-work-count"></span></div>
+          <div class="panel-heading"><h4>这个部门的公开工作席位</h4><span id="department-agent-count"></span></div>
+          <p class="identity-note">明确标注为 agent 的来源会单独标识；其他显示为公开账号，不推断私有身份或在线状态。</p>
+          <div id="department-agents" class="department-agents"><p class="loading">正在读取公开工作席位…</p></div>
+          <div class="panel-heading work-heading"><h4 id="department-work-title">部门最近的工作</h4><span id="department-work-count"></span></div>
           <div id="department-work" class="department-work"><p class="loading">新的进展会在这里汇入。</p></div>
           <div id="department-connections" class="department-connections"></div>
         </aside>

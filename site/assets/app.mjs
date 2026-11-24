@@ -1,7 +1,7 @@
 const $ = selector => document.querySelector(selector);
 const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
-const cacheKey = 'trureturing-live.hive.content.v1';
+const cacheKey = 'trureturing-live.hive.content.v2';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state = {snapshot:null,stream:null,selected:'research',mode:'organization',follow:true,quiet:reduced,filter:'all',limit:9,topic:null,cells:new Map(),seen:new Set(),animated:new Set(),arrivals:[],snapshotBusy:false,liveBusy:false};
 const positions = {direction:[48,49],research:[20,25],review:[46,14],verification:[74,25],books:[80,57],publication:[58,82],outreach:[31,82],studio:[16,54]};
@@ -105,6 +105,34 @@ function person(actor){
   const mark=element('span',label.slice(0,1).toUpperCase(),'person-mark');mark.setAttribute('aria-hidden','true');el.append(mark,document.createTextNode(label));return el;
 }
 function peopleFor(items){const people=new Map();for(const a of items)if(a.actor)people.set(`${a.actor.kind}:${a.actor.id}`,a.actor);return [...people.values()];}
+function actorLabel(actor){return actor?.kind==='agent'&&actor.tool?`${actor.tool} · ${actor.label||actor.id}`:actor?.label||actor?.id||'公开账号';}
+function actorTasks(d,actor){return d.activities.filter(a=>a.actor?.id===actor.id&&a.actor?.kind===actor.kind).sort((a,b)=>Number(active(b))-Number(active(a))||timestamp(b.at)-timestamp(a.at));}
+function actorTaskTitle(a,d){
+  if(a.kind==='automation')return sourceLabel(a);
+  if(a.task&&['research','books'].includes(d.id))return copyFor(a).title;
+  if(a.task)return sourceLabel(a);
+  return progress(a).title;
+}
+function renderAgentRoster(d){
+  const container=$('#department-agents');if(!container)return;
+  const actors=new Map((d.participants||[]).map(actor=>[`${actor.kind}:${actor.id}`,actor]));
+  for(const a of d.activities)if(a.actor)actors.set(`${a.actor.kind}:${a.actor.id}`,a.actor);
+  const roster=[...actors.values()].sort((a,b)=>{
+    const at=actorTasks(d,a),bt=actorTasks(d,b);return Number(bt.some(active))-Number(at.some(active))||timestamp(bt[0]?.at)-timestamp(at[0]?.at)||actorLabel(a).localeCompare(actorLabel(b));
+  });
+  $('#department-agent-count').textContent=roster.length?`${roster.length} 个公开席位`:'';
+  container.replaceChildren();
+  if(!roster.length){container.append(element('p','这个部门暂时没有可公开归属的工作席位。','loading'));return;}
+  for(const actor of roster){
+    const tasks=actorTasks(d,actor),running=tasks.filter(active),card=element('article','','agent-card');
+    card.dataset.focusKey=`agent:${d.id}:${actor.kind}:${actor.id}`;
+    const head=element('div','','agent-card-head'),identity=element('div','','agent-identity');identity.append(person(actor),element('span',actor.kind==='agent'?'明确标注的 agent':'公开账号','agent-kind'));head.append(identity,element('span',running.length?`${running.length} 项正在执行`:tasks.length?'最近参与':'已登记','agent-state'+(running.length?' is-running':'')));card.append(head);
+    const taskList=element('div','','agent-task-list');
+    for(const a of tasks.slice(0,3)){const row=a.task?element('button','','agent-task'):external('',a.url,'agent-task');if(a.task)row.type='button';row.dataset.focusKey=`agent-task:${a.id}`;row.append(element('span',phase(a),'agent-task-state'),element('strong',actorTaskTitle(a,d)),element('small',a.kind==='automation'?progress(a).summary:copyFor(a).question));if(a.task)row.addEventListener('click',()=>selectTopic(a));taskList.append(row);}
+    if(!tasks.length)taskList.append(element('p','最近的公开活动将在这里出现。','agent-empty'));
+    card.append(taskList);container.append(card);
+  }
+}
 function preserveFocus(render){const selected=document.activeElement?.dataset.focusKey;render();if(selected){const target=[...document.querySelectorAll('[data-focus-key]')].find(el=>el.dataset.focusKey===selected);target?.focus({preventScroll:true});}}
 function icon(id){const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');for(const d of glyphPaths[id]||glyphPaths.research){const p=document.createElementNS(ns,'path');p.setAttribute('d',d);svg.append(p);}return svg;}
 function countRunning(d){return isStale()?null:(d.running_automations||0)+(d.running_sessions||0);}
@@ -175,8 +203,8 @@ function renderDepartment(){
   const d=department(state.selected)||departments().find(x=>x.id==='research')||departments()[0];if(!d)return;state.selected=d.id;
   $('#department-mode').textContent=execution[d.execution]||'共同研究';$('#department-mode').dataset.execution=d.execution;
   $('#department-title').textContent=d.label;$('#department-responsibility').textContent=d.responsibility;$('#department-state').textContent=isStale()?'稍早的研究现场':d.running_automations?'自动引擎运行中':d.running_sessions?'研究会话推进中':'各自推进，共同接力';
-  const people=d.participants||[];$('#department-people').replaceChildren();if(people.length){$('#department-people').append(element('span','公开参与','people-label'),...people.slice(0,3).map(person));}
-  else if(d.id==='research'||d.id==='review'||d.id==='books')$('#department-people').append(element('span','独立探索 · 共同讨论','people-label'));
+  const people=d.participants||[];$('#department-people').replaceChildren();$('#department-people').append(element('span',people.length?`${people.length} 个公开参与席位`:'暂时没有公开参与席位','people-label'),element('span',d.activities.length?`${d.activities.length} 条近期工作记录`:'等待第一条公开工作','people-summary'));
+  renderAgentRoster(d);
   const work=primaryWork(d),container=$('#department-work');container.replaceChildren();$('#department-work-count').textContent=countRunning(d)?`${countRunning(d)} 项执行中`:'';
   $('#department-work-title').textContent=d.execution==='human'?'研究如何继续':'这里正在发生';
   if(d.execution==='human'){container.append(element('p','提出值得研究的问题，判断哪些方向值得继续。研究中的新结果与交流反馈，再成为下一轮问题的起点。','loading'));const button=element('button','看看数学攻坚在推进什么 →','text-button');button.addEventListener('click',()=>selectDepartment('research'));container.append(button);}
@@ -252,6 +280,7 @@ async function refreshLive(){if(state.liveBusy)return;state.liveBusy=true;try{co
     renderLive();if(arrivals.length)$('#live-announcement').textContent=`${department(arrivals[0].department)?.label||'研究院'}有新的进展。`;
   }catch{renderHealth();if(!state.stream){$('#connection-note').hidden=false;$('#connection-note').textContent='研究现场连接稍慢，稍后会自动恢复。你可以先阅读已有的研究。';}}finally{state.liveBusy=false;}}
 for(const button of document.querySelectorAll('[data-mode]'))button.addEventListener('click',()=>{if(button.dataset.mode==='journey')state.follow=false;setMode(button.dataset.mode);});
+for(const button of document.querySelectorAll('[data-method-department]'))button.addEventListener('click',()=>{setMode('organization');selectDepartment(button.dataset.methodDepartment);});
 for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{state.filter=button.dataset.filter;state.limit=9;for(const sibling of document.querySelectorAll('[data-filter]'))sibling.setAttribute('aria-pressed',String(sibling===button));renderQuestions();});
 $('#more-questions').addEventListener('click',()=>{state.limit+=9;renderQuestions();});
 $('#journey-back').addEventListener('click',()=>setMode('organization'));

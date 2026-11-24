@@ -54,15 +54,38 @@ async function boot(options={}){
 test('the hive separates session responsibilities from real running engines and preserves public account identity',async()=>{
   const {dom,doc}=await boot();try{
     assert.equal(doc.querySelectorAll('.hive-cell').length,8);
+    assert.equal(doc.querySelectorAll('[data-method-department]').length,5);
+    assert.match(doc.querySelector('.method-strip').textContent,/人的方向/);
+    doc.querySelector('[data-method-department="verification"]').click();
+    assert.equal(doc.querySelector('#department-title').textContent,'形式验证');
     assert.match(doc.querySelector('[data-department="research"]').textContent,/独立研究会话/);
     assert.match(doc.querySelector('[data-department="outreach"]').textContent,/Actions 自动引擎/);
     assert.match(doc.querySelector('#institute-metrics').textContent,/4项自动化正在运转/);
     assert.doesNotMatch(doc.querySelector('#institute-metrics').textContent,/个研究会话/);
-    assert.match(doc.querySelector('#department-people').textContent,/research-seat/);
+    assert.match(doc.querySelector('#department-people').textContent,/1 个公开参与席位/);
+    assert.match(doc.querySelector('#department-agents').textContent,/research-seat/);
+    assert.equal(doc.querySelectorAll('#department-agents .agent-card').length,1);
     assert.equal(doc.querySelectorAll('.person.agent').length,0);
     doc.querySelector('[data-department="books"]').click();
     assert.match(doc.querySelector('#department-work').textContent,/检查与构建书稿/);
     assert.match(doc.querySelector('#department-work').textContent,/怎样控制频谱中的近碰撞/);
+  }finally{dom.window.close();}
+});
+
+test('department view lists every public work seat with its current task and keeps identity claims bounded',async()=>{
+  const data=live(),research=data.organization.departments.find(d=>d.id==='research');
+  const second={id:'review-seat',label:'review-seat',kind:'account',tool:null};
+  research.participants.push(second);
+  research.activities.push(activity('second-work','research','discussion',{actor:second,label:'math(fourier): inspect the boundary',task:task(43),at:new Date(Date.now()+200).toISOString()}));
+  const {dom,doc}=await boot({live:data});try{
+    doc.querySelector('[data-department="research"]').click();
+    assert.equal(doc.querySelector('#department-agent-count').textContent,'2 个公开席位');
+    assert.equal(doc.querySelectorAll('#department-agents .agent-card').length,2);
+    assert.match(doc.querySelector('#department-agents').textContent,/research-seat/);
+    assert.match(doc.querySelector('#department-agents').textContent,/review-seat/);
+    assert.match(doc.querySelector('#department-agents').textContent,/当前|最近参与|公开账号/);
+    assert.match(doc.querySelector('#department-agents').textContent,/明确标注的 agent|公开账号/);
+    assert.doesNotMatch(doc.querySelector('#department-agents').textContent,/online|在线 agent/i);
   }finally{dom.window.close();}
 });
 
