@@ -26,25 +26,25 @@
     {
       "id": "verification",
       "label": "形式验证",
-      "responsibility": "由已有的 GitHub CI 检查提交、构建证明，并执行项目规定的检验。",
+      "responsibility": "全院形式化真理枢纽：承接来自数学攻坚、理论书写、论文评议与外部合作的形式化验证请求，通过 Lean 内核与 CI 固化可复用定理，并将结果与障碍回流各部门。",
       "execution": "actions"
     },
     {
       "id": "books",
       "label": "理论书写",
-      "responsibility": "将研究整理为双语章节，连接已有知识，持续构建与出版书稿。",
+      "responsibility": "将已验证定理整理为双语章节并持续构建出版，同时将书稿中的书面证明与缺口转化为新的形式化验证请求。",
       "execution": "mixed"
     },
     {
       "id": "publication",
       "label": "论文与知识",
-      "responsibility": "接收已有的研究发布，组织可阅读的论证、论文与知识地图。",
+      "responsibility": "发布已验证研究的短文、DOI、公开论文与评议目录，并为论文与猜想生成新的 Lean 验证目标。",
       "execution": "mixed"
     },
     {
       "id": "outreach",
       "label": "学术交流",
-      "responsibility": "由 outreach engine 定期协调研究说明、传播准备与交流工作。",
+      "responsibility": "协调学术通信与外部学者合作，将合作回复与问题缺口既送回研究方向，也直接生成公开的形式化验证请求。",
       "execution": "actions"
     },
     {
@@ -205,8 +205,8 @@
     {
       "id": "research-requests",
       "kind": "github_issues",
-      "department": "research",
-      "label": "接收新的形式化问题",
+      "department": "verification",
+      "label": "接收新的形式化验证请求",
       "repository": "the-omega-institute/trureturing-requests",
       "poll_seconds": 300,
       "freshness_seconds": 900
@@ -329,7 +329,7 @@
     {
       "from": "research",
       "to": "review",
-      "label": "提交论证"
+      "label": "提交论证复核"
     },
     {
       "from": "review",
@@ -339,32 +339,57 @@
     {
       "from": "research",
       "to": "verification",
-      "label": "提交形式化实现"
+      "label": "理论推进提交形式化验证请求"
+    },
+    {
+      "from": "review",
+      "to": "verification",
+      "label": "复核后送入形式验证"
+    },
+    {
+      "from": "verification",
+      "to": "research",
+      "label": "已验证定理与障碍回流攻坚"
     },
     {
       "from": "verification",
       "to": "books",
-      "label": "将研究接入理论书写"
+      "label": "冻结定理接入双语书稿"
+    },
+    {
+      "from": "books",
+      "to": "verification",
+      "label": "写书产生新的形式化验证请求"
     },
     {
       "from": "verification",
       "to": "publication",
-      "label": "发布已有研究成果"
+      "label": "已验证成果发布为短文与目录"
+    },
+    {
+      "from": "publication",
+      "to": "verification",
+      "label": "论文与猜想生成 Lean 验证目标"
     },
     {
       "from": "publication",
       "to": "outreach",
-      "label": "准备学术交流"
+      "label": "准备学术通信与合作"
+    },
+    {
+      "from": "outreach",
+      "to": "verification",
+      "label": "合作与回复产生形式化验证请求"
     },
     {
       "from": "outreach",
       "to": "direction",
-      "label": "反馈带回新的问题"
+      "label": "外部反馈带回新的研究方向"
     },
     {
       "from": "studio",
       "to": "books",
-      "label": "支持出版与表达"
+      "label": "支持出版模板与表达"
     }
   ],
   "freshness_seconds": 180,
