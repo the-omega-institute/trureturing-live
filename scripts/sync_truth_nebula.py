@@ -27,17 +27,17 @@ MAX_INTRA_EDGES = 640
 MAX_CROSS_EDGES = 120
 USER_AGENT = "Mozilla/5.0 (compatible; trureturing-live-nebula-sync/1.0; +https://live.trureturing.org)"
 
-# Panoramic cosmic arch anchors so all 8 real mathematical galaxies & their DAG links
-# shine cleanly in open unobstructed sky pockets around & above the foreground campus.
+# Wide outer cosmic perimeter anchors framing the ENTIRE widescreen sky AROUND
+# (never on top of!) the concrete foreground campus, Lean Bridge & Akasha Eye.
 GALAXY_ANCHORS = {
-    "Observer":        (   0, 1020, -200, "观察者论", "OBSERVER"),
-    "Combinatorics":   (-470,  760, -130, "组合数学", "COMBINATORICS"),
-    "Arith":           ( 470,  760, -130, "数论算术", "ARITH"),
-    "ConceptDynamics": (-835,  485, -120, "概念动力", "CONCEPT DYNAMICS"),
-    "Weil":            ( 835,  485, -120, "Weil 理论", "WEIL"),
-    "Quantum":         (-815, -750, -100, "量子结构", "QUANTUM"),
-    "Analytic":        ( 815, -750, -100, "解析分析", "ANALYTIC"),
-    "Other":           (   0,  110, -200, "公理核心", "FOUNDATIONS"),
+    "Combinatorics":   (-475,  935, -150, "组合数学", "COMBINATORICS"),
+    "Arith":           ( 475,  935, -150, "数论算术", "ARITH"),
+    "ConceptDynamics": (-825,  615, -120, "概念动力", "CONCEPT DYNAMICS"),
+    "Weil":            ( 825,  615, -120, "Weil 理论", "WEIL"),
+    "Quantum":         (-795, -755, -110, "量子结构", "QUANTUM"),
+    "Analytic":        ( 795, -755, -110, "解析分析", "ANALYTIC"),
+    "Observer":        (   0, -830, -140, "观察者论", "OBSERVER"),
+    "Other":           (   0,  980, -240, "公理星带", "FOUNDATIONS"),
 }
 
 
@@ -139,8 +139,8 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> dict:
             ang = (cid / max(1, len(cluster_names))) * math.pi * 2
             ax, ay, az = int(math.cos(ang) * 700), int(350 + math.sin(ang) * 300), -140
             zh, en = name, name.upper()
-        # Visual radius scales softly with real theorem count
-        gal_r = 128.0 if name == "Other" else min(172.0, 96.0 + math.sqrt(cnt / 500.0) * 34.0)
+        # Airy, un-clumped cosmic dispersion so each galaxy reads as a spacious branching DAG nebula!
+        gal_r = 250.0 if name == "Other" else min(215.0, 142.0 + math.sqrt(cnt / 500.0) * 34.0)
         anchor_map[cid] = (ax, ay, az, gal_r)
         clusters.append({
             "id": cid,
@@ -218,17 +218,26 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> dict:
         dx = (positions[i][0] - mx) / r90
         dy = (positions[i][1] - my) / r90
         dz = (positions[i][2] - mz) / r90
-        # Softly clamp far outliers to radius 1.38 so galaxy shapes stay sharp & distinct
+        # Spread stars airily with radial push-out (sqrt curve) so clusters NEVER clump into dense white knots!
         r_loc = math.sqrt(dx * dx + dy * dy + dz * dz)
-        if r_loc > 1.38:
-            shrink = 1.38 / r_loc
-            dx *= shrink
-            dy *= shrink
-            dz *= shrink
-            r_loc = 1.38
-        sx = int(round(ax + dx * gal_r))
-        sy = int(round(ay + dy * gal_r * 0.86))
-        sz = int(round(az + dz * gal_r * 0.72))
+        if r_loc > 1e-4:
+            r_airy = min(1.42, math.pow(min(1.45, r_loc), 0.62) * 1.18)
+            mult = r_airy / r_loc
+            dx *= mult
+            dy *= mult
+            dz *= mult
+            r_loc = r_airy
+        if cid == other_cid:
+            # Spread Foundations ("Other") airily along the vast outer galactic halo instead of a central clump!
+            ang = math.atan2(dy, dx)
+            halo_r = 0.84 + 0.34 * min(1.0, r_loc / 1.42)
+            sx = int(round(math.cos(ang) * 920 * halo_r))
+            sy = int(round(math.sin(ang) * 860 * halo_r))
+            sz = int(round(-220 + dz * 90))
+        else:
+            sx = int(round(ax + dx * gal_r))
+            sy = int(round(ay + dy * gal_r * 0.78))
+            sz = int(round(az + dz * gal_r * 0.65))
         layer = int(nodes[i][12]) if len(nodes[i]) > 12 and isinstance(nodes[i][12], int) else 0
         # Combine local radial distance & real DAG topological layer -> generation 0..100
         gen = int(round(min(100, max(0, (0.62 * min(1.0, r_loc / 1.15) + 0.38 * min(1.0, layer / max_layer)) * 100))))
@@ -253,9 +262,11 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> dict:
         cu, cv = stars[su][3], stars[sv][3]
         score = deg[u] + deg[v]
         if cu == cv:
-            # Prefer real short/medium branching edges so trees look crisp, never chaotic scribbles
+            # Keep clean airy branching edges inside each named galaxy (skip sprawling halo ring chords for Other)
             du = math.dist(stars[su][:3], stars[sv][:3])
-            if du < 195:
+            if cu != other_cid and 24 < du < 245:
+                intra_by_cid[cu].append((score, su, sv))
+            elif cu == other_cid and 30 < du < 180:
                 intra_by_cid[cu].append((score, su, sv))
         else:
             cross_cands.append((score, su, sv))
