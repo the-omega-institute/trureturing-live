@@ -260,5 +260,9 @@ test('inside-the-institute live telemetry, checker runs, relay bridges, and work
     assert.equal(doc.documentElement.dataset.theme,'dark');
     doc.querySelector('#theme-toggle').click();
     assert.equal(doc.documentElement.dataset.theme,undefined);
+    doc.querySelector('#lens-back').click();
+    doc.querySelector('[data-department="verification"]').dispatchEvent(new dom.window.Event('pointerenter'));
+    assert.equal(doc.querySelector('#department-title').textContent,'形式验证');
+    assert.equal(doc.querySelector('#department-lens').hidden,true);
   }finally{dom.window.close();}
 });
