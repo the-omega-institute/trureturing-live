@@ -237,3 +237,28 @@ test('reduced motion and mobile question navigation remain usable without animat
     assert.equal(doc.querySelector('#journey-panel').hidden,true);
   }finally{dom.window.close();}
 });
+
+test('inside-the-institute live telemetry, checker runs, relay bridges, and workbench switcher render safely',async()=>{
+  const data=live();
+  data.messages[0].text='<img src=x onerror=alert(1)> Verified Steiner boundary.';
+  const {dom,doc}=await boot({live:data});try{
+    assert.match(doc.querySelector('#ticker-text').textContent,/形式验证|理论书写/);
+    assert.ok(doc.querySelectorAll('#live-feed .feed-entry').length>=1);
+    assert.match(doc.querySelector('#live-feed').textContent,/Verified Steiner boundary/);
+    assert.equal(doc.querySelectorAll('#live-feed img').length,0);
+    doc.querySelector('[data-feed-filter="automation"]').click();
+    assert.ok(doc.querySelectorAll('#live-feed .feed-entry').length>=1);
+    assert.ok(doc.querySelectorAll('#checker-runs .checker-row').length>=1);
+    assert.match(doc.querySelector('#checker-summary').textContent,/4 运行中/);
+    assert.ok(doc.querySelectorAll('#relay-bridges .bridge-row').length>=1);
+    assert.match(doc.querySelector('#relay-bridges').textContent,/数学攻坚/);
+    assert.equal(doc.querySelectorAll('#repo-matrix .repo-tile').length,2);
+    doc.querySelector('[data-department="research"]').click();
+    assert.equal(doc.querySelectorAll('#lens-switcher .lens-switch-pill').length,8);
+    assert.match(doc.querySelector('#lens-downstream').textContent,/形式验证/);
+    doc.querySelector('#theme-toggle').click();
+    assert.equal(doc.documentElement.dataset.theme,'dark');
+    doc.querySelector('#theme-toggle').click();
+    assert.equal(doc.documentElement.dataset.theme,undefined);
+  }finally{dom.window.close();}
+});
