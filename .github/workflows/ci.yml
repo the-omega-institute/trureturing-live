@@ -1,8 +1,10 @@
 name: Check dashboard
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: check-dashboard-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -18,7 +20,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: vendor/live-harness -> ../../.build/live-harness
-      - run: sh tools/build-foundation.sh
+      - name: Build pinned event foundation
+        run: sh tools/build-foundation.sh
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

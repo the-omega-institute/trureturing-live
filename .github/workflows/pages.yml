@@ -3,15 +3,46 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '2-59/15 * * * *'
+    - cron: '17 */2 * * *'
   workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Bypass the 10/hour Pages rate gate for an urgent manual deploy'
+        required: false
+        type: boolean
+        default: false
 concurrency:
-  group: live-publication
+  group: pages-exclusive-deploy
   cancel-in-progress: false
 permissions:
+  actions: read
   contents: read
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      allow_deploy: ${{ steps.rate.outputs.allow_deploy }}
+      recent_count: ${{ steps.rate.outputs.recent_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: rate
+        name: Check 10/hour Pages deployment budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE_DEPLOY: ${{ inputs.force_deploy }}
+        run: |
+          if [ "$FORCE_DEPLOY" = "true" ]; then
+            python scripts/pages_rate_gate.py --workflow pages.yml --max-per-hour 10 --force
+          else
+            python scripts/pages_rate_gate.py --workflow pages.yml --max-per-hour 10
+          fi
   observe:
+    needs: gate
+    if: needs.gate.outputs.allow_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -31,7 +62,8 @@ jobs:
         with:
           path: site
   deploy:
-    needs: observe
+    needs: [gate, observe]
+    if: needs.gate.outputs.allow_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

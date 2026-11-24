@@ -1,0 +1,134 @@
+name: Caretaker Codex (NyxID)
+on:
+  schedule:
+    # Low-frequency daily health & drift check (skips cleanly until Omega org secret is configured)
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      mission:
+        description: 'Lightweight caretaker mission'
+        required: true
+        type: choice
+        default: health-audit
+        options:
+          - health-audit
+          - scene-switch
+          - template-sync
+      note:
+        description: 'Optional instruction (e.g., target look/scene or issue to inspect)'
+        required: false
+        type: string
+        default: ''
+concurrency:
+  group: trureturing-live-caretaker-codex
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  caretaker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Check Omega organization NyxID configuration
+        id: config
+        env:
+          NYXID_KEY: ${{ secrets.NYXID_OMEGA_AGENT_KEY }}
+          NYXID_BASE_URL: ${{ vars.NYXID_CODEX_BASE_URL }}
+        run: |
+          if [ -z "$NYXID_KEY" ] || [ -z "$NYXID_BASE_URL" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping caretaker run: configure Omega org secret NYXID_OMEGA_AGENT_KEY and org variable NYXID_CODEX_BASE_URL to activate."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Prevent PR spam (at most 1 open caretaker PR at a time)
+        id: guard
+        if: steps.config.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open_prs=$(gh pr list --repo "${{ github.repository }}" --state open --head caretaker/auto-update --json number --jq 'length')
+          if [ "${open_prs:-0}" -ge 1 ]; then
+            echo "allow=false" >> "$GITHUB_OUTPUT"
+            echo "An automated caretaker PR is already open; skipping to prevent duplicate runs."
+          else
+            echo "allow=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies & Codex CLI
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        run: |
+          npm ci --ignore-scripts
+          npm install -g @openai/codex
+
+      - name: Run scoped lightweight Codex caretaker via NyxID
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.NYXID_OMEGA_AGENT_KEY }}
+          OPENAI_BASE_URL: ${{ vars.NYXID_CODEX_BASE_URL }}
+          MISSION: ${{ inputs.mission || 'health-audit' }}
+          USER_NOTE: ${{ inputs.note || '' }}
+        run: |
+          python3 - <<'PY' > /tmp/caretaker-prompt.txt
+          import os
+          mission = os.environ.get("MISSION", "health-audit")
+          note = os.environ.get("USER_NOTE", "")
+          print(
+              "You are the lightweight repository caretaker for trureturing-live.\n"
+              f"Mission: {mission}\n"
+              f"Extra note: {note}\n\n"
+              "Strict rules:\n"
+              "1. Keep changes minimal, safe, and scoped strictly to presentation, live data/nebula health, scene switching, or template drift checks. NEVER rewrite core architecture or CI security policies.\n"
+              "2. Run `node --check site/assets/app.mjs`, `npm test`, and `python3 -m unittest discover -s tests -v` after any edit.\n"
+              "3. If everything is healthy and no change is needed, leave the working tree clean.\n"
+              "4. Never expose credentials or GitHub usernames visually.\n"
+          )
+          PY
+          codex exec --full-auto "$(cat /tmp/caretaker-prompt.txt)"
+
+      - name: Verify tests before opening PR
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        run: |
+          node --check site/assets/app.mjs
+          npm test
+          python3 -m unittest discover -s tests -v
+
+      - name: Open caretaker PR if changes exist
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MISSION: ${{ inputs.mission || 'health-audit' }}
+        run: |
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "No changes required; repository healthy."
+            exit 0
+          fi
+          git config user.name "omega-caretaker[bot]"
+          git config user.email "omega-caretaker[bot]@users.noreply.github.com"
+          git checkout -B caretaker/auto-update
+          git add -A
+          git commit -m "chore(caretaker): automated ${MISSION} maintenance [skip-caretaker]"
+          git push --force-with-lease -u origin caretaker/auto-update
+          gh pr create \
+            --title "chore(caretaker): automated ${MISSION} update" \
+            --body "Automated lightweight maintenance run via NyxID-scoped Codex caretaker (mission: \`${MISSION}\`). All JS and Python contract tests passed."
