@@ -24,6 +24,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/collect.py
+      - name: Sync Truth DAG nebula snapshot
+        run: python scripts/sync_truth_nebula.py || true
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

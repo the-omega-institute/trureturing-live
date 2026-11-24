@@ -753,11 +753,13 @@ function renderMetrics() {
   $('#institute-scope').textContent = n ? `${n} REPOS · LIVE STREAM` : '';
   const clockEl = $('#board-clock');
   if (clockEl) {
+    const dagN = truthNebula.counts?.truth_nodes;
+    const dagTag = dagN ? `TRUTH DAG NEBULA ${dagN.toLocaleString()} NODES // ` : '24·7 LOOP // ';
     clockEl.textContent = isStale()
       ? 'SIGNAL STANDBY · AWAITING PULSE'
       : running
-        ? `24·7 LOOP // ${running} CI ACTIVE · ${handoffsCount} RELAYS`
-        : `24·7 LOOP // ${list.length} SECTORS ONLINE`;
+        ? `${dagTag}${running} CI ACTIVE · ${handoffsCount} RELAYS`
+        : `${dagTag}${list.length} SECTORS ONLINE`;
   }
 
   for (const btn of document.querySelectorAll('[data-method-department]')) {
@@ -2759,13 +2761,339 @@ const holoCam = {
   matrixCols: [],
   pulses: [],
   flares: [],
+  nebulaRipples: [],
   projectedTowers: new Map()
 };
+
+// ============================================================================
+// REAL EXPANDING 3D TRUTH DAG COSMIC NEBULA (sourced from trureturing-pages!)
+// Renders 1,450 real certified Lean truth nodes & 770 real truth-dependency
+// DAG filaments as a living, perpetually expanding deep-space nebula behind
+// the concrete foreground 3D institutional architecture.
+// ============================================================================
+const truthNebula = {
+  loaded: false,
+  loading: false,
+  counts: null,
+  clusters: [],
+  stars: [],
+  edges: [],
+  frontier: [],
+  projX: null,
+  projY: null,
+  projZ: null,
+  projLit: null
+};
+
+function initTruthNebulaData(data) {
+  if (!data || !Array.isArray(data.stars) || !data.stars.length) return;
+  truthNebula.counts = data.counts || null;
+  truthNebula.clusters = Array.isArray(data.clusters) ? data.clusters : [];
+  truthNebula.stars = data.stars;
+  truthNebula.edges = Array.isArray(data.edges) ? data.edges : [];
+  const n = data.stars.length;
+  truthNebula.projX = new Float32Array(n);
+  truthNebula.projY = new Float32Array(n);
+  truthNebula.projZ = new Float32Array(n);
+  truthNebula.projLit = new Float32Array(n);
+
+  // Build 180 seamless outward-streaming frontier birth stars anchored to real Truth DAG rim nodes!
+  const rimIndices = [];
+  for (let i = 0; i < n; i++) {
+    if (data.stars[i][4] >= 42) rimIndices.push(i);
+  }
+  const pool = rimIndices.length ? rimIndices : Array.from({ length: n }, (_, i) => i);
+  let seed = 9187;
+  const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  truthNebula.frontier = [];
+  for (let k = 0; k < 180; k++) {
+    const pIdx = pool[Math.floor(rand() * pool.length)];
+    const s = data.stars[pIdx];
+    const x = s[0] / 1000, y = s[1] / 1000, z = s[2] / 1000;
+    const r = Math.hypot(x, y, z) || 0.4;
+    const jx = (rand() - 0.5) * 0.28, jy = (rand() - 0.5) * 0.28, jz = (rand() - 0.5) * 0.22;
+    truthNebula.frontier.push({
+      parentIdx: pIdx,
+      cid: s[3],
+      vx: (x / r) * (0.42 + rand() * 0.44) + jx,
+      vy: (y / r) * (0.42 + rand() * 0.44) + jy,
+      vz: (z / r) * (0.36 + rand() * 0.34) + jz,
+      phase: rand(),
+      speed: 0.052 + rand() * 0.055,
+      size: 1.05 + rand() * 1.35
+    });
+  }
+  truthNebula.loaded = true;
+  if (view()) renderHealth();
+}
+
+async function loadTruthNebula() {
+  if (truthNebula.loaded || truthNebula.loading || /jsdom/i.test(navigator.userAgent || '')) return;
+  truthNebula.loading = true;
+  try {
+    const resp = await fetch('data/truth-nebula.v1.json', { cache: 'force-cache' });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data?.schema_version === 'trureturing-truth-nebula.v1') {
+      initTruthNebulaData(data);
+    }
+  } catch {
+    // Graceful fallback: ambient cosmic dust still renders cleanly
+  } finally {
+    truthNebula.loading = false;
+  }
+}
+
+function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
+  if (!truthNebula.loaded || !truthNebula.stars.length) return;
+  const stars = truthNebula.stars;
+  const edges = truthNebula.edges;
+  const clusters = truthNebula.clusters;
+  const n = stars.length;
+  const projX = truthNebula.projX;
+  const projY = truthNebula.projY;
+  const projZ = truthNebula.projZ;
+  const projLit = truthNebula.projLit;
+
+  const nebPalette = isBlueprint
+    ? [
+        [110, 200, 255], [140, 225, 255], [96, 172, 250], [168, 195, 255],
+        [120, 215, 245], [130, 185, 255], [205, 232, 255], [100, 188, 242]
+      ]
+    : isLight
+      ? [
+          [15, 132, 110], [20, 115, 152], [176, 102, 22], [108, 68, 178],
+          [16, 130, 96], [48, 106, 178], [166, 104, 18], [32, 118, 116]
+        ]
+      : [
+          [0, 238, 146],   // 0 Combinatorics: Matrix Emerald Nebula
+          [0, 216, 232],   // 1 Quantum: Deep Quantum Cyan
+          [244, 197, 83],  // 2 Arith: Prime Stardust Gold
+          [168, 112, 252], // 3 ConceptDynamics: Cosmic Violet
+          [56, 235, 180],  // 4 Analytic: Luminous Jade
+          [98, 188, 255],  // 5 Weil: Deep Azure Starlight
+          [248, 214, 120], // 6 Observer: Architect Corona Gold
+          [0, 214, 134]    // 7 Core: Matrix Deep Emerald
+        ];
+
+  const quiet = state.quiet || reduced;
+  const tEff = quiet ? 4.2 : t;
+  // Gentle 3D cosmological rotation coupled subtly to camera drag for true stereo depth!
+  const nebYaw = tEff * 0.024 + holoCam.yaw * 0.42;
+  const nebPitch = 0.14 + (holoCam.pitch - 0.55) * 0.28;
+  const cY = Math.cos(nebYaw), sY = Math.sin(nebYaw);
+  const cP = Math.cos(nebPitch), sP = Math.sin(nebPitch);
+
+  // Two staggered continuous cosmic expansion wavefronts sweeping core (0) -> frontier (1.30)
+  const front0 = quiet ? 0.54 : (tEff * 0.13) % 1.32;
+  const front1 = quiet ? 0.94 : (tEff * 0.13 + 0.66) % 1.32;
+  const breath = 1.0 + (quiet ? 0.03 : 0.055 * Math.sin(tEff * 0.28));
+
+  const cx = w * 0.5;
+  const cy = h * 0.42;
+  const scaleX = w * 0.58 * breath;
+  const scaleY = h * 0.56 * breath;
+  const camZ = 2.65;
+
+  const projectNeb = (nx, ny, nz) => {
+    const x1 = nx * cY - nz * sY;
+    const z1 = nx * sY + nz * cY;
+    const y2 = ny * cP - z1 * sP;
+    const z2 = ny * sP + z1 * cP + camZ;
+    const inv = 1.85 / Math.max(0.65, z2);
+    return [cx + x1 * scaleX * inv, cy - y2 * scaleY * inv, z2, inv];
+  };
+
+  // Gentle depth-of-field attenuation right behind the concrete foreground campus (y ~ 0.55h)
+  // so the cosmic Truth DAG Nebula stays ethereal & grand while foreground buildings stay razor-sharp!
+  const fgSoften = (px, py) => {
+    const dx = (px - w * 0.5) / (w * 0.28);
+    const dy = (py - h * 0.54) / (h * 0.23);
+    const d = Math.hypot(dx, dy);
+    return 0.40 + 0.60 * Math.min(1, d * d * 0.72);
+  };
+
+  ctx.save();
+  if (!isLight) ctx.globalCompositeOperation = 'lighter';
+
+  // PASS 1: Silky Volumetric Cosmic Nebula Gas Clouds anchored to the 8 real mathematical galaxy centroids!
+  for (let i = 0; i < clusters.length; i++) {
+    const cl = clusters[i];
+    const col = nebPalette[cl.id % nebPalette.length];
+    const [px, py, , inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000);
+    const weight = Math.min(1.50, 0.72 + Math.sqrt((cl.count || 400) / 1400) * 0.58);
+    const rad = Math.min(w, h) * 0.27 * weight * inv;
+    const pulse = 1.0 + (quiet ? 0 : 0.08 * Math.sin(tEff * 0.42 + i * 1.1));
+    const g = ctx.createRadialGradient(px, py, 4, px, py, rad * pulse);
+    const baseA = (isLight ? 0.048 : isBlueprint ? 0.075 : 0.088) * (0.65 + 0.35 * fgSoften(px, py));
+    g.addColorStop(0, rgba(col, baseA));
+    g.addColorStop(0.48, rgba(col, baseA * 0.40));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(px, py, rad * pulse, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // PASS 2: Continuous Cosmological Expansion Shockwaves + Live Verification Ignition Ripples
+  const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [0, 255, 168];
+  const drawCosmicWave = (u, peakAlpha, lw) => {
+    if (u <= 0.02 || u >= 1.28) return;
+    const rx = w * 0.49 * u;
+    const ry = h * 0.44 * u;
+    const fade = Math.sin(Math.min(1, u / 1.25) * Math.PI);
+    ctx.strokeStyle = rgba(waveColor, fade * peakAlpha);
+    ctx.lineWidth = lw;
+    ctx.setLineDash([7, 14]);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, -0.05, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  drawCosmicWave(front0, isLight ? 0.09 : 0.13, 1.0);
+  drawCosmicWave(front1, isLight ? 0.06 : 0.09, 0.85);
+  for (const rp of holoCam.nebulaRipples) {
+    drawCosmicWave(0.10 + rp.age * 1.12, isLight ? 0.12 : 0.22, 1.3);
+  }
+
+  // PASS 3: Project all 1,450 real Truth DAG stars with subtle radial expansion swelling
+  for (let i = 0; i < n; i++) {
+    const s = stars[i];
+    const gen = s[4] / 100;
+    const d0 = Math.max(0, 1 - Math.abs(gen - front0) / 0.15);
+    const d1 = Math.max(0, 1 - Math.abs(gen - front1) / 0.15);
+    const lit = Math.max(d0, d1);
+    const swell = 1.0 + lit * 0.055 + (quiet ? 0 : gen * 0.04 * Math.sin(tEff * 0.36 + gen * 4.0));
+    const [px, py, pz] = projectNeb((s[0] / 1000) * swell, (s[1] / 1000) * swell, (s[2] / 1000) * swell);
+    projX[i] = px;
+    projY[i] = py;
+    projZ[i] = pz;
+    projLit[i] = lit;
+  }
+
+  // PASS 4: Batched 770 REAL truth-dependency DAG filaments (fine cosmic web threads!)
+  const eDim = [], eMid = [], eHot = [];
+  for (let i = 0; i < edges.length; i++) {
+    const u = edges[i][0], v = edges[i][1];
+    const lit = Math.max(projLit[u], projLit[v]);
+    if (lit > 0.56) eHot.push(u, v);
+    else if (lit > 0.18 || (i & 3) === 0) eMid.push(u, v);
+    else eDim.push(u, v);
+  }
+  const strokeEdgeBucket = (bucket, rgb, alpha, lw) => {
+    if (!bucket.length) return;
+    ctx.strokeStyle = rgba(rgb, alpha);
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    for (let k = 0; k < bucket.length; k += 2) {
+      const u = bucket[k], v = bucket[k + 1];
+      ctx.moveTo(projX[u], projY[u]);
+      ctx.lineTo(projX[v], projY[v]);
+    }
+    ctx.stroke();
+  };
+  strokeEdgeBucket(eDim, isBlueprint ? [110, 185, 250] : isLight ? [15, 118, 110] : [0, 215, 145], isLight ? 0.055 : 0.065, 0.50);
+  strokeEdgeBucket(eMid, isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [35, 235, 175], isLight ? 0.085 : 0.115, 0.62);
+  strokeEdgeBucket(eHot, isBlueprint ? [205, 240, 255] : isLight ? [4, 120, 87] : [155, 255, 220], isLight ? 0.16 : 0.24, 0.85);
+
+  // PASS 5: Render 1,450 REAL Truth DAG Stars as razor-fine astronomical diamond dust (NO muddy glare blobs!)
+  for (let i = 0; i < n; i++) {
+    const s = stars[i];
+    const px = projX[i], py = projY[i];
+    if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
+    const col = nebPalette[s[3] % nebPalette.length];
+    const degW = s[5];
+    const lit = projLit[i];
+    const soft = fgSoften(px, py);
+    const depthFade = Math.max(0.38, Math.min(1.0, 2.85 / Math.max(1.2, projZ[i])));
+    const aCore = ((isLight ? 0.28 : 0.30) * depthFade + lit * (isLight ? 0.26 : 0.38) + (degW >= 7 ? 0.16 : 0)) * soft;
+
+    if (degW >= 7 || lit > 0.68) {
+      const rCore = (degW >= 8 ? 1.50 : 1.05) + lit * 0.45;
+      ctx.fillStyle = rgba(col, Math.min(0.24, aCore * 0.32));
+      ctx.beginPath();
+      ctx.arc(px, py, rCore * 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = isLight ? rgba(col, Math.min(0.75, aCore)) : rgba([228, 255, 242], Math.min(0.84, aCore));
+      ctx.beginPath();
+      ctx.arc(px, py, rCore, 0, Math.PI * 2);
+      ctx.fill();
+      // Delicate 4-point Hubble star glint on the brightest hub theorems
+      if (degW >= 9 && !isLight) {
+        const sp = rCore * 4.2;
+        ctx.strokeStyle = rgba(col, Math.min(0.48, aCore * 0.55));
+        ctx.lineWidth = 0.65;
+        ctx.beginPath();
+        ctx.moveTo(px - sp, py); ctx.lineTo(px + sp, py);
+        ctx.moveTo(px, py - sp); ctx.lineTo(px, py + sp);
+        ctx.stroke();
+      }
+    } else {
+      const sz = degW >= 5 ? 1.55 : 1.10;
+      ctx.fillStyle = rgba(col, Math.min(0.68, aCore));
+      ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
+    }
+  }
+
+  // PASS 6: 180 Continuous Outward-Streaming Frontier Birth Stars (Perpetual Nebula Expansion!)
+  for (let k = 0; k < truthNebula.frontier.length; k++) {
+    const f = truthNebula.frontier[k];
+    const pStar = stars[f.parentIdx];
+    const u = quiet ? ((f.phase * 0.75 + 0.15) % 1) : ((tEff * f.speed + f.phase) % 1);
+    const dist = Math.pow(u, 0.85) * 0.70;
+    const fx = pStar[0] / 1000 + f.vx * dist;
+    const fy = pStar[1] / 1000 + f.vy * dist;
+    const fz = pStar[2] / 1000 + f.vz * dist;
+    const [px, py] = projectNeb(fx, fy, fz);
+    if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
+    const col = nebPalette[f.cid % nebPalette.length];
+    const soft = fgSoften(px, py);
+    const fade = Math.sin(u * Math.PI) * soft;
+
+    if (u < 0.52) {
+      const tetherA = (1 - u / 0.52) * fade * (isLight ? 0.18 : 0.26);
+      ctx.strokeStyle = rgba(col, tetherA);
+      ctx.lineWidth = 0.65;
+      ctx.beginPath();
+      ctx.moveTo(projX[f.parentIdx], projY[f.parentIdx]);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+    }
+    ctx.fillStyle = rgba(col, fade * (isLight ? 0.20 : 0.28));
+    ctx.beginPath();
+    ctx.arc(px, py, f.size * 2.0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isLight ? rgba(col, fade * 0.72) : rgba([230, 255, 244], fade * 0.84);
+    ctx.beginPath();
+    ctx.arc(px, py, f.size * 0.80, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+
+  // PASS 7: Subtle depth-separation cushion directly behind the concrete foreground 4-sector campus
+  const cushion = ctx.createRadialGradient(w * 0.5, h * 0.56, 40, w * 0.5, h * 0.56, Math.min(w, h) * 0.45);
+  if (isLight) {
+    cushion.addColorStop(0, 'rgba(244, 240, 232, 0.40)');
+    cushion.addColorStop(1, 'rgba(244, 240, 232, 0)');
+  } else if (isBlueprint) {
+    cushion.addColorStop(0, 'rgba(8, 22, 42, 0.44)');
+    cushion.addColorStop(1, 'rgba(8, 22, 42, 0)');
+  } else {
+    cushion.addColorStop(0, 'rgba(2, 11, 6, 0.48)');
+    cushion.addColorStop(1, 'rgba(2, 11, 6, 0)');
+  }
+  ctx.fillStyle = cushion;
+  ctx.fillRect(0, 0, w, h);
+}
 
 function spawnHoloPulse(deptId, strength = 0.85) {
   if (!holoWorld[deptId] || state.quiet || reduced) return;
   holoCam.pulses.push({ id: deptId, age: 0, strength });
   if (holoCam.pulses.length > 18) holoCam.pulses.shift();
+  if (deptId === 'verification' && holoCam.nebulaRipples.length < 3) {
+    holoCam.nebulaRipples.push({ age: 0 });
+  }
 }
 
 function spawnSpokeFlare(fromId, toId = 'verification') {
@@ -3086,6 +3414,10 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.flares[i].age += stepDt * 1.15;
     if (holoCam.flares[i].age >= 1) holoCam.flares.splice(i, 1);
   }
+  for (let i = holoCam.nebulaRipples.length - 1; i >= 0; i--) {
+    holoCam.nebulaRipples[i].age += stepDt * 0.28;
+    if (holoCam.nebulaRipples[i].age >= 1) holoCam.nebulaRipples.splice(i, 1);
+  }
 
   const isLight = document.documentElement.dataset.theme === 'light';
   const isBlueprint = document.documentElement.dataset.look === 'blueprint';
@@ -3141,16 +3473,19 @@ function drawHolo3DFrame(dt = 0.016) {
         const gIdx = Math.abs((col.seed + r * 7 + Math.floor(tRain * 1.4) * (k === 0 ? 3 : 0)) % matrixGlyphs.length);
         const ch = matrixGlyphs[gIdx];
         if (k === 0) {
-          ctx.fillStyle = `rgba(218, 255, 232, ${(0.48 * col.depth * zoneFade).toFixed(3)})`;
+          ctx.fillStyle = `rgba(218, 255, 232, ${(0.34 * col.depth * zoneFade).toFixed(3)})`;
         } else {
           const decay = Math.pow(1 - k / col.len, 1.38);
-          ctx.fillStyle = `rgba(0, 238, 122, ${(0.28 * decay * col.depth * zoneFade).toFixed(3)})`;
+          ctx.fillStyle = `rgba(0, 238, 122, ${(0.19 * decay * col.depth * zoneFade).toFixed(3)})`;
         }
         ctx.fillText(ch, px, py);
       }
     }
     ctx.restore();
   }
+
+  // 1B. LIVING EXPANDING 3D TRUTH DAG COSMIC NEBULA (real 18,367-node trureturing Truth DAG!)
+  drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint);
 
   // Symmetrical Hero Framing across the expanded center Matrix campus!
   const cx = w * 0.5;
@@ -4230,6 +4565,7 @@ function drawHolo3DFrame(dt = 0.016) {
 
 function startHoloLoop() {
   if (holoCam.raf || /jsdom/i.test(navigator.userAgent || '')) return;
+  loadTruthNebula();
   triggerScanSweep();
   let prev = performance.now();
   const tick = now => {
