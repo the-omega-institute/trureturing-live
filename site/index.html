@@ -7,8 +7,8 @@
   <meta name="description" content="trureturing live：24/7 AI 数学研究院 3D 矩阵架构指挥大屏。四学部独立架构、Lean 形式验证桥梁与跨部门研究接力。">
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v23">
-  <script type="module" src="assets/app.mjs?v=hive-v23"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v24">
+  <script type="module" src="assets/app.mjs?v=hive-v24"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -40,7 +40,11 @@
         </div>
         <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随</span></button>
         <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="暂停旋转 / 静看">静看</button>
-        <button class="hud-icon-btn" id="expand-room" type="button" aria-label="全屏大屏" title="全屏大屏模式">⤢</button>
+        <button class="hud-icon-btn fullscreen-button" id="expand-room" type="button" aria-pressed="false" aria-label="进入全屏" title="全屏显示">
+          <svg class="fs-enter" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
+          <svg class="fs-exit" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg>
+          <span>全屏</span>
+        </button>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换全息场 / 白模" title="切换深空全息场 / 白模沙盘">☀</button>
       </div>
     </header>
