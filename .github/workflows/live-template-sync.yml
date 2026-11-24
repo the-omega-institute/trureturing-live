@@ -1,0 +1,151 @@
+name: Live Template Sync Caretaker (Omega Live Ops)
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'Optional scope note for syncing generic UI improvements into trureturing-live-template'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trureturing-live-template-sync
+  cancel-in-progress: false
+
+jobs:
+  live-template-sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check Omega Live Ops template-sync key configuration
+        id: config
+        env:
+          NYXID_KEY: ${{ secrets.NYXID_LIVE_TEMPLATE_SYNC_KEY }}
+          NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          TEMPLATE_TOKEN: ${{ secrets.LIVE_TEMPLATE_PR_TOKEN }}
+        run: |
+          if [ -z "$NYXID_KEY" ] || [ -z "$NYXID_BASE_URL" ] || [ -z "$TEMPLATE_TOKEN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping live-template-sync: configure NYXID_LIVE_TEMPLATE_SYNC_KEY (Omega Live Ops), NYXID_LIVE_CODEX_BASE_URL, and scoped LIVE_TEMPLATE_PR_TOKEN."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Prevent duplicate template-sync PRs (at most 1 open)
+        id: guard
+        if: steps.config.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.LIVE_TEMPLATE_PR_TOKEN }}
+        run: |
+          open_prs=$(gh pr list --repo the-omega-institute/trureturing-live-template --state open --head caretaker/template-sync --json number --jq 'length')
+          if [ "${open_prs:-0}" -ge 1 ]; then
+            echo "allow=false" >> "$GITHUB_OUTPUT"
+            echo "An automated template-sync PR is already open; skipping."
+          else
+            echo "allow=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout trureturing-live (read-only source)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          path: source-live
+          persist-credentials: false
+
+      - name: Checkout trureturing-live-template (target repo)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          repository: the-omega-institute/trureturing-live-template
+          token: ${{ secrets.LIVE_TEMPLATE_PR_TOKEN }}
+          path: target-template
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        with:
+          python-version: '3.12'
+
+      - name: Install Codex CLI
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        run: npm install -g @openai/codex
+
+      - name: Run scoped template-sync Codex mission
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.NYXID_LIVE_TEMPLATE_SYNC_KEY }}
+          OPENAI_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          SYNC_NOTE: ${{ inputs.note }}
+        run: |
+          set -euo pipefail
+          cat <<'EOF' > /tmp/sync-prompt.txt
+          You are the scoped live-template-sync caretaker (NyxID org: Omega Live Ops).
+          - source-live/ is the read-only reference observatory (trureturing-live).
+          - target-template/ is the open-source starter template (trureturing-live-template).
+          HARD BOUNDARIES:
+          - ONLY edit generic starter UI files under target-template/ui/ (index.html, assets/app.css, assets/app.mjs).
+          - NEVER modify source-live/, Rust core contracts, Cargo.toml, workflows, or examples/organization.json.
+          - Strip all TruReturing-specific branding/Chinese copy; keep target-template/ui/ 100% English and organization-agnostic with zero GitHub usernames shown.
+          - If target-template/ui/ is already up to date with source-live/, make NO edits.
+          - Do NOT run git push or gh pr create.
+          EOF
+          printf "\nOperator note: %s\n" "$SYNC_NOTE" >> /tmp/sync-prompt.txt
+          codex exec --full-auto --sandbox workspace-write "$(cat /tmp/sync-prompt.txt)"
+
+      - name: Verify template checks & open sync PR with github-event-v2 footer
+        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.LIVE_TEMPLATE_PR_TOKEN }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd target-template
+          non_ui=$(git status --porcelain | awk '{print $2}' | grep -v '^ui/' || true)
+          if [ -n "$non_ui" ]; then
+            echo "Refusing out-of-scope edits outside ui/: $non_ui"
+            exit 1
+          fi
+          if [ -z "$(git status --porcelain -- ui/)" ]; then
+            echo "Template UI already up to date; no PR needed."
+            exit 0
+          fi
+
+          ./check.sh
+          node --check ui/assets/app.mjs
+
+          git config user.name "omega-live-template-sync[bot]"
+          git config user.email "omega-live-template-sync[bot]@users.noreply.github.com"
+          git checkout -B caretaker/template-sync
+          git add ui/
+          git commit -m "chore(ui): sync generic observatory updates from trureturing-live"
+          git push -u origin caretaker/template-sync --force-with-lease
+
+          event_line=$(python3 ../source-live/scripts/format_agent_event.py \
+            --agent codex/live-ops/template-sync \
+            --action pr \
+            --state progress \
+            --target "the-omega-institute/trureturing-live@${SOURCE_SHA}")
+
+          cat <<EOF > /tmp/template-pr-body.md
+          Automated starter UI sync from \`the-omega-institute/trureturing-live@${SOURCE_SHA}\` by **live-template-sync** (NyxID org: \`Omega Live Ops\`).
+
+          - Strictly scoped to \`ui/\` (organization-agnostic English starter UI).
+          - Verified with \`./check.sh\` and \`node --check ui/assets/app.mjs\`.
+
+          ${event_line}
+          EOF
+
+          gh pr create --repo the-omega-institute/trureturing-live-template \
+            --base main \
+            --head caretaker/template-sync \
+            --title "chore(ui): sync generic observatory updates from trureturing-live" \
+            --body-file /tmp/template-pr-body.md
