@@ -58,6 +58,9 @@ test('the hive separates session responsibilities from real running engines and 
     assert.match(doc.querySelector('.method-strip').textContent,/人的方向/);
     doc.querySelector('[data-method-department="verification"]').click();
     assert.equal(doc.querySelector('#department-title').textContent,'形式验证');
+    assert.equal(doc.querySelector('#department-lens').hidden,false);
+    assert.equal(doc.querySelector('#lens-title').textContent,'形式验证');
+    assert.match(doc.querySelector('#lens-metrics').textContent,/正在执行/);
     assert.match(doc.querySelector('[data-department="research"]').textContent,/独立研究会话/);
     assert.match(doc.querySelector('[data-department="outreach"]').textContent,/Actions 自动引擎/);
     assert.match(doc.querySelector('#institute-metrics').textContent,/4项自动化正在运转/);
@@ -69,6 +72,22 @@ test('the hive separates session responsibilities from real running engines and 
     doc.querySelector('[data-department="books"]').click();
     assert.match(doc.querySelector('#department-work').textContent,/检查与构建书稿/);
     assert.match(doc.querySelector('#department-work').textContent,/怎样控制频谱中的近碰撞/);
+  }finally{dom.window.close();}
+});
+
+test('clicking a department opens an in-map operating view and exposes queue pressure before returning to architecture',async()=>{
+  const {dom,doc}=await boot();try{
+    doc.querySelector('[data-department="research"]').click();
+    assert.equal(doc.querySelector('#research-room').classList.contains('is-department-focused'),true);
+    assert.equal(doc.querySelector('#department-lens').hidden,false);
+    assert.equal(doc.querySelector('#lens-title').textContent,'数学攻坚');
+    assert.match(doc.querySelector('#lens-metrics').textContent,/可见待接力/);
+    assert.equal(doc.querySelectorAll('#lens-agents .lens-agent').length,1);
+    assert.match(doc.querySelector('#lens-agents').textContent,/research-seat/);
+    doc.querySelector('#lens-back').click();
+    assert.equal(doc.querySelector('#research-room').classList.contains('is-department-focused'),false);
+    assert.equal(doc.querySelector('#department-lens').hidden,true);
+    assert.equal(doc.querySelectorAll('.hive-cell').length,8);
   }finally{dom.window.close();}
 });
 
