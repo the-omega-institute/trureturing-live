@@ -945,3 +945,44 @@ test('local showcase: DAG axiom path tracing, anonymized upstream outreach stats
     assert.equal(scrubBar.hidden,true,'close button hides genesis scrub bar');
   }finally{dom.window.close();}
 });
+
+test('multi-language (zh/en/ja), three distinct visual themes (holo/matrix/light), and layer identities',async()=>{
+  const i18nSrc=await readFile(new URL('../site/assets/i18n.js',import.meta.url),'utf8');
+  const {dom,win,doc}=await boot();try{
+    win.eval(i18nSrc);
+    assert.ok(win.TrureI18n,'TrureI18n engine loads cleanly');
+    // 1. Default zh -> en -> ja -> zh instant DOM & dynamic switching
+    doc.querySelector('[data-lang-btn="en"]').click();
+    assert.equal(doc.documentElement.lang,'en');
+    assert.equal(doc.querySelector('[data-layer="galaxy"]').textContent,'Cosmos');
+    assert.equal(doc.querySelector('[data-look="matrix"] span').textContent,'Matrix');
+    assert.equal(win.TrureI18n.deptLabel('research'),'Math Research');
+
+    doc.querySelector('[data-lang-btn="ja"]').click();
+    assert.equal(doc.documentElement.lang,'ja');
+    assert.equal(doc.querySelector('[data-layer="station"]').textContent,'基地');
+    assert.equal(win.TrureI18n.galaxyName({name:'Combinatorics',zh:'组合数学'}),'組合せ数学');
+
+    doc.querySelector('[data-lang-btn="zh"]').click();
+    assert.equal(doc.documentElement.lang,'zh-CN');
+    assert.equal(doc.querySelector('[data-look="light"] span').textContent,'曜白');
+
+    // 2. Three distinct themes (holo / matrix / light) + legacy blueprint alias
+    doc.querySelector('[data-look="matrix"]').click();
+    assert.equal(doc.documentElement.dataset.look,'matrix');
+    doc.querySelector('[data-look="light"]').click();
+    assert.equal(doc.documentElement.dataset.theme,'light');
+    win.applyLook('blueprint');
+    assert.equal(doc.documentElement.dataset.look,'matrix','legacy blueprint aliases cleanly to Matrix');
+    doc.querySelector('[data-look="holo"]').click();
+    assert.equal(doc.documentElement.dataset.look,undefined);
+
+    // 3. Layer switching sets data-layer across galaxy / station / mix
+    doc.querySelector('[data-layer="galaxy"]').click();
+    assert.equal(doc.querySelector('#research-room').dataset.layer,'galaxy');
+    doc.querySelector('[data-layer="station"]').click();
+    assert.equal(doc.querySelector('#research-room').dataset.layer,'station');
+    doc.querySelector('[data-layer="mix"]').click();
+    assert.equal(doc.querySelector('#research-room').dataset.layer,'mix');
+  }finally{dom.window.close();}
+});

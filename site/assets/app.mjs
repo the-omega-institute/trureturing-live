@@ -1,4 +1,19 @@
 const $ = selector => document.querySelector(selector);
+const i18n = () => (typeof window !== 'undefined' ? window.TrureI18n : null);
+const curLang = () => i18n()?.getLang?.() || 'zh';
+const tr = (key, fallback, vars = null) => {
+  const api = i18n();
+  if (api) return api.t(key, vars, fallback);
+  if (!vars) return fallback;
+  return String(fallback).replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : ''));
+};
+const langDeptLabel = (dOrId, fallback = '') => {
+  const id = typeof dOrId === 'string' ? dOrId : dOrId?.id;
+  const fb = fallback || (typeof dOrId === 'object' ? dOrId?.label : id) || '';
+  return i18n() && id ? i18n().deptLabel(id, fb) : fb;
+};
+const langDeptRole = (id, fallback = '') => (i18n() ? i18n().deptRole(id, { n: outreachScholarCount() }, fallback) : fallback);
+const langGalaxyName = cl => (i18n() ? i18n().galaxyName(cl) : (cl?.zh || cl?.name || ''));
 const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
 const cacheKey = 'trureturing-live.hive.content.v7';
@@ -595,21 +610,26 @@ function renderHealth() {
   const late = isStale();
   const connection = $('#connection');
   connection.classList.toggle('delayed', late);
-  connection.lastElementChild.textContent = late ? '等待新的现场更新' : `${relative(current.observed_at)}更新`;
+  const isZh = curLang() === 'zh';
+  connection.lastElementChild.textContent = late
+    ? (isZh ? '等待新的现场更新' : tr('connecting', 'Connecting'))
+    : (isZh ? `${relative(current.observed_at)}更新` : tr('health_connected', 'Live Now'));
   $('#connection-note').hidden = !late;
   $('#connection-note').textContent = '更新稍慢。你仍然可以浏览已有架构、历史进展与公开讨论。';
 
   const growthEl = $('#log-ops-growth');
   if (growthEl) {
     const n = truthGrowth.totalRecent || 0;
-    growthEl.textContent = n > 0 ? `+${n} 模块` : '静默监测';
+    growthEl.textContent = n > 0
+      ? (isZh ? `+${n} 模块` : curLang() === 'ja' ? `+${n} モジュール` : `+${n} mods`)
+      : (isZh ? '静默监测' : 'Standby');
     growthEl.classList.toggle('is-ok', n > 0);
     growthEl.classList.toggle('is-warn', false);
   }
   const ciEl = $('#log-ops-ci');
   if (ciEl) {
     const runningAuto = (current.departments || []).reduce((sum, d) => sum + (late ? 0 : (d.running_automations || 0)), 0);
-    ciEl.textContent = late ? '—' : `${runningAuto} 活跃`;
+    ciEl.textContent = late ? '—' : (isZh ? `${runningAuto} 活跃` : curLang() === 'ja' ? `${runningAuto} 稼働` : `${runningAuto} live`);
   }
 }
 
@@ -776,11 +796,13 @@ function renderMetrics() {
     el.append(element('strong', String(n)), document.createTextNode(label));
     return el;
   };
-  items.push(metric(list.length, '个部门，持续相连'));
-  items.push(metric(isStale() ? '—' : running, '项自动化正在运转', 'metric-active'));
-  if (sessions) items.push(metric(isStale() ? '—' : sessions, '个研究会话正在推进', 'metric-active'));
-  if (handoffsCount) items.push(metric(handoffsCount, '条跨部门引用接力'));
-  items.push(element('span', '24/7 AI 自治闭环与人的方向指引', 'metric-end'));
+  const isZh = curLang() === 'zh';
+  const isJa = curLang() === 'ja';
+  items.push(metric(list.length, isZh ? '个部门，持续相连' : isJa ? '部門連動' : ' depts'));
+  items.push(metric(isStale() ? '—' : running, isZh ? '项自动化正在运转' : isJa ? '件稼働中' : ' CI live', 'metric-active'));
+  if (sessions) items.push(metric(isStale() ? '—' : sessions, isZh ? '个研究会话正在推进' : isJa ? '研究進行中' : ' sessions', 'metric-active'));
+  if (handoffsCount) items.push(metric(handoffsCount, isZh ? '条跨部门引用接力' : isJa ? '件の連携' : ' relays'));
+  items.push(element('span', isZh ? '24/7 AI 自治闭环与人的方向指引' : isJa ? '24/7 AI自律ループと人間の指針' : '24/7 Human + AI Loop', 'metric-end'));
   $('#institute-metrics').replaceChildren(...items);
   const n = state.snapshot?.repositories?.length;
   $('#institute-scope').textContent = n ? `${n} REPOS · LIVE STREAM` : '';
@@ -807,23 +829,23 @@ function renderMetrics() {
     btn.setAttribute('aria-pressed', String(state.focused === id || (!state.focused && state.selected === id)));
     if (!d || !badge) continue;
     if (d.execution === 'human') {
-      badge.textContent = '指引';
+      badge.textContent = tr('rail_01_badge', '指引');
       badge.classList.remove('is-hot');
       continue;
     }
     const run = countRunning(d);
     const q = queueStats(d);
     if (run) {
-      badge.textContent = `${run} 运行中`;
+      badge.textContent = isZh ? `${run} 运行中` : isJa ? `${run} 稼働` : `${run} live`;
       badge.classList.add('is-hot');
     } else if (q.waiting) {
-      badge.textContent = `${q.label} 待接力`;
+      badge.textContent = isZh ? `${q.label} 待接力` : isJa ? `${q.label} 待機` : `${q.label} queue`;
       badge.classList.remove('is-hot');
     } else if (d.activities.length) {
-      badge.textContent = `${d.activities.length} 动态`;
+      badge.textContent = isZh ? `${d.activities.length} 动态` : isJa ? `${d.activities.length} 件` : `${d.activities.length}`;
       badge.classList.remove('is-hot');
     } else {
-      badge.textContent = '就绪';
+      badge.textContent = isZh ? '就绪' : isJa ? '待機' : 'ready';
       badge.classList.remove('is-hot');
     }
   }
@@ -966,11 +988,13 @@ function renderHive() {
     const missions = departmentMissions(d);
     cell.missions = missions;
     const mIdx = (cell.missionIdx || 0) % Math.max(1, missions.length);
-    cell.title.textContent = d.label;
+    cell.title.textContent = langDeptLabel(d);
+    const roleTagEl = cell.button.querySelector('.cell-role-tag');
+    if (roleTagEl) roleTagEl.textContent = langDeptRole(d.id, deptRoles[d.id] || '');
     cell.status.textContent = missions[mIdx] || departmentState(d);
     renderCellSeats(d, cell.seats);
     cell.button.setAttribute('aria-pressed', String(d.id === state.selected));
-    cell.button.setAttribute('aria-label', `${d.label}。${d.responsibility}。${missions[0] || departmentState(d)}`);
+    cell.button.setAttribute('aria-label', `${langDeptLabel(d)}。${d.responsibility}。${missions[0] || departmentState(d)}`);
     const running = countRunning(d);
     const q = queueStats(d);
     cell.button.classList.toggle('is-running', Boolean(running));
@@ -1517,15 +1541,16 @@ function renderDepartment() {
   const d = department(state.selected) || departments().find(x => x.id === 'research') || departments()[0];
   if (!d) return;
   state.selected = d.id;
-  $('#department-mode').textContent = execution[d.execution] || '共同研究';
+  const execKey = `exec_${d.execution}`;
+  $('#department-mode').textContent = curLang() === 'zh' ? (execution[d.execution] || '共同研究') : tr(execKey, execution[d.execution] || 'Research');
   $('#department-mode').dataset.execution = d.execution;
-  $('#department-title').textContent = d.label;
+  $('#department-title').textContent = langDeptLabel(d);
   $('#department-responsibility').textContent = d.responsibility;
   $('#department-state').textContent = isStale()
-    ? '稍早的研究现场'
-    : d.running_automations ? `${d.running_automations} 项自动引擎运行中`
-    : d.running_sessions ? `${d.running_sessions} 个研究会话推进中`
-    : '24/7 持续接力';
+    ? (curLang() === 'zh' ? '稍早的研究现场' : 'Earlier Snapshot')
+    : d.running_automations ? (curLang() === 'zh' ? `${d.running_automations} 项自动引擎运行中` : curLang() === 'ja' ? `${d.running_automations} 件のCI稼働中` : `${d.running_automations} CI running`)
+    : d.running_sessions ? (curLang() === 'zh' ? `${d.running_sessions} 个研究会话推进中` : `${d.running_sessions} sessions`)
+    : '24/7';
 
   const people = d.participants || [];
   $('#department-people').replaceChildren(
@@ -2964,8 +2989,8 @@ const holoWorld = {
 
 const LAYER_PRESETS = {
   mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵' },
-  station: { pitch:  0.42, dist: 19.6, lookY: 0.45, lookZ:  0.20, stationAlpha: 1.00, galaxyAlpha: 0.24, minPitch:  0.22, maxPitch: 0.84, tag: 'STATION · 轨道空间站' },
-  galaxy:  { pitch:  0.28, dist: 21.4, lookY: 2.85, lookZ: -0.75, stationAlpha: 0.10, galaxyAlpha: 1.32, minPitch: -0.25, maxPitch: 0.65, tag: 'GALAXY · 周天星海' }
+  station: { pitch:  0.44, dist: 17.6, lookY: 0.42, lookZ:  0.35, stationAlpha: 1.00, galaxyAlpha: 0.12, minPitch:  0.20, maxPitch: 0.84, tag: 'STATION · 24/7 活态科研环路' },
+  galaxy:  { pitch:  0.30, dist: 19.6, lookY: 3.10, lookZ: -0.95, stationAlpha: 0.04, galaxyAlpha: 1.42, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 浩瀚星空 DAG' }
 };
 
 const holoCam = {
@@ -2982,6 +3007,7 @@ const holoCam = {
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
   galaxyBoost: 0.0,
+  stationFocus: 0.0,
   galaxyZoomScale: 1.0,
   galaxyZoomCooldown: 0,
   sonarStart: -99999,
@@ -3085,7 +3111,11 @@ function updateGenesisScrubUI() {
     const activeConjs = genesisScrub.value >= 0.99
       ? settledAll.length
       : Math.round(settledAll.length * Math.max(0, (genesisScrub.value - 0.30) / 0.70));
-    meta.textContent = `DAG 演化 · ${pct}% · ~${estTh.toLocaleString()} 定理 · ✦ ${activeConjs} 猜想`;
+    meta.textContent = tr('genesis_meta', `DAG 演化 · ${pct}% · ~${estTh.toLocaleString()} 定理 · ✦ ${activeConjs} 猜想`, {
+      pct,
+      th: estTh.toLocaleString(),
+      conj: activeConjs
+    });
   }
 }
 
@@ -3672,7 +3702,7 @@ function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
       const cl = truthNebula.clusters.find(c => c.id === cid);
       const frame = cl && cl.name !== 'Other' ? galaxyWorldFrame(cid) : null;
       if (frame) {
-        t = { pivot: frame.center, offset: [0, 0, 0], scale: 1.44, stretch: [1.18, 1.65, 1.18], alpha: 1.0 };
+        t = { pivot: frame.center, offset: [0, 0, 0], scale: 1.60, stretch: [1.30, 1.82, 1.30], alpha: 1.0 };
       }
     }
     let cur = holoCam.gather.get(cid);
@@ -3828,8 +3858,11 @@ function updateGalaxyBackBar() {
   bar.hidden = !inGalaxy;
   if (!inGalaxy) return;
   const inNode = Boolean(galaxyDetail.selectedKey || galaxyDetail.selectedNode);
-  backBtn.textContent = inNode ? '← 返回星系' : '← 返回全景';
-  if (homeBtn) homeBtn.hidden = !inNode;
+  backBtn.textContent = inNode ? tr('back_galaxy', '← 返回星系') : tr('back_panorama', '← 返回全景');
+  if (homeBtn) {
+    homeBtn.textContent = tr('home_panorama', '返回全景');
+    homeBtn.hidden = !inNode;
+  }
 }
 
 function exitGalaxyMainView(now = performance.now()) {
@@ -4058,7 +4091,7 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
     const hopCount = previewTrace?.edges?.length || 0;
     if (hopCount > 0) {
       const activeCount = galaxyDetail.tracePath?.edges?.length || hopCount;
-      const traceBtn = element('button', galaxyDetail.tracePath ? `✕ 收起公理光脉 (${activeCount})` : `⟡ 追溯公理根 (${hopCount} 条)`, 'gnc-trace-btn');
+      const traceBtn = element('button', galaxyDetail.tracePath ? tr('trace_btn_close', `✕ 收起公理光脉 (${activeCount})`, { n: activeCount }) : tr('trace_btn_open', `⟡ 追溯公理根 (${hopCount} 条)`, { n: hopCount }), 'gnc-trace-btn');
       traceBtn.type = 'button';
       traceBtn.setAttribute('aria-pressed', String(Boolean(galaxyDetail.tracePath)));
       traceBtn.addEventListener('click', () => {
@@ -4069,7 +4102,9 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
           sciFiAudio.playNodeChord(4, 2, 2);
         }
         const curN = galaxyDetail.tracePath?.edges?.length || hopCount;
-        traceBtn.textContent = galaxyDetail.tracePath ? `✕ 收起公理光脉 (${curN})` : `⟡ 追溯公理根 (${hopCount} 条)`;
+        traceBtn.textContent = galaxyDetail.tracePath
+          ? tr('trace_btn_close', `✕ 收起公理光脉 (${curN})`, { n: curN })
+          : tr('trace_btn_open', `⟡ 追溯公理根 (${hopCount} 条)`, { n: hopCount });
         traceBtn.setAttribute('aria-pressed', String(Boolean(galaxyDetail.tracePath)));
       });
       actions.append(traceBtn);
@@ -4087,14 +4122,14 @@ function openLanternConjectureCard(lantern) {
   const isRef = rec.verdict === 'refuted';
   const bounds = galaxyDetail.bounds || { left: 16, top: 116, right: window.innerWidth - 310, bottom: window.innerHeight - 80 };
   const info = {
-    badge: isRef ? '✦ 猜想提灯 · 反驳 / 障碍' : '✦ 猜想提灯 · 已证明',
+    badge: isRef ? tr('lantern_badge_refuted', '✦ 猜想提灯 · 反驳 / 障碍') : tr('lantern_badge_proved', '✦ 猜想提灯 · 已证明'),
     isNew: !isRef,
-    title: rec.title || rec.enTitle || '已归档猜想成果',
-    module: rec.enTitle && rec.enTitle !== rec.title ? rec.enTitle : '',
+    title: curLang() === 'en' ? (rec.enTitle || rec.title || 'Settled Conjecture') : (rec.title || rec.enTitle || '已归档猜想成果'),
+    module: curLang() === 'en' ? (rec.title && rec.title !== rec.enTitle ? rec.title : '') : (rec.enTitle && rec.enTitle !== rec.title ? rec.enTitle : ''),
     summary: rec.summary || '已通过 Lean 形式验证或反例证伪的永久归档成果。',
     meta: [rec.area || '数学研究', rec.evidenceKind || 'Lean 归档', rec.settledAt ? relative(rec.settledAt) : ''].filter(Boolean),
     href: rec.url || '',
-    linkLabel: '在内置浏览器阅读证明 ↗',
+    linkLabel: tr('lantern_read_btn', '在内置浏览器阅读证明 ↗'),
     canTrace: false
   };
   renderGalaxyNodeCard(info, lantern.x, lantern.y, bounds);
@@ -4616,13 +4651,13 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
   const nebPalette = isBlueprint
     ? [
-        [120, 210, 255], [148, 228, 255], [108, 182, 255], [176, 198, 255],
-        [126, 222, 248], [136, 192, 255], [214, 236, 255], [112, 198, 246]
+        [34, 255, 122], [74, 255, 158], [148, 255, 114], [26, 224, 128],
+        [92, 255, 174], [48, 242, 136], [168, 255, 124], [34, 192, 108]
       ]
     : isLight
       ? [
-          [16, 118, 110], [20, 108, 148], [148, 96, 36], [96, 78, 160],
-          [22, 120, 106], [46, 100, 166], [142, 102, 42], [44, 110, 118]
+          [8, 96, 92], [10, 82, 138], [142, 74, 12], [66, 48, 146],
+          [12, 102, 82], [24, 72, 148], [134, 78, 16], [36, 78, 94]
         ]
       : [
           [112, 218, 216], // 0 Combinatorics: Deep Orbital Teal
@@ -4876,12 +4911,50 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         const f = (tEff * (0.14 + (i % 3) * 0.03) + i * 0.23) % 1;
         const idxF = Math.min(pts.length - 1, Math.floor(f * (pts.length - 1)));
         const mp = pts[idxF];
-        ctx.fillStyle = rgba([238, 248, 255], alpha * 1.45);
+        ctx.fillStyle = isLight ? rgba(a.col, 0.92) : rgba([238, 248, 255], alpha * 1.45);
         ctx.beginPath();
         ctx.arc(mp[0], mp[1], 1.7 + strength * 0.9, 0, Math.PI * 2);
         ctx.fill();
       }
+      // Subtle dependency weight pill on top 6 inter-galaxy bridges in epic 星系 mode
+      if (isPureGalaxyView && i < 6 && pts.length > 10 && count >= 34) {
+        const midPt = pts[Math.floor(pts.length / 2)];
+        if (midPt[0] > 40 && midPt[0] < w - rightGutter - 40 && midPt[1] > 80 && midPt[1] < h - 90) {
+          ctx.save();
+          ctx.font = '600 8px "Geist Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.lineWidth = 2.6;
+          ctx.strokeStyle = isLight ? 'rgba(242, 239, 232, 0.94)' : 'rgba(2, 6, 12, 0.92)';
+          const tag = `${count}`;
+          ctx.strokeText(tag, midPt[0], midPt[1]);
+          ctx.fillStyle = isLight ? rgba(a.col, 0.92) : rgba([208, 234, 248], 0.78);
+          ctx.fillText(tag, midPt[0], midPt[1]);
+          ctx.restore();
+        }
+      }
     }
+  }
+
+  // Grand cosmic DAG banner in dedicated 星系 Observatory mode
+  if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
+    const dagTotal = truthNebula.counts?.truth_nodes || 18367;
+    const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L18 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
+      n: dagTotal.toLocaleString()
+    });
+    const bVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
+    ctx.save();
+    ctx.globalAlpha = bVis * 0.86;
+    ctx.font = '600 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3.0;
+    ctx.strokeStyle = isLight ? 'rgba(240, 237, 230, 0.95)' : 'rgba(2, 6, 12, 0.90)';
+    const bx = (w - rightGutter) * 0.5;
+    ctx.strokeText(banner, bx, 78);
+    ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.88)');
+    ctx.fillText(banner, bx, 78);
+    ctx.restore();
   }
 
   // In dedicated 星系 Observatory mode, mark top hub theorem nodes in every galaxy with crisp optical micro-rings!
@@ -5105,9 +5178,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       : (isHovered ? 1.0 : (delta > 0 || conjCount > 0) ? 0.90 : (state.layer === 'galaxy' ? 0.76 : 0.56));
     ctx.globalAlpha = Math.max(0, Math.min(1, baseLabelA * Math.min(1, skyVis)));
     const starMark = conjCount > 0 ? ' ✦' : '';
+    const gTitle = langGalaxyName(cl);
     const mainLabel = delta > 0
-      ? `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}  +${delta}${starMark}`
-      : `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}${starMark}`;
+      ? `${gTitle} · ${(cl.count || 0).toLocaleString()}  +${delta}${starMark}`
+      : `${gTitle} · ${(cl.count || 0).toLocaleString()}${starMark}`;
     let subText = '';
     if (isHovered || isFeatured) {
       const evList = bucket?.events || [];
@@ -5936,8 +6010,8 @@ function syncInstituteRealm(overrideTotal = null) {
   const fillEl = $('#realm-xp-fill');
   const metaEl = $('#realm-xp-meta');
   const pill = $('#realm-pill');
-  if (stageEl) stageEl.textContent = `境·${r.roman}`;
-  if (nameEl) nameEl.textContent = r.name;
+  if (stageEl) stageEl.textContent = `${tr('stage_prefix', '境·')}${r.roman}`;
+  if (nameEl) nameEl.textContent = i18n()?.realmName ? i18n().realmName(r.idx, r.name) : r.name;
   const pct = r.max
     ? Math.max(4, Math.min(100, ((total - r.min) / Math.max(1, r.max - r.min)) * 100))
     : 100;
@@ -6477,7 +6551,7 @@ function drawHolo3DFrame(dt = 0.016) {
   const t = holoCam.time;
 
   const isLight = document.documentElement.dataset.theme === 'light';
-  const isBlueprint = document.documentElement.dataset.look === 'blueprint';
+  const isBlueprint = document.documentElement.dataset.look === 'matrix' || document.documentElement.dataset.look === 'blueprint';
   const isHolo = !isLight && !isBlueprint;
 
   // Lazy-init real WebGL2 PBR Spatial Engine (gracefully falls back to 2D canvas in jsdom/legacy)
@@ -6566,10 +6640,10 @@ function drawHolo3DFrame(dt = 0.016) {
       const sub = pill.querySelector('span');
       if (sub) {
         sub.textContent = u < 0.35
-          ? 'OMEGA OBSERVATORY // ① 周天星海 · 真值 DAG 创世绽放'
+          ? tr('intro_step1', 'OMEGA OBSERVATORY // ① 周天星海 · 真值 DAG 创世绽放')
           : u < 0.72
-            ? 'OMEGA OBSERVATORY // ② 全息蓝图扫描 · 轨道空间站实体化'
-            : 'OMEGA OBSERVATORY // ③ 实时自动化观测 · 准备就绪';
+            ? tr('intro_step2', 'OMEGA OBSERVATORY // ② 全息蓝图扫描 · 轨道空间站实体化')
+            : tr('intro_step3', 'OMEGA OBSERVATORY // ③ 实时自动化观测 · 准备就绪');
       }
     }
     holoCam.lookX = 0.0;
@@ -6649,6 +6723,8 @@ function drawHolo3DFrame(dt = 0.016) {
     : (genesisScrub.open ? genesisScrub.value : 1.05);
   const targetGalaxyBoost = (state.layer === 'galaxy' || Boolean(galaxyFrame)) ? 1.0 : 0.0;
   holoCam.galaxyBoost += (targetGalaxyBoost - holoCam.galaxyBoost) * damp;
+  const targetStationFocus = (state.layer === 'station' && !galaxyFrame && !state.focused) ? 1.0 : 0.0;
+  holoCam.stationFocus += (targetStationFocus - holoCam.stationFocus) * damp;
 
   // Age pulses & live streaking spoke comet flares
   for (let i = holoCam.pulses.length - 1; i >= 0; i--) {
@@ -6719,10 +6795,14 @@ function drawHolo3DFrame(dt = 0.016) {
     // 1. REAL WEBGL2 3-STRATA GPU SCENE: Ground Abyss + Floating Space Station + Overhead 3D Truth DAG Cosmos!
     const themeIdx = isLight ? 2 : isBlueprint ? 1 : 0;
     const glNebPalette = isBlueprint
-      ? [[120,210,255],[148,228,255],[108,182,255],[176,198,255],[126,222,248],[136,192,255],[214,236,255],[112,198,246]]
+      ? [[34,255,122],[74,255,158],[148,255,114],[26,224,128],[92,255,174],[48,242,136],[168,255,124],[34,192,108]]
       : isLight
-        ? [[16,118,110],[20,108,148],[148,96,36],[96,78,160],[22,120,106],[46,100,166],[142,102,42],[44,110,118]]
+        ? [[8,96,92],[10,82,138],[142,74,12],[66,48,146],[12,102,82],[24,72,148],[134,78,16],[36,78,94]]
         : [[112,218,216],[116,212,242],[214,194,148],[162,178,232],[110,210,196],[144,194,242],[206,194,158],[128,188,216]];
+    const lightEntityPalette = {
+      direction: [154, 84, 8], research: [4, 108, 78], review: [55, 48, 163], verification: [3, 83, 136],
+      books: [107, 33, 168], publication: [17, 100, 53], outreach: [180, 60, 12], studio: [45, 67, 86]
+    };
     holoCam.gl.ensureSize(w, h, dpr);
     holoCam.gl.setCamera(holoCam.yaw, holoCam.pitch, holoCam.dist, holoCam.lookX, holoCam.lookY, holoCam.lookZ, holoCam.ndcShiftX);
     if (truthNebula.loaded) {
@@ -6740,7 +6820,7 @@ function drawHolo3DFrame(dt = 0.016) {
         eye: Boolean(cfg.eye),
         order: cfg.order,
         hEntity: towerHeight(d.id),
-        rgb: isBlueprint ? [150, 215, 255] : cfg.hex,
+        rgb: isBlueprint ? (cfg.eye ? [168, 255, 118] : [34, 255, 122]) : (isLight ? (lightEntityPalette[d.id] || cfg.hex) : cfg.hex),
         isSel: d.id === activeId,
         running: Boolean(countRunning(d))
       };
@@ -6761,6 +6841,7 @@ function drawHolo3DFrame(dt = 0.016) {
       stationAlpha: holoCam.stationAlpha,
       galaxyAlpha: holoCam.galaxyAlpha,
       galaxyBoost: holoCam.galaxyBoost,
+      stationFocus: holoCam.stationFocus,
       sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
       sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0,
       rheostatRevX: holoCam.rheostatRevX,
@@ -6773,6 +6854,36 @@ function drawHolo3DFrame(dt = 0.016) {
     // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
     ctx.clearRect(0, 0, w, h);
     if (state.focused) return;
+    // Authentic peripheral Matrix Math-Code Rain ONLY in 矩阵 (Matrix) theme!
+    if (isBlueprint && !state.quiet && !reduced) {
+      const glyphs = '∀∃⊢∎λΣΠℕℝℂ→⊗⟡01⊢≡∈∉⊂∪∩⊕';
+      const cols = 26;
+      const safeW = w - rightGutter;
+      ctx.save();
+      ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let c = 0; c < cols; c++) {
+        const fx = (c + 0.5) / cols;
+        // Keep central focal zone lighter so monoliths & stars stay ultra-clear!
+        const edgeBias = Math.min(1, Math.abs(fx - 0.5) * 2.15 + 0.24);
+        const cxCol = fx * safeW;
+        const spd = 28 + (c * 17 % 42);
+        const headY = ((t * spd + c * 97) % (h + 180)) - 90;
+        const len = 7 + (c % 5);
+        for (let k = 0; k < len; k++) {
+          const gy = headY - k * 14;
+          if (gy < 54 || gy > h - 68) continue;
+          const fade = (1 - k / len) * edgeBias;
+          const ch = glyphs[(c * 7 + k * 3 + Math.floor(t * 4 + c)) % glyphs.length];
+          ctx.fillStyle = k === 0
+            ? `rgba(186, 255, 214, ${(0.34 * fade).toFixed(3)})`
+            : `rgba(34, 255, 122, ${(0.17 * fade).toFixed(3)})`;
+          ctx.fillText(ch, cxCol, gy);
+        }
+      }
+      ctx.restore();
+    }
   } else {
     // 2D Canvas Fallback Atmosphere (jsdom tests / software fallback)
     const bg = ctx.createRadialGradient(w * 0.5, h * 0.34, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
@@ -6830,9 +6941,9 @@ function drawHolo3DFrame(dt = 0.016) {
           ctx.lineTo(hl.x + Math.cos(a) * 18, hl.y + Math.sin(a) * 18);
           ctx.stroke();
         }
-        const rawTitle = hl.rec.title || hl.rec.enTitle || '已归档猜想';
+        const rawTitle = curLang() === 'en' ? (hl.rec.enTitle || hl.rec.title || 'Settled Conjecture') : (hl.rec.title || hl.rec.enTitle || '已归档猜想');
         const shortT = rawTitle.length > 26 ? `${rawTitle.slice(0, 25)}…` : rawTitle;
-        const badge = `${isRef ? '✕ 反驳' : '✓ 已证明'} · ${shortT} · 点击读证明`;
+        const badge = `${isRef ? tr('lantern_refuted', '✕ 反驳') : tr('lantern_proved', '✓ 已证明')} · ${shortT} · ${tr('lantern_click', '点击读证明')}`;
         ctx.font = '600 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
         const tw = ctx.measureText(badge).width + 18;
         const bx = Math.max(24, Math.min(maxSafeX - tw, hl.x - tw * 0.5));
@@ -8101,26 +8212,106 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   }
 
+  // Dedicated 空间站 (Station) Active-Loop Telemetry FX: live animated pipeline chevrons, active output rings & wiper contact arcs!
+  if (useGL && holoCam.stationFocus > 0.18 && holoCam.stationAlpha > 0.45) {
+    const sf = holoCam.stationFocus;
+    const loopPaths = [
+      // Closed 24/7 institutional loop: Research -> Verification -> Publication -> Outreach -> Books -> Research
+      { a: [-5.30, 0.36, -2.55], b: [-0.85, 0.36, -0.55], col: isBlueprint ? [34, 255, 122] : (isLight ? [4, 108, 78] : [94, 234, 212]), n: 3 },
+      { a: [-5.85, 0.36,  1.65], b: [-0.85, 0.36, -0.35], col: isBlueprint ? [78, 255, 158] : (isLight ? [107, 33, 168] : [174, 184, 238]), n: 2 },
+      { a: [ 0.85, 0.36, -0.55], b: [ 5.30, 0.36, -2.55], col: isBlueprint ? [42, 255, 136] : (isLight ? [3, 83, 136] : [125, 211, 252]), n: 3 },
+      { a: [ 5.45, 0.36, -2.00], b: [ 5.80, 0.36,  1.45], col: isBlueprint ? [156, 255, 118] : (isLight ? [154, 84, 8] : [244, 200, 118]), n: 3 },
+      { a: [ 5.80, 0.36,  1.45], b: [ 5.45, 0.36, -2.00], col: isBlueprint ? [120, 255, 150] : (isLight ? [180, 60, 12] : [250, 224, 156]), n: 2 },
+      // Active branch wiper contact taps from Branch A (Review) & Branch B (Studio) to their serviced wing!
+      { a: [holoCam.rheostatRevX, 0.32, 3.08], b: [holoWorld[holoCam.rheostatRevTargetId]?.x || 0, 0.42, holoWorld[holoCam.rheostatRevTargetId]?.z || 0], col: isBlueprint ? [56, 255, 146] : revBranchRGB, n: 2 },
+      { a: [holoCam.rheostatStuX, 0.32, 3.88], b: [holoWorld[holoCam.rheostatStuTargetId]?.x || 0, 0.42, holoWorld[holoCam.rheostatStuTargetId]?.z || 0], col: isBlueprint ? [96, 255, 178] : stuBranchRGB, n: 2 }
+    ];
+    ctx.save();
+    ctx.globalAlpha = sf * 0.90;
+    for (let li = 0; li < loopPaths.length; li++) {
+      const lp = loopPaths[li];
+      const p0 = project(lp.a[0], lp.a[1], lp.a[2]);
+      const p1 = project(lp.b[0], lp.b[1], lp.b[2]);
+      if (!p0 || !p1) continue;
+      ctx.strokeStyle = rgba(lp.col, isLight ? 0.56 : 0.46);
+      ctx.lineWidth = li >= 5 ? 1.15 : 1.45;
+      ctx.setLineDash(li >= 5 ? [4, 5] : [6, 5]);
+      ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * 34);
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Racing live loop energy beads + tiny directional chevron arrows!
+      const dx = p1.x - p0.x, dy = p1.y - p0.y;
+      const ang = Math.atan2(dy, dx);
+      for (let k = 0; k < lp.n; k++) {
+        const u = ((state.quiet || reduced ? 0.3 : t * 0.42) + k / lp.n + li * 0.13) % 1;
+        const bx = p0.x + dx * u;
+        const by = p0.y + dy * u;
+        ctx.fillStyle = rgba(lp.col, 0.95);
+        ctx.beginPath();
+        ctx.arc(bx, by, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        // Tiny forward arrow chevron showing pipeline flow direction
+        ctx.strokeStyle = isLight ? rgba(lp.col, 0.92) : 'rgba(245, 255, 252, 0.92)';
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        ctx.moveTo(bx - Math.cos(ang - 0.55) * 5.2, by - Math.sin(ang - 0.55) * 5.2);
+        ctx.lineTo(bx + Math.cos(ang) * 2.5, by + Math.sin(ang) * 2.5);
+        ctx.lineTo(bx - Math.cos(ang + 0.55) * 5.2, by - Math.sin(ang + 0.55) * 5.2);
+        ctx.stroke();
+      }
+    }
+    // Live active department output pulses (rising pulsing beacon rings over every currently active department!)
+    for (const d of departments()) {
+      const run = countRunning(d);
+      if (!run || d.id === 'direction') continue;
+      const cfg = holoWorld[d.id];
+      if (!cfg) continue;
+      const uRing = ((state.quiet || reduced ? 0.35 : t * 0.55) + cfg.order * 0.21) % 1;
+      const rPulse = cfg.r * (0.72 + uRing * 0.85);
+      const colPulse = isBlueprint ? [34, 255, 122] : (isLight ? [4, 120, 87] : cfg.hex);
+      draw3DRing(cfg.x, 0.12 + uRing * 0.55, cfg.z, rPulse, rPulse, 28, rgba(colPulse, Math.sin(uRing * Math.PI) * 0.65 * sf), 1.25);
+    }
+    ctx.restore();
+  }
+
   // Minimalist KPR wing & dual-branch designations placed cleanly in open negative space (zero card/spire overlap!)
   const os = state.outreachStats || {};
-  drawHoloText(-5.55, 2.26, -2.75, 'SEC.01 // 理论生产翼（猜想 · 书稿）', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.6);
-  drawHoloText( 5.55, 2.38, -2.75, `SEC.02 // 论文 · Mathesis · ${scholarCount} 合作学者`, isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
-  drawHoloText(-1.55, 0.10,  4.68, 'BRANCH A // 独立评审滑轨', revBranchRGB, sec3Hot, 8.0);
-  drawHoloText( 1.55, 0.10,  4.68, 'BRANCH B // 工具表达滑轨', stuBranchRGB, sec4Hot, 8.0);
-  drawHoloText( 8.05, 0.18, -0.25, `Mathesis ⇄ ${scholarCount} 合作学者`, isLight ? [154, 102, 28] : [236, 200, 134], poHot, 8.4);
+  const wingLabelCol = isLight ? [15, 31, 46] : isBlueprint ? [96, 255, 162] : [168, 198, 224];
+  const mathesisLabelCol = isLight ? [154, 84, 8] : isBlueprint ? [168, 255, 118] : [236, 200, 134];
+  const bridgeLabelCol = isLight ? [11, 107, 101] : isBlueprint ? [64, 255, 146] : [148, 224, 238];
+  const activeVerRun = countRunning(department('verification')) || 0;
+  drawHoloText(-5.55, 2.26, -2.75, tr('hud_sec1', 'SEC.01 // 理论生产翼（猜想 · 书稿）'), wingLabelCol, sec1Hot || holoCam.stationFocus > 0.5, 8.6);
+  drawHoloText( 5.55, 2.38, -2.75, tr('hud_sec2', `SEC.02 // 论文 · Mathesis · ${scholarCount} 合作学者`, { n: scholarCount }), wingLabelCol, sec2Hot || holoCam.stationFocus > 0.5, 8.6);
+  drawHoloText(-1.55, 0.10,  4.68, tr('hud_branch_a', 'BRANCH A // 独立评审滑轨'), isBlueprint ? [64, 255, 146] : revBranchRGB, sec3Hot || holoCam.stationFocus > 0.5, 8.0);
+  drawHoloText( 1.55, 0.10,  4.68, tr('hud_branch_b', 'BRANCH B // 工具表达滑轨'), isBlueprint ? [96, 255, 178] : stuBranchRGB, sec4Hot || holoCam.stationFocus > 0.5, 8.0);
+  drawHoloText( 8.05, 0.18, -0.25, tr('hud_mathesis', `Mathesis ⇄ ${scholarCount} 合作学者`, { n: scholarCount }), mathesisLabelCol, poHot || holoCam.stationFocus > 0.5, 8.4);
   if (activeId === 'outreach') {
     drawHoloText(
       8.05, 0.88, 1.90,
-      `✦ ${scholarCount} 合作 · ${os.replied_scholars || 485} 回信 · ${os.contacted_scholars || 1049} 联络 · ${os.joint_papers || 32} 联合论文`,
-      isLight ? [154, 102, 28] : [248, 212, 138],
+      tr('hud_outreach_detail', `✦ ${scholarCount} 合作 · ${os.replied_scholars || 485} 回信 · ${os.contacted_scholars || 1049} 联络 · ${os.joint_papers || 32} 联合论文`, {
+        n: scholarCount,
+        replied: os.replied_scholars || 485,
+        contacted: os.contacted_scholars || 1049,
+        joint: os.joint_papers || 32
+      }),
+      mathesisLabelCol,
       true,
       8.2
     );
   }
-  if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, '理论生产 ⇄ Lean 核枢', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
-  if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, 'Lean 核枢 ⇄ 自动论文', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
-  if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, `评审支路接入 → ${department(holoCam.rheostatRevTargetId)?.label || '数学攻坚'}`, revBranchRGB, true, 8.5);
-  if (sec4Hot)        drawHoloText( 0.0,  0.10,  5.24, `工具支路接入 → ${department(holoCam.rheostatStuTargetId)?.label || '论文与知识'}`, stuBranchRGB, true, 8.5);
+  if (holoCam.stationFocus > 0.45) {
+    drawHoloText(-2.58, 0.52, -1.06, tr('hud_station_left_live', `⚡ 猜想·书稿 ⇄ Lean 核枢 · ${activeVerRun} 项实时核验`, { run: activeVerRun }), bridgeLabelCol, true, 8.8);
+    drawHoloText( 2.65, 0.52, -1.06, tr('hud_station_right_live', '✦ 自动论文工厂 ⇄ Mathesis · 持续产出'), mathesisLabelCol, true, 8.8);
+    drawHoloText( 0.0,  0.12,  5.62, tr('hud_station_loop_tag', `24/7 ACTIVE LOOP // 猜想 → 形式化 → 书稿论文 → ${scholarCount} 学者回流`, { n: scholarCount }), bridgeLabelCol, true, 8.4);
+  } else {
+    if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, tr('hud_left_bridge', '理论生产 ⇄ Lean 核枢'), bridgeLabelCol, true, 8.8);
+    if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, tr('hud_right_bridge', 'Lean 核枢 ⇄ 自动论文'), bridgeLabelCol, true, 8.8);
+  }
+  if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_rev_tap', `评审支路接入 → ${langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚')}`, { dept: langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚') }), isBlueprint ? [64, 255, 146] : revBranchRGB, true, 8.5);
+  if (sec4Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_stu_tap', `工具支路接入 → ${langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识')}`, { dept: langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识') }), isBlueprint ? [96, 255, 178] : stuBranchRGB, true, 8.5);
 }
 
 function startHoloLoop() {
@@ -8482,10 +8673,10 @@ function applyLayer(layer) {
   const hint = $('#hive-hover-hint');
   if (hint) {
     hint.textContent = next === 'galaxy'
-      ? '周天星海环绕阿卡西之眼 · 点击星海拨弦 · 点击星系查看真实增长'
+      ? tr('hint_galaxy', '浩瀚星空真值 DAG 穹顶 · 点击任意星系飞入节点网络 · Shift+划动拨弦')
       : next === 'station'
-        ? '悬浮轨道空间站 · 按 Space 灵识扫频 · 点击部门飞入舱内'
-        : '周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频';
+        ? tr('hint_station', '24/7 活态轨道空间站 · 实时循环产线与滑轨支路 · 点击部门飞入舱内')
+        : tr('hint_mix', '周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频');
   }
   if (changed) sciFiAudio.playLayer(next);
 }
@@ -8522,22 +8713,23 @@ $('#hud-zen-toggle')?.addEventListener('click', e => {
   if (!room) return;
   const zen = room.classList.toggle('is-hud-zen');
   e.currentTarget.setAttribute('aria-pressed', String(zen));
-  e.currentTarget.textContent = zen ? '展开' : '纯净';
+  e.currentTarget.textContent = zen ? tr('hud_expand', '展开') : tr('hud_zen', '纯净');
 });
 
 function applyLook(look) {
   const docEl = document.documentElement;
   const meta = document.querySelector('meta[name="theme-color"]');
   const btn = $('#theme-toggle');
-  if (look === 'light') {
+  const norm = look === 'blueprint' ? 'matrix' : look;
+  if (norm === 'light') {
     docEl.dataset.theme = 'light';
     delete docEl.dataset.look;
-    if (meta) meta.setAttribute('content', '#F2EEE6');
+    if (meta) meta.setAttribute('content', '#E8E5DC');
     if (btn) btn.textContent = '☾';
-  } else if (look === 'blueprint') {
+  } else if (norm === 'matrix') {
     delete docEl.dataset.theme;
-    docEl.dataset.look = 'blueprint';
-    if (meta) meta.setAttribute('content', '#081426');
+    docEl.dataset.look = 'matrix';
+    if (meta) meta.setAttribute('content', '#010804');
     if (btn) btn.textContent = '☀';
   } else {
     delete docEl.dataset.theme;
@@ -8564,6 +8756,31 @@ for (const lookBtn of document.querySelectorAll('[data-look]')) {
     try {
       localStorage.setItem(themeKey, next);
     } catch {}
+  });
+}
+
+function applyLanguage(code) {
+  const api = i18n();
+  if (api) api.setLang(code);
+  renderHealth();
+  renderMetrics();
+  renderHive();
+  renderDepartment();
+  syncInstituteRealm();
+  updateGalaxyBackBar();
+  updateGenesisScrubUI();
+  applyLayer(state.layer);
+  const zenBtn = $('#hud-zen-toggle');
+  if (zenBtn) {
+    const zen = $('#research-room')?.classList.contains('is-hud-zen');
+    zenBtn.textContent = zen ? tr('hud_expand', '展开') : tr('hud_zen', '纯净');
+  }
+  renderHoloSky();
+}
+
+for (const langBtn of document.querySelectorAll('[data-lang-btn]')) {
+  langBtn.addEventListener('click', () => {
+    applyLanguage(langBtn.dataset.langBtn || 'zh');
   });
 }
 
@@ -9156,8 +9373,9 @@ if (reduced) {
 }
 
 try {
+  i18n()?.applyDom(document);
   const savedTheme = localStorage.getItem(themeKey);
-  if (savedTheme === 'light' || savedTheme === 'blueprint') applyLook(savedTheme);
+  if (savedTheme === 'light' || savedTheme === 'matrix' || savedTheme === 'blueprint') applyLook(savedTheme);
   else renderHoloSky();
 } catch {
   renderHoloSky();

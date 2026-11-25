@@ -8,12 +8,13 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v49">
-  <script defer src="assets/gl-engine.js?v=hive-v49"></script>
-  <script type="module" src="assets/app.mjs?v=hive-v49"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v50">
+  <script defer src="assets/i18n.js?v=hive-v50"></script>
+  <script defer src="assets/gl-engine.js?v=hive-v50"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v50"></script>
 </head>
 <body>
-  <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
+  <a class="skip-link" href="#institute" data-i18n="skip_link">进入 3D 全息指挥大屏</a>
   <div class="fui-scan-sweep" id="fui-scan-sweep" aria-hidden="true"></div>
   <canvas class="xp-layer" id="xp-layer" aria-hidden="true"></canvas>
 
@@ -25,36 +26,41 @@
           <img src="assets/mark.svg" width="26" height="26" alt="">
           <span class="brand-name">TRURETURING <em>// LIVE</em></span>
         </a>
-        <span class="connection" id="connection"><i></i><span>正在连接</span></span>
+        <span class="connection" id="connection"><i></i><span data-i18n="connecting">正在连接</span></span>
         <div class="institute-metrics" id="institute-metrics">
-          <span>正在接入全息流</span>
+          <span data-i18n="connecting_stream">正在接入全息流</span>
         </div>
       </div>
 
       <div class="fui-top-right">
         <div class="layer-switcher" role="group" aria-label="空间图层">
-          <button type="button" data-layer="galaxy" aria-pressed="false" title="仰望 3D 真值星系穹顶">星系</button>
-          <button type="button" data-layer="station" aria-pressed="false" title="聚焦悬浮轨道空间站与八大部门">空间站</button>
-          <button type="button" data-layer="mix" aria-pressed="true" title="地面 · 空中空间站 · 星空三层全景">混合</button>
+          <button type="button" data-layer="galaxy" aria-pressed="false" data-i18n="layer_galaxy" data-i18n-title="layer_galaxy_title" title="宏大 3D 星空真值 DAG 穹顶">星系</button>
+          <button type="button" data-layer="station" aria-pressed="false" data-i18n="layer_station" data-i18n-title="layer_station_title" title="聚焦 24/7 悬浮轨道空间站与实时产出闭环">空间站</button>
+          <button type="button" data-layer="mix" aria-pressed="true" data-i18n="layer_mix" data-i18n-title="layer_mix_title" title="地面 · 轨道空间站 · 星空三层全景">混合</button>
         </div>
         <div class="style-switcher" role="group" aria-label="空间渲染风格">
-          <button type="button" data-look="holo" aria-pressed="true" title="The Matrix 矩阵空间"><i class="swatch-holo"></i><span>矩阵</span></button>
-          <button type="button" data-look="blueprint" aria-pressed="false" title="3D 工程蓝图"><i class="swatch-blueprint"></i><span>蓝图</span></button>
-          <button type="button" data-look="light" aria-pressed="false" title="白模沙盘"><i class="swatch-maquette"></i><span>白模</span></button>
+          <button type="button" data-look="holo" aria-pressed="true" data-i18n-title="look_holo_title" title="深空星穹观测站（默认）"><i class="swatch-holo"></i><span data-i18n="look_holo">星穹</span></button>
+          <button type="button" data-look="matrix" aria-pressed="false" data-i18n-title="look_matrix_title" title="黑客帝国磷光矩阵风格"><i class="swatch-matrix"></i><span data-i18n="look_matrix">矩阵</span></button>
+          <button type="button" data-look="light" aria-pressed="false" data-i18n-title="look_light_title" title="高对比曜白建筑沙盘"><i class="swatch-maquette"></i><span data-i18n="look_light">曜白</span></button>
+        </div>
+        <div class="lang-switcher" id="lang-switcher" role="group" aria-label="Language">
+          <button type="button" data-lang-btn="zh" aria-pressed="true" title="简体中文">中</button>
+          <button type="button" data-lang-btn="en" aria-pressed="false" title="English">EN</button>
+          <button type="button" data-lang-btn="ja" aria-pressed="false" title="日本語">日</button>
         </div>
         <div class="mode-switch" role="group" aria-label="现场视图">
-          <button type="button" data-mode="organization" aria-pressed="true">3D 架构</button>
-          <button type="button" data-mode="journey" aria-pressed="false">接力轨迹</button>
+          <button type="button" data-mode="organization" aria-pressed="true" data-i18n="mode_org">3D 架构</button>
+          <button type="button" data-mode="journey" aria-pressed="false" data-i18n="mode_journey">接力轨迹</button>
         </div>
-        <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随</span></button>
-        <button class="hud-icon-btn" id="hud-zen-toggle" type="button" aria-pressed="false" title="隐藏右侧面板，纯享 3D 空间">纯净</button>
-        <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="暂停旋转 / 静看">静看</button>
+        <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span data-i18n="follow_live">跟随</span></button>
+        <button class="hud-icon-btn" id="hud-zen-toggle" type="button" aria-pressed="false" data-i18n="hud_zen" title="隐藏右侧面板，纯享 3D 空间">纯净</button>
+        <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" data-i18n="motion_quiet" title="暂停旋转 / 静看">静看</button>
         <button class="hud-icon-btn fullscreen-button" id="expand-room" type="button" aria-pressed="false" aria-label="进入全屏" title="全屏显示">
           <svg class="fs-enter" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
           <svg class="fs-exit" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg>
-          <span>全屏</span>
+          <span data-i18n="fullscreen_enter">全屏</span>
         </button>
-        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换全息场 / 白模" title="切换深空全息场 / 白模沙盘">☀</button>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换星穹 / 曜白" title="切换深空星穹 / 高对比曜白">☀</button>
       </div>
     </header>
 
@@ -68,7 +74,7 @@
           <button type="button" class="ib-btn" data-ib="forward" aria-label="前进">›</button>
           <button type="button" class="ib-btn" data-ib="reload" aria-label="刷新">⟳</button>
           <div class="ib-address"><span class="ib-kind"></span><span class="ib-url"></span></div>
-          <a class="ib-btn ib-out" data-ib-out href="#" target="_blank" rel="noopener noreferrer">新标签打开 ↗</a>
+          <a class="ib-btn ib-out" data-ib-out href="#" target="_blank" rel="noopener noreferrer" data-i18n="ib_open_new">新标签打开 ↗</a>
           <button type="button" class="ib-btn ib-close" data-ib="close" aria-label="关闭">×</button>
         </header>
         <div class="ib-body">
@@ -92,8 +98,8 @@
         <!-- Projected Floating Chrono-Metaverse 3D Landmark Callouts -->
         <div id="hive-cells" class="hive-cells"><p class="loading">正在初始化 3D 全息建筑群…</p></div>
         <div id="galaxy-back-bar" class="galaxy-back-bar" hidden>
-          <button type="button" id="galaxy-back-btn" class="galaxy-back-btn">← 返回全景</button>
-          <button type="button" id="galaxy-home-btn" class="galaxy-home-btn" hidden>返回全景</button>
+          <button type="button" id="galaxy-back-btn" class="galaxy-back-btn" data-i18n="back_panorama">← 返回全景</button>
+          <button type="button" id="galaxy-home-btn" class="galaxy-home-btn" data-i18n="home_panorama" hidden>返回全景</button>
         </div>
         <aside id="galaxy-node-card" class="galaxy-node-card" aria-live="polite" hidden></aside>
 
@@ -112,16 +118,16 @@
             <span class="human-xp-meta" id="realm-xp-meta">同步中</span>
           </div>
           <button type="button" class="human-pulse-btn" id="sonar-pulse-btn" title="发射灵识扫频光波（快捷键 Space）巡检当前活跃部门与周天星环">
-            <i aria-hidden="true">✦</i><span>灵识扫频</span><kbd>Space</kbd>
+            <i aria-hidden="true">✦</i><span data-i18n="sonar_btn">灵识扫频</span><kbd>Space</kbd>
           </button>
           <button type="button" class="human-tool-btn" id="cinema-director-btn" aria-pressed="false" title="导演自动巡航模式（快捷键 C）· 自动切换电影机位，任意鼠标/触控板操作立刻归还控制">
-            <i aria-hidden="true">◎</i><span>巡航</span>
+            <i aria-hidden="true">◎</i><span data-i18n="cinema_btn">巡航</span>
           </button>
           <button type="button" class="human-tool-btn" id="genesis-scrub-btn" aria-pressed="false" title="星系时间机器 · 拖动滑块回放从公理奇点到 18,367 定理的演化史">
-            <i aria-hidden="true">⏱</i><span>演化</span>
+            <i aria-hidden="true">⏱</i><span data-i18n="genesis_btn">演化</span>
           </button>
           <button type="button" class="human-tool-btn" id="replay-intro-btn" title="重播 2.8 秒「天顶俯冲 + 蓝图扫描显影 + 真实 DAG 分层星爆」开屏">
-            <i aria-hidden="true">⟳</i><span>开屏</span>
+            <i aria-hidden="true">⟳</i><span data-i18n="intro_btn">开屏</span>
           </button>
           <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" title="开启或静音科幻晶体微音效">
             <span id="human-sound-icon" aria-hidden="true">♪</span>
@@ -139,13 +145,13 @@
         <!-- Subtle Opening Sequence Banner (Auto-fades once opening completes or user interacts) -->
         <div class="intro-cinema-pill" id="intro-cinema-pill" hidden aria-live="polite">
           <span>OMEGA OBSERVATORY // 天顶入阵 · 蓝图显影 · 真实 DAG 分层创世</span>
-          <button type="button" id="intro-skip-btn" class="intro-skip-btn">跳过</button>
+          <button type="button" id="intro-skip-btn" class="intro-skip-btn" data-i18n="intro_skip">跳过</button>
         </div>
 
         <!-- Zoomed 3D Holographic Interior Chamber Overlay -->
         <div id="department-lens" class="department-lens" hidden aria-live="polite">
           <div class="lens-topbar">
-            <button id="lens-back" type="button" class="lens-back">← 退出舱内 · 返回 3D 全院</button>
+            <button id="lens-back" type="button" class="lens-back" data-i18n="exit_lens">← 退出舱内 · 返回 3D 全院</button>
             <div id="lens-switcher" class="lens-switcher" role="tablist" aria-label="切换部门全息舱"></div>
           </div>
 
@@ -192,7 +198,7 @@
         <div class="log-wall-head">
           <div class="log-wall-title">
             <i class="log-live-led"></i>
-            <span>MATRIX // 全院战报</span>
+            <span data-i18n="log_wall_title">MATRIX // 全院战报</span>
           </div>
           <div class="log-wall-meta">
             <span class="log-spectrum" id="log-spectrum" aria-hidden="true">
@@ -204,17 +210,17 @@
         <div class="log-wall-sub">
           <span id="log-rate-badge">HIGH-DENSITY INTEL · 轮播</span>
           <div class="log-mode-switch" role="group" aria-label="战报显示方式">
-            <button type="button" data-log-mode="latest" aria-pressed="false" title="按时间列出真实的最新事件，有新事件才追加">最新</button>
-            <button type="button" data-log-mode="cycle" aria-pressed="true" title="循环滚动播放全院动态">轮播</button>
+            <button type="button" data-log-mode="latest" aria-pressed="false" data-i18n="log_mode_latest" title="按时间列出真实的最新事件，有新事件才追加">最新</button>
+            <button type="button" data-log-mode="cycle" aria-pressed="true" data-i18n="log_mode_cycle" title="循环滚动播放全院动态">轮播</button>
           </div>
         </div>
         <div class="log-ops-strip" id="log-ops-strip" aria-label="全院实时核心指标">
-          <div class="log-ops-cell"><span>DAG 节点</span><strong id="log-ops-dag">—</strong></div>
-          <div class="log-ops-cell"><span>近期增长</span><strong id="log-ops-growth" class="is-ok">—</strong></div>
-          <div class="log-ops-cell"><span>CI 引擎</span><strong id="log-ops-ci">—</strong></div>
+          <div class="log-ops-cell"><span data-i18n="log_ops_dag">DAG 节点</span><strong id="log-ops-dag">—</strong></div>
+          <div class="log-ops-cell"><span data-i18n="log_ops_growth">近期增长</span><strong id="log-ops-growth" class="is-ok">—</strong></div>
+          <div class="log-ops-cell"><span data-i18n="log_ops_ci">CI 引擎</span><strong id="log-ops-ci">—</strong></div>
         </div>
         <div class="scifi-log-stream" id="scifi-log-stream" aria-live="off"></div>
-        <button type="button" class="log-jump-latest" id="log-jump-latest" hidden>↓ 回到最新</button>
+        <button type="button" class="log-jump-latest" id="log-jump-latest" data-i18n="log_jump_latest" hidden>↓ 回到最新</button>
       </aside>
 
       <!-- Floating Translucent Right FUI Telemetry Readout (No Heavy Box Wall!) -->
@@ -226,7 +232,7 @@
           </div>
           <div class="department-title-row">
             <h1 id="department-title">数学攻坚</h1>
-            <button type="button" id="open-lens-button" class="open-lens-btn">飞入舱内 ⤢</button>
+            <button type="button" id="open-lens-button" class="open-lens-btn" data-i18n="open_lens">飞入舱内 ⤢</button>
           </div>
           <p id="department-responsibility">从问题出发，把新的思路推向可以共同检查的论证。</p>
           <div class="department-people visually-hidden" id="department-people"></div>
@@ -234,10 +240,10 @@
 
         <div class="panel-scroll-body">
           <div class="panel-heading">
-            <h4 id="department-work-title">实时推进</h4>
+            <h4 id="department-work-title" data-i18n="panel_realtime">实时推进</h4>
             <span id="department-work-count"></span>
           </div>
-          <div id="department-work" class="department-work"><p class="loading">等待全息信号…</p></div>
+          <div id="department-work" class="department-work"><p class="loading" data-i18n="panel_waiting">等待全息信号…</p></div>
 
           <div id="department-connections" class="department-connections"></div>
 
@@ -253,20 +259,20 @@
         <div class="journey-heading">
           <div>
             <p class="eyebrow">RELAY TRAJECTORY // STEP BY STEP</p>
-            <h3 id="journey-title">选择一个正在推进的问题</h3>
-            <p id="journey-description">沿着公开讨论与研究引用，追踪一条线索如何跨部门接力生长。</p>
+            <h3 id="journey-title" data-i18n="journey_title_default">选择一个正在推进的问题</h3>
+            <p id="journey-description" data-i18n="journey_desc_default">沿着公开讨论与研究引用，追踪一条线索如何跨部门接力生长。</p>
           </div>
-          <button type="button" id="journey-back" class="lens-back">← 返回 3D 全院</button>
+          <button type="button" id="journey-back" class="lens-back" data-i18n="journey_back">← 返回 3D 全院</button>
         </div>
         <div id="journey-stages" class="journey-stages"></div>
         <div class="journey-detail">
           <div class="journey-roster-box">
-            <h4>关联入口</h4>
+            <h4 data-i18n="journey_links_head">关联入口</h4>
             <div id="journey-people" class="journey-people visually-hidden"></div>
             <div id="journey-links" class="journey-links"></div>
           </div>
           <div>
-            <h4>接力轨迹与公开进展</h4>
+            <h4 data-i18n="journey_events_head">接力轨迹与公开进展</h4>
             <div id="journey-events" class="journey-events"></div>
           </div>
         </div>
@@ -280,41 +286,41 @@
           <div class="method-steps">
             <button type="button" data-method-department="direction">
               <span class="step-num">01</span>
-              <strong>人的方向</strong>
-              <span class="step-badge" data-step-badge="direction">指引</span>
+              <strong data-i18n="rail_01">人的方向</strong>
+              <span class="step-badge" data-step-badge="direction" data-i18n="rail_01_badge">指引</span>
             </button>
             <i class="step-arrow" aria-hidden="true">▸</i>
             <button type="button" data-method-department="research">
               <span class="step-num">02</span>
-              <strong>解决猜想</strong>
+              <strong data-i18n="rail_02">解决猜想</strong>
               <span class="step-badge" data-step-badge="research">—</span>
             </button>
             <i class="step-arrow" aria-hidden="true">⇄</i>
             <button type="button" data-method-department="verification">
               <span class="step-num">BRIDGE</span>
-              <strong>形式化</strong>
+              <strong data-i18n="rail_bridge">形式化</strong>
               <span class="step-badge" data-step-badge="verification">—</span>
             </button>
             <i class="step-arrow" aria-hidden="true">⇄</i>
             <button type="button" data-method-department="books">
               <span class="step-num">04</span>
-              <strong>书籍推进</strong>
+              <strong data-i18n="rail_04">书籍推进</strong>
               <span class="step-badge" data-step-badge="books">—</span>
             </button>
             <i class="step-arrow" aria-hidden="true">⇄</i>
             <button type="button" data-method-department="publication">
               <span class="step-num">05</span>
-              <strong>论文·合作</strong>
+              <strong data-i18n="rail_05">论文·合作</strong>
               <span class="step-badge" data-step-badge="publication">—</span>
             </button>
             <span class="branch-sep" aria-hidden="true"></span>
             <button type="button" class="branch-pill is-review" data-branch-department="review" title="按需红队独立支路：接入猜想、书稿、形式化与论文的对抗评审">
               <span class="branch-glyph" aria-hidden="true">↳</span>
-              <strong>独立评审</strong>
+              <strong data-i18n="rail_review">独立评审</strong>
             </button>
             <button type="button" class="branch-pill is-studio" data-branch-department="studio" title="按需工具基建支路：支撑全院编译工具、书稿渲染与前端表达">
               <span class="branch-glyph" aria-hidden="true">↳</span>
-              <strong>工具表达</strong>
+              <strong data-i18n="rail_studio">工具表达</strong>
             </button>
           </div>
         </div>
@@ -328,11 +334,11 @@
         </div>
 
         <div class="dock-triggers" role="tablist" aria-label="展开遥测抽屉">
-          <button type="button" role="tab" data-dock-tab="live-ops" aria-selected="false">检验灯阵</button>
-          <button type="button" role="tab" data-dock-tab="questions" aria-selected="false">在研课题</button>
-          <button type="button" role="tab" data-dock-tab="conjectures" aria-selected="false" class="dock-tab-conjectures">猜想档案<span class="dock-tab-count" id="conjectures-tab-count"></span></button>
-          <button type="button" role="tab" data-dock-tab="publications" aria-selected="false">书稿论文</button>
-          <button type="button" role="tab" data-dock-tab="ecosystem" aria-selected="false">开源底座</button>
+          <button type="button" role="tab" data-dock-tab="live-ops" aria-selected="false" data-i18n="tab_live_ops">检验灯阵</button>
+          <button type="button" role="tab" data-dock-tab="questions" aria-selected="false" data-i18n="tab_questions">在研课题</button>
+          <button type="button" role="tab" data-dock-tab="conjectures" aria-selected="false" class="dock-tab-conjectures"><span data-i18n="tab_conjectures">猜想档案</span><span class="dock-tab-count" id="conjectures-tab-count"></span></button>
+          <button type="button" role="tab" data-dock-tab="publications" aria-selected="false" data-i18n="tab_publications">书稿论文</button>
+          <button type="button" role="tab" data-dock-tab="ecosystem" aria-selected="false" data-i18n="tab_ecosystem">开源底座</button>
         </div>
       </div>
 
@@ -341,7 +347,7 @@
         <div class="dock-drawer-head">
           <span class="dock-drawer-title" id="dock-drawer-title">TELEMETRY // 检验与接力</span>
           <span id="institute-scope" class="dock-scope"></span>
-          <button type="button" class="dock-close-btn" id="dock-close-btn" aria-label="收起抽屉">✕ 收起</button>
+          <button type="button" class="dock-close-btn" id="dock-close-btn" aria-label="收起抽屉" data-i18n="dock_close">✕ 收起</button>
         </div>
 
         <div id="live-ops" class="dock-panel is-active" data-dock-panel="live-ops">
@@ -353,7 +359,7 @@
           <div class="ops-grid">
             <div class="ops-panel ops-checker-col">
               <div class="ops-card-head">
-                <h3>Lean CI 检验灯阵</h3>
+                <h3 data-i18n="ops_checker_title">Lean CI 检验灯阵</h3>
                 <span id="checker-summary" class="mono-meta">GitHub Actions</span>
               </div>
               <div id="checker-lights" class="checker-lights" aria-label="近期自动检验结果灯阵"></div>
@@ -364,7 +370,7 @@
 
             <div class="ops-panel ops-relay-col">
               <div class="ops-card-head">
-                <h3>跨部门接力热力</h3>
+                <h3 data-i18n="ops_relay_title">跨部门接力热力</h3>
                 <span id="relay-summary" class="mono-meta">部门间流转</span>
               </div>
               <div id="relay-bridges" class="relay-bridges">
@@ -374,12 +380,12 @@
 
             <div class="ops-panel ops-feed-col">
               <div class="ops-card-head">
-                <h3>协作信号流</h3>
+                <h3 data-i18n="ops_feed_title">协作信号流</h3>
                 <div class="feed-filters" role="group" aria-label="信号筛选">
-                  <button type="button" data-feed-filter="all" aria-pressed="true">全部</button>
-                  <button type="button" data-feed-filter="discussion" aria-pressed="false">讨论</button>
-                  <button type="button" data-feed-filter="work" aria-pressed="false">课题</button>
-                  <button type="button" data-feed-filter="automation" aria-pressed="false">检验</button>
+                  <button type="button" data-feed-filter="all" aria-pressed="true" data-i18n="filter_all">全部</button>
+                  <button type="button" data-feed-filter="discussion" aria-pressed="false" data-i18n="filter_discussion">讨论</button>
+                  <button type="button" data-feed-filter="work" aria-pressed="false" data-i18n="filter_work">课题</button>
+                  <button type="button" data-feed-filter="automation" aria-pressed="false" data-i18n="filter_automation">检验</button>
                 </div>
                 <span id="live-feed-meta" class="mono-meta">同步中…</span>
               </div>
@@ -393,11 +399,11 @@
         <div id="questions" class="dock-panel" data-dock-panel="questions">
           <div class="dock-subbar">
             <div class="topic-filters" role="group" aria-label="研究方向">
-              <button type="button" data-filter="all" aria-pressed="true">全部课题</button>
-              <button type="button" data-filter="research" aria-pressed="false">数学研究</button>
-              <button type="button" data-filter="books" aria-pressed="false">理论书写</button>
+              <button type="button" data-filter="all" aria-pressed="true" data-i18n="q_all">全部课题</button>
+              <button type="button" data-filter="research" aria-pressed="false" data-i18n="q_research">数学研究</button>
+              <button type="button" data-filter="books" aria-pressed="false" data-i18n="q_books">理论书写</button>
             </div>
-            <button id="more-questions" type="button" class="more-button" hidden>展开更多 ↓</button>
+            <button id="more-questions" type="button" class="more-button" data-i18n="q_more" hidden>展开更多 ↓</button>
           </div>
           <div id="question-cards" class="question-cards"><p class="loading">正在同步在研课题…</p></div>
         </div>
@@ -405,9 +411,9 @@
         <div id="conjectures" class="dock-panel" data-dock-panel="conjectures">
           <div class="dock-subbar conjecture-subbar">
             <div class="topic-filters" role="group" aria-label="猜想结论筛选">
-              <button type="button" data-verdict-filter="all" aria-pressed="true">全部结论</button>
-              <button type="button" data-verdict-filter="proved" aria-pressed="false">✓ 已证明</button>
-              <button type="button" data-verdict-filter="refuted" aria-pressed="false">✕ 反驳 / 障碍</button>
+              <button type="button" data-verdict-filter="all" aria-pressed="true" data-i18n="c_all">全部结论</button>
+              <button type="button" data-verdict-filter="proved" aria-pressed="false" data-i18n="c_proved">✓ 已证明</button>
+              <button type="button" data-verdict-filter="refuted" aria-pressed="false" data-i18n="c_refuted">✕ 反驳 / 障碍</button>
             </div>
             <div class="conjecture-summary" id="conjecture-summary">正在汇总已归档与实时合入的证明与反驳记录…</div>
           </div>
@@ -418,15 +424,15 @@
           <div class="pub-compact-grid">
             <div class="pub-books-panel">
               <div class="ops-card-head">
-                <h3>双语书稿进展</h3>
-                <a class="text-link" href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer">书库 ↗</a>
+                <h3 data-i18n="pub_books">双语书稿进展</h3>
+                <a class="text-link" href="https://books.trureturing.org/" target="_blank" rel="noopener noreferrer" data-i18n="pub_books_link">书库 ↗</a>
               </div>
               <div id="book-updates" class="book-updates"></div>
             </div>
             <div class="pub-papers-panel">
               <div class="ops-card-head">
-                <h3>已公开论文</h3>
-                <a class="text-link" href="https://www.trureturing.org/research" target="_blank" rel="noopener noreferrer">全部研究 ↗</a>
+                <h3 data-i18n="pub_papers">已公开论文</h3>
+                <a class="text-link" href="https://www.trureturing.org/research" target="_blank" rel="noopener noreferrer" data-i18n="pub_papers_link">全部研究 ↗</a>
               </div>
               <div id="paper-cards" class="paper-cards"><p class="loading">正在整理公开论文…</p></div>
             </div>
@@ -437,7 +443,7 @@
           <div class="ecosystem-layout">
             <div class="ecosystem-repos">
               <div class="ops-card-head">
-                <h3>公开研究仓库</h3>
+                <h3 data-i18n="eco_repos">公开研究仓库</h3>
                 <span id="repo-matrix-count" class="mono-meta"></span>
               </div>
               <div id="repo-matrix" class="repo-matrix">
@@ -446,11 +452,11 @@
             </div>
             <aside class="template-card">
               <p class="eyebrow">OPEN-SOURCE RUST FOUNDATION</p>
-              <h3>复用到任意「人 + AI」GitHub 组织</h3>
-              <p>独立 Rust 观测引擎自动拉取 Issue / PR / Actions，零改造映射为 3D 全息蜂巢大屏。</p>
+              <h3 data-i18n="eco_tpl_title">复用到任意「人 + AI」GitHub 组织</h3>
+              <p data-i18n="eco_tpl_desc">独立 Rust 观测引擎自动拉取 Issue / PR / Actions，零改造映射为 3D 全息蜂巢大屏。</p>
               <div class="template-actions">
-                <a class="solid-link" href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer">Rust 开源模板 ↗</a>
-                <a class="text-link" href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer">知识地图 ↗</a>
+                <a class="solid-link" href="https://github.com/the-omega-institute/trureturing-live-template" target="_blank" rel="noopener noreferrer" data-i18n="eco_tpl_btn">Rust 开源模板 ↗</a>
+                <a class="text-link" href="https://www.trureturing.org/atlas" target="_blank" rel="noopener noreferrer" data-i18n="eco_atlas_btn">知识地图 ↗</a>
               </div>
             </aside>
           </div>
