@@ -94,11 +94,77 @@ class Publisher:
         self.head, self.checked = commit["sha"], True
 
 
+FROZEN_STATE = 'Golden/Frozen/state/'
+GROWTH_KEEP = 120
+COMPARE_FILE_LIMIT = 300
+
+
+def frozen_module(path: str) -> str | None:
+    """The D5 module whose frozen state file this path is, or None."""
+    if not path.startswith(FROZEN_STATE) or not path.endswith('.lean.json'):
+        return None
+    module = path[len(FROZEN_STATE):-len('.lean.json')]
+    return module if module.startswith('D5/') else None
+
+
+def growth_record(module: str, at: str, commit: str) -> dict:
+    parts = module.split('/')
+    return {'module': module, 'domain': parts[2] if len(parts) > 3 else 'Other',
+            'stratum': parts[1] if len(parts) > 1 else '', 'at': at, 'commit': commit}
+
+
+class TruthGrowth:
+    """Newly frozen D5 modules on the truth repository's integration branch.
+
+    Each observation reads the branch head; when it moved forward, one comparison
+    lists the frozen state files it added. The first observation records the
+    frontier without replaying history, and a rewritten branch resets it.
+    """
+
+    def __init__(self, api, repository: str, branch: str, saved: dict | None = None):
+        saved = saved or {}
+        if saved.get('repository') not in {None, repository} or saved.get('branch') not in {None, branch}:
+            saved = {}
+        self.api, self.repository, self.branch = api, repository, branch
+        self.head = saved.get('head')
+        self.events = list(saved.get('events') or [])[-GROWTH_KEEP:]
+        self.truncated = bool(saved.get('truncated'))
+
+    def observe(self) -> None:
+        reading, _ = self.api.get(f'/repos/{self.repository}/branches/{self.branch}')
+        head = reading['commit']['sha']
+        if not self.head or head == self.head:
+            self.head = head
+            return
+        comparison, _ = self.api.get(f'/repos/{self.repository}/compare/{self.head}...{head}')
+        self.head = head
+        if comparison.get('status') != 'ahead':
+            return
+        at = reading['commit']['commit']['committer']['date']
+        files = comparison.get('files') or []
+        self.truncated = len(files) >= COMPARE_FILE_LIMIT or comparison.get('total_commits', 0) > len(comparison.get('commits') or [])
+        known = {event['module'] for event in self.events}
+        for item in files:
+            module = frozen_module(item.get('filename', '')) if item.get('status') == 'added' else None
+            if module and module not in known:
+                self.events.append(growth_record(module, at, head))
+                known.add(module)
+        self.events = self.events[-GROWTH_KEEP:]
+
+    def snapshot(self) -> dict:
+        return {'repository': self.repository, 'branch': self.branch, 'head': self.head,
+                'events': self.events, 'truncated': self.truncated}
+
+
 class Observer:
     def __init__(self, api: GitHub, config: dict):
         self.api, self.config = api, config
         self.messages, self.runs, self.coverage = {}, {}, {}
         self.loaded_sources = {}
+        # The truth repository whose frozen modules grow the DAG is declared by this deployment.
+        target = config.get('truth_growth') or {}
+        self.growth_target = (target['repository'], target['branch']) if target else None
+        self.growth = TruthGrowth(api, *self.growth_target) if self.growth_target else None
         try:
             previous, _ = api.get('/repos/' + STATE_REPO + '/contents/live.json', {'ref': BRANCH})
             if previous.get('encoding') not in {None, 'base64'}:
@@ -108,6 +174,8 @@ class Observer:
                 self.messages = {message['id']: message for message in saved.get('messages', [])}
                 self.coverage = saved.get('coverage', {})
                 self.runs = saved.get('focus_runs', {})
+                if self.growth_target:
+                    self.growth = TruthGrowth(api, *self.growth_target, saved.get('truth_growth'))
         except (SourceError, ValueError, KeyError):
             pass
 
@@ -147,11 +215,18 @@ class Observer:
             self.loaded_sources[source['id']] = observed_at
         self.messages = dict(sorted(self.messages.items(), key=lambda pair: pair[1]['updated_at'], reverse=True)[:240])
         failures = foundation.statistics.get('failures', [])
+        errors = [failure['source'] + ': ' + failure['reason'] for failure in failures]
+        try:
+            if self.growth:
+                self.growth.observe()
+        except (SourceError, KeyError, TypeError) as exc:
+            errors.append('truth-growth: ' + (str(exc) if isinstance(exc, SourceError) else 'unexpected response'))
         return {'schema': SCHEMA, 'observed_at': view['observed_at'], 'interval_seconds': 60,
                 'messages': list(self.messages.values()), 'focus_runs': self.runs,
                 'coverage': self.coverage,
                 'organization': view,
-                'errors': [failure['source'] + ': ' + failure['reason'] for failure in failures],
+                'truth_growth': self.growth.snapshot() if self.growth else None,
+                'errors': errors,
                 'scope': 'Public GitHub collaboration and source-bound organization observations. Runtime sessions require their own explicitly authorized producer.'}
 
 

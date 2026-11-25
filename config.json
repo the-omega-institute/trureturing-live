@@ -1,5 +1,6 @@
 {
   "owner": "the-omega-institute",
+  "truth_growth": {"repository": "the-omega-institute/trureturing", "branch": "dev"},
   "refresh_interval_seconds": 900,
   "discovery": {"prefixes": ["trureturing"], "include": ["mathesis"]},
   "repositories": [
