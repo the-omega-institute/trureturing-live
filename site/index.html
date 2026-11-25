@@ -8,9 +8,9 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v48">
-  <script defer src="assets/gl-engine.js?v=hive-v48"></script>
-  <script type="module" src="assets/app.mjs?v=hive-v48"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v49">
+  <script defer src="assets/gl-engine.js?v=hive-v49"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v49"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -103,8 +103,8 @@
           <span class="fui-orbit-hint" id="hive-hover-hint">周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频</span>
         </div>
 
-        <!-- Authentic Automated Cultivation Realm Progress + Tactile Sonar Sweep Console -->
-        <div class="human-console" id="human-console" role="region" aria-label="全院自动境界与灵识扫频台">
+        <!-- Authentic Automated Cultivation Realm Progress + Tactile Sonar / Cinema / Genesis Console -->
+        <div class="human-console" id="human-console" role="region" aria-label="全院自动境界与观测控制台">
           <div class="human-rank-pill" id="realm-pill" title="由全院 24/7 自动化 Lean 形式验证与冻结定理总数实时驱动，仅真实科研突破自动进阶">
             <span class="human-lv" id="realm-stage">境·IV</span>
             <span class="human-rank-name" id="realm-name">化神</span>
@@ -114,9 +114,32 @@
           <button type="button" class="human-pulse-btn" id="sonar-pulse-btn" title="发射灵识扫频光波（快捷键 Space）巡检当前活跃部门与周天星环">
             <i aria-hidden="true">✦</i><span>灵识扫频</span><kbd>Space</kbd>
           </button>
+          <button type="button" class="human-tool-btn" id="cinema-director-btn" aria-pressed="false" title="导演自动巡航模式（快捷键 C）· 自动切换电影机位，任意鼠标/触控板操作立刻归还控制">
+            <i aria-hidden="true">◎</i><span>巡航</span>
+          </button>
+          <button type="button" class="human-tool-btn" id="genesis-scrub-btn" aria-pressed="false" title="星系时间机器 · 拖动滑块回放从公理奇点到 18,367 定理的演化史">
+            <i aria-hidden="true">⏱</i><span>演化</span>
+          </button>
+          <button type="button" class="human-tool-btn" id="replay-intro-btn" title="重播 2.8 秒「天顶俯冲 + 蓝图扫描显影 + 真实 DAG 分层星爆」开屏">
+            <i aria-hidden="true">⟳</i><span>开屏</span>
+          </button>
           <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" title="开启或静音科幻晶体微音效">
             <span id="human-sound-icon" aria-hidden="true">♪</span>
           </button>
+        </div>
+
+        <!-- Floating Genesis Time-Scrub Dock (Hidden at rest; toggled via ⏱ 演化) -->
+        <div class="genesis-scrub-bar" id="genesis-scrub-bar" role="region" aria-label="星系演化时间机器" hidden>
+          <button type="button" class="gs-play-btn" id="genesis-play-btn" aria-pressed="false" title="播放或暂停演化回放">▶</button>
+          <input type="range" id="genesis-slider" class="gs-slider" min="0" max="100" step="0.5" value="100" aria-label="演化进度">
+          <span class="gs-meta" id="genesis-meta">DAG 演化 · 100%</span>
+          <button type="button" class="gs-close-btn" id="genesis-close-btn" aria-label="关闭演化时间轴">×</button>
+        </div>
+
+        <!-- Subtle Opening Sequence Banner (Auto-fades once opening completes or user interacts) -->
+        <div class="intro-cinema-pill" id="intro-cinema-pill" hidden aria-live="polite">
+          <span>OMEGA OBSERVATORY // 天顶入阵 · 蓝图显影 · 真实 DAG 分层创世</span>
+          <button type="button" id="intro-skip-btn" class="intro-skip-btn">跳过</button>
         </div>
 
         <!-- Zoomed 3D Holographic Interior Chamber Overlay -->

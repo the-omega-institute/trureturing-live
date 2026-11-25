@@ -448,6 +448,8 @@
   uniform float uStationAlpha;
   uniform float uSonarRadius;
   uniform float uSonarAlpha;
+  uniform float uGenesisRadius;
+  uniform float uCiLoad;
   out vec4 fragColor;
 
   float gridFactor(vec2 coord, float scale, float width) {
@@ -478,12 +480,20 @@
     float r1 = (1.0 - smoothstep(0.0, 0.07, abs(dist - 9.0))) * 0.44;
     float rMid = (1.0 - smoothstep(0.0, 0.045, abs(dist - 11.4))) * 0.28;
     float r2 = (1.0 - smoothstep(0.0, 0.055, abs(dist - 13.8))) * 0.22;
-    float waveR = fract(uTime * 0.065) * 16.0;
-    float rWave = (1.0 - smoothstep(0.0, 0.22, abs(dist - waveR))) * sin(fract(uTime * 0.065) * 3.14159) * 0.16;
+    float waveSpeed = 0.052 + uCiLoad * 0.036;
+    float waveR = fract(uTime * waveSpeed) * 16.0;
+    float rWave = (1.0 - smoothstep(0.0, 0.22, abs(dist - waveR))) * sin(fract(uTime * waveSpeed) * 3.14159) * (0.14 + uCiLoad * 0.14);
     // 8 radial celestial formation azimuth lines across the orbital floor
     float ang = atan(P.z, P.x);
     float radTick = pow(abs(cos(ang * 4.0)), 64.0) * smoothstep(2.5, 5.0, dist) * exp(-dist * 0.075) * 0.26;
     col += uGridColor * (r1 + rMid + r2 + rWave + radTick) * (uTheme > 1.5 ? 0.45 : 0.72);
+    // Blueprint-to-Crystal Genesis Materialization Scan Front on Abyss Floor!
+    if (uGenesisRadius < 40.0) {
+      float gDist = length(P.xz - vec2(0.0, -0.45));
+      float gWave = 1.0 - smoothstep(0.0, 0.55, abs(gDist - uGenesisRadius));
+      vec3 gCol = uTheme > 1.5 ? vec3(0.14, 0.56, 0.58) : vec3(0.58, 0.92, 1.0);
+      col += gCol * gWave * 0.95;
+    }
     // Interactive 3D Golden-Jade Sonar Wave (✦ 灵识扫频 — purely visual & musical!)
     if (uSonarAlpha > 0.005) {
       float sRing = 1.0 - smoothstep(0.0, 0.42, abs(dist - uSonarRadius));
@@ -492,8 +502,16 @@
       col += sonarCol * (sRing * 1.15 + sTrail) * uSonarAlpha;
     }
 
-    // Real-time reflective specular bounce pools from ALL 8 suspended monoliths hovering ABOVE the abyss!
+    // Real-time reflective specular bounce pools + Sky-Mirror Nebula & Akasha Crown Reflection!
     float fres = pow(1.0 - max(dot(N, V), 0.0), 2.8);
+    if (uTheme < 1.5) {
+      float skyBelt = exp(-pow((dist - 10.6) * 0.34, 2.0));
+      float nebVar = 0.55 + 0.45 * sin(ang * 3.0 + uTime * 0.08) * cos(ang * 2.0 - 0.6);
+      vec3 nebMirror = mix(vec3(0.28, 0.66, 0.78), vec3(0.74, 0.64, 0.44), 0.5 + 0.5 * sin(ang * 2.0 - 0.8));
+      col += nebMirror * skyBelt * nebVar * (0.045 + 0.095 * fres);
+      float eyeRefl = exp(-dot(P.xz - vec2(0.0, -2.8), P.xz - vec2(0.0, -2.8)) * 0.045);
+      col += vec3(0.92, 0.80, 0.50) * eyeRefl * (0.032 + 0.045 * fres);
+    }
     for (int i = 0; i < 8; i++) {
       vec3 lp = uLightPos[i];
       float pw = uLightPow[i];
@@ -560,6 +578,8 @@
   uniform float uStationAlpha;
   uniform float uSonarRadius;
   uniform float uSonarAlpha;
+  uniform float uGenesisRadius;
+  uniform float uCiLoad;
   out vec4 fragColor;
 
   void main() {
@@ -642,6 +662,17 @@
       col += auroraRim * fresnel * (0.18 + uActive * 0.34);
     }
 
+    if (uGenesisRadius < 40.0) {
+      // Blueprint-to-Crystal Holographic Materialization Wave sweeping outward from Lean Core!
+      float rScan = length(vWorldPos.xz - vec2(0.0, -0.45));
+      float materialized = smoothstep(uGenesisRadius + 0.55, uGenesisRadius - 0.55, rScan);
+      float front = exp(-pow((rScan - uGenesisRadius) * 2.2, 2.0));
+      vec3 bpCol = uTheme > 1.5 ? vec3(0.20, 0.48, 0.64) : vec3(0.32, 0.72, 0.96);
+      col = mix(bpCol * (0.28 + 0.65 * fresnel), col, materialized);
+      col += mix(vec3(0.55, 0.92, 1.0), vec3(0.98, 0.86, 0.56), 0.42) * front * 1.45;
+      alpha *= mix(0.18, 1.0, materialized);
+    }
+
     float camDist = length(uCamPos - vWorldPos);
     float fog = 1.0 - exp(-pow(max(0.0, camDist - 18.0) * 0.032, 1.8));
     col = mix(col, uFogColor, clamp(fog * 0.68, 0.0, 0.75));
@@ -675,6 +706,7 @@
   uniform float uAlpha;
   uniform float uActive;
   uniform float uTheme;
+  uniform float uGenesisRadius;
   out vec4 fragColor;
   void main() {
     vec3 silver = uTheme > 1.5 ? vec3(0.24, 0.30, 0.38) : vec3(0.76, 0.88, 0.98);
@@ -683,7 +715,15 @@
     float camDist = length(uCamPos - vWorldPos);
     float fade = clamp(1.18 - camDist * 0.020, 0.25, 1.0);
     float a = uAlpha * (vMat > 0.5 ? 1.0 : 0.62) * (1.0 + uActive * 0.65) * fade;
-    fragColor = vec4(col, clamp(a, 0.0, 0.95));
+    if (uGenesisRadius < 40.0) {
+      float rScan = length(vWorldPos.xz - vec2(0.0, -0.45));
+      float unMat = smoothstep(uGenesisRadius - 0.5, uGenesisRadius + 0.5, rScan);
+      float front = exp(-pow((rScan - uGenesisRadius) * 2.2, 2.0));
+      col = mix(col, vec3(0.54, 0.90, 1.0), unMat * 0.72);
+      col += vec3(0.98, 0.88, 0.58) * front * 0.95;
+      a = max(a, (0.58 * unMat + 0.95 * front) * fade);
+    }
+    fragColor = vec4(col, clamp(a, 0.0, 0.96));
   }`;
 
   const VOL_VS = `#version 300 es
@@ -728,9 +768,13 @@
   layout(location=2) in float aSize;
   layout(location=3) in float aAlpha;
   layout(location=4) in float aSlot;
+  layout(location=5) in float aGen;
   uniform mat4 uViewProj;
   uniform float uDpr;
   uniform float uAlphaMul;
+  uniform float uTime;
+  uniform float uGenesisCut;
+  uniform float uGalaxyBoost;
   // Per-galaxy gather transform (slot 0 = no galaxy, slot cid+1 = galaxy cid):
   // p' = pivot + (p - pivot) * scale * stretch + offset, alpha scaled per galaxy.
   uniform vec4 uGather[9];
@@ -743,14 +787,32 @@
   void main() {
     int gi = clamp(int(aSlot + 0.5), 0, 8);
     vec4 g = uGather[gi];
-    vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
+    vec3 baseP = aPos;
+    // Ultra-gentle shader-level silk nebula parallax drift (zero CPU cost!)
+    if (aSize > 18.0) {
+      baseP += vec3(
+        sin(uTime * 0.22 + aPos.z * 0.45) * 0.14,
+        cos(uTime * 0.18 + aPos.x * 0.35) * 0.08,
+        sin(uTime * 0.20 + aPos.y * 0.55) * 0.12
+      );
+    }
+    vec3 wp = uGatherPivot[gi] + (baseP - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
     vec4 clip = uViewProj * vec4(wp, 1.0);
     gl_Position = clip;
-    float pSize = aSize * uDpr * clamp(32.0 / max(10.0, clip.w), 0.78, 2.45);
-    // Sprites follow their galaxy's scale: nebula clouds fully, stars more gently.
-    gl_PointSize = pSize * (aSize > 18.0 ? g.w : pow(g.w, 0.6));
-    vCol = aCol;
-    vAlpha = aAlpha * uAlphaMul * uGatherAlpha[gi];
+    // Real topological layer genesis / time-scrub reveal (aGen < 0 = always present background/beacons)
+    float genMask = aGen < 0.0 ? 1.0 : smoothstep(aGen - 0.04, aGen + 0.06, uGenesisCut);
+    float genBloom = (aGen >= 0.0 && uGenesisCut < 1.02) ? exp(-pow((uGenesisCut - aGen) * 14.0, 2.0)) : 0.0;
+    float isCloud = step(18.0, aSize);
+    float isLantern = step(8.0, aSize) * (1.0 - isCloud);
+    float isNode = 1.0 - step(8.0, aSize);
+    // In Galaxy Observatory / Focused Galaxy mode, make star nodes crisp, slightly larger & distinct while nebula mist recedes!
+    float boostSz = mix(1.0, isCloud > 0.5 ? 0.95 : (isLantern > 0.5 ? 1.24 : (aGen < 0.0 ? 1.22 : 1.48)), uGalaxyBoost);
+    float boostAl = mix(1.0, isCloud > 0.5 ? 0.46 : (isLantern > 0.5 ? 1.05 : (aGen < 0.0 ? 1.10 : 0.96)), uGalaxyBoost);
+    float pSize = aSize * boostSz * uDpr * clamp(32.0 / max(9.5, clip.w), 0.80, 2.40);
+    // Sprites follow their galaxy's scale: nebula clouds gently, stars modestly so close-ups stay razor-sharp!
+    gl_PointSize = pSize * (aSize > 18.0 ? pow(g.w, 0.7) : pow(g.w, 0.35)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
+    vCol = mix(aCol, vec3(1.0, 0.98, 0.90), genBloom * 0.55 + isNode * uGalaxyBoost * 0.12);
+    vAlpha = aAlpha * boostAl * uAlphaMul * uGatherAlpha[gi] * genMask * (1.0 + genBloom * 0.55);
     // 0 = Lean verified jewel star, 1 = gentle silk nebula cloud, 2 = warm settled conjecture lantern star!
     vKind = aSize > 18.0 ? 1.0 : (aSize >= 8.0 ? 2.0 : 0.0);
   }`;
@@ -760,6 +822,7 @@
   in vec3 vCol;
   in float vAlpha;
   in float vKind;
+  uniform float uGalaxyBoost;
   out vec4 fragColor;
   void main() {
     vec2 d = gl_PointCoord - 0.5;
@@ -771,17 +834,19 @@
       fragColor = vec4(vCol, silk * vAlpha);
     } else if (vKind > 1.5) {
       // Gentle warm Conjecture Lantern Star with delicate 4-point astronomical diffraction halo
-      float core = exp(-r * r * 11.0);
-      float glow = pow(max(0.0, 1.0 - r), 2.3) * 0.42;
-      float rayX = exp(-abs(d.y) * 26.0) * exp(-abs(d.x) * 4.8) * 0.46;
-      float rayY = exp(-abs(d.x) * 26.0) * exp(-abs(d.y) * 4.8) * 0.46;
+      float core = exp(-r * r * 12.5);
+      float glow = pow(max(0.0, 1.0 - r), 2.6) * 0.36;
+      float rayX = exp(-abs(d.y) * 28.0) * exp(-abs(d.x) * 5.0) * 0.48;
+      float rayY = exp(-abs(d.x) * 28.0) * exp(-abs(d.y) * 5.0) * 0.48;
       float lum = clamp(core + glow + rayX + rayY, 0.0, 1.0);
       fragColor = vec4(mix(vCol, vec3(1.0, 0.98, 0.92), core * 0.65), lum * vAlpha);
     } else {
-      // Soft pearlescent Lean verified theorem star
-      float core = exp(-r * r * 6.8);
-      float halo = exp(-r * r * 2.1) * 0.34;
-      fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), core * 0.38), (core + halo) * vAlpha);
+      // Crisp crystalline Lean verified theorem node (sharp gem disc + compact halo in Galaxy mode — zero white blowout!)
+      float softCore = exp(-r * r * 6.8) + exp(-r * r * 2.1) * 0.34;
+      float jewelDisc = smoothstep(0.46, 0.16, r) * 0.92 + exp(-r * r * 6.2) * 0.26;
+      float lum = mix(softCore, jewelDisc, uGalaxyBoost);
+      float whiteMix = mix(exp(-r * r * 6.8) * 0.38, smoothstep(0.32, 0.08, r) * 0.52, uGalaxyBoost);
+      fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), whiteMix), clamp(lum, 0.0, 1.0) * vAlpha);
     }
   }`;
 
@@ -791,9 +856,12 @@
   layout(location=1) in vec3 aCol;
   layout(location=2) in float aAlpha;
   layout(location=3) in float aSlot;
+  layout(location=4) in float aGen;
   uniform mat4 uViewProj;
   uniform mat4 uModel;
   uniform float uAlphaMul;
+  uniform float uGenesisCut;
+  uniform float uGalaxyBoost;
   // Per-galaxy gather transform (slot 0 = no galaxy, slot cid+1 = galaxy cid):
   // p' = pivot + (p - pivot) * scale * stretch + offset, alpha scaled per galaxy.
   uniform vec4 uGather[9];
@@ -807,8 +875,10 @@
     vec4 g = uGather[gi];
     vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
     gl_Position = uViewProj * uModel * vec4(wp, 1.0);
-    vCol = aCol;
-    vAlpha = aAlpha * uAlphaMul * uGatherAlpha[gi];
+    float genMask = aGen < 0.0 ? 1.0 : smoothstep(aGen - 0.03, aGen + 0.06, uGenesisCut);
+    float edgeBoost = aGen < 0.0 ? 1.0 : mix(1.0, 2.75, uGalaxyBoost);
+    vCol = mix(aCol, vec3(0.92, 0.98, 1.0), (aGen < 0.0 ? 0.0 : 0.34 * uGalaxyBoost));
+    vAlpha = aAlpha * edgeBoost * uAlphaMul * uGatherAlpha[gi] * genMask;
   }`;
 
   const DAG_LINE_FS = `#version 300 es
@@ -1062,6 +1132,12 @@
     wiper.addOctahedron(0, 0.27, 0, 0.15, 0.17, 0.15, 3);
     g.wiper = wiper.build(gl, 18);
 
+    // 3D Crystalline Bridge Payload Shuttle (glides along wings <-> Lean Core <-> Mathesis!)
+    const shuttle = new MeshBuilder();
+    shuttle.addOctahedron(0, 0, 0, 0.16, 0.055, 0.07, 3, 0);
+    shuttle.addBox(0, 0, 0, 0.14, 0.025, 0.14, 2, 0);
+    g.shuttle = shuttle.build(gl, 16);
+
     // Pedestal Hex Plinth
     const plinth = new MeshBuilder();
     plinth.addPrism(0, 0.0, 0, 0.92, 0.80, 0.10, 6, 0, Math.PI / 6);
@@ -1292,13 +1368,15 @@
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW);
     g.quad = { vbo: quadVbo, count: 6 };
 
-    // Dynamic 3D Truth DAG GPU buffers (Stars, Nebula Clouds, Constellation Edges)
+    // Dynamic 3D Truth DAG GPU buffers (Stars, Nebula Clouds, Constellation Edges, Deep-Space Scholar Beacons)
     g.starVbo = gl.createBuffer();
     g.starCount = 0;
     g.nebulaVbo = gl.createBuffer();
     g.nebulaCount = 0;
     g.dagEdgeVbo = gl.createBuffer();
     g.dagEdgeCount = 0;
+    g.scholarVbo = gl.createBuffer();
+    g.scholarCount = 0;
 
     return g;
   }
@@ -1349,8 +1427,10 @@
       this.fboW = 0;
       this.fboH = 0;
       this.starHash = '';
+      this.scholarHash = '';
       this.clusterCenters = new Map();
       this.skyClusters = []; // cached 3D celestial ring positions of Truth DAG clusters
+      this.lanternStars = []; // cached 3D world positions + records of Conjecture Lantern Stars for interactive hover/click!
       this.gatherVec = new Float32Array(36);
       this.gatherPivot = new Float32Array(27);
       this.gatherStretch = new Float32Array(27);
@@ -1464,6 +1544,42 @@
       return mapStarToCelestialRing(nx, ny, nz, cid, this.clusterCenters);
     }
 
+    // Build/update distant warm-amber Deep-Space Scholar Constellation (e.g. 223 collaborating scholars off right-upper horizon!)
+    syncScholarBeacons(count = 223, isLight = false) {
+      const n = Math.max(0, Math.min(600, Math.round(Number(count) || 0)));
+      const key = `${n}:${isLight ? 1 : 0}`;
+      if (key === this.scholarHash) return;
+      this.scholarHash = key;
+      const data = [];
+      let seed = 22307;
+      const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+      for (let i = 0; i < n; i++) {
+        // Gentle curved deep-space crescent beyond 05 Outreach's parabolic radio dish (open right horizon, clear of right console!)
+        const u = (i + 0.5) / Math.max(1, n);
+        const theta = -0.78 + u * 1.56 + (rand() - 0.5) * 0.14;
+        const rad = 3.2 + rand() * 3.8;
+        const x = 6.9 + Math.cos(theta) * rad * 0.85;
+        const y = 1.0 + Math.sin(u * Math.PI) * 3.1 + (rand() - 0.5) * 1.3;
+        const z = 1.5 + Math.sin(theta) * rad * 0.95 + (rand() - 0.5) * 1.1;
+        const warm = i % 5 === 0;
+        const col = isLight
+          ? (warm ? [0.76, 0.48, 0.12] : [0.60, 0.42, 0.18])
+          : (warm ? [1.00, 0.88, 0.56] : [0.96, 0.76, 0.44]);
+        const sz = warm ? (4.2 + rand() * 1.4) : (2.2 + rand() * 1.4);
+        const al = isLight ? (0.42 + rand() * 0.28) : (0.48 + rand() * 0.36);
+        // slot=0 (no gather), aGen=-0.1 (always gently visible in deep space!)
+        data.push(x, y, z, col[0], col[1], col[2], sz, al, 0, -0.1);
+      }
+      const gl = this.gl;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.scholarVbo);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+      this.geo.scholarCount = data.length / 10;
+    }
+
+    getLanternStars() {
+      return this.lanternStars || [];
+    }
+
     // Upload real 1,160 Lean Truth DAG stars, gentle 5-layer silk nebula clouds, gossamer filaments,
     // AND warm settled Conjecture Lantern Stars — ONE unified, gentle celestial cosmos!
     syncTruthDag(stars, edges, clusters, nebPalette, recentByCluster, isLight, settledConjectures = []) {
@@ -1482,8 +1598,9 @@
       const starData = [];
       const nebData = [];
       const edgeData = [];
+      this.lanternStars = [];
 
-      // 1. Deep-space ambient starfield dome (quiet, serene astronomical backdrop)
+      // 1. Deep-space ambient starfield dome (quiet, serene astronomical backdrop, aGen = -0.1 always present)
       let seed = 7331;
       const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
       for (let i = 0; i < 360; i++) {
@@ -1494,10 +1611,10 @@
         const y = Math.sin(elev) * rad + 1.0;
         const z = Math.sin(theta) * Math.cos(elev) * rad - 8.0;
         const tone = isLight ? [0.24, 0.36, 0.44] : (i % 6 === 0 ? [0.96, 0.89, 0.76] : [0.76, 0.88, 0.98]);
-        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.8, isLight ? 0.20 : (0.16 + rand() * 0.36), 0);
+        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.8, isLight ? 0.20 : (0.16 + rand() * 0.36), 0, -0.1);
       }
 
-      // 2. Real Lean Verified Truth DAG stars on the 3D Celestial Helical Ring
+      // 2. Real Lean Verified Truth DAG stars on the 3D Celestial Helical Ring (aGen = real normalized DAG layer s[4]/100!)
       const worldPts = [];
       if (stars && stars.length) {
         for (let i = 0; i < stars.length; i++) {
@@ -1508,9 +1625,10 @@
           const col = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
           const deg = s[5] || 1;
           const isOther = s[3] === 7;
-          const sz = isOther ? 2.1 : ((deg >= 7 ? 4.1 : 2.6) * (hasG ? 1.18 : 1.0));
-          const al = (isOther ? 0.30 : (hasG ? 0.78 : 0.46)) * (isLight ? 0.76 : 1.0);
-          starData.push(wx, wy, wz, col[0] / 255, col[1] / 255, col[2] / 255, sz, al, s[3] + 1);
+          const sz = isOther ? 2.4 : ((deg >= 7 ? 4.8 : deg >= 3 ? 3.5 : 2.9) * (hasG ? 1.18 : 1.0));
+          const al = (isOther ? 0.34 : (hasG ? 0.82 : 0.56)) * (isLight ? 0.78 : 1.0);
+          const gen = Math.max(0.01, Math.min(0.99, (s[4] || 0) / 100));
+          starData.push(wx, wy, wz, col[0] / 255, col[1] / 255, col[2] / 255, sz, al, s[3] + 1, gen);
         }
       }
 
@@ -1526,16 +1644,15 @@
           this.skyClusters.push({ cl, x: cx3, y: cy3, z: cz3, col });
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
           const rC = col[0] / 255, gC = col[1] / 255, bC = col[2] / 255;
-          // Blend a gentle warm pearl tint into outer veil so nebula feels luminous & organic, never harsh!
           const wR = rC * 0.68 + 0.30, wG = gC * 0.72 + 0.26, wB = bC * 0.78 + 0.18;
           const baseSz = hasG ? 128.0 : 98.0;
           const baseAl = isLight ? (hasG ? 0.095 : 0.055) : (hasG ? 0.22 : 0.145);
           const slot = cl.id + 1;
-          nebData.push(cx3, cy3, cz3, rC, gC, bC, baseSz, baseAl, slot);
-          nebData.push(cx3 - 1.15, cy3 + 0.38, cz3 - 0.55, wR, wG, wB, baseSz * 0.84, baseAl * 0.56, slot);
-          nebData.push(cx3 + 1.15, cy3 - 0.30, cz3 + 0.45, rC, gC, bC, baseSz * 0.78, baseAl * 0.54, slot);
-          nebData.push(cx3 - 0.45, cy3 - 0.42, cz3 + 0.55, wR, wG, wB, baseSz * 0.66, baseAl * 0.46, slot);
-          nebData.push(cx3 + 0.55, cy3 + 0.48, cz3 - 0.40, 0.94, 0.86, 0.70, baseSz * 0.58, baseAl * (hasG ? 0.42 : 0.24), slot);
+          nebData.push(cx3, cy3, cz3, rC, gC, bC, baseSz, baseAl, slot, 0.10);
+          nebData.push(cx3 - 1.15, cy3 + 0.38, cz3 - 0.55, wR, wG, wB, baseSz * 0.84, baseAl * 0.56, slot, 0.22);
+          nebData.push(cx3 + 1.15, cy3 - 0.30, cz3 + 0.45, rC, gC, bC, baseSz * 0.78, baseAl * 0.54, slot, 0.32);
+          nebData.push(cx3 - 0.45, cy3 - 0.42, cz3 + 0.55, wR, wG, wB, baseSz * 0.66, baseAl * 0.46, slot, 0.42);
+          nebData.push(cx3 + 0.55, cy3 + 0.48, cz3 - 0.40, 0.94, 0.86, 0.70, baseSz * 0.58, baseAl * (hasG ? 0.42 : 0.24), slot, 0.52);
         }
       }
 
@@ -1552,7 +1669,9 @@
           return 3; // ConceptDynamics
         };
         const perCid = new Map();
-        for (const rec of settledConjectures.slice(0, 28)) {
+        const slice = settledConjectures.slice(0, 28);
+        for (let k = 0; k < slice.length; k++) {
+          const rec = slice[k];
           const cid = domainToCid(rec);
           const center = clusterPosById.get(cid);
           if (!center) continue;
@@ -1567,8 +1686,10 @@
           const lc = isLight
             ? (isRef ? [0.76, 0.38, 0.14] : [0.72, 0.52, 0.16])
             : (isRef ? [0.97, 0.74, 0.54] : [0.98, 0.88, 0.66]);
+          const gen = 0.32 + (1 - k / Math.max(1, slice.length)) * 0.64; // chronological emergence along time-scrub!
           // Size 11.5..14.0 activates the gentle 4-point JWST Lantern Star shader mode!
-          starData.push(lx, ly, lz, lc[0], lc[1], lc[2], isRef ? 12.2 : 13.6, isLight ? 0.72 : 0.86, cid + 1);
+          starData.push(lx, ly, lz, lc[0], lc[1], lc[2], isRef ? 12.2 : 13.6, isLight ? 0.72 : 0.86, cid + 1, gen);
+          this.lanternStars.push({ wx: lx, wy: ly, wz: lz, cid, gen, rec });
         }
       }
 
@@ -1582,13 +1703,14 @@
           if (!pu || !pv) continue;
           const cid = stars[u][3];
           if (stars[v][3] !== cid) continue;
-          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 2.15) continue;
+          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 3.85) continue;
           const hasG = Boolean(recentByCluster?.get(cid)?.count);
           const col = (nebPalette && nebPalette[cid % nebPalette.length]) || [128, 198, 232];
-          const al = (hasG ? 0.21 : 0.105) * (isLight ? 0.82 : 1.0);
+          const al = (hasG ? 0.27 : 0.165) * (isLight ? 0.84 : 1.0);
+          const gEdge = Math.max(0.02, Math.min(0.99, Math.max(stars[u][4] || 0, stars[v][4] || 0) / 100));
           edgeData.push(
-            pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cid + 1,
-            pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cid + 1
+            pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cid + 1, gEdge,
+            pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cid + 1, gEdge
           );
         }
       }
@@ -1596,18 +1718,18 @@
       const gl = this.gl;
       gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.starVbo);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(starData), gl.STATIC_DRAW);
-      this.geo.starCount = starData.length / 9;
+      this.geo.starCount = starData.length / 10;
 
       gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.nebulaVbo);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nebData), gl.STATIC_DRAW);
-      this.geo.nebulaCount = nebData.length / 9;
+      this.geo.nebulaCount = nebData.length / 10;
 
       gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.dagEdgeVbo);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(edgeData), gl.STATIC_DRAW);
-      this.geo.dagEdgeCount = edgeData.length / 8;
+      this.geo.dagEdgeCount = edgeData.length / 9;
     }
 
-    drawMesh(mesh, modelMat, accent, active, running, themeIdx, t, edgeAlpha, stationAlpha) {
+    drawMesh(mesh, modelMat, accent, active, running, themeIdx, t, edgeAlpha, stationAlpha, genesisRadius = 99.0) {
       if (stationAlpha < 0.02) return;
       const gl = this.gl;
       const pp = this.pbrProg;
@@ -1622,8 +1744,12 @@
       gl.uniform1f(pp.u.uTheme, themeIdx);
       gl.uniform1f(pp.u.uTime, t);
       gl.uniform1f(pp.u.uStationAlpha, stationAlpha);
+      gl.uniform1f(pp.u.uGenesisRadius, genesisRadius);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
+      gl.disableVertexAttribArray(3);
+      gl.disableVertexAttribArray(4);
+      gl.disableVertexAttribArray(5);
       gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
       gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
@@ -1639,6 +1765,7 @@
         gl.uniform1f(ep.u.uAlpha, edgeAlpha * stationAlpha);
         gl.uniform1f(ep.u.uActive, active);
         gl.uniform1f(ep.u.uTheme, themeIdx);
+        gl.uniform1f(ep.u.uGenesisRadius, genesisRadius);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, mesh.ebo);
         gl.disableVertexAttribArray(2);
@@ -1671,13 +1798,15 @@
     render(params) {
       const {
         t, themeIdx, entities, activeId, focusedId, bootAge, quiet,
-        stationAlpha = 1.0, galaxyAlpha = 1.0, sonarRadius = 0.0, sonarAlpha = 0.0,
-        rheostatRevX = -2.0, rheostatStuX = 2.0
+        stationAlpha = 1.0, galaxyAlpha = 1.0, galaxyBoost = 0.0, sonarRadius = 0.0, sonarAlpha = 0.0,
+        rheostatRevX = -2.0, rheostatStuX = 2.0,
+        genesisRadius = 99.0, genesisCut = 1.05, ciLoad = 0.45, scholarCount = 223
       } = params;
       const gl = this.gl;
       const tAnim = quiet ? 4.2 : t;
       const isLight = themeIdx > 1.5;
       const isBlueprint = themeIdx > 0.5 && themeIdx < 1.5;
+      this.syncScholarBeacons(scholarCount, isLight);
 
       this.fogColor = isLight
         ? [0.918, 0.902, 0.866]
@@ -1700,6 +1829,8 @@
         gl.disableVertexAttribArray(1);
         gl.disableVertexAttribArray(2);
         gl.disableVertexAttribArray(3);
+        gl.disableVertexAttribArray(4);
+        gl.disableVertexAttribArray(5);
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -1764,6 +1895,8 @@
         gl.uniform1f(fp.u.uStationAlpha, floorAlpha);
         gl.uniform1f(fp.u.uSonarRadius, sonarRadius);
         gl.uniform1f(fp.u.uSonarAlpha, sonarAlpha);
+        gl.uniform1f(fp.u.uGenesisRadius, genesisRadius);
+        gl.uniform1f(fp.u.uCiLoad, ciLoad);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.floor.vbo);
         gl.disableVertexAttribArray(1);
         gl.disableVertexAttribArray(2);
@@ -1777,30 +1910,51 @@
         if (stationAlpha > 0.04) {
           M4.identity(this.modelMat);
           const campusAccent = isLight ? [0.16, 0.48, 0.48] : isBlueprint ? [0.56, 0.82, 1.0] : [0.46, 0.84, 0.94];
-          this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha);
+          this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3 + ciLoad * 0.4, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha, genesisRadius);
           // Independent Embedded Branch A Rail (02 独立评审 · Violet-Silver) + Sliding Wiper A
           const revAccent = isLight ? [0.38, 0.34, 0.72] : isBlueprint ? [0.62, 0.82, 1.0] : [0.68, 0.74, 0.98];
           const revAct = activeId === 'review' ? 1.0 : 0.25;
           if (this.geo.revRail) {
             M4.identity(this.modelMat);
-            this.drawMesh(this.geo.revRail, this.modelMat, revAccent, revAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha);
+            this.drawMesh(this.geo.revRail, this.modelMat, revAccent, revAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha, genesisRadius);
           }
           if (this.geo.wiper) {
             const rx = Math.max(-5.15, Math.min(3.35, rheostatRevX));
             M4.compose(this.modelMat, rx, 0.0, 3.08, 0, 0, 0, 1, 1, 1);
-            this.drawMesh(this.geo.wiper, this.modelMat, revAccent, Math.max(0.75, revAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha);
+            this.drawMesh(this.geo.wiper, this.modelMat, revAccent, Math.max(0.75, revAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha, genesisRadius);
           }
           // Independent Embedded Branch B Rail (06 工具与表达 · Ice-Cyan) + Sliding Wiper B
           const stuAccent = isLight ? [0.10, 0.46, 0.66] : isBlueprint ? [0.54, 0.86, 1.0] : [0.48, 0.84, 0.98];
           const stuAct = activeId === 'studio' ? 1.0 : 0.25;
           if (this.geo.stuRail) {
             M4.identity(this.modelMat);
-            this.drawMesh(this.geo.stuRail, this.modelMat, stuAccent, stuAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha);
+            this.drawMesh(this.geo.stuRail, this.modelMat, stuAccent, stuAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha, genesisRadius);
           }
           if (this.geo.wiper) {
             const sx = Math.max(-3.35, Math.min(5.15, rheostatStuX));
             M4.compose(this.modelMat, sx, 0.0, 3.88, 0, 0, 0, 1, 1, 1);
-            this.drawMesh(this.geo.wiper, this.modelMat, stuAccent, Math.max(0.75, stuAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha);
+            this.drawMesh(this.geo.wiper, this.modelMat, stuAccent, Math.max(0.75, stuAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha, genesisRadius);
+          }
+          // 6 Physical 3D Crystalline Bridge Payload Shuttles gliding along Wings <-> Lean Core <-> Mathesis!
+          if (this.geo.shuttle && !quiet && genesisRadius > 8.0) {
+            const shSpd = 0.16 + ciLoad * 0.12;
+            const shuttleSpecs = [
+              { x0: -3.65, z0: -0.62, x1: -1.48, z1: -0.58, ph: 0.00, col: [0.38, 0.90, 0.84] },
+              { x0: -1.48, z0: -0.28, x1: -3.65, z1: -0.32, ph: 0.48, col: [0.68, 0.74, 0.96] },
+              { x0:  1.48, z0: -0.62, x1:  3.65, z1: -0.58, ph: 0.22, col: [0.88, 0.96, 1.00] },
+              { x0:  3.65, z0: -0.28, x1:  1.48, z1: -0.32, ph: 0.72, col: [0.54, 0.84, 0.98] },
+              { x0:  5.55, z0: -1.85, x1:  5.82, z1:  1.05, ph: 0.15, col: [0.96, 0.80, 0.48] },
+              { x0:  5.82, z0:  1.05, x1:  5.55, z1: -1.85, ph: 0.65, col: [0.96, 0.84, 0.56] }
+            ];
+            for (const sh of shuttleSpecs) {
+              const u = (tAnim * shSpd + sh.ph) % 1;
+              const sx = sh.x0 + (sh.x1 - sh.x0) * u;
+              const sz = sh.z0 + (sh.z1 - sh.z0) * u;
+              const sy = 0.28 + Math.sin(u * Math.PI) * 0.12;
+              const yaw = Math.atan2(sh.z1 - sh.z0, sh.x1 - sh.x0);
+              M4.compose(this.modelMat, sx, sy, sz, 0, -yaw, 0, 1.0, 1.0, 1.0);
+              this.drawMesh(this.geo.shuttle, this.modelMat, sh.col, 0.9, 1.0, themeIdx, tAnim, 0.65, stationAlpha, genesisRadius);
+            }
           }
         }
 
@@ -1818,63 +1972,66 @@
 
           if (!e.eye && e.id !== 'verification') {
             M4.compose(this.modelMat, e.x, y0 + 0.10, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.plinth, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.72, entAlpha);
+            this.drawMesh(this.geo.plinth, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.72, entAlpha, genesisRadius);
           }
 
           if (e.id === 'verification') {
             const scH = (0.96 + (e.hEntity - 1.44) * 0.25) * bootK;
-            M4.compose(this.modelMat, e.x, y0 + 0.06, e.z, 0, tAnim * 0.06, 0, bootK, scH, bootK);
-            this.drawMesh(this.geo.verification, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
-            M4.compose(this.modelMat, e.x, y0 + 0.84 * scH, e.z, Math.sin(tAnim * 0.32) * 0.14, -tAnim * 0.28, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.verRing, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.9, entAlpha);
+            const spinSpd = 0.24 + ciLoad * 0.44;
+            M4.compose(this.modelMat, e.x, y0 + 0.06, e.z, 0, tAnim * (0.05 + ciLoad * 0.06), 0, bootK, scH, bootK);
+            this.drawMesh(this.geo.verification, this.modelMat, accent, Math.max(act, ciLoad * 0.45), Math.max(run, ciLoad), themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
+            M4.compose(this.modelMat, e.x, y0 + 0.84 * scH, e.z, Math.sin(tAnim * 0.32) * 0.14, -tAnim * spinSpd, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.verRing, this.modelMat, accent, Math.max(act, ciLoad * 0.4), Math.max(run, ciLoad), themeIdx, tAnim, edgeA * 0.9, entAlpha, genesisRadius);
           } else if (e.id === 'research') {
             const fy = y0 + 1.00 * bootK + Math.sin(tAnim * 0.9) * 0.05;
             M4.compose(this.modelMat, e.x, fy, e.z, tAnim * 0.14, tAnim * 0.24, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.resShell, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
+            this.drawMesh(this.geo.resShell, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x, fy, e.z, -tAnim * 0.22, -tAnim * 0.32, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.resCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            this.drawMesh(this.geo.resCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
           } else if (e.id === 'review') {
             M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            this.drawMesh(this.geo.revBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
             const sway = Math.sin(tAnim * 0.85) * 0.10;
             M4.compose(this.modelMat, e.x - 0.42 * bootK, y0 + (0.76 + sway) * bootK, e.z, 0, 0.28, 0.06, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x + 0.42 * bootK, y0 + (0.76 - sway) * bootK, e.z, 0, -0.28, -0.06, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
           } else if (e.id === 'books') {
             M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, tAnim * 0.16, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.bookCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            this.drawMesh(this.geo.bookCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
             for (let lv = 0; lv < 5; lv++) {
               const ly = y0 + (0.36 + lv * 0.185 + Math.sin(tAnim * 1.1 + lv * 0.65) * 0.028) * bootK;
               const sc = (1.0 - lv * 0.07) * bootK;
               M4.compose(this.modelMat, e.x, ly, e.z, 0, lv * 0.12 + Math.sin(tAnim * 0.35 + lv) * 0.08, 0, sc, bootK, sc);
-              this.drawMesh(this.geo.bookSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.95, entAlpha);
+              this.drawMesh(this.geo.bookSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.95, entAlpha, genesisRadius);
             }
           } else if (e.id === 'publication') {
             M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0.25 + Math.sin(tAnim * 0.2) * 0.08, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.publication, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha);
+            this.drawMesh(this.geo.publication, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha, genesisRadius);
           } else if (e.id === 'outreach') {
             M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.outBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
-            M4.compose(this.modelMat, e.x, y0 + 0.74 * bootK, e.z, 0, tAnim * 0.18, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.outDish, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha);
+            this.drawMesh(this.geo.outBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
+            // Gently sweep radio dish toward the 223-scholar deep-space crescent off the right horizon!
+            const dishYaw = -1.15 + Math.sin(tAnim * 0.28) * 0.38;
+            M4.compose(this.modelMat, e.x, y0 + 0.74 * bootK, e.z, 0, dishYaw, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.outDish, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha, genesisRadius);
           } else if (e.id === 'studio') {
             const cy3 = y0 + 0.84 * bootK;
             M4.compose(this.modelMat, e.x, cy3, e.z, tAnim * 0.14, tAnim * 0.22, 0.18, bootK, bootK, bootK);
-            this.drawMesh(this.geo.stuOuter, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.0, entAlpha);
+            this.drawMesh(this.geo.stuOuter, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.0, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x, cy3, e.z, -tAnim * 0.26, -tAnim * 0.34, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
+            this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
           } else if (e.id === 'direction') {
             const fy = y0 + Math.sin(tAnim * 0.85) * 0.08;
             const scEye = bootK * 1.18;
             M4.compose(this.modelMat, e.x, fy, e.z, 0, tAnim * 0.20, 0, scEye, scEye, scEye);
-            this.drawMesh(this.geo.dirCore, this.modelMat, accent, Math.max(act, 0.55), 1.0, themeIdx, tAnim, edgeA * 1.25, entAlpha);
+            this.drawMesh(this.geo.dirCore, this.modelMat, accent, Math.max(act, 0.55), 1.0, themeIdx, tAnim, edgeA * 1.25, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x, fy, e.z, Math.sin(tAnim * 0.28) * 0.16, -tAnim * 0.24, 0, scEye, scEye, scEye);
-            this.drawMesh(this.geo.dirRing, this.modelMat, accent, Math.max(act, 0.45), 1.0, themeIdx, tAnim, edgeA * 1.05, entAlpha);
+            this.drawMesh(this.geo.dirRing, this.modelMat, accent, Math.max(act, 0.45), 1.0, themeIdx, tAnim, edgeA * 1.05, entAlpha, genesisRadius);
           }
         }
 
-        // 1D. Volumetric Atmospheric Pillars + Supreme Akasha Eye Global Surveillance Cone!
+        // 1D. Volumetric Atmospheric Pillars + Supreme Akasha Eye Global Surveillance Cone + Live Reactor Heartbeat!
         if (!isLight) {
           gl.depthMask(false);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -1882,8 +2039,9 @@
           const eyeEnt = entities.find(e => e.eye);
           if (ver && stationAlpha > 0.05) {
             const vc = [ver.rgb[0] / 255, ver.rgb[1] / 255, ver.rgb[2] / 255];
-            this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.4, vc, 0.13 * stationAlpha);
-            this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, 0.22 * stationAlpha);
+            const loadBeat = 0.85 + 0.15 * Math.sin(tAnim * (1.2 + ciLoad * 2.4));
+            this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.4, vc, (0.10 + ciLoad * 0.10) * loadBeat * stationAlpha);
+            this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, (0.16 + ciLoad * 0.18) * loadBeat * stationAlpha);
           }
           if (eyeEnt) {
             // Grand translucent downward Global Surveillance Light Cone radiating from Supreme Akasha Eye over all galaxies & station!
@@ -1907,9 +2065,7 @@
         }
       }
 
-      // 1E. STRATUM 3 — 3D CELESTIAL HELICAL TRUTH DAG RING (周天星斗大阵) ENCIRCLING GROUND <-> AKASHA EYE!
-      // Rendered with DEPTH_TEST ON + depthMask OFF so stars, sacred meridian rings & rising spiritual qi wrap
-      // authentically BEHIND and IN FRONT OF the floating sanctuary in true 3D depth!
+      // 1E. STRATUM 3 — 3D CELESTIAL HELICAL TRUTH DAG RING (周天星斗大阵) + 223 DEEP-SPACE SCHOLAR BEACONS!
       if (galaxyAlpha > 0.04) {
         gl.depthMask(false);
         if (!isLight) gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -1922,31 +2078,41 @@
           gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
           gl.uniformMatrix4fv(dl.u.uModel, false, this.modelMat);
           gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha * (isLight ? 0.55 : 0.95));
+          gl.uniform1f(dl.u.uGenesisCut, 1.05);
+          gl.uniform1f(dl.u.uGalaxyBoost, 0.0);
           this.bindGather(dl);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.celestialRings.vbo);
           gl.disableVertexAttribArray(3);
+          gl.disableVertexAttribArray(4);
+          gl.vertexAttrib1f(3, 0.0);
+          gl.vertexAttrib1f(4, -0.1);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
           gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
           gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
           gl.drawArrays(gl.LINES, 0, this.geo.celestialRings.count);
         }
 
-        // Volumetric nebula clouds behind each named galaxy along the celestial ring
+        // Volumetric gentle silk nebula clouds behind each named galaxy (with GPU parallax micro-drift!)
         if (this.geo.nebulaCount > 0) {
           const sp = this.starProg;
           gl.useProgram(sp.p);
           gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
           gl.uniform1f(sp.u.uDpr, this.dpr);
           gl.uniform1f(sp.u.uAlphaMul, galaxyAlpha);
+          gl.uniform1f(sp.u.uTime, tAnim);
+          gl.uniform1f(sp.u.uGenesisCut, genesisCut);
+          gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
           this.bindGather(sp);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.nebulaVbo);
-          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0);
-          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 12);
-          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 36, 24);
-          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 36, 28);
-          gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 36, 32);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 40, 24);
+          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 28);
+          gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 40, 32);
+          gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 40, 36);
           gl.drawArrays(gl.POINTS, 0, this.geo.nebulaCount);
           gl.disableVertexAttribArray(4);
+          gl.disableVertexAttribArray(5);
         }
 
         // Crisp 3D intra-galaxy constellation edges
@@ -1956,33 +2122,66 @@
           gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
           gl.uniformMatrix4fv(dl.u.uModel, false, this.identityMat);
           gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha);
+          gl.uniform1f(dl.u.uGenesisCut, genesisCut);
+          gl.uniform1f(dl.u.uGalaxyBoost, galaxyBoost);
           this.bindGather(dl);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.dagEdgeVbo);
-          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
-          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 32, 12);
-          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 32, 24);
-          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 32, 28);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 12);
+          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 36, 24);
+          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 36, 28);
+          gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 36, 32);
           gl.drawArrays(gl.LINES, 0, this.geo.dagEdgeCount);
           gl.disableVertexAttribArray(3);
+          gl.disableVertexAttribArray(4);
         }
 
-        // 1,160+ real frozen Truth DAG stars + Foundation 360° Celestial River
+        // 1,160+ real frozen Truth DAG stars + Warm Conjecture Lantern Stars + Foundation Celestial River
         if (this.geo.starCount > 0) {
           const sp = this.starProg;
           gl.useProgram(sp.p);
           gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
           gl.uniform1f(sp.u.uDpr, this.dpr);
           gl.uniform1f(sp.u.uAlphaMul, galaxyAlpha);
+          gl.uniform1f(sp.u.uTime, tAnim);
+          gl.uniform1f(sp.u.uGenesisCut, genesisCut);
+          gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
           this.bindGather(sp);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.starVbo);
-          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0);
-          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 12);
-          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 36, 24);
-          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 36, 28);
-          gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 36, 32);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 40, 24);
+          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 28);
+          gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 40, 32);
+          gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 40, 36);
           gl.drawArrays(gl.POINTS, 0, this.geo.starCount);
           gl.disableVertexAttribArray(3);
           gl.disableVertexAttribArray(4);
+          gl.disableVertexAttribArray(5);
+        }
+
+        // Distant Deep-Space Collaborating Scholar Beacon Crescent (223 verified scholars off right horizon!)
+        if (this.geo.scholarCount > 0 && stationAlpha > 0.15) {
+          const sp = this.starProg;
+          gl.useProgram(sp.p);
+          gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
+          gl.uniform1f(sp.u.uDpr, this.dpr);
+          gl.uniform1f(sp.u.uAlphaMul, stationAlpha * (activeId === 'outreach' ? 1.35 : 0.72));
+          gl.uniform1f(sp.u.uTime, tAnim);
+          gl.uniform1f(sp.u.uGenesisCut, 1.05);
+          gl.uniform1f(sp.u.uGalaxyBoost, 0.0);
+          this.bindGather(sp);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.scholarVbo);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 40, 24);
+          gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 28);
+          gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 40, 32);
+          gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 40, 36);
+          gl.drawArrays(gl.POINTS, 0, this.geo.scholarCount);
+          gl.disableVertexAttribArray(3);
+          gl.disableVertexAttribArray(4);
+          gl.disableVertexAttribArray(5);
         }
 
         // GPU-Animated Ascending Ethereal Qi / Starlight Motes rising silently from Ground -> Akasha Eye!
@@ -1993,8 +2192,11 @@
           gl.uniform1f(qp.u.uTime, tAnim);
           gl.uniform1f(qp.u.uDpr, this.dpr);
           gl.uniform1f(qp.u.uAlphaMul, galaxyAlpha * 0.92);
+          gl.uniform1f(qp.u.uGalaxyBoost, 0.0);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.qi.vbo);
           gl.disableVertexAttribArray(3);
+          gl.disableVertexAttribArray(4);
+          gl.disableVertexAttribArray(5);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 36, 0);
           gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 16);
           gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 36, 28);

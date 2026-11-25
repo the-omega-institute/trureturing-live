@@ -1,0 +1,20 @@
+{
+  "schema": "trureturing.outreach-stats.v1",
+  "source": "the-omega-institute/trureturing-outreach@data",
+  "source_commit": "69f2caf",
+  "updated_at": "2026-11-25T16:42:02Z",
+  "contacted_scholars": 1049,
+  "replied_scholars": 485,
+  "collaborating_scholars": 223,
+  "collaboration_records": 230,
+  "active_collaborations": 191,
+  "joint_papers": 32,
+  "coauthorship_pending": 6,
+  "completed_collaborations": 1,
+  "positive_scholars": 316,
+  "positive_quotes": 697,
+  "cited_or_credited_scholars": 70,
+  "short_notes": 212,
+  "registered_contacts": 1599,
+  "note": "Strictly anonymized aggregate counts reconciled from upstream outreach ledger; zero personal identities or email addresses."
+}
