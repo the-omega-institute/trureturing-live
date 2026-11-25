@@ -437,3 +437,38 @@ test('a new matrix entry carries its importance, and 轮播 shows the real entry
     assert.equal(stream.querySelector('[data-log-key^="merged-1/"]').dataset.xpTier,'3');
   }finally{dom.window.close();}
 });
+
+test('truth DAG growth is grouped by galaxy and brought into close-up one place at a time',async()=>{
+  const {dom,win}=await boot();try{
+    const clusters=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'},{id:7,name:'Other'}];
+    assert.equal(win.growthClusterId('Combinatorics',clusters),0);
+    assert.equal(win.growthClusterId('Fourier',clusters),7,'other domains grow in the remaining galaxy');
+    assert.equal(win.growthClusterId('Quantum',[]),-1);
+    const ev=(m,d)=>({module:`D5/S3/${d}/${m}`,domain:d,stratum:'S3',at:'2026-11-25T08:00:00Z',commit:'c'});
+    const first=win.freshTruthGrowth(null,[ev('A','Combinatorics')]);
+    assert.deepEqual([...first.fresh],[],'the first reading is the baseline, not growth');
+    const next=win.freshTruthGrowth(first.seen,[ev('A','Combinatorics'),ev('B','Combinatorics'),ev('C','Quantum'),ev('D','Combinatorics')]);
+    assert.deepEqual([...next.fresh.map(e=>e.module.split('/').at(-1))],['B','C','D']);
+    assert.deepEqual([...win.freshTruthGrowth(next.seen,[ev('B','Combinatorics')]).fresh],[],'a module grows once');
+    let q=win.enqueueGrowth([],next.fresh,clusters,1000);
+    assert.deepEqual([...q.map(i=>i.cid)],[0,1],'one close-up per galaxy');
+    assert.equal(q[0].modules.length,2);
+    q=win.enqueueGrowth(q,[ev('E','Quantum')],clusters,1200);
+    assert.equal(q.length,2);
+    assert.equal(q[1].modules.length,2,'later growth joins the waiting galaxy');
+    assert.equal(win.nextGrowthFocus(q,1000,0,null),0);
+    assert.equal(win.nextGrowthFocus(q,1000,5000,null),-1,'calm keeps the sky still');
+    assert.equal(win.nextGrowthFocus(q,9000,5000,0),1,'the next close-up prefers another galaxy');
+    assert.equal(win.nextGrowthFocus([q[0]],9000,5000,0),0,'the same galaxy grows again when nothing else waits');
+    assert.equal(win.nextGrowthFocus([],9000,0,null),-1);
+    assert.equal(win.growthFocusAmount(0),0);
+    const rising=win.growthFocusAmount(700);
+    assert.ok(rising>0&&rising<1,'the close-up eases in');
+    assert.equal(win.growthFocusAmount(3000),1,'the close-up holds while the galaxy grows');
+    const settling=win.growthFocusAmount(6400);
+    assert.ok(settling>0&&settling<1,'the close-up eases back');
+    assert.equal(win.growthFocusAmount(8000),0,'then the sky is calm');
+    assert.deepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/X'),'a module always grows at the same place');
+    assert.notDeepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/Y'));
+  }finally{dom.window.close();}
+});
