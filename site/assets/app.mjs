@@ -585,16 +585,17 @@ function renderHealth() {
   $('#connection-note').hidden = !late;
   $('#connection-note').textContent = '更新稍慢。你仍然可以浏览已有架构、历史进展与公开讨论。';
 
+  const growthEl = $('#log-ops-growth');
+  if (growthEl) {
+    const n = truthGrowth.totalRecent || 0;
+    growthEl.textContent = n > 0 ? `+${n} 模块` : '静默监测';
+    growthEl.classList.toggle('is-ok', n > 0);
+    growthEl.classList.toggle('is-warn', false);
+  }
   const ciEl = $('#log-ops-ci');
   if (ciEl) {
     const runningAuto = (current.departments || []).reduce((sum, d) => sum + (late ? 0 : (d.running_automations || 0)), 0);
     ciEl.textContent = late ? '—' : `${runningAuto} 活跃`;
-  }
-  const guardEl = $('#log-ops-guard');
-  if (guardEl) {
-    guardEl.textContent = late ? 'DELAYED' : 'ONLINE';
-    guardEl.classList.toggle('is-ok', !late);
-    guardEl.classList.toggle('is-warn', late);
   }
 }
 
@@ -2766,11 +2767,11 @@ const holoWorld = {
 };
 
 const holoCam = {
-  yaw: -0.22,
+  yaw: 0.0,
   pitch: 0.68,
-  dist: 22.0,
+  dist: 19.6,
   targetYaw: 0.0,
-  targetPitch: 0.55,
+  targetPitch: 0.66,
   targetDist: 18.8,
   gazeX: -5.30,
   gazeZ: -2.95,
@@ -2836,26 +2837,8 @@ function initTruthNebulaData(data) {
   let seed = 9187;
   const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
   truthNebula.frontier = [];
-  for (let k = 0; k < 144; k++) {
-    const pIdx = pool[Math.floor(rand() * pool.length)];
-    const s = data.stars[pIdx];
-    const ctr = clusterCenterById.get(s[3]) || [0, 0, 0];
-    // Sprout outward along this star's real radial direction from its galaxy centroid!
-    const dx = (s[0] - ctr[0]) / 1000, dy = (s[1] - ctr[1]) / 1000, dz = (s[2] - ctr[2]) / 1000;
-    const r = Math.hypot(dx, dy, dz) || 0.12;
-    const jx = (rand() - 0.5) * 0.16, jy = (rand() - 0.5) * 0.16, jz = (rand() - 0.5) * 0.12;
-    truthNebula.frontier.push({
-      parentIdx: pIdx,
-      cid: s[3],
-      vx: (dx / r) * (0.20 + rand() * 0.18) + jx,
-      vy: (dy / r) * (0.20 + rand() * 0.18) + jy,
-      vz: (dz / r) * (0.14 + rand() * 0.14) + jz,
-      phase: rand(),
-      speed: 0.068 + rand() * 0.055,
-      size: 1.15 + rand() * 1.15
-    });
-  }
   truthNebula.loaded = true;
+  rebuildRecentTruthGrowth();
   if (view()) renderHealth();
 }
 
@@ -2892,7 +2875,20 @@ const GROWTH_SPAWN_GAP_MS = 380;
 const GROWTH_EDGE_MS = 900;
 const GROWTH_VISIBLE_STARS = 8;
 const GROWTH_ZOOM = 0.9;
-const truthGrowth = { seen: null, queue: [], focus: null, manualFocus: null, calmUntil: 0, lastCid: null, grown: [], members: null };
+const truthGrowth = {
+  seen: null,
+  queue: [],
+  focus: null,
+  manualFocus: null,
+  calmUntil: 0,
+  lastCid: null,
+  grown: [],
+  members: null,
+  recentRaw: [],
+  recentByCluster: new Map(),
+  recentSprouts: [],
+  totalRecent: 0
+};
 
 const growthEase = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
 
@@ -2955,8 +2951,70 @@ function growthOffset(module) {
   return [next(), next(), next(), next()];
 }
 
+function shortModuleName(mod) {
+  const parts = String(mod || '').split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : '';
+}
+
+function rebuildRecentTruthGrowth() {
+  const raw = truthGrowth.recentRaw || [];
+  truthGrowth.totalRecent = raw.length;
+  truthGrowth.recentByCluster = new Map();
+  truthGrowth.recentSprouts = [];
+  if (!truthNebula.loaded || !truthNebula.clusters.length || !raw.length) return;
+
+  if (!truthGrowth.members) {
+    truthGrowth.members = new Map();
+    truthNebula.stars.forEach((s, i) => {
+      if (!truthGrowth.members.has(s[3])) truthGrowth.members.set(s[3], []);
+      truthGrowth.members.get(s[3]).push(i);
+    });
+  }
+
+  for (const ev of raw) {
+    const cid = growthClusterId(ev.domain, truthNebula.clusters);
+    if (cid < 0) continue;
+    let bucket = truthGrowth.recentByCluster.get(cid);
+    if (!bucket) {
+      bucket = { count: 0, events: [] };
+      truthGrowth.recentByCluster.set(cid, bucket);
+    }
+    bucket.count += 1;
+    bucket.events.push(ev);
+  }
+
+  // Sort each cluster's events newest-first and build deterministic real frontier sprouts
+  for (const [cid, bucket] of truthGrowth.recentByCluster) {
+    bucket.events.sort((a, b) => (timestamp(b.at) || 0) - (timestamp(a.at) || 0));
+    bucket.latest = bucket.events[0] || null;
+    const cluster = truthNebula.clusters.find(c => c.id === cid);
+    const members = truthGrowth.members.get(cid);
+    if (!cluster || !members?.length) continue;
+    const ctr = cluster.center;
+    for (const ev of bucket.events.slice(0, 12)) {
+      const [a, b, c, d] = growthOffset(ev.module || '');
+      const parentIdx = members[Math.floor(a * members.length)];
+      const p = truthNebula.stars[parentIdx];
+      const dx = p[0] - ctr[0], dy = p[1] - ctr[1], dz = p[2] - ctr[2];
+      const len = Math.hypot(dx, dy, dz) || 1;
+      const step = 34 + b * 44;
+      truthGrowth.recentSprouts.push({
+        cid,
+        parentIdx,
+        module: ev.module,
+        at: ev.at,
+        x: p[0] + (dx / len) * step + (c - 0.5) * 28,
+        y: p[1] + (dy / len) * step + (d - 0.5) * 28,
+        z: p[2] + (dz / len) * step * 0.55
+      });
+    }
+  }
+}
+
 function observeTruthGrowth(feed) {
   if (!feed || !Array.isArray(feed.events)) return 0;
+  truthGrowth.recentRaw = feed.events.slice();
+  rebuildRecentTruthGrowth();
   const { seen, fresh } = freshTruthGrowth(truthGrowth.seen, feed.events);
   truthGrowth.seen = seen;
   if (fresh.length) truthGrowth.queue = enqueueGrowth(truthGrowth.queue, fresh, truthNebula.clusters, performance.now());
@@ -3156,21 +3214,16 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
   const quiet = state.quiet || reduced;
   const tEff = quiet ? 4.2 : t;
-  // Subtle gentle stereo parallax sway tied to 3D drag (keeps galaxies stably framed in open sky!)
-  const nebYaw = (quiet ? 0 : Math.sin(tEff * 0.14) * 0.045) + holoCam.yaw * 0.28;
-  const nebPitch = 0.05 + (holoCam.pitch - 0.55) * 0.18;
+  // Calm static astronomical parallax (zero disco strobe wavefronts!)
+  const nebYaw = holoCam.yaw * 0.25;
+  const nebPitch = 0.05 + (holoCam.pitch - 0.66) * 0.16;
   const cY = Math.cos(nebYaw), sY = Math.sin(nebYaw);
   const cP = Math.cos(nebPitch), sP = Math.sin(nebPitch);
 
-  // Continuous cosmological expansion wavefronts sweeping core (0) -> outer rim (1.28)
-  const front0 = quiet ? 0.52 : (tEff * 0.14) % 1.30;
-  const front1 = quiet ? 0.92 : (tEff * 0.14 + 0.65) % 1.30;
-  const breath = 1.0 + (quiet ? 0.02 : 0.038 * Math.sin(tEff * 0.30));
-
   const cx = w * 0.5;
   const cy = h * 0.50;
-  const scaleX = w * 0.425 * breath;
-  const scaleY = h * 0.455 * breath;
+  const scaleX = w * 0.425;
+  const scaleY = h * 0.455;
   const camZ = 2.65;
 
   const projectBase = (nx, ny, nz) => {
@@ -3245,52 +3298,45 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // PASS 1: Serene, atmospheric Volumetric Cosmic Nebula Mist enveloping the 7 outer mathematical galaxies!
+  // PASS 1: Serene Volumetric Nebula Mist — stronger ONLY on galaxies with real recent growth!
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
+  const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
-    if (focusK > 0.05) return cid === growthFocus?.cid ? 1.55 : 0.45;
-    if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.45 : 0.55;
-    return 1.0;
+    if (focusK > 0.05) return cid === growthFocus?.cid ? 1.55 : 0.40;
+    if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.45 : 0.50;
+    return recentBucket(cid)?.count ? 1.25 : 0.72;
   };
   for (const { cl, x: px, y: py, inv, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
+    const hasGrowth = Boolean(recentBucket(cl.id)?.count);
     const weight = Math.min(1.42, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.48);
-    const rad = Math.min(w, h) * 0.22 * weight * inv;
-    const pulse = 1.0 + (quiet ? 0 : 0.06 * Math.sin(tEff * 0.40 + cl.id * 1.1));
-    const g = ctx.createRadialGradient(px, py, 6, px, py, rad * pulse);
-    const baseA = (isLight ? 0.036 : isBlueprint ? 0.058 : 0.068) * maskFor(cl.id, px, py) * Math.min(1.4, clusterEmphasis(cl.id));
+    const rad = Math.min(w, h) * (hasGrowth ? 0.22 : 0.17) * weight * inv;
+    const g = ctx.createRadialGradient(px, py, 6, px, py, rad);
+    const baseA = (isLight ? (hasGrowth ? 0.052 : 0.022) : (hasGrowth ? 0.085 : 0.036)) * maskFor(cl.id, px, py) * Math.min(1.35, clusterEmphasis(cl.id));
     g.addColorStop(0, rgba(col, baseA));
     g.addColorStop(0.52, rgba(col, baseA * 0.42));
     g.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(px, py, rad * pulse, 0, Math.PI * 2);
+    ctx.arc(px, py, rad, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // PASS 2: Ultra-subtle single cosmological breath ring (calm deep-space horizon)
+  // PASS 2: Only real verification ripples (ZERO fake sweeping disco wavefronts!)
   const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [0, 255, 168];
-  const drawCosmicWave = (u, peakAlpha, lw) => {
-    if (u <= 0.62 || u >= 1.28) return;
-    const rx = w * 0.45 * u;
-    const ry = h * 0.45 * u;
-    const norm = (u - 0.62) / 0.66;
-    const fade = Math.sin(Math.min(1, norm) * Math.PI);
-    ctx.strokeStyle = rgba(waveColor, fade * peakAlpha);
-    ctx.lineWidth = lw;
-    ctx.setLineDash([4, 18]);
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  };
-  drawCosmicWave(0.62 + (front0 / 1.30) * 0.66, isLight ? 0.035 : 0.048, 0.75);
   for (const rp of holoCam.nebulaRipples) {
-    drawCosmicWave(0.62 + rp.age * 0.66, isLight ? 0.07 : 0.12, 1.0);
+    const u = 0.62 + rp.age * 0.66;
+    if (u <= 0.62 || u >= 1.28) continue;
+    const fade = Math.sin(Math.min(1, (u - 0.62) / 0.66) * Math.PI);
+    ctx.strokeStyle = rgba(waveColor, fade * (isLight ? 0.07 : 0.11));
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w * 0.45 * u, h * 0.45 * u, 0, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   // PASS 3: PERIMETER-HUGGING INTER-GALAXY TRUTH DAG CONDUITS
-  // Whisper-quiet hairlines at rest; illuminate with arrows & proof-packets when hovering or focusing a galaxy!
+  // Ultra-calm architectural arcs at rest; illuminate with arrows ONLY on hovered/focused galaxy!
   const ringRx = w * 0.34;
   const ringRy = h * 0.385;
   const namedLinks = clusterLinks.filter(([u, v]) => {
@@ -3323,10 +3369,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
     const linkHot = focusCid != null && (fromId === focusCid || toId === focusCid);
     const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-    const lw = linkHot ? (1.1 + strength * 0.9) : (0.55 + strength * 0.35);
+    const lw = linkHot ? (1.1 + strength * 0.85) : 0.55;
     const alpha = linkHot
-      ? ((isLight ? 0.38 : 0.42) + strength * 0.25)
-      : ((isLight ? 0.08 : 0.09) + strength * 0.06);
+      ? ((isLight ? 0.38 : 0.44) + strength * 0.24)
+      : (isLight ? 0.075 : 0.085);
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
     grad.addColorStop(0, rgba(a.col, alpha));
     grad.addColorStop(1, rgba(b.col, alpha * 1.1));
@@ -3336,7 +3382,6 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
     ctx.stroke();
 
-    // Show directional DAG chevrons & gliding proof-packets ONLY on highlighted galaxy links!
     if (linkHot) {
       const midIdx = Math.floor(segs * 0.52);
       const p0 = pts[midIdx - 1], p1 = pts[midIdx];
@@ -3350,53 +3395,33 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.moveTo(-3.8, -2.6); ctx.lineTo(2.8, 0); ctx.lineTo(-3.8, 2.6);
       ctx.stroke();
       ctx.restore();
-
-      if (!quiet) {
-        const pu = (tEff * (0.16 + strength * 0.08) + i * 0.21) % 1;
-        const fIdx = pu * segs;
-        const i0 = Math.min(segs - 1, Math.floor(fIdx));
-        const frac = fIdx - i0;
-        const px = pts[i0][0] + (pts[i0 + 1][0] - pts[i0][0]) * frac;
-        const py = pts[i0][1] + (pts[i0 + 1][1] - pts[i0][1]) * frac;
-        const fade = Math.sin(pu * Math.PI);
-        ctx.fillStyle = rgba(b.col, fade * (isLight ? 0.36 : 0.46));
-        ctx.beginPath(); ctx.arc(px, py, 3.0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = isLight ? rgba(b.col, fade * 0.88) : rgba([235, 255, 245], fade * 0.92);
-        ctx.beginPath(); ctx.arc(px, py, 1.35, 0, Math.PI * 2); ctx.fill();
-      }
     }
   }
 
-  // PASS 4: Project all 1,160 real Truth DAG stars with subtle airy radial expansion
+  // PASS 4: Project all 1,160 real frozen Truth DAG stars cleanly (still, non-flickering astronomical chart!)
   for (let i = 0; i < n; i++) {
     const s = stars[i];
-    const gen = s[4] / 100;
-    const d0 = Math.max(0, 1 - Math.abs(gen - front0) / 0.16);
-    const d1 = Math.max(0, 1 - Math.abs(gen - front1) / 0.16);
-    const lit = Math.max(d0, d1);
-    const cl = clProj.get(s[3])?.cl;
-    const ctrX = (cl && cl.name !== 'Other') ? cl.center[0] / 1000 : 0;
-    const ctrY = (cl && cl.name !== 'Other') ? cl.center[1] / 1000 : 0;
-    const ctrZ = (cl && cl.name !== 'Other') ? cl.center[2] / 1000 : 0;
-    const swell = 1.0 + lit * 0.08 + (quiet ? 0 : gen * 0.04 * Math.sin(tEff * 0.38 + gen * 4.2));
-    const nx = ctrX + (s[0] / 1000 - ctrX) * swell;
-    const ny = ctrY + (s[1] / 1000 - ctrY) * swell;
-    const nz = ctrZ + (s[2] / 1000 - ctrZ) * swell;
-    const [px, py, pz] = projectNeb(nx, ny, nz);
+    const [px, py, pz] = projectNeb(s[0] / 1000, s[1] / 1000, s[2] / 1000);
     projX[i] = px;
     projY[i] = py;
     projZ[i] = pz;
-    projLit[i] = lit;
+    projLit[i] = 0;
   }
 
-  // PASS 5: SERENE INTRA-GALAXY DAG TREES (soft atmospheric depth at rest; crystal-sharp on hover/close-up!)
+  // PASS 5: CALM FROZEN INTRA-GALAXY DAG TREES (matte background; brightens ONLY on growing/hovered/focused galaxy!)
   for (let cid = 0; cid < clusters.length; cid++) {
     const col = nebPalette[cid % nebPalette.length];
     const clId = clusters[cid]?.id ?? cid;
     const isSpot = focusCid != null && clId === focusCid;
+    const hasGrowth = Boolean(recentBucket(clId)?.count);
     const branchDim = clusterEmphasis(clId);
-    ctx.strokeStyle = rgba(col, (isSpot ? (isLight ? 0.36 : 0.40) : (isLight ? 0.11 : 0.13)) * Math.min(1.2, branchDim));
-    ctx.lineWidth = isSpot ? 0.92 : 0.55;
+    const alpha = isSpot
+      ? (isLight ? 0.34 : 0.38)
+      : hasGrowth
+        ? (isLight ? 0.16 : 0.18)
+        : (isLight ? 0.08 : 0.09);
+    ctx.strokeStyle = rgba(col, alpha * Math.min(1.2, branchDim));
+    ctx.lineWidth = isSpot ? 0.90 : hasGrowth ? 0.65 : 0.48;
     ctx.beginPath();
     let countNormal = 0;
     for (let i = 0; i < edges.length; i++) {
@@ -3404,134 +3429,99 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.40) continue;
-      if (Math.max(projLit[u], projLit[v]) > 0.52) continue;
+      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.42) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
       countNormal++;
     }
     if (countNormal) ctx.stroke();
-
-    ctx.strokeStyle = isLight
-      ? rgba(col, (isSpot ? 0.55 : 0.22) * Math.min(1.2, branchDim))
-      : rgba([205, 255, 235], (isSpot ? 0.56 : 0.22) * Math.min(1.2, branchDim));
-    ctx.lineWidth = isSpot ? 1.1 : 0.72;
-    ctx.beginPath();
-    let countHot = 0;
-    for (let i = 0; i < edges.length; i++) {
-      const e = edges[i];
-      if (e[2] === 1) continue;
-      const u = e[0], v = e[1];
-      if (stars[u][3] !== cid) continue;
-      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.40) continue;
-      if (Math.max(projLit[u], projLit[v]) <= 0.52) continue;
-      ctx.moveTo(projX[u], projY[u]);
-      ctx.lineTo(projX[v], projY[v]);
-      countHot++;
-    }
-    if (countHot) ctx.stroke();
   }
 
-  // PASS 6: Render 1,160 Airy Real Truth DAG Stars (calm deep-space stardust; brightens cleanly on hover/focus!)
+  // PASS 6: Render 1,160 Still Frozen Truth DAG Stars (calm, zero strobe fatigue!)
   for (let i = 0; i < n; i++) {
     const s = stars[i];
     const px = projX[i], py = projY[i];
     if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
     const mask = maskFor(s[3], px, py);
     const isSpot = focusCid != null && s[3] === focusCid;
+    const hasGrowth = Boolean(recentBucket(s[3])?.count);
     const grow = focusK > 0 && s[3] === growthFocus.cid ? 1 + 0.55 * focusK : 1;
-    if (mask < 0.12) continue;
+    if (mask < 0.14) continue;
     const col = nebPalette[s[3] % nebPalette.length];
     const degW = s[5];
-    const lit = projLit[i];
-    const depthScale = isSpot ? 1.0 : 0.56;
-    const aCore = ((isLight ? 0.34 : 0.36) + lit * 0.28 + (degW >= 7 ? 0.14 : 0)) * mask * depthScale * Math.min(1.2, clusterEmphasis(s[3]));
-
-    if (degW >= 7 || lit > 0.72) {
-      const rCore = ((degW >= 8 ? 1.40 : 0.95) + lit * 0.35) * grow;
-      ctx.fillStyle = rgba(col, Math.min(0.20, aCore * 0.30));
-      ctx.beginPath();
-      ctx.arc(px, py, rCore * 2.1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = isLight ? rgba(col, Math.min(0.84, aCore)) : rgba([230, 255, 244], Math.min(0.90, aCore));
-      ctx.beginPath();
-      ctx.arc(px, py, rCore, 0, Math.PI * 2);
-      ctx.fill();
-      if (isSpot && degW >= 9 && !isLight && mask > 0.65) {
-        const sp = rCore * 3.6;
-        ctx.strokeStyle = rgba(col, Math.min(0.46, aCore * 0.52));
-        ctx.lineWidth = 0.65;
-        ctx.beginPath();
-        ctx.moveTo(px - sp, py); ctx.lineTo(px + sp, py);
-        ctx.moveTo(px, py - sp); ctx.lineTo(px, py + sp);
-        ctx.stroke();
-      }
-    } else {
-      const sz = (degW >= 5 ? 1.35 : 1.0) * grow;
-      ctx.fillStyle = rgba(col, Math.min(0.65, aCore));
-      ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
-    }
+    const baseA = isSpot ? 0.68 : hasGrowth ? 0.38 : 0.22;
+    const aCore = (baseA + (degW >= 7 ? 0.10 : 0)) * mask * Math.min(1.2, clusterEmphasis(s[3]));
+    const sz = (degW >= 7 ? 1.55 : 1.05) * grow;
+    ctx.fillStyle = rgba(col, Math.min(0.82, aCore));
+    ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
   }
 
-  // PASS 6B: Live growth — newly frozen modules sprout from their parents and light up.
+  // PASS 6B: Live arriving growth animation (when a new D5 module arrives during the current viewing session)
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
 
-  // PASS 7: Subtle outward Frontier DAG twigs (quiet cosmic growth; full brilliance on hovered/focused galaxy!)
-  for (let k = 0; k < truthNebula.frontier.length; k++) {
-    const f = truthNebula.frontier[k];
-    const pStar = stars[f.parentIdx];
-    const u = quiet ? ((f.phase * 0.70 + 0.18) % 1) : ((tEff * f.speed + f.phase) % 1);
-    const dist = Math.pow(u, 0.82) * 0.52;
-    const fx = pStar[0] / 1000 + f.vx * dist;
-    const fy = pStar[1] / 1000 + f.vy * dist;
-    const fz = pStar[2] / 1000 + f.vz * dist;
-    const [px, py] = projectNeb(fx, fy, fz);
+  // PASS 7: REAL RECENT TRUTH DAG GROWTH SPROUTS (ONLY genuine newly-frozen D5 modules glow!)
+  for (let k = 0; k < truthGrowth.recentSprouts.length; k++) {
+    const sp = truthGrowth.recentSprouts[k];
+    const [px, py] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000);
     if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
-    const mask = maskFor(f.cid, px, py);
-    if (mask < 0.30) continue;
-    const col = nebPalette[f.cid % nebPalette.length];
-    const isSpot = focusCid != null && f.cid === focusCid;
-    const fade = Math.sin(u * Math.PI) * mask * (isSpot ? 1.0 : 0.42);
-
-    if (u < 0.78) {
-      const branchA = (1 - u / 0.78) * fade * (isLight ? 0.28 : 0.34);
-      ctx.strokeStyle = rgba(col, branchA);
-      ctx.lineWidth = isSpot ? 0.85 : 0.55;
-      ctx.beginPath();
-      ctx.moveTo(projX[f.parentIdx], projY[f.parentIdx]);
-      ctx.lineTo(px, py);
-      ctx.stroke();
-    }
-    ctx.fillStyle = isLight ? rgba(col, fade * 0.65) : rgba([235, 255, 245], fade * 0.72);
+    const mask = maskFor(sp.cid, px, py);
+    if (mask < 0.20) continue;
+    const col = nebPalette[sp.cid % nebPalette.length];
+    const isSpot = focusCid != null && sp.cid === focusCid;
+    const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.45 : 1.0);
+    const parentX = projX[sp.parentIdx], parentY = projY[sp.parentIdx];
+    ctx.strokeStyle = rgba(col, (isLight ? 0.62 : 0.72) * mask * Math.min(1.2, dim));
+    ctx.lineWidth = isSpot ? 1.45 : 1.05;
     ctx.beginPath();
-    ctx.arc(px, py, f.size * 0.72, 0, Math.PI * 2);
+    ctx.moveTo(parentX, parentY);
+    ctx.lineTo(px, py);
+    ctx.stroke();
+
+    const rHalo = isSpot ? 6.0 : 4.2;
+    ctx.fillStyle = rgba(col, (isLight ? 0.22 : 0.30) * mask * Math.min(1.2, dim));
+    ctx.beginPath();
+    ctx.arc(px, py, rHalo, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isLight ? rgba(col, 0.96 * mask * Math.min(1.2, dim)) : rgba([245, 255, 240], 0.94 * mask * Math.min(1.2, dim));
+    ctx.beginPath();
+    ctx.arc(px, py, isSpot ? 2.2 : 1.65, 0, Math.PI * 2);
     ctx.fill();
   }
 
   ctx.restore();
 
-  // PASS 8: MINIMALIST ASTRONOMICAL GALAXY LABELS (whisper-quiet single line, zero leader-line clutter!)
+  // PASS 8: HIGH-SIGNAL GALAXY LABELS — CLEARLY SHOWING WHICH GALAXIES ARE GROWING RIGHT NOW!
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
-  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.92)' : 'rgba(2, 10, 5, 0.90)';
+  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(2, 10, 5, 0.92)';
+
+  // Identify top 2 fastest-growing named galaxies so their latest real module name shows cleanly at rest
+  const topGrowingIds = new Set(
+    [...truthGrowth.recentByCluster.entries()]
+      .filter(([cid]) => clusters.find(c => c.id === cid && c.name !== 'Other'))
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 2)
+      .map(([cid]) => cid)
+  );
 
   holoCam.projectedGalaxies.clear();
   for (const { cl, x: px, y: py, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const isBottom = cl.center[1] < 0;
-    const lx = Math.max(324, Math.min(w - 324, px));
-    const ly = isBottom ? Math.min(h - 118, py + 26) : Math.max(76, py - 24);
+    const lx = Math.max(332, Math.min(w - 332, px));
+    const ly = isBottom ? Math.min(h - 118, py + 26) : Math.max(78, py - 24);
     if (lx < 292 || lx > w - 292) continue;
 
     holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
     const isHovered = holoCam.hoveredGalaxy === cl.id && focusK < 0.2;
+    const bucket = recentBucket(cl.id);
+    const delta = bucket?.count || 0;
 
     if (isHovered) {
       ctx.save();
       ctx.strokeStyle = rgba(col, isLight ? 0.85 : 0.88);
       ctx.lineWidth = 1.3;
       ctx.setLineDash([4, 5]);
-      ctx.lineDashOffset = -t * 14;
       ctx.beginPath();
       ctx.arc(px, py, 32, 0, Math.PI * 2);
       ctx.stroke();
@@ -3539,23 +3529,35 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.restore();
     }
 
-    ctx.globalAlpha = focusK > 0.05 ? Math.min(1, growthDim(cl.id)) : (isHovered ? 1.0 : 0.64);
-    const mainLabel = `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
+    ctx.globalAlpha = focusK > 0.05
+      ? Math.min(1, growthDim(cl.id))
+      : (isHovered ? 1.0 : delta > 0 ? 0.95 : 0.46);
+    const mainLabel = delta > 0
+      ? `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}  +${delta}`
+      : `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${isHovered ? '800 10px' : '600 9px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
-    ctx.lineWidth = 3.0;
+    ctx.font = `${(isHovered || delta > 0) ? '700 9.5px' : '600 8.8px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    ctx.lineWidth = 3.2;
     ctx.strokeStyle = strokeHalo;
     ctx.strokeText(mainLabel, lx, ly);
-    ctx.fillStyle = isLight ? rgba(col, isHovered ? 1.0 : 0.86) : rgba(col, isHovered ? 1.0 : 0.82);
+    ctx.fillStyle = isLight
+      ? rgba(col, (isHovered || delta > 0) ? 0.98 : 0.72)
+      : (delta > 0 ? rgba([228, 255, 240], 0.96) : rgba(col, isHovered ? 1.0 : 0.72));
     ctx.fillText(mainLabel, lx, ly);
 
-    if (isHovered) {
-      const subText = `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗`;
-      ctx.font = '600 7.8px "Geist Mono", ui-monospace, monospace';
-      ctx.strokeText(subText, lx, ly + (isBottom ? 12 : -12));
-      ctx.fillStyle = isLight ? rgba(col, 0.95) : rgba([215, 248, 232], 0.92);
-      ctx.fillText(subText, lx, ly + (isBottom ? 12 : -12));
+    if (isHovered || (delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2)) {
+      const latest = bucket?.latest;
+      const latestShort = latest ? shortModuleName(latest.module) : '';
+      const subText = isHovered
+        ? (latestShort ? `最新: ${latestShort} · 点击特写 ↗` : `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗`)
+        : (latestShort ? `↗ ${latestShort.slice(0, 26)}${latestShort.length > 26 ? '…' : ''}` : '');
+      if (subText) {
+        ctx.font = '600 8px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+        ctx.strokeText(subText, lx, ly + (isBottom ? 13 : -13));
+        ctx.fillStyle = isLight ? rgba(col, 0.92) : rgba(col, 0.92);
+        ctx.fillText(subText, lx, ly + (isBottom ? 13 : -13));
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -3565,6 +3567,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     } else if (manual) {
       const col = nebPalette[manual.cid % nebPalette.length];
       const name = manual.cluster.zh || manual.cluster.name;
+      const bucket = recentBucket(manual.cid);
+      const delta = bucket?.count || 0;
+      const recentNames = (bucket?.events || []).slice(0, 2).map(ev => `${shortModuleName(ev.module)}（${relative(ev.at)}）`);
       const cxTop = w * 0.5;
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
@@ -3572,7 +3577,6 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.strokeStyle = rgba(col, 0.58);
       ctx.lineWidth = 1.1;
       ctx.setLineDash([5, 7]);
-      ctx.lineDashOffset = -growthNow / 55;
       ctx.beginPath();
       ctx.moveTo(cxTop, 92);
       ctx.quadraticCurveTo(cxTop + (focusTx - cxTop) * 0.2, focusTy * 0.45 + 50, focusTx, focusTy);
@@ -3587,14 +3591,18 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.lineWidth = 3.6;
       ctx.strokeStyle = strokeHalo;
       ctx.font = '800 14px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-      const ttl = `⟡ 真值星系特写 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`;
+      const ttl = delta > 0
+        ? `⟡ 真值星系生长 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 模块 · 近期 +${delta}）`
+        : `⟡ 真值星系 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`;
       ctx.strokeText(ttl, cxTop, 60);
       ctx.fillStyle = rgba(col, 1);
       ctx.fillText(ttl, cxTop, 60);
       ctx.font = '700 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-      const sub = `${manual.cluster.en || manual.cluster.name.toUpperCase()} · Truth DAG 外环分支 · 点击星系或按 Esc 返回全景`;
+      const sub = recentNames.length
+        ? `最新冻结：${recentNames.join(' · ')}  （点击或 Esc 返回全景）`
+        : `${manual.cluster.en || manual.cluster.name.toUpperCase()} · 暂无新冻结模块 · 点击或 Esc 返回全景`;
       ctx.strokeText(sub, cxTop, 80);
-      ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba([220, 255, 240], 0.86);
+      ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba([220, 255, 240], 0.88);
       ctx.fillText(sub, cxTop, 80);
       ctx.restore();
     }
@@ -4156,8 +4164,9 @@ function pushSciFiLogLine(entry, animate = true, offsetMs = 0) {
   container.append(sciFiLogRow(entry, animate, fmtClockMs(offsetMs)));
   while (container.children.length > 30) container.firstElementChild?.remove();
 
-  if (animate && entry.deptId) {
-    spawnHoloPulse(entry.deptId, 0.78);
+  // Only pulse/flare 3D architecture on genuine real-time arrivals, never on synthetic cycle ticks!
+  if (animate && entry.real && entry.deptId) {
+    spawnHoloPulse(entry.deptId, 0.72);
     if (entry.targetId && entry.targetId !== entry.deptId) {
       spawnSpokeFlare(entry.deptId, entry.targetId);
     }
@@ -4345,13 +4354,10 @@ function stepSciFiLog(dt) {
       books: 'verification',
       studio: 'books'
     };
-    for (const [deptId, cell] of state.cells) {
+    for (const [, cell] of state.cells) {
       if (!cell.missions || cell.missions.length <= 1) continue;
       cell.missionIdx = ((cell.missionIdx || 0) + 1) % cell.missions.length;
       cell.status.textContent = cell.missions[cell.missionIdx];
-      cell.button.classList.add('is-mission-shift');
-      setTimeout(() => cell.button.classList.remove('is-mission-shift'), 420);
-      if (archFlowTarget[deptId]) spawnSpokeFlare(deptId, archFlowTarget[deptId]);
     }
   }
 
@@ -4490,7 +4496,8 @@ function drawHolo3DFrame(dt = 0.016) {
       const px = col.u * w;
       // Gently attenuate in dead center so the 3D campus pops with crisp Matrix atmosphere on the flanks
       const centerDist = Math.abs(col.u - 0.5) * 2;
-      const zoneFade = 0.22 + centerDist * 0.62;
+      if (centerDist < 0.42) continue;
+      const zoneFade = Math.max(0, (centerDist - 0.42) * 1.15);
       const stepY = col.size + 4;
       const rows = Math.ceil(h / stepY) + col.len + 6;
       const headRow = Math.floor((tRain * col.speed + col.phase) % rows);
@@ -4502,10 +4509,10 @@ function drawHolo3DFrame(dt = 0.016) {
         const gIdx = Math.abs((col.seed + r * 7 + Math.floor(tRain * 1.4) * (k === 0 ? 3 : 0)) % matrixGlyphs.length);
         const ch = matrixGlyphs[gIdx];
         if (k === 0) {
-          ctx.fillStyle = `rgba(218, 255, 232, ${(0.16 * col.depth * zoneFade).toFixed(3)})`;
+          ctx.fillStyle = `rgba(218, 255, 232, ${(0.075 * col.depth * zoneFade).toFixed(3)})`;
         } else {
-          const decay = Math.pow(1 - k / col.len, 1.45);
-          ctx.fillStyle = `rgba(0, 238, 122, ${(0.085 * decay * col.depth * zoneFade).toFixed(3)})`;
+          const decay = Math.pow(1 - k / col.len, 1.55);
+          ctx.fillStyle = `rgba(0, 238, 122, ${(0.040 * decay * col.depth * zoneFade).toFixed(3)})`;
         }
         ctx.fillText(ch, px, py);
       }
@@ -4569,34 +4576,7 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.stroke();
   };
 
-  // 2. Parallax Starfield / Matrix Sparks
-  if (!isLight) {
-    for (const st of holoCam.stars) {
-      const p = project(st.x, st.y, st.z);
-      if (!p || p.x < -10 || p.x > w + 10 || p.y < -10 || p.y > h + 10) continue;
-      ctx.fillStyle = isBlueprint
-        ? `rgba(150,215,255,${(st.a * 0.55).toFixed(2)})`
-        : st.cyan ? `rgba(0,255,148,${(st.a * 0.65).toFixed(2)})` : `rgba(190,255,220,${(st.a * 0.45).toFixed(2)})`;
-      ctx.beginPath(); ctx.arc(p.x, p.y, st.r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for (const sp of holoCam.sparks) {
-      if (!state.quiet && !reduced) {
-        sp.y += sp.vy * stepDt;
-        if (sp.y > 4.4) sp.y = 0.05;
-      }
-      const p = project(sp.x, sp.y, sp.z);
-      if (!p) continue;
-      const fade = Math.sin((sp.y / 4.4) * Math.PI);
-      const col = isBlueprint
-        ? [150, 215, 255]
-        : (sp.hue === 0 ? [0, 255, 160] : sp.hue === 1 ? [29, 255, 130] : [244, 197, 83]);
-      ctx.fillStyle = rgba(col, fade * 0.52);
-      ctx.beginPath(); ctx.arc(p.x, p.y, sp.r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-  }
+  // 2. Clean dark-space backdrop (random ambient sparkles removed to eliminate visual fatigue!)
 
   // 3. ZOOMED DEPARTMENT 3D INTERIOR MODE
   if (state.focused) {
@@ -4693,37 +4673,6 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.lineTo(rimR.x, rimR.y);
     ctx.closePath();
     ctx.fill();
-
-    // Gentle symmetric upward feedback sparks rising from all 7 departments into the Eye
-    if (!state.quiet && !reduced) {
-      const streamDepts = ['research', 'review', 'outreach', 'verification', 'publication', 'studio', 'books'];
-      const sampleUp = (src, u) => {
-        const ease = 1 - Math.pow(1 - u, 1.35);
-        const mx = src.x * (1 - ease) + eyeCfg.x * ease;
-        const mz = src.z * (1 - ease) + eyeCfg.z * ease;
-        const my = ((src.y || 0) + 0.55) * (1 - u) + (eyeCfg.y - 0.10) * u;
-        return project(mx, my, mz);
-      };
-      for (let i = 0; i < streamDepts.length; i++) {
-        const src = holoWorld[streamDepts[i]];
-        if (!src) continue;
-        const col = isBlueprint ? [150, 215, 255] : tier1RGB;
-        const u = (t * 0.19 + i / streamDepts.length) % 1;
-        const uTail = Math.max(0, u - 0.08);
-        const ptHead = sampleUp(src, u);
-        const ptTail = sampleUp(src, uTail);
-        if (!ptHead || !ptTail) continue;
-        const fade = Math.sin(u * Math.PI) * Math.min(1.15, eyeBoost) * 0.62;
-        const stGrad = ctx.createLinearGradient(ptTail.x, ptTail.y, ptHead.x, ptHead.y);
-        stGrad.addColorStop(0, rgba(col, 0));
-        stGrad.addColorStop(1, rgba(isLight ? tier1RGB : [255, 245, 210], fade * 0.72));
-        ctx.strokeStyle = stGrad;
-        ctx.lineWidth = 1.0;
-        ctx.beginPath(); ctx.moveTo(ptTail.x, ptTail.y); ctx.lineTo(ptHead.x, ptHead.y); ctx.stroke();
-        ctx.fillStyle = rgba(isLight ? tier1RGB : [255, 248, 224], fade * 0.85);
-        ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 1.35, 0, Math.PI * 2); ctx.fill();
-      }
-    }
     ctx.restore();
   }
 
@@ -5525,14 +5474,54 @@ function drawHolo3DFrame(dt = 0.016) {
       const cell = state.cells.get(d.id);
       if (cell) {
         const depthScale = Math.max(0.84, Math.min(1.04, 14.5 / anchorPt.z));
-        cell.button.style.left = `${anchorPt.x.toFixed(1)}px`;
-        cell.button.style.top = `${anchorPt.y.toFixed(1)}px`;
-        cell.button.style.zIndex = String(isSel ? 40 : Math.round(30 - anchorPt.z));
-        cell.button.style.setProperty('--depth-scale', depthScale.toFixed(3));
-        cell.button.classList.toggle('is-apex-label', Boolean(cfg.apex));
-        cell.button.classList.add('is-projected');
+        cell._proj = { x: anchorPt.x, y: anchorPt.y, z: anchorPt.z, depthScale, apex: Boolean(cfg.apex), isSel };
       }
     }
+  }
+
+  // Screen-space card anti-overlap pass: guarantees zero colliding department cards at any drag angle!
+  const placedCards = [];
+  for (const [, cell] of state.cells) {
+    if (!cell._proj) continue;
+    const p = cell._proj;
+    const bw = 166 * p.depthScale;
+    const bh = 54 * p.depthScale;
+    const cyCard = p.apex ? p.y - bh * 0.5 : p.y + bh * 0.5;
+    placedCards.push({ cell, x: p.x, cy: cyCard, hw: bw * 0.5 + 6, hh: bh * 0.5 + 5, apex: p.apex, bh, p });
+  }
+  for (let iter = 0; iter < 4; iter++) {
+    for (let i = 0; i < placedCards.length; i++) {
+      for (let j = i + 1; j < placedCards.length; j++) {
+        const a = placedCards[i], b = placedCards[j];
+        const ox = (a.hw + b.hw) - Math.abs(a.x - b.x);
+        const oy = (a.hh + b.hh) - Math.abs(a.cy - b.cy);
+        if (ox > 0 && oy > 0) {
+          if (oy <= ox * 1.15) {
+            const push = oy * 0.52;
+            if (a.cy <= b.cy) { a.cy -= push; b.cy += push; }
+            else { a.cy += push; b.cy -= push; }
+          } else {
+            const push = ox * 0.52;
+            if (a.x <= b.x) { a.x -= push; b.x += push; }
+            else { a.x += push; b.x -= push; }
+          }
+        }
+      }
+    }
+  }
+  for (const item of placedCards) {
+    const minX = w >= 1120 ? 290 + item.hw : item.hw + 8;
+    const maxX = w >= 1120 ? w - 290 - item.hw : w - item.hw - 8;
+    const clampedX = Math.max(minX, Math.min(maxX, item.x));
+    const clampedCy = Math.max(76 + item.hh, Math.min(h - 94 - item.hh, item.cy));
+    const topY = item.apex ? clampedCy + item.bh * 0.5 : clampedCy - item.bh * 0.5;
+    item.cell.button.style.left = `${clampedX.toFixed(1)}px`;
+    item.cell.button.style.top = `${topY.toFixed(1)}px`;
+    item.cell.button.style.zIndex = String(item.p.isSel ? 40 : Math.round(30 - item.p.z));
+    item.cell.button.style.setProperty('--depth-scale', item.p.depthScale.toFixed(3));
+    item.cell.button.classList.toggle('is-apex-label', item.apex);
+    item.cell.button.classList.add('is-projected');
+    item.cell._proj = null;
   }
 
   // Minimalist wing designations at rest; conduit captions reveal progressively ONLY on active focus!
@@ -5615,9 +5604,9 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       if (Math.abs(dx) + Math.abs(dy) > 3) holoCam.dragMoved = true;
       holoCam.lastX = e.clientX;
       holoCam.lastY = e.clientY;
-      // Clamped disciplined viewing arc: keeps layout readable at all times!
-      holoCam.targetYaw = Math.max(-0.58, Math.min(0.58, holoCam.targetYaw + dx * 0.0055));
-      holoCam.targetPitch = Math.max(0.28, Math.min(0.86, holoCam.targetPitch + dy * 0.0045));
+      // Disciplined elevated architectural camera bounds — NEVER flattens into an overlapping cross-section!
+      holoCam.targetYaw = Math.max(-0.26, Math.min(0.26, holoCam.targetYaw + dx * 0.0038));
+      holoCam.targetPitch = Math.max(0.56, Math.min(0.82, holoCam.targetPitch + dy * 0.0032));
       return;
     }
     if (!state.focused && e.target === $('#holo-3d')) {
@@ -5674,10 +5663,17 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     boardEl.classList.remove('is-dragging');
   });
 
+  boardEl.addEventListener('dblclick', e => {
+    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel')) return;
+    holoCam.targetYaw = 0.0;
+    holoCam.targetPitch = 0.66;
+    holoCam.targetDist = 18.8;
+  });
+
   boardEl.addEventListener('wheel', e => {
     if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall')) return;
     e.preventDefault();
-    holoCam.targetDist = Math.max(11.2, Math.min(18.5, holoCam.targetDist + e.deltaY * 0.006));
+    holoCam.targetDist = Math.max(15.5, Math.min(20.5, holoCam.targetDist + e.deltaY * 0.005));
   }, { passive: false });
 }
 
