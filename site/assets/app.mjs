@@ -2,6 +2,7 @@ const $ = selector => document.querySelector(selector);
 const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
 const cacheKey = 'trureturing-live.hive.content.v7';
+const streamCacheKey = 'trureturing-live.stream.v1';
 const themeKey = 'trureturing-live.theme.v2';
 const logModeKey = 'trureturing-live.log-mode.v2';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -572,6 +573,10 @@ function handoffSummary() {
 
 function renderHealth() {
   const current = view();
+  const dagEl = $('#log-ops-dag');
+  if (dagEl && truthNebula?.counts?.truth_nodes) {
+    dagEl.textContent = truthNebula.counts.truth_nodes.toLocaleString();
+  }
   if (!current) return;
   const late = isStale();
   const connection = $('#connection');
@@ -579,6 +584,18 @@ function renderHealth() {
   connection.lastElementChild.textContent = late ? '等待新的现场更新' : `${relative(current.observed_at)}更新`;
   $('#connection-note').hidden = !late;
   $('#connection-note').textContent = '更新稍慢。你仍然可以浏览已有架构、历史进展与公开讨论。';
+
+  const ciEl = $('#log-ops-ci');
+  if (ciEl) {
+    const runningAuto = (current.departments || []).reduce((sum, d) => sum + (late ? 0 : (d.running_automations || 0)), 0);
+    ciEl.textContent = late ? '—' : `${runningAuto} 活跃`;
+  }
+  const guardEl = $('#log-ops-guard');
+  if (guardEl) {
+    guardEl.textContent = late ? 'DELAYED' : 'ONLINE';
+    guardEl.classList.toggle('is-ok', !late);
+    guardEl.classList.toggle('is-warn', late);
+  }
 }
 
 function isGenericAutomationTitle(title) {
@@ -888,7 +905,9 @@ function updateHoverHint(id) {
   const parts = [];
   if (inc.length) parts.push(`承接：${inc.join(' / ')}`);
   if (out.length) parts.push(`交棒：${out.join(' / ')}`);
-  hint.textContent = parts.length ? `${d.label} · ${parts.join(' → ')}（点击放大进入部门图）` : `${d.label} · 点击放大进入部门图`;
+  hint.textContent = parts.length
+    ? `${d.label} · ${parts.join(' → ')}（点击进部门舱 · 点击外围星系看特写）`
+    : `${d.label} · 点击进部门舱 · 点击外围星系看特写`;
 }
 
 function renderCellSeats(d, container) {
@@ -2704,6 +2723,9 @@ async function refreshLive() {
           && Date.now() - timestamp(a.at) < 900000
         );
     state.stream = data;
+    try {
+      localStorage.setItem(streamCacheKey, JSON.stringify(data));
+    } catch {}
     observeTruthGrowth(data.truth_growth);
     state.arrivals = arrivals.slice(0, 8);
     for (const a of data.organization.recent) state.seen.add(eventKey(a));
@@ -2765,7 +2787,9 @@ const holoCam = {
   pulses: [],
   flares: [],
   nebulaRipples: [],
-  projectedTowers: new Map()
+  projectedTowers: new Map(),
+  projectedGalaxies: new Map(),
+  hoveredGalaxy: null
 };
 
 // ============================================================================
@@ -2868,7 +2892,7 @@ const GROWTH_SPAWN_GAP_MS = 380;
 const GROWTH_EDGE_MS = 900;
 const GROWTH_VISIBLE_STARS = 8;
 const GROWTH_ZOOM = 0.9;
-const truthGrowth = { seen: null, queue: [], focus: null, calmUntil: 0, lastCid: null, grown: [], members: null };
+const truthGrowth = { seen: null, queue: [], focus: null, manualFocus: null, calmUntil: 0, lastCid: null, grown: [], members: null };
 
 const growthEase = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
 
@@ -3158,10 +3182,21 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     return [cx + x1 * scaleX * inv, cy - y2 * scaleY * inv, z2, inv];
   };
 
-  // Close-up on a growing galaxy: the sky eases toward it and magnifies around it.
+  // Close-up on a growing galaxy (or interactive user-clicked galaxy): the sky eases toward it and magnifies around it.
   const growthNow = performance.now();
-  const growthFocus = stepTruthGrowth(growthNow);
-  const focusK = growthFocus ? growthFocusAmount(growthNow - growthFocus.start) : 0;
+  const autoFocus = stepTruthGrowth(growthNow);
+  const manual = !autoFocus && truthGrowth.manualFocus ? truthGrowth.manualFocus : null;
+  const growthFocus = autoFocus || manual;
+  const focusK = autoFocus
+    ? growthFocusAmount(growthNow - autoFocus.start)
+    : manual
+      ? (manual.closing
+          ? growthEase(1 - Math.min(1, (growthNow - manual.closeStart) / 480))
+          : growthEase(Math.min(1, (growthNow - manual.start) / 650)))
+      : 0;
+  if (manual?.closing && focusK <= 0.001) {
+    truthGrowth.manualFocus = null;
+  }
   let focusX = 0, focusY = 0, focusTx = 0, focusTy = 0;
   const focusZoom = 1 + GROWTH_ZOOM * focusK;
   if (focusK > 0) {
@@ -3485,6 +3520,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.globalAlpha = 1;
   }
 
+  holoCam.projectedGalaxies.clear();
   for (const { cl, x: px, y: py, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const isBottom = cl.center[1] < 0;
@@ -3492,37 +3528,91 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const ly = isBottom ? Math.min(h - 104, py + 38) : Math.max(84, py - 34);
     if (lx < 276 || lx > w - 276) continue;
 
-    ctx.strokeStyle = rgba(col, isLight ? 0.45 : 0.42);
-    ctx.lineWidth = 0.85;
+    holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
+    const isHovered = holoCam.hoveredGalaxy === cl.id && focusK < 0.2;
+
+    if (isHovered) {
+      ctx.save();
+      ctx.strokeStyle = rgba(col, isLight ? 0.85 : 0.88);
+      ctx.lineWidth = 1.3;
+      ctx.setLineDash([4, 5]);
+      ctx.lineDashOffset = -t * 14;
+      ctx.beginPath();
+      ctx.arc(px, py, 32, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = rgba(col, isHovered ? 0.88 : (isLight ? 0.52 : 0.44));
+    ctx.lineWidth = isHovered ? 1.25 : 0.85;
     ctx.beginPath();
     ctx.moveTo(lx, isBottom ? ly - 10 : ly + 10);
     ctx.lineTo(px, py + (isBottom ? 10 : -10));
     ctx.stroke();
 
-    ctx.fillStyle = rgba(col, isLight ? 0.82 : 0.88);
+    ctx.fillStyle = rgba(col, isLight ? 0.90 : 0.88);
     ctx.beginPath();
-    ctx.arc(lx, isBottom ? ly - 10 : ly + 10, 1.9, 0, Math.PI * 2);
+    ctx.arc(lx, isBottom ? ly - 10 : ly + 10, isHovered ? 2.6 : 1.9, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.globalAlpha = Math.min(1, growthDim(cl.id));
     const mainLabel = `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '700 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    ctx.font = `${isHovered ? '800 10px' : '700 9.5px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
     ctx.lineWidth = 3.2;
     ctx.strokeStyle = strokeHalo;
     ctx.strokeText(mainLabel, lx, ly);
-    ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba(col, 0.88);
+    ctx.fillStyle = isLight ? rgba(col, 0.96) : rgba(col, isHovered ? 1.0 : 0.88);
     ctx.fillText(mainLabel, lx, ly);
 
+    const subText = isHovered ? `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗` : (cl.en || cl.name.toUpperCase());
     ctx.font = '600 7.6px "Geist Mono", ui-monospace, monospace';
-    ctx.strokeText(cl.en || cl.name.toUpperCase(), lx, ly + (isBottom ? 11 : -11));
-    ctx.fillStyle = isLight ? rgba(col, 0.66) : rgba([215, 248, 232], 0.56);
-    ctx.fillText(cl.en || cl.name.toUpperCase(), lx, ly + (isBottom ? 11 : -11));
+    ctx.strokeText(subText, lx, ly + (isBottom ? 11 : -11));
+    ctx.fillStyle = isLight ? rgba(col, isHovered ? 0.95 : 0.78) : rgba([215, 248, 232], isHovered ? 0.92 : 0.60);
+    ctx.fillText(subText, lx, ly + (isBottom ? 11 : -11));
     ctx.globalAlpha = 1;
   }
-  if (growthFocus) {
-    drawTruthGrowthFocus(ctx, growthFocus, focusK, growthNow, focusTx, focusTy, w, nebPalette[growthFocus.cid % nebPalette.length], strokeHalo);
+  if (growthFocus && focusK > 0) {
+    if (autoFocus) {
+      drawTruthGrowthFocus(ctx, autoFocus, focusK, growthNow, focusTx, focusTy, w, nebPalette[autoFocus.cid % nebPalette.length], strokeHalo);
+    } else if (manual) {
+      const col = nebPalette[manual.cid % nebPalette.length];
+      const name = manual.cluster.zh || manual.cluster.name;
+      const cxTop = w * 0.5;
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = focusK;
+      ctx.strokeStyle = rgba(col, 0.58);
+      ctx.lineWidth = 1.1;
+      ctx.setLineDash([5, 7]);
+      ctx.lineDashOffset = -growthNow / 55;
+      ctx.beginPath();
+      ctx.moveTo(cxTop, 92);
+      ctx.quadraticCurveTo(cxTop + (focusTx - cxTop) * 0.2, focusTy * 0.45 + 50, focusTx, focusTy);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(focusTx, focusTy, 54 + 44 * focusK, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3.6;
+      ctx.strokeStyle = strokeHalo;
+      ctx.font = '800 14px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      const ttl = `⟡ 真值星系特写 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`;
+      ctx.strokeText(ttl, cxTop, 60);
+      ctx.fillStyle = rgba(col, 1);
+      ctx.fillText(ttl, cxTop, 60);
+      ctx.font = '700 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      const sub = `${manual.cluster.en || manual.cluster.name.toUpperCase()} · Truth DAG 外环分支 · 点击星系或按 Esc 返回全景`;
+      ctx.strokeText(sub, cxTop, 80);
+      ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba([220, 255, 240], 0.86);
+      ctx.fillText(sub, cxTop, 80);
+      ctx.restore();
+    }
   }
   ctx.restore();
 }
@@ -4245,14 +4335,14 @@ function stepSciFiLog(dt) {
   updateLogBadge();
   if (!view()) return;
 
-  // Cycle mode seeds an initial burst of 22 staggered high-density lines on its first frame.
+  // Cycle mode seeds an initial burst of 30 staggered high-density lines on its first frame.
   if (scifiLog.mode === 'cycle' && !scifiLog.seeded) {
     scifiLog.seeded = true;
     const pool = buildSciFiLogPool();
-    for (let i = 0; i < 22; i++) {
-      pushSciFiLogLine(pool[i % pool.length], false, -(22 - i) * 340);
+    for (let i = 0; i < 30; i++) {
+      pushSciFiLogLine(pool[i % pool.length], false, -(30 - i) * 340);
     }
-    scifiLog.cursor = 22;
+    scifiLog.cursor = 30;
   }
 
   if (!motion) return;
@@ -4899,7 +4989,7 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   };
 
-  // Helper: crisp unboxed whisper-clean holographic caption (NO heavy pill box clutter!)
+  // Helper: crisp unboxed whisper-clean holographic caption (safe-clamped clear of sidebars!)
   const drawHoloText = (wx, wy, wz, text, rgb, isHot = false, size = 9.5) => {
     const pt = project(wx, wy, wz);
     if (!pt) return;
@@ -4908,11 +4998,13 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.font = `${isHot ? '700' : '600'} ${size}px "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const halfText = ctx.measureText(text).width * 0.5;
+    const tx = w >= 1120 ? Math.max(292 + halfText, Math.min(w - 292 - halfText, pt.x)) : pt.x;
     ctx.lineWidth = 3.2;
-    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.92)' : 'rgba(2, 10, 5, 0.92)';
-    ctx.strokeText(text, pt.x, pt.y);
-    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 1.0 : 0.86) : rgba(rgb, isHot ? 1.0 : 0.80);
-    ctx.fillText(text, pt.x, pt.y);
+    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.94)' : 'rgba(2, 10, 5, 0.92)';
+    ctx.strokeText(text, tx, pt.y);
+    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 1.0 : 0.92) : rgba(rgb, isHot ? 1.0 : 0.84);
+    ctx.fillText(text, tx, pt.y);
     ctx.restore();
   };
 
@@ -5509,8 +5601,8 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // Whisper-clean unboxed architectural sector designations & bridge labels
-  drawHoloText(-6.25, 0.06, -4.65, 'SEC.01 // 理论与复核部', isLight ? [4, 120, 87] : [80, 255, 165], sec1Hot, 9);
-  drawHoloText( 5.85, 0.06, -4.65, 'OUTREACH // 论文与合作', isLight ? [180, 83, 9] : [255, 210, 155], sec2Hot, 9);
+  drawHoloText(-4.95, 0.06, -4.55, 'SEC.01 // 理论与复核部', isLight ? [4, 104, 74] : [80, 255, 165], sec1Hot, 9);
+  drawHoloText( 4.95, 0.06, -4.55, 'OUTREACH // 论文与合作', isLight ? [154, 52, 18] : [255, 210, 155], sec2Hot, 9);
   drawHoloText( 0.0,  0.26, -4.75, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [135, 255, 198], loopClosedHot, 9);
   drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [4, 120, 87] : [125, 255, 210], thHot || rvHot, 9);
   drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [180, 83, 9] : [255, 214, 165], pbHot || coHot, 9);
@@ -5555,6 +5647,24 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     return best;
   };
 
+  const hitGalaxyAt = (clientX, clientY) => {
+    const rect = boardEl.getBoundingClientRect();
+    const lx = clientX - rect.left;
+    const ly = clientY - rect.top;
+    let best = null;
+    let bestD = Infinity;
+    for (const [cid, info] of holoCam.projectedGalaxies) {
+      const dCore = Math.hypot(lx - info.x, ly - info.y);
+      const dLabel = Math.hypot(lx - info.lx, ly - info.ly);
+      const dist = Math.min(dCore, dLabel);
+      if (dist < 48 && dist < bestD) {
+        best = info;
+        bestD = dist;
+      }
+    }
+    return best;
+  };
+
   boardEl.addEventListener('pointerdown', e => {
     if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel')) return;
     holoCam.dragging = true;
@@ -5578,8 +5688,21 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     }
     if (!state.focused && e.target === $('#holo-3d')) {
       const hit = hitTowerAt(e.clientX, e.clientY);
-      boardEl.style.cursor = hit ? 'pointer' : 'grab';
-      if (hit) previewDepartment(hit);
+      if (hit) {
+        holoCam.hoveredGalaxy = null;
+        boardEl.style.cursor = 'pointer';
+        previewDepartment(hit);
+      } else {
+        const gHit = hitGalaxyAt(e.clientX, e.clientY);
+        holoCam.hoveredGalaxy = gHit ? gHit.cl.id : null;
+        boardEl.style.cursor = gHit ? 'pointer' : 'grab';
+        const hint = $('#hive-hover-hint');
+        if (gHit && hint) {
+          hint.textContent = `⟡ ${gHit.cl.zh || gHit.cl.name} 星系（${(gHit.cl.count || 0).toLocaleString()} 冻结定理）· 点击放大特写`;
+        } else if (!gHit) {
+          updateHoverHint(state.hovered || state.selected);
+        }
+      }
     }
   }, { passive: true });
 
@@ -5590,7 +5713,24 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     boardEl.classList.remove('is-dragging');
     if (!moved && !state.focused && e.target === $('#holo-3d')) {
       const hit = hitTowerAt(e.clientX, e.clientY);
-      if (hit) selectDepartment(hit, true, true);
+      if (hit) {
+        truthGrowth.manualFocus = null;
+        selectDepartment(hit, true, true);
+        return;
+      }
+      const gHit = hitGalaxyAt(e.clientX, e.clientY);
+      if (gHit) {
+        const now = performance.now();
+        if (truthGrowth.manualFocus && truthGrowth.manualFocus.cid === gHit.cl.id && !truthGrowth.manualFocus.closing) {
+          truthGrowth.manualFocus.closing = true;
+          truthGrowth.manualFocus.closeStart = now;
+        } else {
+          truthGrowth.manualFocus = { cid: gHit.cl.id, cluster: gHit.cl, start: now, closing: false };
+        }
+      } else if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
+        truthGrowth.manualFocus.closing = true;
+        truthGrowth.manualFocus.closeStart = performance.now();
+      }
     }
   });
 
@@ -5841,6 +5981,10 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if ($('#telemetry-dock')?.classList.contains('is-open')) closeDockDrawer();
     if (state.focused) closeDepartmentLens();
+    if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
+      truthGrowth.manualFocus.closing = true;
+      truthGrowth.manualFocus.closeStart = performance.now();
+    }
   }
 });
 
@@ -5865,6 +6009,13 @@ try {
     state.snapshot = saved;
     renderPapers();
     renderRepos();
+  }
+  const savedStream = JSON.parse(localStorage.getItem(streamCacheKey));
+  if (validStream(savedStream) && Date.now() - timestamp(savedStream.organization.observed_at) < 3600000) {
+    state.stream = savedStream;
+    observeTruthGrowth(savedStream.truth_growth);
+    for (const a of savedStream.organization.recent) state.seen.add(eventKey(a));
+    renderLive();
   }
 } catch {}
 
