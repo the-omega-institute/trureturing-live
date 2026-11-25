@@ -2898,7 +2898,7 @@ const GROWTH_SPAWN_START_MS = 1100;
 const GROWTH_SPAWN_GAP_MS = 380;
 const GROWTH_EDGE_MS = 900;
 const GROWTH_VISIBLE_STARS = 8;
-const GROWTH_ZOOM = 0.9;
+const GROWTH_LENS = 2.4;
 const truthGrowth = {
   seen: null,
   queue: [],
@@ -2957,6 +2957,74 @@ function growthFocusAmount(elapsed) {
   if (elapsed < GROWTH_IN_MS) return growthEase(elapsed / GROWTH_IN_MS);
   if (elapsed < GROWTH_HOLD_MS) return 1;
   return growthEase(1 - (elapsed - GROWTH_HOLD_MS) / (GROWTH_END_MS - GROWTH_HOLD_MS));
+}
+
+// Fisheye magnifier: points within radius R of (cx, cy) spread outward, most at the
+// centre; the lens edge and everything outside it stay exactly where they were.
+function growthLensWarp(x, y, cx, cy, R, D) {
+  if (D <= 0 || R <= 0) return [x, y, 1];
+  const dx = x - cx, dy = y - cy;
+  const d = Math.hypot(dx, dy);
+  if (d >= R) return [x, y, 1];
+  const m = (D + 1) / (D * (d / R) + 1);
+  return [cx + dx * m, cy + dy * m, m];
+}
+
+// The lens over a growing galaxy: glass sheen, glowing rim, an orbiting dashed ring
+// and two attention pings that spread from the galaxy when the close-up opens.
+function drawGrowthLens(ctx, x, y, R, k, now, start, col) {
+  if (k <= 0 || R <= 0) return;
+  ctx.save();
+  const sheen = ctx.createRadialGradient(x, y, R * 0.08, x, y, R);
+  sheen.addColorStop(0, rgba(col, 0.11 * k));
+  sheen.addColorStop(0.72, rgba(col, 0.04 * k));
+  sheen.addColorStop(1, rgba(col, 0));
+  ctx.fillStyle = sheen;
+  ctx.beginPath();
+  ctx.arc(x, y, R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = rgba(col, 0.16 * k);
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.arc(x, y, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = rgba(col, 0.85 * k);
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(x, y, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([4, 9]);
+  ctx.lineDashOffset = -now / 40;
+  ctx.strokeStyle = rgba(col, 0.55 * k);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, R + 9, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = rgba(col, 0.9 * k);
+  for (let i = 0; i < 8; i++) {
+    const a = now / 1600 + (i * Math.PI * 2) / 8;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * (R + 9), y + Math.sin(a) * (R + 9), 1.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const delay of [0, 450]) {
+    const age = now - start - delay;
+    if (age < 0 || age >= 1100) continue;
+    const e = age / 1100;
+    ctx.strokeStyle = rgba(col, 0.8 * (1 - e));
+    ctx.lineWidth = 2.4 * (1 - e) + 0.4;
+    ctx.beginPath();
+    ctx.arc(x, y, R * (0.3 + 1.6 * e), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// End point of a caption leader on the lens rim, on the side facing (tx, ty).
+function growthLensRim(x, y, R, tx, ty) {
+  const a = Math.atan2(ty - y, tx - x);
+  return [x + Math.cos(a) * R, y + Math.sin(a) * R];
 }
 
 // Deterministic placement: every viewer sees a module grow at the same spot.
@@ -3205,7 +3273,7 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
 
 // The close-up caption takes the sky header's place at the top centre, clear of
 // the side panels, with a leader to the growing galaxy so the galaxy stays unobstructed.
-function drawTruthGrowthFocus(ctx, f, k, now, gx, gy, w, col, halo) {
+function drawTruthGrowthFocus(ctx, f, k, now, gx, gy, lensR, w, col, halo) {
   if (k <= 0) return;
   const shown = Math.min(f.spawned, f.modules.length);
   const name = f.cluster.name === 'Other' ? (f.modules[0]?.domain || '其他领域') : (f.cluster.zh || f.cluster.name);
@@ -3220,15 +3288,10 @@ function drawTruthGrowthFocus(ctx, f, k, now, gx, gy, w, col, halo) {
   ctx.lineWidth = 1;
   ctx.setLineDash([5, 7]);
   ctx.lineDashOffset = -now / 50;
+  const [ex, ey] = growthLensRim(gx, gy, lensR, cx, 92);
   ctx.beginPath();
   ctx.moveTo(cx, 92);
-  ctx.quadraticCurveTo(cx + (gx - cx) * 0.2, gy * 0.45 + 50, gx, gy);
-  ctx.stroke();
-  ctx.lineDashOffset = -now / 60;
-  ctx.setLineDash([6, 8]);
-  ctx.strokeStyle = rgba(col, 0.62);
-  ctx.beginPath();
-  ctx.arc(gx, gy, 54 + 48 * k, 0, Math.PI * 2);
+  ctx.quadraticCurveTo(cx + (ex - cx) * 0.2, ey * 0.45 + 50, ex, ey);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.textAlign = 'center';
@@ -3318,26 +3381,29 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   if (manual?.closing && focusK <= 0.001) {
     truthGrowth.manualFocus = null;
   }
-  let focusX = 0, focusY = 0, focusTx = 0, focusTy = 0;
-  const focusZoom = 1 + GROWTH_ZOOM * focusK;
+  // The close-up is a local magnifying lens over the focused galaxy; the rest of the sky stays put.
+  let focusTx = 0, focusTy = 0, lensR = 0;
+  const lensD = GROWTH_LENS * focusK;
   if (focusK > 0) {
     const c = growthFocus.cluster.center;
     const rim = (growthFocus.cluster.radius || 200) / 1000;
-    [focusX, focusY] = projectBase(c[0] / 1000, c[1] / 1000, c[2] / 1000);
+    [focusTx, focusTy] = projectBase(c[0] / 1000, c[1] / 1000, c[2] / 1000);
     const [edgeX, edgeY] = projectBase(c[0] / 1000 + rim, c[1] / 1000, c[2] / 1000);
-    const reach = Math.min(Math.min(w, h) * 0.22, Math.hypot(edgeX - focusX, edgeY - focusY) * focusZoom * 0.6);
-    const fitX = Math.max(reach + 12, Math.min(w - reach - 12, focusX));
-    const fitY = Math.max(reach + 40, Math.min(h - reach - 12, focusY));
-    focusTx = focusX + (fitX - focusX) * focusK;
-    focusTy = focusY + (fitY - focusY) * focusK;
+    lensR = Math.max(110, Math.min(Math.min(w, h) * 0.26, Math.hypot(edgeX - focusTx, edgeY - focusTy) * 1.7));
   }
   const projectNeb = focusK > 0
     ? (nx, ny, nz) => {
         const p = projectBase(nx, ny, nz);
-        return [focusTx + (p[0] - focusX) * focusZoom, focusTy + (p[1] - focusY) * focusZoom, p[2], p[3] * focusZoom];
+        const [x, y, m] = growthLensWarp(p[0], p[1], focusTx, focusTy, lensR, lensD);
+        return [x, y, p[2], p[3] * Math.min(1.8, m)];
       }
     : projectBase;
-  const growthDim = cid => (focusK <= 0 ? 1 : cid === growthFocus.cid ? 1 + 0.45 * focusK : 1 - 0.62 * focusK);
+  const lensScale = (px, py) => {
+    if (focusK <= 0) return 1;
+    const d = Math.hypot(px - focusTx, py - focusTy);
+    return d < lensR ? 1 + 0.9 * focusK * (1 - d / lensR) : 1;
+  };
+  const growthDim = cid => (focusK <= 0 ? 1 : cid === growthFocus.cid ? 1 + 0.45 * focusK : 1);
 
   // PURE BACKGROUND SEPARATION MASK: keeps the Truth DAG cleanly behind & around the foreground
   // architectural diagram with zero lines crossing or tying back into the main workflow!
@@ -3360,9 +3426,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
+  // A growth close-up stays local: sky-wide arcs keep their resting state. Hovering or
+  // opening a galaxy still lights its connections.
+  const webCid = autoFocus && focusK > 0.05 ? null : focusCid;
   const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
-    if (focusK > 0.05) return cid === growthFocus?.cid ? 1.50 : 0.36;
+    if (focusK > 0.05 && cid === growthFocus?.cid) return 1.50;
     if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.40 : 0.46;
     return recentBucket(cid)?.count ? 1.18 : 0.68;
   };
@@ -3452,12 +3521,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   // PASS 3: INTER-GALAXY PERIMETER ARCS — HIDDEN AT REST (ZERO LINE CLUTTER!), ILLUMINATE ONLY ON HOVER / CLOSE-UP!
-  if (focusCid != null) {
+  if (webCid != null) {
     const ringRx = w * 0.35;
     const ringRy = h * 0.39;
     const namedLinks = clusterLinks.filter(([u, v]) => {
       const cu = clProj.get(u)?.cl, cv = clProj.get(v)?.cl;
-      return cu && cv && cu.name !== 'Other' && cv.name !== 'Other' && (u === focusCid || v === focusCid);
+      return cu && cv && cu.name !== 'Other' && cv.name !== 'Other' && (u === webCid || v === webCid);
     });
     for (let i = 0; i < namedLinks.length; i++) {
       const [fromId, toId, count] = namedLinks[i];
@@ -3531,7 +3600,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const mask = maskFor(s[3], px, py);
     const isSpot = focusCid != null && s[3] === focusCid;
     const hasGrowth = Boolean(recentBucket(s[3])?.count);
-    const grow = focusK > 0 && s[3] === growthFocus.cid ? 1 + 0.50 * focusK : 1;
+    const grow = lensScale(px, py);
     if (mask < 0.16) continue;
     const col = nebPalette[s[3] % nebPalette.length];
     const degW = s[5];
@@ -3544,6 +3613,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
   // PASS 6B: Live arriving growth animation
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
+  if (focusK > 0) {
+    drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
+  }
 
   // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules!)
   for (let k = 0; k < truthGrowth.recentSprouts.length; k++) {
@@ -3695,7 +3767,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
   if (growthFocus && focusK > 0) {
     if (autoFocus) {
-      drawTruthGrowthFocus(ctx, autoFocus, focusK, growthNow, focusTx, focusTy, w, nebPalette[autoFocus.cid % nebPalette.length], strokeHalo);
+      drawTruthGrowthFocus(ctx, autoFocus, focusK, growthNow, focusTx, focusTy, lensR, w, nebPalette[autoFocus.cid % nebPalette.length], strokeHalo);
     } else if (manual) {
       const col = nebPalette[manual.cid % nebPalette.length];
       const name = manual.cluster.zh || manual.cluster.name;
@@ -3709,12 +3781,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.strokeStyle = rgba(col, 0.58);
       ctx.lineWidth = 1.1;
       ctx.setLineDash([5, 7]);
+      const [rimX, rimY] = growthLensRim(focusTx, focusTy, lensR, cxTop, 92);
       ctx.beginPath();
       ctx.moveTo(cxTop, 92);
-      ctx.quadraticCurveTo(cxTop + (focusTx - cxTop) * 0.2, focusTy * 0.45 + 50, focusTx, focusTy);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(focusTx, focusTy, 54 + 44 * focusK, 0, Math.PI * 2);
+      ctx.quadraticCurveTo(cxTop + (rimX - cxTop) * 0.2, rimY * 0.45 + 50, rimX, rimY);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.textAlign = 'center';

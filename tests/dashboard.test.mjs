@@ -472,3 +472,22 @@ test('truth DAG growth is grouped by galaxy and brought into close-up one place 
     assert.notDeepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/Y'));
   }finally{dom.window.close();}
 });
+
+test('a growing galaxy is magnified locally while the rest of the sky stays put',async()=>{
+  const {dom,win}=await boot();try{
+    const warp=(x,y,d=2.4)=>[...win.growthLensWarp(x,y,500,300,100,d)];
+    assert.deepEqual(warp(700,300),[700,300,1],'a point outside the lens does not move');
+    assert.deepEqual(warp(500,460),[500,460,1]);
+    const edge=warp(599.9,300);
+    assert.ok(Math.abs(edge[0]-599.9)<0.5,'the lens edge is continuous with the sky around it');
+    const near=warp(510,300),mid=warp(550,300);
+    assert.ok(near[2]>mid[2]&&mid[2]>1,'magnification is strongest at the centre');
+    assert.ok(near[0]>510&&mid[0]>550,'inner points move outward');
+    let last=500;
+    for(let x=501;x<600;x+=3){const [wx]=warp(x,300);assert.ok(wx>last,'the lens never folds the sky');last=wx;}
+    assert.deepEqual(warp(530,320,0),[530,320,1],'no distortion when the close-up is not active');
+    const centre=warp(500,300);
+    assert.deepEqual(centre.slice(0,2),[500,300],'the centre itself stays fixed');
+    assert.ok(centre[2]>near[2],'and is magnified the most');
+  }finally{dom.window.close();}
+});
