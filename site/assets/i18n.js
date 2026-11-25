@@ -1,0 +1,571 @@
+// ============================================================================
+// TRURETURING // LIVE — Multi-Language Localization Engine (ZH / EN / JA)
+// Zero-reload instant language switching across DOM HUD, 3D Canvas labels,
+// department telemetry, Truth DAG galaxies, and conjecture archives.
+// ============================================================================
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'trureturing-lang-v1';
+  const SUPPORTED = ['zh', 'en', 'ja'];
+
+  const DICTS = {
+    zh: {
+      page_title: 'TRURETURING // LIVE · 3D 矩阵架构指挥大屏',
+      skip_link: '进入 3D 全息指挥大屏',
+      connecting: '正在连接',
+      connecting_stream: '正在接入全息流',
+      layer_galaxy: '星系',
+      layer_station: '空间站',
+      layer_mix: '混合',
+      layer_galaxy_title: '宏大 3D 星空真值 DAG 穹顶',
+      layer_station_title: '聚焦 24/7 悬浮轨道空间站与实时产出闭环',
+      layer_mix_title: '地面 · 轨道空间站 · 星空三层全景',
+      look_holo: '星穹',
+      look_matrix: '矩阵',
+      look_light: '曜白',
+      look_holo_title: '深空星穹观测站（默认）',
+      look_matrix_title: '黑客帝国磷光矩阵风格',
+      look_light_title: '高对比曜白建筑沙盘',
+      mode_org: '3D 架构',
+      mode_journey: '接力轨迹',
+      follow_live: '跟随最新',
+      follow_fixed: '已固定视角',
+      hud_zen: '纯净',
+      hud_expand: '展开',
+      motion_quiet: '静看',
+      fullscreen_enter: '全屏',
+      fullscreen_exit: '退出全屏',
+      back_galaxy: '← 返回星系',
+      back_panorama: '← 返回全景',
+      home_panorama: '返回全景',
+      sonar_btn: '灵识扫频',
+      cinema_btn: '巡航',
+      genesis_btn: '演化',
+      intro_btn: '开屏',
+      intro_skip: '跳过',
+      intro_step1: 'OMEGA OBSERVATORY // ① 周天星海 · 真值 DAG 创世绽放',
+      intro_step2: 'OMEGA OBSERVATORY // ② 全息蓝图扫描 · 轨道空间站实体化',
+      intro_step3: 'OMEGA OBSERVATORY // ③ 实时自动化观测 · 准备就绪',
+      log_wall_title: 'MATRIX // 全院战报',
+      log_mode_latest: '最新',
+      log_mode_cycle: '轮播',
+      log_rate_cycle: 'HIGH-DENSITY INTEL · 轮播',
+      log_rate_latest: 'LIVE TIMELINE · 最新事件',
+      log_ops_dag: 'DAG 节点',
+      log_ops_growth: '近期增长',
+      log_ops_ci: 'CI 引擎',
+      log_jump_latest: '↓ 回到最新',
+      open_lens: '飞入舱内 ⤢',
+      exit_lens: '← 退出舱内 · 返回 3D 全院',
+      panel_happening: '这里正在发生',
+      panel_realtime: '实时推进',
+      panel_waiting: '等待全息信号…',
+      panel_relay_links: '接力的上下游部门',
+      journey_back: '← 返回 3D 全院',
+      journey_title_default: '选择一个正在推进的问题',
+      journey_desc_default: '沿着公开讨论与研究引用，追踪一条线索如何跨部门接力生长。',
+      journey_links_head: '关联入口',
+      journey_events_head: '接力轨迹与公开进展',
+      rail_01: '人的方向',
+      rail_01_badge: '指引',
+      rail_02: '解决猜想',
+      rail_bridge: '形式化',
+      rail_04: '书籍推进',
+      rail_05: '论文·合作',
+      rail_review: '独立评审',
+      rail_studio: '工具表达',
+      tab_live_ops: '检验灯阵',
+      tab_questions: '在研课题',
+      tab_conjectures: '猜想档案',
+      tab_publications: '书稿论文',
+      tab_ecosystem: '开源底座',
+      dock_close: '✕ 收起',
+      ops_checker_title: 'Lean CI 检验灯阵',
+      ops_relay_title: '跨部门接力热力',
+      ops_feed_title: '协作信号流',
+      filter_all: '全部',
+      filter_discussion: '讨论',
+      filter_work: '课题',
+      filter_automation: '检验',
+      q_all: '全部课题',
+      q_research: '数学研究',
+      q_books: '理论书写',
+      q_more: '展开更多 ↓',
+      c_all: '全部结论',
+      c_proved: '✓ 已证明',
+      c_refuted: '✕ 反驳 / 障碍',
+      pub_books: '双语书稿进展',
+      pub_books_link: '书库 ↗',
+      pub_papers: '已公开论文',
+      pub_papers_link: '全部研究 ↗',
+      eco_repos: '公开研究仓库',
+      eco_tpl_title: '复用到任意「人 + AI」GitHub 组织',
+      eco_tpl_desc: '独立 Rust 观测引擎自动拉取 Issue / PR / Actions，零改造映射为 3D 全息蜂巢大屏。',
+      eco_tpl_btn: 'Rust 开源模板 ↗',
+      eco_atlas_btn: '知识地图 ↗',
+      ib_open_new: '新标签打开 ↗',
+      hint_mix: '周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频',
+      hint_galaxy: '浩瀚星空真值 DAG 穹顶 · 点击任意星系飞入节点网络 · Shift+划动拨弦',
+      hint_station: '24/7 活态轨道空间站 · 实时循环产线与滑轨支路 · 点击部门飞入舱内',
+      hint_cinema: '◎ 导演自动巡航中 · 拖拽、滚轮或点击任意处立即归还控制权',
+      hud_sec1: 'SEC.01 // 理论生产翼（猜想 · 书稿）',
+      hud_sec2: 'SEC.02 // 论文 · Mathesis · {n} 合作学者',
+      hud_branch_a: 'BRANCH A // 独立评审滑轨',
+      hud_branch_b: 'BRANCH B // 工具表达滑轨',
+      hud_mathesis: 'Mathesis ⇄ {n} 合作学者',
+      hud_left_bridge: '理论生产 ⇄ Lean 核枢',
+      hud_right_bridge: 'Lean 核枢 ⇄ 自动论文',
+      hud_outreach_detail: '✦ {n} 合作 · {replied} 回信 · {contacted} 联络 · {joint} 联合论文',
+      hud_rev_tap: '评审支路接入 → {dept}',
+      hud_stu_tap: '工具支路接入 → {dept}',
+      hud_station_left_live: '⚡ 猜想·书稿 ⇄ Lean 核枢 · {run} 项实时核验',
+      hud_station_right_live: '✦ 自动论文工厂 ⇄ Mathesis · 持续产出',
+      hud_station_loop_tag: '24/7 ACTIVE LOOP // 猜想 → 形式化 → 书稿论文 → {n} 学者回流',
+      hud_dag_banner: 'TRUTH DAG COSMOS // L0 公理底座 → L18 前沿定理 · {n} 冻结节点',
+      lantern_proved: '✓ 已证明',
+      lantern_refuted: '✕ 反驳',
+      lantern_click: '点击读证明',
+      lantern_badge_proved: '✦ 猜想提灯 · 已证明',
+      lantern_badge_refuted: '✦ 猜想提灯 · 反驳 / 障碍',
+      lantern_read_btn: '在内置浏览器阅读证明 ↗',
+      trace_btn_open: '⟡ 追溯公理根 ({n} 条)',
+      trace_btn_close: '✕ 收起公理光脉 ({n})',
+      lean_source_btn: '查看 Lean 源码 ↗',
+      genesis_meta: 'DAG 演化 · {pct}% · ~{th} 定理 · ✦ {conj} 猜想',
+      health_connected: '刚刚更新',
+      health_summary: '{depts} 个部门，持续相连 · {ci} 项自动化正在运转 · {relays} 条跨部门引用接力',
+      exec_human: '人的方向与判断',
+      exec_sessions: '独立研究会话',
+      exec_actions: 'Actions 自动引擎',
+      exec_mixed: '会话 + 自动检查',
+      rel_now: '刚刚',
+      rel_min: '{n} 分钟前',
+      rel_hour: '{n} 小时前',
+      rel_day: '{n} 天前',
+      stage_prefix: '境·',
+      depts: {
+        direction: { label: '研究方向', role: '全局监控' },
+        research: { label: '数学攻坚', role: '猜想攻关' },
+        review: { label: '独立评审', role: '评审支路' },
+        verification: { label: '形式验证', role: 'Lean 核枢' },
+        books: { label: '理论书写', role: '书籍理论' },
+        publication: { label: '论文与知识', role: 'Mathesis' },
+        outreach: { label: '学术交流', role: '{n} 合作学者' },
+        studio: { label: '工具与表达', role: '工具支路' }
+      },
+      galaxies: {
+        Combinatorics: '组合数学',
+        Quantum: '量子结构',
+        Arith: '数论算术',
+        ConceptDynamics: '概念动力',
+        Analytic: '解析分析',
+        Weil: 'Weil 理论',
+        Observer: '观察者论',
+        Other: '基础公理带'
+      },
+      realms: ['练气', '筑基', '金丹', '元婴', '化神', '大乘']
+    },
+
+    en: {
+      page_title: 'TRURETURING // LIVE · 3D AI Math Observatory',
+      skip_link: 'Enter 3D Observatory',
+      connecting: 'Connecting',
+      connecting_stream: 'Connecting telemetry stream',
+      layer_galaxy: 'Cosmos',
+      layer_station: 'Station',
+      layer_mix: 'Hybrid',
+      layer_galaxy_title: 'Grand 3D Truth DAG Starfield Cosmos',
+      layer_station_title: 'Focus on 24/7 Orbital Station & Active Research Loop',
+      layer_mix_title: '3-Strata Panorama: Mirror Floor · Orbital Station · Truth Cosmos',
+      look_holo: 'Cosmos',
+      look_matrix: 'Matrix',
+      look_light: 'Light',
+      look_holo_title: 'Deep-Space Observatory (Default)',
+      look_matrix_title: 'The Matrix Cyber-Phosphor Style',
+      look_light_title: 'High-Contrast Architectural Daylight',
+      mode_org: '3D Grid',
+      mode_journey: 'Relay',
+      follow_live: 'Follow',
+      follow_fixed: 'Pinned',
+      hud_zen: 'Zen',
+      hud_expand: 'Panel',
+      motion_quiet: 'Calm',
+      fullscreen_enter: 'Full',
+      fullscreen_exit: 'Exit Full',
+      back_galaxy: '← Galaxy View',
+      back_panorama: '← Panorama',
+      home_panorama: 'Panorama',
+      sonar_btn: 'Sonar Sweep',
+      cinema_btn: 'Cruise',
+      genesis_btn: 'Genesis',
+      intro_btn: 'Intro',
+      intro_skip: 'Skip',
+      intro_step1: 'OMEGA OBSERVATORY // 01 CELESTIAL DOME · TRUTH DAG GENESIS',
+      intro_step2: 'OMEGA OBSERVATORY // 02 HOLOGRAPHIC SCAN · STATION MATERIALIZING',
+      intro_step3: 'OMEGA OBSERVATORY // 03 LIVE AUTOMATED TELEMETRY · ONLINE',
+      log_wall_title: 'MATRIX // LIVE DISPATCH',
+      log_mode_latest: 'Live',
+      log_mode_cycle: 'Cycle',
+      log_rate_cycle: 'HIGH-DENSITY INTEL · CYCLE',
+      log_rate_latest: 'LIVE TIMELINE · LATEST EVENTS',
+      log_ops_dag: 'DAG Nodes',
+      log_ops_growth: 'Recent',
+      log_ops_ci: 'CI Engines',
+      log_jump_latest: '↓ Jump to Latest',
+      open_lens: 'Enter Deck ⤢',
+      exit_lens: '← Exit Deck · Back to 3D Institute',
+      panel_happening: 'Happening Now',
+      panel_realtime: 'Active Work',
+      panel_waiting: 'Awaiting telemetry signal…',
+      panel_relay_links: 'Upstream & Downstream Relays',
+      journey_back: '← Back to 3D Institute',
+      journey_title_default: 'Select an active mathematical thread',
+      journey_desc_default: 'Follow public discussions and citations as a proof relays across departments.',
+      journey_links_head: 'Connected Entry Points',
+      journey_events_head: 'Relay Trajectory & Public Progress',
+      rail_01: 'Direction',
+      rail_01_badge: 'Guide',
+      rail_02: 'Proofs',
+      rail_bridge: 'Lean',
+      rail_04: 'Books',
+      rail_05: 'Papers',
+      rail_review: 'Review',
+      rail_studio: 'Studio',
+      tab_live_ops: 'CI',
+      tab_questions: 'Problems',
+      tab_conjectures: 'Archive',
+      tab_publications: 'Papers',
+      tab_ecosystem: 'Stack',
+      dock_close: '✕ Close',
+      ops_checker_title: 'Lean CI Verification Array',
+      ops_relay_title: 'Cross-Department Relay Heat',
+      ops_feed_title: 'Live Collaboration Stream',
+      filter_all: 'All',
+      filter_discussion: 'Discuss',
+      filter_work: 'Tasks',
+      filter_automation: 'CI Runs',
+      q_all: 'All Threads',
+      q_research: 'Math Research',
+      q_books: 'Theory Books',
+      q_more: 'Load More ↓',
+      c_all: 'All Verdicts',
+      c_proved: '✓ Proved',
+      c_refuted: '✕ Refuted / Obstruction',
+      pub_books: 'Bilingual Monographs',
+      pub_books_link: 'Library ↗',
+      pub_papers: 'Public Preprints & Papers',
+      pub_papers_link: 'All Research ↗',
+      eco_repos: 'Public Research Repositories',
+      eco_tpl_title: 'Deploy for Any Human + AI GitHub Org',
+      eco_tpl_desc: 'Standalone Rust observer ingests Issues, PRs & Actions into a real-time 3D observatory.',
+      eco_tpl_btn: 'Rust Template ↗',
+      eco_atlas_btn: 'Knowledge Atlas ↗',
+      ib_open_new: 'Open New Tab ↗',
+      hint_mix: '3-Strata Observatory · Drag to orbit (dbl-click reset) · Click sky to strum · Space for Sonar',
+      hint_galaxy: 'Grand Truth DAG Starfield · Click any galaxy to inspect nodes · Shift+Glide to play harp',
+      hint_station: '24/7 Active Orbital Loop · Live pipelines, shuttles & branch rails · Click any deck to zoom in',
+      hint_cinema: '◎ Auto-Director Cruise · Drag, scroll, or click anywhere to take control',
+      hud_sec1: 'SEC.01 // THEORY WING (CONJECTURES · BOOKS)',
+      hud_sec2: 'SEC.02 // PAPERS · MATHESIS · {n} SCHOLARS',
+      hud_branch_a: 'BRANCH A // REVIEW SLIDING RAIL',
+      hud_branch_b: 'BRANCH B // STUDIO SLIDING RAIL',
+      hud_mathesis: 'Mathesis ⇄ {n} Scholars',
+      hud_left_bridge: 'Theory Wing ⇄ Lean Core',
+      hud_right_bridge: 'Lean Core ⇄ Paper Factory',
+      hud_outreach_detail: '✦ {n} Collaborating · {replied} Replied · {contacted} Contacted · {joint} Joint Papers',
+      hud_rev_tap: 'Review Branch Active → {dept}',
+      hud_stu_tap: 'Studio Branch Active → {dept}',
+      hud_station_left_live: '⚡ Theory & Books ⇄ Lean Core · {run} Verifying',
+      hud_station_right_live: '✦ Auto-Paper Factory ⇄ Mathesis · Shipping',
+      hud_station_loop_tag: '24/7 ACTIVE LOOP // Conjecture → Lean → Books & Papers → {n} Scholars',
+      hud_dag_banner: 'TRUTH DAG COSMOS // L0 Axioms → L18 Frontier · {n} Verified Nodes',
+      lantern_proved: '✓ Proved',
+      lantern_refuted: '✕ Refuted',
+      lantern_click: 'Click for proof',
+      lantern_badge_proved: '✦ Conjecture Lantern · Proved',
+      lantern_badge_refuted: '✦ Conjecture Lantern · Refuted',
+      lantern_read_btn: 'Read Proof in Built-in Browser ↗',
+      trace_btn_open: '⟡ Trace Axioms ({n} edges)',
+      trace_btn_close: '✕ Hide Proof Veins ({n})',
+      lean_source_btn: 'View Lean Source ↗',
+      genesis_meta: 'DAG Genesis · {pct}% · ~{th} Theorems · ✦ {conj} Conjectures',
+      health_connected: 'Live Now',
+      health_summary: '{depts} depts linked · {ci} live automations · {relays} cross-dept relays',
+      exec_human: 'Human Direction',
+      exec_sessions: 'Research Sessions',
+      exec_actions: 'Actions Automation',
+      exec_mixed: 'Sessions + CI',
+      rel_now: 'just now',
+      rel_min: '{n}m ago',
+      rel_hour: '{n}h ago',
+      rel_day: '{n}d ago',
+      stage_prefix: 'TIER ',
+      depts: {
+        direction: { label: 'Direction', role: 'Overseer' },
+        research: { label: 'Math Research', role: 'Conjectures' },
+        review: { label: 'Indep. Review', role: 'Review Rail' },
+        verification: { label: 'Verification', role: 'Lean Core' },
+        books: { label: 'Monographs', role: 'Books' },
+        publication: { label: 'Papers & Wiki', role: 'Mathesis' },
+        outreach: { label: 'Scholar Outreach', role: '{n} Scholars' },
+        studio: { label: 'Tools & Studio', role: 'Tools Rail' }
+      },
+      galaxies: {
+        Combinatorics: 'Combinatorics',
+        Quantum: 'Quantum Structure',
+        Arith: 'Number Theory',
+        ConceptDynamics: 'Concept Dynamics',
+        Analytic: 'Analytic Theory',
+        Weil: 'Weil Theory',
+        Observer: 'Observer Theory',
+        Other: 'Axiom Foundations'
+      },
+      realms: ['Spark', 'Foundation', 'Core', 'Synthesis', 'Ascension', 'Sovereign']
+    },
+
+    ja: {
+      page_title: 'TRURETURING // LIVE · 3D AI数学研究所ダッシュボード',
+      skip_link: '3D観測ステーションへ',
+      connecting: '接続中',
+      connecting_stream: 'テレメトリ接続中',
+      layer_galaxy: '星系',
+      layer_station: '基地',
+      layer_mix: '統合',
+      layer_galaxy_title: '壮大な3D星空・真理DAGドーム',
+      layer_station_title: '24/7稼働中の軌道研究基地と循環ループ',
+      layer_mix_title: '鏡面・軌道基地・星空の三層パノラマ',
+      look_holo: '星穹',
+      look_matrix: 'マトリクス',
+      look_light: '白昼',
+      look_holo_title: '深宇宙星穹モード（標準）',
+      look_matrix_title: 'マトリックス蛍光グリーン電脳モード',
+      look_light_title: '高コントラスト白昼建築モデル',
+      mode_org: '3D構造',
+      mode_journey: '連携軌跡',
+      follow_live: '最新追従',
+      follow_fixed: '視点固定',
+      hud_zen: '純粋',
+      hud_expand: '展開',
+      motion_quiet: '静止',
+      fullscreen_enter: '全画面',
+      fullscreen_exit: '解除',
+      back_galaxy: '← 星系へ戻る',
+      back_panorama: '← 全景へ戻る',
+      home_panorama: '全景へ',
+      sonar_btn: 'ソナー走査',
+      cinema_btn: '巡航',
+      genesis_btn: '進化',
+      intro_btn: '序幕',
+      intro_skip: 'スキップ',
+      intro_step1: 'OMEGA OBSERVATORY // ① 周天星海・真理DAG創世',
+      intro_step2: 'OMEGA OBSERVATORY // ② ホログラム走査・研究基地実体化',
+      intro_step3: 'OMEGA OBSERVATORY // ③ リアルタイム自動観測・稼働中',
+      log_wall_title: 'MATRIX // 研究所速報',
+      log_mode_latest: '最新',
+      log_mode_cycle: '循環',
+      log_rate_cycle: 'HIGH-DENSITY INTEL · 循環',
+      log_rate_latest: 'LIVE TIMELINE · 最新イベント',
+      log_ops_dag: 'DAGノード',
+      log_ops_growth: '最近の増加',
+      log_ops_ci: 'CIエンジン',
+      log_jump_latest: '↓ 最新へ戻る',
+      open_lens: '内部へ ⤢',
+      exit_lens: '← 内部を閉じる・3D全景へ',
+      panel_happening: '進行中の活動',
+      panel_realtime: 'リアルタイム推進',
+      panel_waiting: '信号待機中…',
+      panel_relay_links: '前後連携部門',
+      journey_back: '← 3D全景へ戻る',
+      journey_title_default: '進行中の研究課題を選択',
+      journey_desc_default: '公開議論と引用を辿り、証明が部門間で連鎖成長する軌跡を追跡します。',
+      journey_links_head: '関連リンク',
+      journey_events_head: '連携軌跡と公開進捗',
+      rail_01: '研究方針',
+      rail_01_badge: '指針',
+      rail_02: '予想解決',
+      rail_bridge: 'Lean検証',
+      rail_04: '理論書籍',
+      rail_05: '論文・交流',
+      rail_review: '独立査読',
+      rail_studio: '基盤ツール',
+      tab_live_ops: 'CI検証陣',
+      tab_questions: '研究課題',
+      tab_conjectures: '予想記録',
+      tab_publications: '書籍・論文',
+      tab_ecosystem: 'OSS基盤',
+      dock_close: '✕ 閉じる',
+      ops_checker_title: 'Lean CI 検証アレイ',
+      ops_relay_title: '部門間連携ヒートマップ',
+      ops_feed_title: '協働シグナル流',
+      filter_all: 'すべて',
+      filter_discussion: '議論',
+      filter_work: '課題',
+      filter_automation: '検証',
+      q_all: '全課題',
+      q_research: '数学研究',
+      q_books: '理論執筆',
+      q_more: 'さらに表示 ↓',
+      c_all: '全結果',
+      c_proved: '✓ 証明済',
+      c_refuted: '✕ 反証・障害',
+      pub_books: '二言語専門書進捗',
+      pub_books_link: '書庫 ↗',
+      pub_papers: '公開論文・プレプリント',
+      pub_papers_link: '全研究 ↗',
+      eco_repos: '公開研究リポジトリ',
+      eco_tpl_title: 'あらゆる「人＋AI」GitHub組織へ展開可能',
+      eco_tpl_desc: '独立RustエンジンがIssue/PR/Actionsを取得し、3Dホログラム基地へ自動投影します。',
+      eco_tpl_btn: 'Rustテンプレート ↗',
+      eco_atlas_btn: '知識マップ ↗',
+      ib_open_new: '新しいタブで開く ↗',
+      hint_mix: '三層観測ステーション · ドラッグ回転（Wクリックで復帰）· 星空クリックで撥弦 · Spaceでソナー',
+      hint_galaxy: '壮大な星空真理DAG · 星系クリックでノード網へ · Shift+移動で星海ハープ',
+      hint_station: '24/7稼働ループ基地 · シャトル・検証橋・支線レールが常時稼働 · 部門クリックで内部へ',
+      hint_cinema: '◎ 自動巡航カメラ稼働中 · 操作すると直ちに制御を返還します',
+      hud_sec1: 'SEC.01 // 理論生産翼（予想・書籍）',
+      hud_sec2: 'SEC.02 // 論文・Mathesis・{n} 名の協力学者',
+      hud_branch_a: 'BRANCH A // 独立査読レール',
+      hud_branch_b: 'BRANCH B // ツール表現レール',
+      hud_mathesis: 'Mathesis ⇄ {n} 名の学者',
+      hud_left_bridge: '理論生産 ⇄ Lean中枢',
+      hud_right_bridge: 'Lean中枢 ⇄ 自動論文',
+      hud_outreach_detail: '✦ {n} 協力 · {replied} 返信 · {contacted} 連絡 · {joint} 共著論文',
+      hud_rev_tap: '査読支線接続 → {dept}',
+      hud_stu_tap: 'ツール支線接続 → {dept}',
+      hud_station_left_live: '⚡ 理論・書籍 ⇄ Lean中枢 · {run} 件検証中',
+      hud_station_right_live: '✦ 自動論文工場 ⇄ Mathesis · 継続出力',
+      hud_station_loop_tag: '24/7 ACTIVE LOOP // 予想 → Lean検証 → 書籍論文 → {n} 名の学者還流',
+      hud_dag_banner: 'TRUTH DAG COSMOS // L0 公理基盤 → L18 最前線定理 · {n} 検証済ノード',
+      lantern_proved: '✓ 証明済',
+      lantern_refuted: '✕ 反証',
+      lantern_click: 'クリックで証明表示',
+      lantern_badge_proved: '✦ 予想ランタン・証明済',
+      lantern_badge_refuted: '✦ 予想ランタン・反証／障害',
+      lantern_read_btn: '内蔵ブラウザで証明を読む ↗',
+      trace_btn_open: '⟡ 公理ルート遡及 ({n} 本)',
+      trace_btn_close: '✕ 公理光脈を閉じる ({n})',
+      lean_source_btn: 'Lean ソースを見る ↗',
+      genesis_meta: 'DAG進化 · {pct}% · 約{th} 定理 · ✦ {conj} 予想',
+      health_connected: 'たった今更新',
+      health_summary: '{depts} 部門常時連動 · {ci} 件の自動化稼働中 · {relays} 件の部門間連携',
+      exec_human: '人間の方向判断',
+      exec_sessions: '独立研究セッション',
+      exec_actions: 'Actions 自動エンジン',
+      exec_mixed: 'セッション＋自動検査',
+      rel_now: 'たった今',
+      rel_min: '{n} 分前',
+      rel_hour: '{n} 時間前',
+      rel_day: '{n} 日前',
+      stage_prefix: '境·',
+      depts: {
+        direction: { label: '研究方針', role: '全体統括' },
+        research: { label: '数学研究', role: '予想攻略' },
+        review: { label: '独立査読', role: '査読支線' },
+        verification: { label: '形式検証', role: 'Lean中枢' },
+        books: { label: '理論執筆', role: '専門書籍' },
+        publication: { label: '論文・知識', role: 'Mathesis' },
+        outreach: { label: '学術交流', role: '{n} 名の学者' },
+        studio: { label: '基盤ツール', role: 'ツール支線' }
+      },
+      galaxies: {
+        Combinatorics: '組合せ数学',
+        Quantum: '量子構造',
+        Arith: '数論算術',
+        ConceptDynamics: '概念力学',
+        Analytic: '解析学',
+        Weil: 'ヴェイユ理論',
+        Observer: '観測者理論',
+        Other: '公理基盤帯'
+      },
+      realms: ['練気', '築基', '金丹', '元嬰', '化神', '大乗']
+    }
+  };
+
+  function detectInitialLang() {
+    try {
+      const q = new URLSearchParams(window.location.search).get('lang');
+      if (q && SUPPORTED.includes(q.toLowerCase())) return q.toLowerCase();
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && SUPPORTED.includes(saved)) return saved;
+    } catch {}
+    return 'zh';
+  }
+
+  let currentLang = detectInitialLang();
+
+  function interpolate(str, vars) {
+    if (!vars || typeof str !== 'string') return str;
+    return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : ''));
+  }
+
+  function t(key, vars = null, fallback = null) {
+    const d = DICTS[currentLang] || DICTS.zh;
+    const raw = d[key] ?? DICTS.zh[key] ?? fallback ?? key;
+    return interpolate(raw, vars);
+  }
+
+  function deptLabel(id, fallback = '') {
+    const d = DICTS[currentLang] || DICTS.zh;
+    return d.depts?.[id]?.label || DICTS.zh.depts?.[id]?.label || fallback || id;
+  }
+
+  function deptRole(id, vars = null, fallback = '') {
+    const d = DICTS[currentLang] || DICTS.zh;
+    const raw = d.depts?.[id]?.role || DICTS.zh.depts?.[id]?.role || fallback || '';
+    return interpolate(raw, vars);
+  }
+
+  function galaxyName(cluster) {
+    if (!cluster) return '';
+    const d = DICTS[currentLang] || DICTS.zh;
+    if (currentLang === 'zh') return cluster.zh || d.galaxies?.[cluster.name] || cluster.name;
+    return d.galaxies?.[cluster.name] || cluster.name || cluster.zh || '';
+  }
+
+  function realmName(idx, fallback = '') {
+    const d = DICTS[currentLang] || DICTS.zh;
+    return d.realms?.[idx] || fallback || '';
+  }
+
+  function applyDom(doc = document) {
+    if (!doc) return;
+    const htmlLang = currentLang === 'en' ? 'en' : currentLang === 'ja' ? 'ja' : 'zh-CN';
+    if (doc.documentElement) {
+      doc.documentElement.lang = htmlLang;
+      doc.documentElement.dataset.lang = currentLang;
+    }
+    doc.title = t('page_title');
+    for (const el of doc.querySelectorAll('[data-i18n]')) {
+      const key = el.dataset.i18n;
+      if (key) el.textContent = t(key);
+    }
+    for (const el of doc.querySelectorAll('[data-i18n-title]')) {
+      const key = el.dataset.i18nTitle;
+      if (key) el.setAttribute('title', t(key));
+    }
+    for (const btn of doc.querySelectorAll('[data-lang-btn]')) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.langBtn === currentLang));
+    }
+  }
+
+  function setLang(code) {
+    const next = SUPPORTED.includes(code) ? code : 'zh';
+    currentLang = next;
+    try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+    applyDom(document);
+    return currentLang;
+  }
+
+  window.TrureI18n = {
+    SUPPORTED,
+    getLang: () => currentLang,
+    setLang,
+    t,
+    deptLabel,
+    deptRole,
+    galaxyName,
+    realmName,
+    applyDom
+  };
+})();

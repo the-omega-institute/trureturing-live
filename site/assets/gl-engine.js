@@ -382,42 +382,42 @@
     vec2 skyP = p + vec2(uYaw * 0.45, -uPitch * 0.42);
 
     if (uTheme > 1.5) {
-      // Studio Architectural Maquette Cyclorama
-      vec3 topC = vec3(0.96, 0.948, 0.920);
-      vec3 midC = vec3(0.922, 0.908, 0.875);
-      vec3 botC = vec3(0.875, 0.858, 0.822);
-      vec3 col = mix(botC, mix(midC, topC, smoothstep(0.35, 0.95, vUv.y)), smoothstep(0.0, 0.65, vUv.y));
-      // Faint celestial watercolor wash in upper sky when galaxy layer is active
-      float band = exp(-pow((vUv.y - 0.78) * 3.4, 2.0));
-      float neb = fbm(skyP * 2.4 + vec2(0.0, uTime * 0.008));
-      col = mix(col, vec3(0.84, 0.89, 0.90), band * neb * 0.22 * uGalaxyAlpha);
+      // High-Contrast Swiss Architectural Studio Cyclorama (曜白)
+      vec3 topC = vec3(0.915, 0.912, 0.892);
+      vec3 midC = vec3(0.890, 0.884, 0.860);
+      vec3 botC = vec3(0.845, 0.838, 0.812);
+      vec3 col = mix(botC, mix(midC, topC, smoothstep(0.32, 0.95, vUv.y)), smoothstep(0.0, 0.65, vUv.y));
+      // Soft architectural slate-wash canopy in upper sky to frame dark-ink galaxies cleanly
+      float band = exp(-pow((vUv.y - 0.74) * 3.1, 2.0));
+      float neb = fbm(skyP * 2.3 + vec2(0.0, uTime * 0.008));
+      col = mix(col, vec3(0.79, 0.83, 0.87), band * neb * 0.28 * clamp(uGalaxyAlpha, 0.2, 1.3));
       fragColor = vec4(col, 1.0);
       return;
     }
 
-    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.024, 0.058, 0.118) : vec3(0.012, 0.019, 0.034);
-    vec3 horizonMist = uTheme > 0.5 ? vec3(0.055, 0.128, 0.235) : vec3(0.034, 0.058, 0.098);
-    vec3 col = mix(deepAbyss, horizonMist, exp(-pow((vUv.y - 0.46) * 2.4, 2.0)) * 0.85);
+    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.004, 0.020, 0.010) : vec3(0.012, 0.019, 0.034);
+    vec3 horizonMist = uTheme > 0.5 ? vec3(0.014, 0.072, 0.034) : vec3(0.034, 0.058, 0.098);
+    vec3 col = mix(deepAbyss, horizonMist, exp(-pow((vUv.y - 0.46) * 2.4, 2.0)) * 0.88);
 
     // Sweeping Astronomical Milky-Way / Cosmic Nebula Canopy across upper sky (STRATUM 3!)
-    float skyBand = smoothstep(0.28, 0.72, vUv.y) * (1.0 - smoothstep(0.88, 1.15, vUv.y) * 0.35);
+    float skyBand = smoothstep(0.24, 0.72, vUv.y) * (1.0 - smoothstep(0.90, 1.16, vUv.y) * 0.30);
     vec2 uvA = skyP * 2.1 + vec2(uTime * 0.006, 0.0);
     float n1 = fbm(uvA);
     float n2 = fbm(uvA * 1.9 + vec2(n1 * 1.4, -n1 * 0.9));
     float ridge = smoothstep(0.36, 0.84, n2);
 
-    vec3 nebBlue = uTheme > 0.5 ? vec3(0.11, 0.28, 0.52) : vec3(0.075, 0.175, 0.315);
-    vec3 nebCyan = uTheme > 0.5 ? vec3(0.18, 0.45, 0.68) : vec3(0.105, 0.335, 0.420);
-    vec3 nebGold = vec3(0.26, 0.22, 0.15);
+    vec3 nebBlue = uTheme > 0.5 ? vec3(0.02, 0.24, 0.10) : vec3(0.075, 0.175, 0.315);
+    vec3 nebCyan = uTheme > 0.5 ? vec3(0.06, 0.44, 0.19) : vec3(0.105, 0.335, 0.420);
+    vec3 nebGold = uTheme > 0.5 ? vec3(0.18, 0.38, 0.14) : vec3(0.26, 0.22, 0.15);
 
-    float gBoost = clamp(uGalaxyAlpha, 0.15, 1.45);
+    float gBoost = clamp(uGalaxyAlpha, 0.15, 1.55);
     col += nebBlue * (n1 * 0.48) * skyBand * gBoost;
     col += nebCyan * (ridge * 0.36) * skyBand * gBoost;
     col += nebGold * (pow(ridge, 2.5) * 0.18) * skyBand * gBoost * smoothstep(0.0, 0.7, skyP.x + 0.35);
 
     // Subtle atmospheric horizon glow dividing Ground Abyss & Aerial Station from Cosmic Canopy
     float hor = exp(-pow((vUv.y - 0.52) * 8.5, 2.0));
-    col += vec3(0.12, 0.24, 0.34) * hor * 0.16;
+    col += (uTheme > 0.5 ? vec3(0.04, 0.26, 0.12) : vec3(0.12, 0.24, 0.34)) * hor * 0.18;
 
     fragColor = vec4(col, 1.0);
   }`;
@@ -474,7 +474,12 @@
     float minorG = gridFactor(P.xz, 0.5, 0.85);
     float gridFade = exp(-dist * 0.072);
     float gridMask = (majorG * 0.68 + minorG * 0.16) * gridFade;
-    col = mix(col, uGridColor, gridMask * (uTheme > 1.5 ? 0.30 : 0.28));
+    col = mix(col, uGridColor, gridMask * (uTheme > 1.5 ? 0.44 : (uTheme > 0.5 ? 0.42 : 0.28)));
+    if (uTheme > 1.5) {
+      // Soft architectural studio contact shadow under the suspended space station footprint
+      float aoShadow = exp(-dist * dist * 0.016) * 0.11;
+      col *= (1.0 - aoShadow);
+    }
 
     // Concentric Orbital Foundation Trench Rings on the Ground Plane (r = 9.0, r = 11.4, r = 13.8) + slow pulse ring
     float r1 = (1.0 - smoothstep(0.0, 0.07, abs(dist - 9.0))) * 0.44;
@@ -486,20 +491,27 @@
     // 8 radial celestial formation azimuth lines across the orbital floor
     float ang = atan(P.z, P.x);
     float radTick = pow(abs(cos(ang * 4.0)), 64.0) * smoothstep(2.5, 5.0, dist) * exp(-dist * 0.075) * 0.26;
-    col += uGridColor * (r1 + rMid + r2 + rWave + radTick) * (uTheme > 1.5 ? 0.45 : 0.72);
+    if (uTheme > 1.5) {
+      col = mix(col, vec3(0.16, 0.25, 0.34), clamp((r1 + rMid + r2 + radTick) * 0.65, 0.0, 0.55));
+      col = mix(col, vec3(0.06, 0.46, 0.44), clamp(rWave * 0.72, 0.0, 0.45));
+    } else {
+      col += uGridColor * (r1 + rMid + r2 + rWave + radTick) * (uTheme > 0.5 ? 0.92 : 0.72);
+    }
     // Blueprint-to-Crystal Genesis Materialization Scan Front on Abyss Floor!
     if (uGenesisRadius < 40.0) {
       float gDist = length(P.xz - vec2(0.0, -0.45));
       float gWave = 1.0 - smoothstep(0.0, 0.55, abs(gDist - uGenesisRadius));
-      vec3 gCol = uTheme > 1.5 ? vec3(0.14, 0.56, 0.58) : vec3(0.58, 0.92, 1.0);
-      col += gCol * gWave * 0.95;
+      vec3 gCol = uTheme > 1.5 ? vec3(0.06, 0.44, 0.48) : (uTheme > 0.5 ? vec3(0.16, 1.0, 0.52) : vec3(0.58, 0.92, 1.0));
+      if (uTheme > 1.5) col = mix(col, gCol, gWave * 0.75);
+      else col += gCol * gWave * 0.95;
     }
     // Interactive 3D Golden-Jade Sonar Wave (✦ 灵识扫频 — purely visual & musical!)
     if (uSonarAlpha > 0.005) {
       float sRing = 1.0 - smoothstep(0.0, 0.42, abs(dist - uSonarRadius));
       float sTrail = exp(-max(0.0, uSonarRadius - dist) * 0.65) * step(dist, uSonarRadius) * 0.28;
-      vec3 sonarCol = uTheme > 1.5 ? vec3(0.14, 0.56, 0.54) : vec3(0.92, 0.80, 0.48);
-      col += sonarCol * (sRing * 1.15 + sTrail) * uSonarAlpha;
+      vec3 sonarCol = uTheme > 1.5 ? vec3(0.06, 0.46, 0.44) : (uTheme > 0.5 ? vec3(0.20, 1.0, 0.56) : vec3(0.92, 0.80, 0.48));
+      if (uTheme > 1.5) col = mix(col, sonarCol, clamp((sRing * 0.85 + sTrail) * uSonarAlpha, 0.0, 0.85));
+      else col += sonarCol * (sRing * 1.15 + sTrail) * uSonarAlpha;
     }
 
     // Real-time reflective specular bounce pools + Sky-Mirror Nebula & Akasha Crown Reflection!
@@ -507,10 +519,12 @@
     if (uTheme < 1.5) {
       float skyBelt = exp(-pow((dist - 10.6) * 0.34, 2.0));
       float nebVar = 0.55 + 0.45 * sin(ang * 3.0 + uTime * 0.08) * cos(ang * 2.0 - 0.6);
-      vec3 nebMirror = mix(vec3(0.28, 0.66, 0.78), vec3(0.74, 0.64, 0.44), 0.5 + 0.5 * sin(ang * 2.0 - 0.8));
+      vec3 nebMirror = uTheme > 0.5
+        ? mix(vec3(0.06, 0.62, 0.28), vec3(0.28, 0.88, 0.46), 0.5 + 0.5 * sin(ang * 2.0 - 0.8))
+        : mix(vec3(0.28, 0.66, 0.78), vec3(0.74, 0.64, 0.44), 0.5 + 0.5 * sin(ang * 2.0 - 0.8));
       col += nebMirror * skyBelt * nebVar * (0.045 + 0.095 * fres);
       float eyeRefl = exp(-dot(P.xz - vec2(0.0, -2.8), P.xz - vec2(0.0, -2.8)) * 0.045);
-      col += vec3(0.92, 0.80, 0.50) * eyeRefl * (0.032 + 0.045 * fres);
+      col += (uTheme > 0.5 ? vec3(0.18, 0.92, 0.48) : vec3(0.92, 0.80, 0.50)) * eyeRefl * (0.032 + 0.045 * fres);
     }
     for (int i = 0; i < 8; i++) {
       vec3 lp = uLightPos[i];
@@ -607,59 +621,76 @@
     float seam = clamp((panelX + panelY + panelZ) * 0.35, 0.0, 0.45);
     float brushed = sin(vLocalPos.y * 55.0 + vLocalPos.x * 18.0) * 0.035;
 
-    // Igloo signature iridescent arctic-aurora Fresnel refraction gradient (cyan -> platinum -> faint aurora violet)
-    vec3 auroraRim = mix(uAccent, vec3(0.76, 0.88, 1.0), 0.42 + 0.25 * sin(NoV * 5.0 + vWorldPos.y * 1.6));
-    auroraRim = mix(auroraRim, vec3(0.62, 0.68, 0.98), clamp(fresnel * 0.35, 0.0, 0.35));
+    // Theme-aware Fresnel rim (Observatory aurora | Matrix phosphor emerald | Daylight ink-slate rim)
+    vec3 auroraRim = uTheme > 1.5
+      ? mix(vec3(0.14, 0.24, 0.34), uAccent, 0.55)
+      : (uTheme > 0.5
+          ? mix(vec3(0.08, 0.92, 0.44), vec3(0.54, 1.0, 0.72), 0.35 + 0.25 * sin(NoV * 5.0 + vWorldPos.y * 1.6))
+          : mix(mix(uAccent, vec3(0.76, 0.88, 1.0), 0.42 + 0.25 * sin(NoV * 5.0 + vWorldPos.y * 1.6)), vec3(0.62, 0.68, 0.98), clamp(fresnel * 0.35, 0.0, 0.35)));
 
     // Whisper-subtle vertical holographic scan shimmer across crystal faces
-    float scanBand = exp(-pow(fract(vWorldPos.y * 0.38 - uTime * 0.16) - 0.5, 2.0) * 90.0) * 0.10;
+    float scanBand = exp(-pow(fract(vWorldPos.y * 0.38 - uTime * 0.16) - 0.5, 2.0) * 90.0) * (uTheme > 0.5 && uTheme < 1.5 ? 0.18 : 0.10);
 
-    float heightAO = mix(0.60, 1.15, clamp((vWorldPos.y + 0.35) * 0.45, 0.0, 1.0));
+    float heightAO = mix(uTheme > 1.5 ? 0.72 : 0.60, 1.12, clamp((vWorldPos.y + 0.35) * 0.45, 0.0, 1.0));
     float activeLift = 1.0 + uActive * 0.45 + uRunning * 0.16;
 
     vec3 col;
     float alpha = uStationAlpha;
 
     if (vMat > 2.5) {
-      // Material 3: EMISSIVE INNER QUANTUM CORE (drives crisp selective GPU Bloom!)
-      vec3 coreTint = mix(uAccent, vec3(0.94, 0.99, 1.0), 0.50 + 0.26 * NoV);
+      // Material 3: EMISSIVE INNER QUANTUM CORE (vivid saturated core in Daylight, neon phosphor in Matrix!)
+      vec3 coreTint = uTheme > 1.5
+        ? mix(uAccent * 0.92, vec3(0.08, 0.22, 0.32), 0.12)
+        : (uTheme > 0.5 ? vec3(0.24, 1.0, 0.58) : mix(uAccent, vec3(0.94, 0.99, 1.0), 0.50 + 0.26 * NoV));
       float pulse = 0.92 + 0.08 * sin(uTime * 1.9 + vWorldPos.y * 2.8);
-      col = coreTint * (1.45 + uActive * 0.80 + uRunning * 0.32) * pulse;
-      if (uTheme > 1.5) col = mix(uAccent * 1.05, vec3(1.0), 0.26);
+      col = uTheme > 1.5 ? coreTint * (0.95 + uActive * 0.22) : coreTint * (1.45 + uActive * 0.80 + uRunning * 0.32) * pulse;
     } else if (vMat > 1.5) {
-      // Material 2: CNC-MACHINED BRUSHED TITANIUM TRIM
-      vec3 base = (uTheme > 1.5 ? vec3(0.76, 0.75, 0.72) : (uTheme > 0.5 ? vec3(0.24, 0.38, 0.58) : vec3(0.23, 0.30, 0.39))) + brushed;
-      base *= (1.0 - seam * 0.18);
+      // Material 2: CNC-MACHINED BRUSHED TITANIUM TRIM (crisp dark anodized steel in Daylight!)
+      vec3 base = (uTheme > 1.5 ? vec3(0.56, 0.61, 0.68) : (uTheme > 0.5 ? vec3(0.05, 0.22, 0.12) : vec3(0.23, 0.30, 0.39))) + brushed;
+      base *= (1.0 - seam * 0.22);
       float specKey = pow(max(dot(N, Hkey), 0.0), 64.0);
       float specRim = pow(max(dot(N, Hrim), 0.0), 26.0);
-      vec3 keyCol = uTheme > 1.5 ? vec3(1.0, 0.98, 0.94) : vec3(0.86, 0.94, 1.0);
-      col = base * (0.28 + 0.74 * diffKey + 0.26 * diffFill) * heightAO;
-      col += keyCol * specKey * 1.05;
-      col += auroraRim * (specRim * 0.58 + fresnel * 0.62 * activeLift);
+      vec3 keyCol = uTheme > 1.5 ? vec3(0.98, 0.98, 0.96) : (uTheme > 0.5 ? vec3(0.45, 1.0, 0.68) : vec3(0.86, 0.94, 1.0));
+      col = base * (uTheme > 1.5 ? (0.44 + 0.64 * diffKey + 0.14 * diffFill) : (0.28 + 0.74 * diffKey + 0.26 * diffFill)) * heightAO;
+      col += keyCol * specKey * (uTheme > 1.5 ? 0.55 : 1.05);
+      col += auroraRim * (specRim * (uTheme > 1.5 ? 0.24 : 0.58) + fresnel * (uTheme > 1.5 ? 0.24 : 0.68) * activeLift);
     } else if (vMat > 0.5) {
-      // Material 1: IGLOO FROSTED ARCTIC CRYSTAL / SMOKED GLASS MONOLITH
+      // Material 1: SCULPTURAL PORCELAIN (Daylight) | MATRIX PHOSPHOR GLASS (Matrix) | ARCTIC CRYSTAL (Observatory)
       vec3 base = (uTheme > 1.5
-        ? vec3(0.92, 0.91, 0.88)
-        : (uTheme > 0.5 ? vec3(0.08, 0.20, 0.36) : vec3(0.065, 0.115, 0.185))) + brushed * 0.6;
+        ? mix(vec3(0.76, 0.81, 0.86), vec3(0.98, 0.97, 0.94), diffKey * 0.72 + max(0.0, N.y) * 0.28)
+        : (uTheme > 0.5 ? vec3(0.015, 0.075, 0.040) : vec3(0.065, 0.115, 0.185))) + brushed * 0.5;
       float specKey = pow(max(dot(N, Hkey), 0.0), 82.0);
       float specRim = pow(max(dot(N, Hrim), 0.0), 24.0);
-      vec3 skyRefl = uTheme > 1.5 ? vec3(0.98, 0.97, 0.95) : vec3(0.52, 0.76, 0.96);
-      col = base * (0.34 + 0.68 * diffKey + 0.34 * diffFill) * heightAO;
-      float innerScatter = pow(max(0.0, 1.0 - abs(N.y)), 1.5) * (0.16 + uActive * 0.20 + uRunning * 0.08);
-      col += uAccent * (innerScatter + (uTheme > 1.5 ? 0.0 : scanBand));
-      col += skyRefl * specKey * (uTheme > 1.5 ? 0.55 : 1.25);
-      col += auroraRim * (specRim * 0.48 + fresnel * (uTheme > 1.5 ? 0.28 : 0.82) * activeLift);
-      col += vec3(0.96, 0.99, 1.0) * sharpFresnel * (uTheme > 1.5 ? 0.20 : 0.68);
-      alpha *= (uTheme > 1.5 ? 0.94 : 0.88);
+      vec3 skyRefl = uTheme > 1.5 ? vec3(1.0, 0.99, 0.97) : (uTheme > 0.5 ? vec3(0.24, 1.0, 0.56) : vec3(0.52, 0.76, 0.96));
+      if (uTheme > 1.5) {
+        // High-contrast solid ceramic architectural form with department color wash & crisp dark crease contrast!
+        col = base * (0.58 + 0.44 * diffKey + 0.12 * diffFill) * heightAO;
+        col = mix(col, uAccent, 0.16 + uActive * 0.20 + pow(max(0.0, 1.0 - abs(N.y)), 1.6) * 0.14);
+        col += skyRefl * specKey * 0.45;
+        col = mix(col, vec3(0.10, 0.18, 0.28), sharpFresnel * 0.22);
+        alpha *= 0.98;
+      } else {
+        col = base * (0.34 + 0.68 * diffKey + 0.34 * diffFill) * heightAO;
+        float innerScatter = pow(max(0.0, 1.0 - abs(N.y)), 1.5) * (0.16 + uActive * 0.22 + uRunning * 0.10);
+        col += (uTheme > 0.5 ? vec3(0.10, 0.92, 0.46) : uAccent) * (innerScatter + scanBand);
+        col += skyRefl * specKey * 1.25;
+        col += auroraRim * (specRim * 0.48 + fresnel * 0.88 * activeLift);
+        col += (uTheme > 0.5 ? vec3(0.56, 1.0, 0.74) : vec3(0.96, 0.99, 1.0)) * sharpFresnel * 0.68;
+        alpha *= 0.88;
+      }
     } else {
-      // Material 0: CNC-ETCHED MATTE OBSIDIAN / ARCHITECTURAL HULL DECK
+      // Material 0: CNC-ETCHED MATTE DECK (Solid architectural stone-slate in Daylight | Pitch obsidian-green in Matrix!)
       vec3 base = (uTheme > 1.5
-        ? vec3(0.86, 0.84, 0.79)
-        : (uTheme > 0.5 ? vec3(0.06, 0.14, 0.26) : vec3(0.058, 0.082, 0.118))) * (1.0 - seam * 0.22);
+        ? mix(vec3(0.68, 0.72, 0.77), vec3(0.92, 0.91, 0.88), max(0.0, N.y) * 0.65 + diffKey * 0.35)
+        : (uTheme > 0.5 ? vec3(0.012, 0.048, 0.026) : vec3(0.058, 0.082, 0.118))) * (1.0 - seam * 0.24);
       float specKey = pow(max(dot(N, Hkey), 0.0), 26.0);
-      col = base * (0.38 + 0.66 * diffKey + 0.25 * diffFill + 0.14 * diffRim) * heightAO;
-      col += vec3(0.78, 0.88, 1.0) * specKey * (uTheme > 1.5 ? 0.18 : 0.36);
-      col += auroraRim * fresnel * (0.18 + uActive * 0.34);
+      col = base * (uTheme > 1.5 ? (0.58 + 0.44 * diffKey + 0.10 * diffFill) : (0.38 + 0.66 * diffKey + 0.25 * diffFill + 0.14 * diffRim)) * heightAO;
+      if (uTheme < 1.5) {
+        col += (uTheme > 0.5 ? vec3(0.24, 1.0, 0.56) : vec3(0.78, 0.88, 1.0)) * specKey * 0.36;
+        col += auroraRim * fresnel * (0.20 + uActive * 0.36);
+      } else {
+        col = mix(col, vec3(0.14, 0.22, 0.30), fresnel * 0.16);
+      }
     }
 
     if (uGenesisRadius < 40.0) {
@@ -667,15 +698,15 @@
       float rScan = length(vWorldPos.xz - vec2(0.0, -0.45));
       float materialized = smoothstep(uGenesisRadius + 0.55, uGenesisRadius - 0.55, rScan);
       float front = exp(-pow((rScan - uGenesisRadius) * 2.2, 2.0));
-      vec3 bpCol = uTheme > 1.5 ? vec3(0.20, 0.48, 0.64) : vec3(0.32, 0.72, 0.96);
+      vec3 bpCol = uTheme > 1.5 ? vec3(0.12, 0.36, 0.48) : (uTheme > 0.5 ? vec3(0.10, 0.94, 0.48) : vec3(0.32, 0.72, 0.96));
       col = mix(bpCol * (0.28 + 0.65 * fresnel), col, materialized);
-      col += mix(vec3(0.55, 0.92, 1.0), vec3(0.98, 0.86, 0.56), 0.42) * front * 1.45;
+      col += mix(uTheme > 0.5 && uTheme < 1.5 ? vec3(0.22, 1.0, 0.58) : vec3(0.55, 0.92, 1.0), vec3(0.98, 0.86, 0.56), 0.38) * front * 1.45;
       alpha *= mix(0.18, 1.0, materialized);
     }
 
     float camDist = length(uCamPos - vWorldPos);
     float fog = 1.0 - exp(-pow(max(0.0, camDist - 18.0) * 0.032, 1.8));
-    col = mix(col, uFogColor, clamp(fog * 0.68, 0.0, 0.75));
+    col = mix(col, uFogColor, clamp(fog * (uTheme > 1.5 ? 0.36 : 0.68), 0.0, uTheme > 1.5 ? 0.40 : 0.75));
     if (alpha < 0.01) discard;
     fragColor = vec4(col, alpha);
   }`;
@@ -709,17 +740,19 @@
   uniform float uGenesisRadius;
   out vec4 fragColor;
   void main() {
-    vec3 silver = uTheme > 1.5 ? vec3(0.24, 0.30, 0.38) : vec3(0.76, 0.88, 0.98);
-    vec3 col = vMat > 0.5 ? mix(silver, uAccent, 0.52 + uActive * 0.35) : mix(silver, uAccent, 0.28 + uActive * 0.42);
-    if (vMat > 2.5) col = mix(uAccent, vec3(1.0), 0.62);
+    vec3 silver = uTheme > 1.5 ? vec3(0.09, 0.16, 0.24) : (uTheme > 0.5 ? vec3(0.18, 1.0, 0.52) : vec3(0.76, 0.88, 0.98));
+    vec3 col = vMat > 0.5 ? mix(silver, uAccent, uTheme > 1.5 ? (0.40 + uActive * 0.35) : (uTheme > 0.5 ? 0.25 : 0.52 + uActive * 0.35))
+                          : mix(silver, uAccent, uTheme > 1.5 ? (0.22 + uActive * 0.35) : (uTheme > 0.5 ? 0.15 : 0.28 + uActive * 0.42));
+    if (vMat > 2.5) col = uTheme > 1.5 ? uAccent : (uTheme > 0.5 ? vec3(0.52, 1.0, 0.74) : mix(uAccent, vec3(1.0), 0.62));
     float camDist = length(uCamPos - vWorldPos);
-    float fade = clamp(1.18 - camDist * 0.020, 0.25, 1.0);
-    float a = uAlpha * (vMat > 0.5 ? 1.0 : 0.62) * (1.0 + uActive * 0.65) * fade;
+    float fade = clamp(1.22 - camDist * 0.018, 0.32, 1.0);
+    float themeBoost = uTheme > 1.5 ? 1.55 : (uTheme > 0.5 ? 1.38 : 1.0);
+    float a = uAlpha * themeBoost * (vMat > 0.5 ? 1.0 : 0.68) * (1.0 + uActive * 0.65) * fade;
     if (uGenesisRadius < 40.0) {
       float rScan = length(vWorldPos.xz - vec2(0.0, -0.45));
       float unMat = smoothstep(uGenesisRadius - 0.5, uGenesisRadius + 0.5, rScan);
       float front = exp(-pow((rScan - uGenesisRadius) * 2.2, 2.0));
-      col = mix(col, vec3(0.54, 0.90, 1.0), unMat * 0.72);
+      col = mix(col, uTheme > 0.5 && uTheme < 1.5 ? vec3(0.24, 1.0, 0.58) : vec3(0.54, 0.90, 1.0), unMat * 0.72);
       col += vec3(0.98, 0.88, 0.58) * front * 0.95;
       a = max(a, (0.58 * unMat + 0.95 * front) * fade);
     }
@@ -823,30 +856,38 @@
   in float vAlpha;
   in float vKind;
   uniform float uGalaxyBoost;
+  uniform float uTheme;
   out vec4 fragColor;
   void main() {
     vec2 d = gl_PointCoord - 0.5;
     float r = length(d) * 2.0;
     if (r > 1.0) discard;
     if (vKind > 0.5 && vKind < 1.5) {
-      // Ultra-gentle, velvety JWST silk nebula veil (soft pastel mist, zero harsh edges!)
+      // Ultra-gentle, velvety JWST silk nebula veil (soft watercolor mist in Daylight!)
       float silk = pow(max(0.0, 1.0 - r * r), 2.15);
       fragColor = vec4(vCol, silk * vAlpha);
     } else if (vKind > 1.5) {
       // Gentle warm Conjecture Lantern Star with delicate 4-point astronomical diffraction halo
       float core = exp(-r * r * 12.5);
       float glow = pow(max(0.0, 1.0 - r), 2.6) * 0.36;
-      float rayX = exp(-abs(d.y) * 28.0) * exp(-abs(d.x) * 5.0) * 0.48;
-      float rayY = exp(-abs(d.x) * 28.0) * exp(-abs(d.y) * 5.0) * 0.48;
+      float rayX = exp(-abs(d.y) * 28.0) * exp(-abs(d.x) * 5.0) * 0.52;
+      float rayY = exp(-abs(d.x) * 28.0) * exp(-abs(d.y) * 5.0) * 0.52;
       float lum = clamp(core + glow + rayX + rayY, 0.0, 1.0);
-      fragColor = vec4(mix(vCol, vec3(1.0, 0.98, 0.92), core * 0.65), lum * vAlpha);
+      vec3 coreTarget = uTheme > 1.5 ? vec3(0.32, 0.14, 0.02) : vec3(1.0, 0.98, 0.92);
+      fragColor = vec4(mix(vCol, coreTarget, core * 0.65), lum * vAlpha);
     } else {
-      // Crisp crystalline Lean verified theorem node (sharp gem disc + compact halo in Galaxy mode — zero white blowout!)
-      float softCore = exp(-r * r * 6.8) + exp(-r * r * 2.1) * 0.34;
-      float jewelDisc = smoothstep(0.46, 0.16, r) * 0.92 + exp(-r * r * 6.2) * 0.26;
-      float lum = mix(softCore, jewelDisc, uGalaxyBoost);
-      float whiteMix = mix(exp(-r * r * 6.8) * 0.38, smoothstep(0.32, 0.08, r) * 0.52, uGalaxyBoost);
-      fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), whiteMix), clamp(lum, 0.0, 1.0) * vAlpha);
+      // Crisp crystalline Lean verified theorem node (dark-ink atlas dot in Daylight, sharp jewel in Dark/Matrix!)
+      if (uTheme > 1.5) {
+        float inkDot = smoothstep(0.58, 0.16, r) * 0.96 + exp(-r * r * 5.5) * 0.24;
+        vec3 inkCol = mix(vCol, vec3(0.04, 0.09, 0.16), smoothstep(0.38, 0.08, r) * 0.45);
+        fragColor = vec4(inkCol, clamp(inkDot, 0.0, 1.0) * clamp(vAlpha * 1.38, 0.0, 0.96));
+      } else {
+        float softCore = exp(-r * r * 6.8) + exp(-r * r * 2.1) * 0.34;
+        float jewelDisc = smoothstep(0.46, 0.16, r) * 0.92 + exp(-r * r * 6.2) * 0.26;
+        float lum = mix(softCore, jewelDisc, uGalaxyBoost);
+        float whiteMix = mix(exp(-r * r * 6.8) * 0.38, smoothstep(0.32, 0.08, r) * 0.52, uGalaxyBoost);
+        fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), whiteMix), clamp(lum, 0.0, 1.0) * vAlpha);
+      }
     }
   }`;
 
@@ -862,6 +903,7 @@
   uniform float uAlphaMul;
   uniform float uGenesisCut;
   uniform float uGalaxyBoost;
+  uniform float uTheme;
   // Per-galaxy gather transform (slot 0 = no galaxy, slot cid+1 = galaxy cid):
   // p' = pivot + (p - pivot) * scale * stretch + offset, alpha scaled per galaxy.
   uniform vec4 uGather[9];
@@ -877,8 +919,13 @@
     gl_Position = uViewProj * uModel * vec4(wp, 1.0);
     float genMask = aGen < 0.0 ? 1.0 : smoothstep(aGen - 0.03, aGen + 0.06, uGenesisCut);
     float edgeBoost = aGen < 0.0 ? 1.0 : mix(1.0, 2.75, uGalaxyBoost);
-    vCol = mix(aCol, vec3(0.92, 0.98, 1.0), (aGen < 0.0 ? 0.0 : 0.34 * uGalaxyBoost));
-    vAlpha = aAlpha * edgeBoost * uAlphaMul * uGatherAlpha[gi] * genMask;
+    if (uTheme > 1.5) {
+      vCol = mix(aCol, vec3(0.06, 0.14, 0.24), aGen < 0.0 ? 0.52 : 0.34);
+      vAlpha = aAlpha * edgeBoost * 1.48 * uAlphaMul * uGatherAlpha[gi] * genMask;
+    } else {
+      vCol = mix(aCol, uTheme > 0.5 ? vec3(0.45, 1.0, 0.68) : vec3(0.92, 0.98, 1.0), (aGen < 0.0 ? 0.0 : 0.34 * uGalaxyBoost));
+      vAlpha = aAlpha * edgeBoost * uAlphaMul * uGatherAlpha[gi] * genMask;
+    }
   }`;
 
   const DAG_LINE_FS = `#version 300 es
@@ -989,6 +1036,11 @@
 
     if (uTheme < 1.5) {
       col = aces(col * 1.08);
+      if (uTheme > 0.5) {
+        // Subtle authentic Matrix CRT phosphor scanline micro-texture
+        float scan = 1.0 - 0.048 * (0.5 + 0.5 * sin(gl_FragCoord.y * 2.1 + uTime * 1.4));
+        col *= scan;
+      }
       float vig = 1.0 - r2 * 0.54;
       col *= clamp(vig, 0.58, 1.0);
     } else {
@@ -1584,9 +1636,11 @@
     // AND warm settled Conjecture Lantern Stars — ONE unified, gentle celestial cosmos!
     syncTruthDag(stars, edges, clusters, nebPalette, recentByCluster, isLight, settledConjectures = []) {
       const conjKey = settledConjectures ? settledConjectures.length : 0;
-      const key = `${stars?.length || 0}:${edges?.length || 0}:${recentByCluster?.size || 0}:${conjKey}:${isLight ? 1 : 0}`;
+      const palKey = nebPalette?.[0] ? nebPalette[0].join(',') : '';
+      const key = `${stars?.length || 0}:${edges?.length || 0}:${recentByCluster?.size || 0}:${conjKey}:${isLight ? 1 : 0}:${palKey}`;
       if (key === this.starHash) return;
       this.starHash = key;
+      const isMatrixPal = !isLight && nebPalette?.[0] && nebPalette[0][1] > 210 && nebPalette[0][0] < 90;
 
       this.clusterCenters = new Map();
       if (clusters && clusters.length) {
@@ -1603,15 +1657,19 @@
       // 1. Deep-space ambient starfield dome (quiet, serene astronomical backdrop, aGen = -0.1 always present)
       let seed = 7331;
       const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      for (let i = 0; i < 360; i++) {
+      for (let i = 0; i < 420; i++) {
         const theta = rand() * Math.PI * 2;
         const elev = -0.02 + rand() * 0.78;
         const rad = 36 + rand() * 24;
         const x = Math.cos(theta) * Math.cos(elev) * rad;
         const y = Math.sin(elev) * rad + 1.0;
         const z = Math.sin(theta) * Math.cos(elev) * rad - 8.0;
-        const tone = isLight ? [0.24, 0.36, 0.44] : (i % 6 === 0 ? [0.96, 0.89, 0.76] : [0.76, 0.88, 0.98]);
-        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.8, isLight ? 0.20 : (0.16 + rand() * 0.36), 0, -0.1);
+        const tone = isLight
+          ? [0.16, 0.24, 0.34]
+          : isMatrixPal
+            ? (i % 5 === 0 ? [0.58, 1.0, 0.72] : [0.14, 0.88, 0.44])
+            : (i % 6 === 0 ? [0.96, 0.89, 0.76] : [0.76, 0.88, 0.98]);
+        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, isLight ? 0.24 : (0.18 + rand() * 0.38), 0, -0.1);
       }
 
       // 2. Real Lean Verified Truth DAG stars on the 3D Celestial Helical Ring (aGen = real normalized DAG layer s[4]/100!)
@@ -1798,30 +1856,31 @@
     render(params) {
       const {
         t, themeIdx, entities, activeId, focusedId, bootAge, quiet,
-        stationAlpha = 1.0, galaxyAlpha = 1.0, galaxyBoost = 0.0, sonarRadius = 0.0, sonarAlpha = 0.0,
+        stationAlpha = 1.0, galaxyAlpha = 1.0, galaxyBoost = 0.0, stationFocus = 0.0,
+        sonarRadius = 0.0, sonarAlpha = 0.0,
         rheostatRevX = -2.0, rheostatStuX = 2.0,
         genesisRadius = 99.0, genesisCut = 1.05, ciLoad = 0.45, scholarCount = 223
       } = params;
       const gl = this.gl;
       const tAnim = quiet ? 4.2 : t;
       const isLight = themeIdx > 1.5;
-      const isBlueprint = themeIdx > 0.5 && themeIdx < 1.5;
+      const isMatrix = themeIdx > 0.5 && themeIdx < 1.5;
       this.syncScholarBeacons(scholarCount, isLight);
 
       this.fogColor = isLight
-        ? [0.918, 0.902, 0.866]
-        : isBlueprint
-          ? [0.028, 0.068, 0.132]
+        ? [0.878, 0.870, 0.844]
+        : isMatrix
+          ? [0.005, 0.024, 0.012]
           : [0.015, 0.024, 0.044];
       const floorCol = isLight
-        ? [0.945, 0.933, 0.902]
-        : isBlueprint
-          ? [0.034, 0.084, 0.162]
+        ? [0.892, 0.882, 0.854]
+        : isMatrix
+          ? [0.006, 0.032, 0.016]
           : [0.020, 0.032, 0.052];
       const gridCol = isLight
-        ? [0.56, 0.54, 0.50]
-        : isBlueprint
-          ? [0.46, 0.72, 0.96]
+        ? [0.24, 0.30, 0.38]
+        : isMatrix
+          ? [0.10, 0.94, 0.46]
           : [0.44, 0.66, 0.86];
 
       const drawFullQuad = () => {
@@ -1877,8 +1936,8 @@
         lPow[i] = (e.eye ? 0.55 : (e.isSel ? 2.6 : e.running ? 1.55 : 0.78)) * Math.max(stationAlpha, 0.28);
       }
 
-      // 1B. STRATUM 1 — LOWERED REFLECTIVE GROUND ABYSS FLOOR (y = -1.35!)
-      const floorAlpha = Math.max(stationAlpha, galaxyAlpha * 0.34);
+      // 1B. STRATUM 1 — LOWERED REFLECTIVE GROUND ABYSS FLOOR (fades gracefully in epic Galaxy mode!)
+      const floorAlpha = Math.max(stationAlpha, galaxyAlpha * (stationAlpha < 0.08 ? 0.05 : 0.30));
       if (floorAlpha > 0.04) {
         const fp = this.floorProg;
         gl.useProgram(fp.p);
@@ -1909,51 +1968,64 @@
       if (stationAlpha > 0.04 || galaxyAlpha > 0.04) {
         if (stationAlpha > 0.04) {
           M4.identity(this.modelMat);
-          const campusAccent = isLight ? [0.16, 0.48, 0.48] : isBlueprint ? [0.56, 0.82, 1.0] : [0.46, 0.84, 0.94];
-          this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3 + ciLoad * 0.4, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha, genesisRadius);
+          const campusAccent = isLight ? [0.06, 0.42, 0.44] : isMatrix ? [0.16, 0.96, 0.48] : [0.46, 0.84, 0.94];
+          this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : stationFocus * 0.25, 0.3 + ciLoad * 0.4 + stationFocus * 0.3, themeIdx, tAnim, isLight ? 0.42 : (isMatrix ? 0.48 : 0.36), stationAlpha, genesisRadius);
           // Independent Embedded Branch A Rail (02 独立评审 · Violet-Silver) + Sliding Wiper A
-          const revAccent = isLight ? [0.38, 0.34, 0.72] : isBlueprint ? [0.62, 0.82, 1.0] : [0.68, 0.74, 0.98];
-          const revAct = activeId === 'review' ? 1.0 : 0.25;
+          const revAccent = isLight ? [0.26, 0.22, 0.68] : isMatrix ? [0.14, 0.96, 0.56] : [0.68, 0.74, 0.98];
+          const revAct = activeId === 'review' ? 1.0 : (0.25 + stationFocus * 0.45);
           if (this.geo.revRail) {
             M4.identity(this.modelMat);
-            this.drawMesh(this.geo.revRail, this.modelMat, revAccent, revAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha, genesisRadius);
+            this.drawMesh(this.geo.revRail, this.modelMat, revAccent, revAct, 0.65 + stationFocus * 0.35, themeIdx, tAnim, isLight ? 0.46 : 0.48, stationAlpha, genesisRadius);
           }
           if (this.geo.wiper) {
             const rx = Math.max(-5.15, Math.min(3.35, rheostatRevX));
             M4.compose(this.modelMat, rx, 0.0, 3.08, 0, 0, 0, 1, 1, 1);
-            this.drawMesh(this.geo.wiper, this.modelMat, revAccent, Math.max(0.75, revAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha, genesisRadius);
+            this.drawMesh(this.geo.wiper, this.modelMat, revAccent, Math.max(0.75, revAct), 1.0, themeIdx, tAnim, 0.62, stationAlpha, genesisRadius);
           }
           // Independent Embedded Branch B Rail (06 工具与表达 · Ice-Cyan) + Sliding Wiper B
-          const stuAccent = isLight ? [0.10, 0.46, 0.66] : isBlueprint ? [0.54, 0.86, 1.0] : [0.48, 0.84, 0.98];
-          const stuAct = activeId === 'studio' ? 1.0 : 0.25;
+          const stuAccent = isLight ? [0.04, 0.42, 0.62] : isMatrix ? [0.28, 1.0, 0.54] : [0.48, 0.84, 0.98];
+          const stuAct = activeId === 'studio' ? 1.0 : (0.25 + stationFocus * 0.45);
           if (this.geo.stuRail) {
             M4.identity(this.modelMat);
-            this.drawMesh(this.geo.stuRail, this.modelMat, stuAccent, stuAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha, genesisRadius);
+            this.drawMesh(this.geo.stuRail, this.modelMat, stuAccent, stuAct, 0.65 + stationFocus * 0.35, themeIdx, tAnim, isLight ? 0.46 : 0.48, stationAlpha, genesisRadius);
           }
           if (this.geo.wiper) {
             const sx = Math.max(-3.35, Math.min(5.15, rheostatStuX));
             M4.compose(this.modelMat, sx, 0.0, 3.88, 0, 0, 0, 1, 1, 1);
-            this.drawMesh(this.geo.wiper, this.modelMat, stuAccent, Math.max(0.75, stuAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha, genesisRadius);
+            this.drawMesh(this.geo.wiper, this.modelMat, stuAccent, Math.max(0.75, stuAct), 1.0, themeIdx, tAnim, 0.62, stationAlpha, genesisRadius);
           }
-          // 6 Physical 3D Crystalline Bridge Payload Shuttles gliding along Wings <-> Lean Core <-> Mathesis!
+          // 6 (or 12 in dedicated 空间站 Active-Loop mode!) Physical 3D Crystalline Bridge Payload Shuttles!
           if (this.geo.shuttle && !quiet && genesisRadius > 8.0) {
-            const shSpd = 0.16 + ciLoad * 0.12;
+            const shSpd = (0.16 + ciLoad * 0.12) * (1.0 + stationFocus * 0.55);
+            const matrixSh = isMatrix ? [0.22, 1.0, 0.56] : null;
             const shuttleSpecs = [
-              { x0: -3.65, z0: -0.62, x1: -1.48, z1: -0.58, ph: 0.00, col: [0.38, 0.90, 0.84] },
-              { x0: -1.48, z0: -0.28, x1: -3.65, z1: -0.32, ph: 0.48, col: [0.68, 0.74, 0.96] },
-              { x0:  1.48, z0: -0.62, x1:  3.65, z1: -0.58, ph: 0.22, col: [0.88, 0.96, 1.00] },
-              { x0:  3.65, z0: -0.28, x1:  1.48, z1: -0.32, ph: 0.72, col: [0.54, 0.84, 0.98] },
-              { x0:  5.55, z0: -1.85, x1:  5.82, z1:  1.05, ph: 0.15, col: [0.96, 0.80, 0.48] },
-              { x0:  5.82, z0:  1.05, x1:  5.55, z1: -1.85, ph: 0.65, col: [0.96, 0.84, 0.56] }
+              { x0: -3.65, z0: -0.62, x1: -1.48, z1: -0.58, ph: 0.00, col: matrixSh || [0.38, 0.90, 0.84] },
+              { x0: -1.48, z0: -0.28, x1: -3.65, z1: -0.32, ph: 0.48, col: matrixSh || [0.68, 0.74, 0.96] },
+              { x0:  1.48, z0: -0.62, x1:  3.65, z1: -0.58, ph: 0.22, col: matrixSh || [0.88, 0.96, 1.00] },
+              { x0:  3.65, z0: -0.28, x1:  1.48, z1: -0.32, ph: 0.72, col: matrixSh || [0.54, 0.84, 0.98] },
+              { x0:  5.55, z0: -1.85, x1:  5.82, z1:  1.05, ph: 0.15, col: matrixSh || [0.96, 0.80, 0.48] },
+              { x0:  5.82, z0:  1.05, x1:  5.55, z1: -1.85, ph: 0.65, col: matrixSh || [0.96, 0.84, 0.56] }
             ];
+            if (stationFocus > 0.15) {
+              // Extra lively loop & branch-rail shuttles amplifying the 24/7 active output feel in 空间站 mode!
+              shuttleSpecs.push(
+                { x0: -5.30, z0: -2.40, x1: -5.85, z1:  1.35, ph: 0.30, col: matrixSh || [0.44, 0.92, 0.82] },
+                { x0: -5.85, z0:  1.35, x1: -5.30, z1: -2.40, ph: 0.80, col: matrixSh || [0.68, 0.78, 0.98] },
+                { x0: -3.65, z0: -0.62, x1: -1.48, z1: -0.58, ph: 0.50, col: matrixSh || [0.46, 0.96, 0.88] },
+                { x0:  1.48, z0: -0.62, x1:  3.65, z1: -0.58, ph: 0.72, col: matrixSh || [0.96, 0.88, 0.56] },
+                { x0: -4.25, z0:  3.08, x1:  2.80, z1:  3.08, ph: 0.12, col: matrixSh || [0.72, 0.78, 1.00] },
+                { x0:  4.25, z0:  3.88, x1: -2.80, z1:  3.88, ph: 0.58, col: matrixSh || [0.48, 0.88, 1.00] }
+              );
+            }
+            const shScale = 1.0 + stationFocus * 0.22;
             for (const sh of shuttleSpecs) {
               const u = (tAnim * shSpd + sh.ph) % 1;
               const sx = sh.x0 + (sh.x1 - sh.x0) * u;
               const sz = sh.z0 + (sh.z1 - sh.z0) * u;
-              const sy = 0.28 + Math.sin(u * Math.PI) * 0.12;
+              const sy = 0.28 + Math.sin(u * Math.PI) * 0.14;
               const yaw = Math.atan2(sh.z1 - sh.z0, sh.x1 - sh.x0);
-              M4.compose(this.modelMat, sx, sy, sz, 0, -yaw, 0, 1.0, 1.0, 1.0);
-              this.drawMesh(this.geo.shuttle, this.modelMat, sh.col, 0.9, 1.0, themeIdx, tAnim, 0.65, stationAlpha, genesisRadius);
+              M4.compose(this.modelMat, sx, sy, sz, 0, -yaw, 0, shScale, shScale, shScale);
+              this.drawMesh(this.geo.shuttle, this.modelMat, sh.col, 0.95, 1.0, themeIdx, tAnim, 0.72, stationAlpha, genesisRadius);
             }
           }
         }
@@ -2045,15 +2117,19 @@
           }
           if (eyeEnt) {
             // Grand translucent downward Global Surveillance Light Cone radiating from Supreme Akasha Eye over all galaxies & station!
-            const ec = [0.92, 0.80, 0.50];
+            const ec = isMatrix ? [0.16, 0.96, 0.48] : [0.92, 0.80, 0.50];
+            const ic = isMatrix ? [0.28, 1.00, 0.58] : [0.58, 0.86, 0.96];
             const ea = Math.max(stationAlpha, galaxyAlpha * 0.78);
             const eyeY = eyeEnt.y || 6.95;
             this.drawVolumetricPillar(eyeEnt.x, 0.45, eyeEnt.z, 4.6, eyeY - 0.55, ec, 0.068 * ea, true);
-            this.drawVolumetricPillar(eyeEnt.x, 1.6, eyeEnt.z, 1.85, eyeY - 1.65, [0.58, 0.86, 0.96], 0.055 * ea, true);
+            this.drawVolumetricPillar(eyeEnt.x, 1.6, eyeEnt.z, 1.85, eyeY - 1.65, ic, 0.055 * ea, true);
           }
           if (stationAlpha > 0.05) {
-            this.drawVolumetricPillar(-5.65, -1.35, -0.50, 0.42, 1.15, [0.38, 0.82, 0.78], 0.11 * stationAlpha);
-            this.drawVolumetricPillar( 5.65, -1.35, -0.50, 0.42, 1.15, [0.46, 0.78, 0.96], 0.11 * stationAlpha);
+            const pL = isMatrix ? [0.12, 0.94, 0.46] : [0.38, 0.82, 0.78];
+            const pR = isMatrix ? [0.20, 0.96, 0.52] : [0.46, 0.78, 0.96];
+            const lift = 1.0 + stationFocus * 0.55;
+            this.drawVolumetricPillar(-5.65, -1.35, -0.50, 0.42, 1.15, pL, 0.11 * lift * stationAlpha);
+            this.drawVolumetricPillar( 5.65, -1.35, -0.50, 0.42, 1.15, pR, 0.11 * lift * stationAlpha);
             for (const e of entities) {
               if (e.isSel && !e.eye && e.id !== 'verification') {
                 this.drawVolumetricPillar(e.x, (e.y || 0) + 0.12, e.z, 0.80, 3.2, [e.rgb[0] / 255, e.rgb[1] / 255, e.rgb[2] / 255], 0.16 * stationAlpha);
@@ -2077,9 +2153,10 @@
           M4.compose(this.modelMat, 0, 0, 0, 0, tAnim * 0.018, 0, 1, 1, 1);
           gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
           gl.uniformMatrix4fv(dl.u.uModel, false, this.modelMat);
-          gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha * (isLight ? 0.55 : 0.95));
+          gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha * (isLight ? 0.42 : 0.95));
           gl.uniform1f(dl.u.uGenesisCut, 1.05);
           gl.uniform1f(dl.u.uGalaxyBoost, 0.0);
+          gl.uniform1f(dl.u.uTheme, themeIdx);
           this.bindGather(dl);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.celestialRings.vbo);
           gl.disableVertexAttribArray(3);
@@ -2102,6 +2179,7 @@
           gl.uniform1f(sp.u.uTime, tAnim);
           gl.uniform1f(sp.u.uGenesisCut, genesisCut);
           gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
+          gl.uniform1f(sp.u.uTheme, themeIdx);
           this.bindGather(sp);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.nebulaVbo);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
@@ -2124,6 +2202,7 @@
           gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha);
           gl.uniform1f(dl.u.uGenesisCut, genesisCut);
           gl.uniform1f(dl.u.uGalaxyBoost, galaxyBoost);
+          gl.uniform1f(dl.u.uTheme, themeIdx);
           this.bindGather(dl);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.dagEdgeVbo);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0);
@@ -2146,6 +2225,7 @@
           gl.uniform1f(sp.u.uTime, tAnim);
           gl.uniform1f(sp.u.uGenesisCut, genesisCut);
           gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
+          gl.uniform1f(sp.u.uTheme, themeIdx);
           this.bindGather(sp);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.starVbo);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
@@ -2166,10 +2246,11 @@
           gl.useProgram(sp.p);
           gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
           gl.uniform1f(sp.u.uDpr, this.dpr);
-          gl.uniform1f(sp.u.uAlphaMul, stationAlpha * (activeId === 'outreach' ? 1.35 : 0.72));
+          gl.uniform1f(sp.u.uAlphaMul, stationAlpha * (activeId === 'outreach' ? 1.35 : 0.78));
           gl.uniform1f(sp.u.uTime, tAnim);
           gl.uniform1f(sp.u.uGenesisCut, 1.05);
           gl.uniform1f(sp.u.uGalaxyBoost, 0.0);
+          gl.uniform1f(sp.u.uTheme, themeIdx);
           this.bindGather(sp);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.scholarVbo);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
@@ -2193,6 +2274,7 @@
           gl.uniform1f(qp.u.uDpr, this.dpr);
           gl.uniform1f(qp.u.uAlphaMul, galaxyAlpha * 0.92);
           gl.uniform1f(qp.u.uGalaxyBoost, 0.0);
+          gl.uniform1f(qp.u.uTheme, themeIdx);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.qi.vbo);
           gl.disableVertexAttribArray(3);
           gl.disableVertexAttribArray(4);
@@ -2246,7 +2328,7 @@
       gl.uniform1i(this.compProg.u.uBloom, 1);
       gl.uniform1f(this.compProg.u.uTheme, themeIdx);
       gl.uniform1f(this.compProg.u.uTime, tAnim);
-      gl.uniform1f(this.compProg.u.uBloomStrength, isLight ? 0.14 : (isBlueprint ? 0.62 : 0.72));
+      gl.uniform1f(this.compProg.u.uBloomStrength, isLight ? 0.10 : (isMatrix ? 0.68 : 0.72));
       drawFullQuad();
     }
   }
