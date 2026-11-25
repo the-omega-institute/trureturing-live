@@ -21,21 +21,23 @@ on:
         type: string
         default: ''
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: trureturing-live-repair
   cancel-in-progress: false
 
 jobs:
-  live-repair:
+  propose:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       issues: read
+    outputs:
+      config_state: ${{ steps.config.outputs.state }}
+      has_changes: ${{ steps.export.outputs.has_changes }}
+      base_sha: ${{ steps.export.outputs.base_sha }}
     steps:
       - name: Check Omega Live Ops repair key configuration
         id: config
@@ -44,17 +46,136 @@ jobs:
           NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
         run: |
           if [ -z "$NYXID_KEY" ] || [ -z "$NYXID_BASE_URL" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping live-repair: configure repo secret NYXID_LIVE_REPAIR_KEY (from NyxID org Omega Live Ops) and repo variable NYXID_LIVE_CODEX_BASE_URL."
+            echo "state=not_configured" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Live Repair Caretaker: Not Configured"
+              echo "- Missing \`NYXID_LIVE_REPAIR_KEY\` or \`NYXID_LIVE_CODEX_BASE_URL\`."
+              echo "- No repair patch was generated."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "state=configured" >> "$GITHUB_OUTPUT"
 
-      - name: Prevent duplicate repair PRs (at most 1 open)
-        id: guard
-        if: steps.config.outputs.ready == 'true'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: steps.config.outputs.state == 'configured'
+        with:
+          persist-credentials: false
+          submodules: true
+
+      - name: Fetch optional read-only issue context (isolated before model runs)
+        if: steps.config.outputs.state == 'configured'
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          : > /tmp/issue-ctx.txt
+          if [[ "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then
+            gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title,body --jq '"\(.title)\n\(.body)"' > /tmp/issue-ctx.txt || true
+          fi
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.config.outputs.state == 'configured'
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        if: steps.config.outputs.state == 'configured'
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies & Codex CLI
+        if: steps.config.outputs.state == 'configured'
+        run: |
+          npm ci --ignore-scripts
+          npm install -g @openai/codex
+
+      - name: Run scoped live-repair Codex mission (zero GitHub token)
+        if: steps.config.outputs.state == 'configured'
+        env:
+          NYXID_API_KEY: ${{ secrets.NYXID_LIVE_REPAIR_KEY }}
+          NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
+          CODEX_MODEL: ${{ vars.NYXID_LIVE_CODEX_MODEL }}
+          MISSION: ${{ inputs.mission }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          OPERATOR_NOTE: ${{ inputs.note }}
+        run: |
+          set -euo pipefail
+          model="${CODEX_MODEL:-gpt-6.1-sol}"
+          codex_home="$RUNNER_TEMP/codex-home"
+          mkdir -p "$codex_home"
+          cat <<EOF > "$codex_home/config.toml"
+          approval_policy = "never"
+          model_provider = "nyxid"
+          model = "${model}"
+
+          [model_providers.nyxid]
+          name = "nyxid"
+          base_url = "${NYXID_BASE_URL}"
+          wire_api = "responses"
+          env_key = "NYXID_API_KEY"
+          EOF
+
+          cat <<'EOF' > /tmp/repair-prompt.txt
+          You are the lightweight live-repair caretaker for the-omega-institute/trureturing-live (NyxID org: Omega Live Ops).
+          HARD BOUNDARIES:
+          - Only make small, surgical presentation/display/scene/sync fixes inside site/, scripts/, or tests/.
+          - NEVER modify workflows, secrets, deployment gates, or files outside site/, scripts/, tests/.
+          - NEVER expose GitHub usernames in UI code or comments.
+          - Run `python3 -m unittest discover -s tests` and `npm test` and ensure all tests pass.
+          - Do NOT run git push or gh pr create; a separate trusted job validates and publishes your patch.
+          EOF
+          printf "\nMission: %s\nOperator note: %s\nLinked issue #%s:\n" \
+            "$MISSION" "$OPERATOR_NOTE" "$ISSUE_NUMBER" >> /tmp/repair-prompt.txt
+          cat /tmp/issue-ctx.txt >> /tmp/repair-prompt.txt
+
+          CODEX_HOME="$codex_home" codex exec \
+            --ephemeral \
+            --sandbox workspace-write \
+            - < /tmp/repair-prompt.txt
+
+      - name: Export and scope-validate candidate patch
+        id: export
+        if: steps.config.outputs.state == 'configured'
+        run: |
+          set -euo pipefail
+          base_sha=$(git rev-parse HEAD)
+          out=$(python3 scripts/caretaker_guard.py export-patch \
+            --repo-dir . \
+            --allowed-prefix site/ \
+            --allowed-prefix scripts/ \
+            --allowed-prefix tests/ \
+            --out-patch /tmp/repair.patch \
+            --out-manifest /tmp/repair-manifest.json)
+          echo "$out"
+          has_changes=$(echo "$out" | awk -F= '$1=="has_changes"{print $2}')
+          echo "has_changes=$has_changes" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Upload scoped repair patch artifact
+        if: steps.config.outputs.state == 'configured' && steps.export.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: live-repair-patch
+          path: |
+            /tmp/repair.patch
+            /tmp/repair-manifest.json
+          retention-days: 3
+          if-no-files-found: error
+
+  publish:
+    needs: propose
+    if: needs.propose.outputs.config_state == 'configured' && needs.propose.outputs.has_changes == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Prevent duplicate repair PRs (at most 1 open)
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.LIVE_REPAIR_PR_TOKEN || github.token }}
           REPO: ${{ github.repository }}
         run: |
           open_prs=$(gh pr list --repo "$REPO" --state open --head caretaker/live-repair --json number --jq 'length')
@@ -66,98 +187,60 @@ jobs:
           fi
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        if: steps.guard.outputs.allow == 'true'
         with:
+          ref: ${{ needs.propose.outputs.base_sha }}
+          token: ${{ secrets.LIVE_REPAIR_PR_TOKEN || github.token }}
           submodules: true
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        if: steps.guard.outputs.allow == 'true'
         with:
           node-version: '22'
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
+        if: steps.guard.outputs.allow == 'true'
         with:
           python-version: '3.12'
 
-      - name: Install test dependencies & Codex CLI
-        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
-        run: |
-          npm ci --ignore-scripts
-          npm install -g @openai/codex
+      - name: Download candidate patch artifact
+        if: steps.guard.outputs.allow == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: live-repair-patch
+          path: /tmp/repair-bundle
 
-      - name: Run scoped live-repair Codex mission
-        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
-        env:
-          NYXID_API_KEY: ${{ secrets.NYXID_LIVE_REPAIR_KEY }}
-          NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
-          CODEX_MODEL: ${{ vars.NYXID_LIVE_CODEX_MODEL }}
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          MISSION: ${{ inputs.mission }}
-          ISSUE_NUMBER: ${{ inputs.issue_number }}
-          OPERATOR_NOTE: ${{ inputs.note }}
+      - name: Independently verify patch scope, apply cleanly, and run trusted tests
+        if: steps.guard.outputs.allow == 'true'
         run: |
           set -euo pipefail
-          model="${CODEX_MODEL:-gpt-5.4}"
-          codex_home="$RUNNER_TEMP/codex-home"
-          mkdir -p "$codex_home"
-          cat <<EOF > "$codex_home/config.toml"
-          approval_policy = "never"
-          model_provider = "nyxid"
-          model = "${model}"
-          disable_response_storage = true
-
-          [model_providers.nyxid]
-          name = "nyxid"
-          base_url = "${NYXID_BASE_URL}"
-          wire_api = "responses"
-          env_key = "NYXID_API_KEY"
-          EOF
-
-          issue_ctx=""
-          if [[ "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then
-            issue_ctx=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title,body --jq '"\(.title)\n\(.body)"' || true)
-          fi
-          cat <<'EOF' > /tmp/repair-prompt.txt
-          You are the lightweight live-repair caretaker for the-omega-institute/trureturing-live (NyxID org: Omega Live Ops).
-          HARD BOUNDARIES:
-          - Only make small, surgical presentation/display/scene/sync fixes inside site/ or scripts/ or tests/.
-          - NEVER alter workflow security gates, deployment rate limits, secrets, or research architecture.
-          - NEVER expose GitHub usernames in UI code or comments.
-          - Run `python3 -m unittest discover -s tests` and `npm test` and ensure all tests pass.
-          - Do NOT run git push or gh pr create; leave clean working-tree changes only if a real fix is warranted.
-          EOF
-          printf "\nMission: %s\nOperator note: %s\nLinked issue #%s:\n%s\n" \
-            "$MISSION" "$OPERATOR_NOTE" "$ISSUE_NUMBER" "$issue_ctx" >> /tmp/repair-prompt.txt
-
-          CODEX_HOME="$codex_home" codex exec \
-            --ephemeral \
-            --sandbox workspace-write \
-            - < /tmp/repair-prompt.txt
-
-      - name: Verify tests & open PR with github-event-v2 footer
-        if: steps.config.outputs.ready == 'true' && steps.guard.outputs.allow == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          MISSION: ${{ inputs.mission }}
-          ISSUE_NUMBER: ${{ inputs.issue_number }}
-        run: |
-          set -euo pipefail
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "No changes required by live-repair."
-            exit 0
-          fi
-
+          python3 scripts/caretaker_guard.py verify-patch \
+            --repo-dir . \
+            --allowed-prefix site/ \
+            --allowed-prefix scripts/ \
+            --allowed-prefix tests/ \
+            --patch /tmp/repair-bundle/repair.patch \
+            --manifest /tmp/repair-bundle/repair-manifest.json
           python3 -m unittest discover -s tests -v
+          npm ci --ignore-scripts
           npm test
 
+      - name: Push validated candidate branch and open PR
+        if: steps.guard.outputs.allow == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.LIVE_REPAIR_PR_TOKEN || github.token }}
+          HAS_CUSTOM_PR_TOKEN: ${{ secrets.LIVE_REPAIR_PR_TOKEN != '' }}
+          REPO: ${{ github.repository }}
+          MISSION: ${{ inputs.mission }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          BASE_SHA: ${{ needs.propose.outputs.base_sha }}
+        run: |
+          set -euo pipefail
           git config user.name "omega-live-repair[bot]"
           git config user.email "omega-live-repair[bot]@users.noreply.github.com"
           git checkout -B caretaker/live-repair
-          git add -A
           git commit -m "chore(live-repair): automated ${MISSION} update"
+          head_sha=$(git rev-parse HEAD)
           git push -u origin caretaker/live-repair --force-with-lease
 
           target="self"
@@ -166,6 +249,10 @@ jobs:
             target="${REPO}#${ISSUE_NUMBER}"
             ref_line="Addresses #${ISSUE_NUMBER}."
           fi
+          ci_note="Opened with default GITHUB_TOKEN (note: GitHub does not auto-trigger \`on: pull_request\` workflows for default GITHUB_TOKEN PRs; configure \`LIVE_REPAIR_PR_TOKEN\` or dispatch \`Check dashboard\` before merge)."
+          if [ "$HAS_CUSTOM_PR_TOKEN" = "true" ]; then
+            ci_note="Opened with scoped \`LIVE_REPAIR_PR_TOKEN\` so \`Check dashboard\` auto-triggers on PR creation."
+          fi
           event_line=$(python3 scripts/format_agent_event.py \
             --agent codex/live-ops/repair \
             --action pr \
@@ -173,17 +260,25 @@ jobs:
             --target "$target")
 
           cat <<EOF > /tmp/pr-body.md
-          Automated scoped \`${MISSION}\` patch prepared by **live-repair** (NyxID org: \`Omega Live Ops\`).
+          Automated scoped \`${MISSION}\` patch prepared by **live-repair** (NyxID org: \`Omega Live Ops\`) and published via isolated trusted job.
           ${ref_line}
 
-          - Verified locally with \`python3 -m unittest discover -s tests\` and \`npm test\`.
-          - Merging into \`main\` triggers the exclusive Pages deploy pipeline (\`<= 10 deploys/hour\`).
+          - Base SHA: \`${BASE_SHA}\` · Candidate SHA: \`${head_sha}\`
+          - Scope enforced independently before and after \`git apply\` (\`site/\`, \`scripts/\`, \`tests/\` only).
+          - Trusted verification passed (\`unittest\` + \`npm test\`).
+          - CI identity: ${ci_note}
 
           ${event_line}
           EOF
 
-          gh pr create --repo "$REPO" \
+          pr_url=$(gh pr create --repo "$REPO" \
             --base main \
             --head caretaker/live-repair \
             --title "chore(live-repair): automated ${MISSION} update" \
-            --body-file /tmp/pr-body.md
+            --body-file /tmp/pr-body.md)
+          {
+            echo "### Live Repair PR Published"
+            echo "- PR: ${pr_url}"
+            echo "- Base SHA: \`${BASE_SHA}\`"
+            echo "- Candidate SHA: \`${head_sha}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
