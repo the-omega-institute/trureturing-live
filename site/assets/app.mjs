@@ -2756,14 +2756,14 @@ async function refreshLive() {
 // sovereign department sectors connected through the central Lean Formal Bridge!
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 3.65, z: -3.75, r: 0.72, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [244, 197, 83]  },
-  verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [0, 255, 208]   },
-  research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [29, 255, 130]  },
-  review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [184, 148, 255] },
-  publication:  { x:  5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.26, apex: false, eye: false, order: 4, hex: [61, 242, 180]  },
-  outreach:     { x:  6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [245, 161, 86]  },
-  books:        { x: -3.35, y: 0.0,  z:  5.35, r: 0.68, baseH: 1.18, apex: false, eye: false, order: 6, hex: [217, 150, 245] },
-  studio:       { x:  3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [108, 214, 255] }
+  direction:    { x:  0.0,  y: 3.65, z: -3.75, r: 0.72, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [229, 192, 123] },
+  verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [116, 224, 244] },
+  research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [94, 224, 206]  },
+  review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [156, 174, 232] },
+  publication:  { x:  5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.26, apex: false, eye: false, order: 4, hex: [125, 208, 245] },
+  outreach:     { x:  6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [216, 182, 134] },
+  books:        { x: -3.35, y: 0.0,  z:  5.35, r: 0.68, baseH: 1.18, apex: false, eye: false, order: 6, hex: [174, 184, 238] },
+  studio:       { x:  3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [148, 188, 224] }
 };
 
 const holoCam = {
@@ -3266,33 +3266,32 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ]
     : isLight
       ? [
-          [12, 136, 108], [16, 122, 166], [182, 104, 18], [114, 64, 188],
-          [16, 138, 98], [46, 108, 192], [176, 112, 20], [28, 124, 120]
+          [16, 118, 110], [20, 108, 148], [148, 96, 36], [96, 78, 160],
+          [22, 120, 106], [46, 100, 166], [142, 102, 42], [44, 110, 118]
         ]
       : [
-          [0, 242, 152],   // 0 Combinatorics: Matrix Emerald
-          [0, 222, 240],   // 1 Quantum: Deep Quantum Cyan
-          [246, 198, 86],  // 2 Arith: Prime Gold
-          [178, 126, 255], // 3 ConceptDynamics: Cosmic Violet
-          [56, 240, 184],  // 4 Analytic: Luminous Jade
-          [112, 196, 255], // 5 Weil: Stellar Azure
-          [252, 218, 124], // 6 Observer: Architect Gold
-          [0, 224, 146]    // 7 Foundations Core: Matrix Core Emerald
+          [112, 218, 216], // 0 Combinatorics: Deep Orbital Teal
+          [116, 212, 242], // 1 Quantum: Cold Starlight Cyan
+          [214, 194, 148], // 2 Arith: Pale Stellar Gold
+          [162, 178, 232], // 3 ConceptDynamics: Astral Silver-Indigo
+          [110, 210, 196], // 4 Analytic: Glacier Mint
+          [144, 194, 242], // 5 Weil: Deep Sky Titanium
+          [206, 194, 158], // 6 Observer: Champagne Dust
+          [128, 188, 216]  // 7 Foundations Belt: Deep Space Mist
         ];
 
   const quiet = state.quiet || reduced;
   const tEff = quiet ? 4.2 : t;
-  // Calm static astronomical parallax (zero disco strobe wavefronts!)
-  const nebYaw = holoCam.yaw * 0.25;
-  const nebPitch = 0.05 + (holoCam.pitch - 0.66) * 0.16;
+  // Calm astronomical parallax
+  const nebYaw = holoCam.yaw * 0.22;
+  const nebPitch = 0.05 + (holoCam.pitch - 0.66) * 0.14;
   const cY = Math.cos(nebYaw), sY = Math.sin(nebYaw);
   const cP = Math.cos(nebPitch), sP = Math.sin(nebPitch);
 
   const cx = w * 0.5;
   const cy = h * 0.50;
-  // Pull the Truth DAG halo cohesively inward around the institute so galaxies feel unified rather than stranded at screen corners
-  const scaleX = w * 0.392;
-  const scaleY = h * 0.422;
+  const scaleX = w * 0.412;
+  const scaleY = h * 0.440;
   const camZ = 2.65;
 
   const projectBase = (nx, ny, nz) => {
@@ -3322,8 +3321,6 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   let focusX = 0, focusY = 0, focusTx = 0, focusTy = 0;
   const focusZoom = 1 + GROWTH_ZOOM * focusK;
   if (focusK > 0) {
-    // Move the magnified galaxy only as far inward as it needs to fit on screen,
-    // so it stays out of the campus sanctuary at the centre.
     const c = growthFocus.cluster.center;
     const rim = (growthFocus.cluster.radius || 200) / 1000;
     [focusX, focusY] = projectBase(c[0] / 1000, c[1] / 1000, c[2] / 1000);
@@ -3342,18 +3339,17 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     : projectBase;
   const growthDim = cid => (focusK <= 0 ? 1 : cid === growthFocus.cid ? 1 + 0.45 * focusK : 1 - 0.62 * focusK);
 
-  // SOFT SUBTERRANEAN DEPTH VEIL: dims the deep floor gently beneath the foreground 3D campus
-  // without punching an empty hole, so the Truth DAG reads as one continuous foundational substrate!
+  // PURE BACKGROUND SEPARATION MASK: keeps the Truth DAG cleanly behind & around the foreground
+  // architectural diagram with zero lines crossing or tying back into the main workflow!
   const coreClear = (px, py) => {
-    const dx = (px - w * 0.5) / (w * 0.22);
-    const dy = (py - h * 0.50) / (h * 0.24);
+    const dx = (px - w * 0.5) / (w * 0.245);
+    const dy = (py - h * 0.50) / (h * 0.265);
     const d = Math.hypot(dx, dy);
-    if (d <= 0.54) return 0.24;
-    if (d >= 1.08) return 1.0;
-    const u = (d - 0.54) / 0.54;
-    return 0.24 + 0.76 * (u * u * (3 - 2 * u));
+    if (d <= 0.72) return 0.06;
+    if (d >= 1.18) return 1.0;
+    const u = (d - 0.72) / 0.46;
+    return 0.06 + 0.94 * (u * u * (3 - 2 * u));
   };
-  // During a close-up the growing galaxy may come forward over the sanctuary; the campus still draws on top.
   const maskFor = (cid, px, py) => (focusK > 0 && cid === growthFocus.cid ? Math.max(coreClear(px, py), 0.78 * focusK) : coreClear(px, py));
 
   // Pre-project all mathematical galaxy centroids
@@ -3366,12 +3362,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
   const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
-    if (focusK > 0.05) return cid === growthFocus?.cid ? 1.55 : 0.40;
-    if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.45 : 0.50;
-    return recentBucket(cid)?.count ? 1.28 : 0.78;
+    if (focusK > 0.05) return cid === growthFocus?.cid ? 1.50 : 0.36;
+    if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.40 : 0.46;
+    return recentBucket(cid)?.count ? 1.18 : 0.68;
   };
 
-  // PASS 0: Project all 1,160 real frozen Truth DAG stars first so subterranean rootlets can graft directly onto real inner stars!
+  // PASS 0: Project all 1,160 real frozen Truth DAG stars
   for (let i = 0; i < n; i++) {
     const s = stars[i];
     const hasGrowth = Boolean(recentBucket(s[3])?.count);
@@ -3380,7 +3376,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       const cl = clProj.get(s[3])?.cl;
       if (cl && cl.name !== 'Other') {
         const gen = s[4] / 100;
-        const swell = 1.0 + gen * 0.055 * (0.5 + 0.5 * Math.sin(tEff * 0.46 + s[3] * 1.1));
+        const swell = 1.0 + gen * 0.045 * (0.5 + 0.5 * Math.sin(tEff * 0.42 + s[3] * 1.1));
         const cx3 = cl.center[0] / 1000, cy3 = cl.center[1] / 1000, cz3 = cl.center[2] / 1000;
         nx = cx3 + (nx - cx3) * swell;
         ny = cy3 + (ny - cy3) * swell;
@@ -3395,255 +3391,110 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   ctx.save();
-  if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // PASS 1: Organic Gestating Nebula Mist + Outward-Facing Crescent Expansion Wavefronts on Growing Galaxies!
+  // PASS 1: Subtle Deep-Space Nebula Dust Clouds + Whisper-Thin Outward Frontier Arcs ONLY on Growing Galaxies
   for (const { cl, x: px, y: py, inv, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const delta = recentBucket(cl.id)?.count || 0;
     const hasGrowth = delta > 0;
-    const weight = Math.min(1.42, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.48);
-    // Slow organic breathing expansion on actively growing galaxies (zero harsh flicker!)
-    const swell = (hasGrowth && !quiet) ? (1.0 + 0.075 * Math.sin(tEff * 0.52 + cl.id * 1.3)) : 1.0;
-    const rad = Math.min(w, h) * (hasGrowth ? 0.23 : 0.16) * weight * inv * swell;
+    const weight = Math.min(1.38, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.45);
+    const swell = (hasGrowth && !quiet) ? (1.0 + 0.055 * Math.sin(tEff * 0.45 + cl.id * 1.3)) : 1.0;
+    const rad = Math.min(w, h) * (hasGrowth ? 0.21 : 0.15) * weight * inv * swell;
     const g = ctx.createRadialGradient(px, py, 6, px, py, rad);
-    const baseA = (isLight ? (hasGrowth ? 0.064 : 0.022) : (hasGrowth ? 0.105 : 0.036)) * maskFor(cl.id, px, py) * Math.min(1.35, clusterEmphasis(cl.id));
+    const baseA = (isLight ? (hasGrowth ? 0.048 : 0.018) : (hasGrowth ? 0.072 : 0.028)) * maskFor(cl.id, px, py) * Math.min(1.25, clusterEmphasis(cl.id));
     g.addColorStop(0, rgba(col, baseA));
-    g.addColorStop(0.50, rgba(col, baseA * 0.46));
+    g.addColorStop(0.50, rgba(col, baseA * 0.42));
     g.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(px, py, rad, 0, Math.PI * 2);
     ctx.fill();
 
-    // Silky, ultra-slow OUTWARD-FACING crescent wavefronts ("外围孕育扩张波纹") ONLY around growing galaxies!
-    if (hasGrowth && !quiet && focusK < 0.4) {
+    // Single whisper-thin outward-facing horizon ripple ONLY on fast-growing galaxies
+    if (delta >= 8 && !quiet && focusK < 0.4) {
       const outAng = Math.atan2(py - cy, px - cx);
-      const ringCount = delta >= 8 ? 3 : 1;
-      for (let rIdx = 0; rIdx < ringCount; rIdx++) {
-        const u = (tEff * 0.082 + cl.id * 0.23 + rIdx / ringCount) % 1;
-        const rRing = (24 + u * Math.min(w, h) * (delta >= 8 ? 0.16 : 0.10)) * inv;
-        const env = Math.sin(u * Math.PI);
-        const alphaRing = env * env * (isLight ? 0.28 : 0.36) * maskFor(cl.id, px, py);
-        if (alphaRing > 0.008) {
-          const halfSpan = 1.38;
-          const arcSegs = 12;
-          const baseLW = 1.45 - u * 0.72;
-          for (let s = 0; s < arcSegs; s++) {
-            const f0 = s / arcSegs;
-            const f1 = (s + 1) / arcSegs;
-            const taper = Math.sin(((f0 + f1) * 0.5) * Math.PI);
-            const segA = alphaRing * taper * taper;
-            if (segA < 0.005) continue;
-            const a0 = outAng - halfSpan + f0 * halfSpan * 2;
-            const a1 = outAng - halfSpan + f1 * halfSpan * 2;
-            ctx.strokeStyle = rgba(col, segA);
-            ctx.lineWidth = Math.max(0.45, baseLW * (0.55 + 0.45 * taper));
-            ctx.beginPath();
-            ctx.arc(px, py, rRing, a0, a1);
-            ctx.stroke();
-          }
-        }
-      }
-    }
-  }
-
-  // PASS 2: Majestic Dual-Layer Ultra-Slow Outer Cosmic Expansion Horizon (outer perimeter ONLY — serene, silky!)
-  const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [0, 255, 168];
-  if (!quiet) {
-    for (let layer = 0; layer < 2; layer++) {
-      const uOuter = (tEff * 0.048 + layer * 0.50) % 1;
-      const radScale = 0.84 + uOuter * 0.34;
-      const env = Math.sin(uOuter * Math.PI);
-      const rx = w * 0.415 * radScale;
-      const ry = h * 0.415 * radScale;
-      const outerA = env * env * (isLight ? 0.11 : 0.14);
-      if (outerA > 0.006) {
-        ctx.strokeStyle = rgba(waveColor, outerA);
-        ctx.lineWidth = 1.15 - uOuter * 0.45;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
-  }
-  for (const rp of holoCam.nebulaRipples) {
-    const u = 0.68 + rp.age * 0.58;
-    if (u <= 0.68 || u >= 1.26) continue;
-    const fade = Math.sin(Math.min(1, (u - 0.68) / 0.58) * Math.PI);
-    ctx.strokeStyle = rgba(waveColor, fade * (isLight ? 0.08 : 0.13));
-    ctx.lineWidth = 1.0;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, w * 0.42 * u, h * 0.42 * u, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // PASS 3A: SUBTERRANEAN FOUNDATIONAL ROOT LATTICE (底层公理根系脉络)
-  // Connects the central Lean Verification Foundation Nexus directly to ALL 7 mathematical galaxies
-  // using real `Foundations` dependency counts (328, 315, 176, 143, 121, 88, 77), grafting via braided rootlets into real inner stars!
-  const [rootX, rootY] = projectNeb(0, -0.04, -0.14);
-  const rootColor = isBlueprint ? [125, 205, 255] : isLight ? [16, 124, 114] : [0, 232, 168];
-
-  // Quiet subterranean axiom lattice rings directly under the central Lean Verification Core
-  if (focusK < 0.55) {
-    const ringFade = 1 - focusK * 1.4;
-    for (const [rBase, rAlpha] of [[52, 0.14], [108, 0.09], [174, 0.055]]) {
-      ctx.strokeStyle = rgba(rootColor, rAlpha * (isLight ? 0.95 : 1.0) * ringFade);
-      ctx.lineWidth = 0.75;
-      ctx.beginPath();
-      ctx.ellipse(rootX, rootY, rBase * 1.28, rBase * 0.82, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-
-  for (const { cl, x: gx, y: gy, col } of clProj.values()) {
-    if (cl.name === 'Other') continue;
-    const fWeight = truthNebula.foundationWeight?.get(cl.id) || 60;
-    const fStrength = Math.min(1.0, Math.log1p(fWeight) / Math.log1p(340));
-    const delta = recentBucket(cl.id)?.count || 0;
-    const hasGrowth = delta > 0;
-    const isHot = focusCid != null && cl.id === focusCid;
-    const dimFactor = focusCid != null && !isHot ? 0.38 : 1.0;
-
-    // Gentle deterministic curved subterranean trunk from central Foundation Nexus -> galaxy core
-    const dx = gx - rootX, dy = gy - rootY;
-    const bendSign = (cl.id % 2 === 0 ? 1 : -1);
-    const bendMag = 0.13 + (cl.id % 3) * 0.03;
-    const ctrlX = (rootX + gx) * 0.5 - dy * bendMag * bendSign;
-    const ctrlY = (rootY + gy) * 0.5 + dx * bendMag * bendSign;
-
-    const baseAlpha = isHot
-      ? (isLight ? 0.44 : 0.52)
-      : (isLight ? 0.16 : 0.17) + fStrength * (isLight ? 0.12 : 0.14) + (hasGrowth ? 0.06 : 0);
-    const trunkAlpha = baseAlpha * dimFactor;
-    const trunkGrad = ctx.createLinearGradient(rootX, rootY, gx, gy);
-    trunkGrad.addColorStop(0, rgba(rootColor, trunkAlpha * 0.42));
-    trunkGrad.addColorStop(0.45, rgba(col, trunkAlpha * 0.88));
-    trunkGrad.addColorStop(1, rgba(col, trunkAlpha * 1.12));
-
-    ctx.strokeStyle = trunkGrad;
-    ctx.lineWidth = isHot ? (1.45 + fStrength * 0.85) : (0.85 + fStrength * 0.78);
-    ctx.beginPath();
-    ctx.moveTo(rootX, rootY);
-    ctx.quadraticCurveTo(ctrlX, ctrlY, gx, gy);
-    ctx.stroke();
-
-    // Braided subterranean tributary rootlets branching from 56% along the trunk directly into real inner stars of this galaxy!
-    const anchors = truthNebula.innerAnchors?.get(cl.id) || [];
-    const splitT = 0.56, invST = 1 - splitT;
-    const splitX = invST * invST * rootX + 2 * invST * splitT * ctrlX + splitT * splitT * gx;
-    const splitY = invST * invST * rootY + 2 * invST * splitT * ctrlY + splitT * splitT * gy;
-    if (anchors.length) {
-      ctx.strokeStyle = rgba(col, trunkAlpha * 0.62);
-      ctx.lineWidth = isHot ? 0.95 : 0.62;
-      ctx.beginPath();
-      for (const sIdx of anchors) {
-        const sx = projX[sIdx], sy = projY[sIdx];
-        const rmx = (splitX + sx) * 0.5 + (gx - sx) * 0.18;
-        const rmy = (splitY + sy) * 0.5 + (gy - sy) * 0.18;
-        ctx.moveTo(splitX, splitY);
-        ctx.quadraticCurveTo(rmx, rmy, sx, sy);
-      }
-      ctx.stroke();
-    }
-
-    // Calm slow-motion outward nutrient pulse flowing from central Verification Foundation -> actively growing galaxy (~11.5s cycle)
-    if (hasGrowth && !quiet && focusK < 0.45) {
-      const u = (tEff * 0.086 + cl.id * 0.29) % 1;
-      const tailLen = 0.18;
-      const uStart = Math.max(0, u - tailLen);
+      const u = (tEff * 0.072 + cl.id * 0.31) % 1;
+      const rRing = (28 + u * Math.min(w, h) * 0.13) * inv;
       const env = Math.sin(u * Math.PI);
-      if (env > 0.04) {
-        const steps = 8;
-        ctx.strokeStyle = rgba(isLight ? col : [215, 255, 240], env * (isLight ? 0.55 : 0.68) * dimFactor);
-        ctx.lineWidth = 1.65;
-        ctx.beginPath();
-        let headX = rootX, headY = rootY;
-        for (let s = 0; s <= steps; s++) {
-          const f = uStart + (u - uStart) * (s / steps);
-          const invF = 1 - f;
-          const qx = invF * invF * rootX + 2 * invF * f * ctrlX + f * f * gx;
-          const qy = invF * invF * rootY + 2 * invF * f * ctrlY + f * f * gy;
-          if (s === 0) ctx.moveTo(qx, qy);
-          else ctx.lineTo(qx, qy);
-          headX = qx;
-          headY = qy;
+      const alphaRing = env * env * (isLight ? 0.18 : 0.20) * maskFor(cl.id, px, py);
+      if (alphaRing > 0.008) {
+        const halfSpan = 1.15;
+        const arcSegs = 10;
+        for (let s = 0; s < arcSegs; s++) {
+          const f0 = s / arcSegs, f1 = (s + 1) / arcSegs;
+          const taper = Math.sin(((f0 + f1) * 0.5) * Math.PI);
+          const segA = alphaRing * taper * taper;
+          if (segA < 0.005) continue;
+          ctx.strokeStyle = rgba(col, segA);
+          ctx.lineWidth = 0.75;
+          ctx.beginPath();
+          ctx.arc(px, py, rRing, outAng - halfSpan + f0 * halfSpan * 2, outAng - halfSpan + f1 * halfSpan * 2);
+          ctx.stroke();
         }
-        ctx.stroke();
-        const pg = ctx.createRadialGradient(headX, headY, 0.5, headX, headY, 6.2);
-        pg.addColorStop(0, rgba(isLight ? col : [242, 255, 248], env * 0.80 * dimFactor));
-        pg.addColorStop(1, rgba(col, 0));
-        ctx.fillStyle = pg;
-        ctx.beginPath();
-        ctx.arc(headX, headY, 6.2, 0, Math.PI * 2);
-        ctx.fill();
       }
     }
   }
 
-  // PASS 3B: ALL REAL INTER-GALAXY SUBTERRANEAN DEPENDENCY CHORDS (including cross-diameter bridges like Weil ↔ Quantum!)
-  // Woven through the inner substrate rather than pushed out to invisible border rims!
-  const namedLinks = clusterLinks.filter(([u, v]) => {
-    const cu = clProj.get(u)?.cl, cv = clProj.get(v)?.cl;
-    return cu && cv && cu.name !== 'Other' && cv.name !== 'Other';
-  });
-  for (let i = 0; i < namedLinks.length; i++) {
-    const [fromId, toId, count] = namedLinks[i];
-    const a = clProj.get(fromId);
-    const b = clProj.get(toId);
-    if (!a || !b) continue;
-
-    const midX = (a.x + b.x) * 0.5;
-    const midY = (a.y + b.y) * 0.5;
-    const distAB = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    const isLongBridge = distAB > Math.min(w, h) * 0.52;
-    // Pull chords softly inward toward the subterranean substrate so galaxies visibly interlock underneath the campus!
-    const pull = isLongBridge ? 0.52 : 0.30;
-    const sep = ((i % 2 === 0 ? 1 : -1) * (0.04 + (i % 3) * 0.028)) * distAB;
-    const perpX = -(b.y - a.y) / distAB;
-    const perpY =  (b.x - a.x) / distAB;
-    const qx = midX * (1 - pull) + rootX * pull + perpX * sep;
-    const qy = midY * (1 - pull) + rootY * pull + perpY * sep;
-
-    const linkHot = focusCid != null && (fromId === focusCid || toId === focusCid);
-    const linkDim = focusCid != null && !linkHot ? 0.32 : 1.0;
-    const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-    const lw = linkHot ? (1.25 + strength * 0.90) : (0.65 + strength * 0.55);
-    const alpha = linkHot
-      ? ((isLight ? 0.42 : 0.48) + strength * 0.24)
-      : ((isLight ? 0.13 : 0.14) + strength * (isLight ? 0.12 : 0.14)) * linkDim;
-
-    const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-    grad.addColorStop(0, rgba(a.col, alpha));
-    grad.addColorStop(0.5, rgba(rootColor, alpha * 0.85));
-    grad.addColorStop(1, rgba(b.col, alpha * 1.08));
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = lw;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(qx, qy, b.x, b.y);
-    ctx.stroke();
-
-    if (linkHot) {
-      // Directional dependency chevron at midpoint of the curved chord
-      const uMid = 0.52, invM = 1 - uMid;
-      const mx0 = invM * invM * a.x + 2 * invM * uMid * qx + uMid * uMid * b.x;
-      const my0 = invM * invM * a.y + 2 * invM * uMid * qy + uMid * uMid * b.y;
-      const tx = 2 * invM * (qx - a.x) + 2 * uMid * (b.x - qx);
-      const ty = 2 * invM * (qy - a.y) + 2 * uMid * (b.y - qy);
-      ctx.save();
-      ctx.translate(mx0, my0);
-      ctx.rotate(Math.atan2(ty, tx));
-      ctx.strokeStyle = rgba(b.col, Math.min(0.94, alpha + 0.30));
-      ctx.lineWidth = Math.max(1.0, lw * 0.85);
+  // PASS 2: Single Ultra-Faint Deep-Space Outer Expansion Horizon (pure background depth, zero clutter)
+  const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [24, 110, 120] : [132, 194, 224];
+  if (!quiet) {
+    const uOuter = (tEff * 0.042) % 1;
+    const radScale = 0.88 + uOuter * 0.28;
+    const env = Math.sin(uOuter * Math.PI);
+    const outerA = env * env * (isLight ? 0.08 : 0.085);
+    if (outerA > 0.005) {
+      ctx.strokeStyle = rgba(waveColor, outerA);
+      ctx.lineWidth = 0.7;
       ctx.beginPath();
-      ctx.moveTo(-4.0, -2.8); ctx.lineTo(3.0, 0); ctx.lineTo(-4.0, 2.8);
+      ctx.ellipse(cx, cy, w * 0.435 * radScale, h * 0.435 * radScale, 0, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.restore();
     }
   }
 
-  // PASS 5A: FROZEN INTRA-GALAXY DAG TREES (richly legible theorem skeletons inside every galaxy!)
+  // PASS 3: INTER-GALAXY PERIMETER ARCS — HIDDEN AT REST (ZERO LINE CLUTTER!), ILLUMINATE ONLY ON HOVER / CLOSE-UP!
+  if (focusCid != null) {
+    const ringRx = w * 0.35;
+    const ringRy = h * 0.39;
+    const namedLinks = clusterLinks.filter(([u, v]) => {
+      const cu = clProj.get(u)?.cl, cv = clProj.get(v)?.cl;
+      return cu && cv && cu.name !== 'Other' && cv.name !== 'Other' && (u === focusCid || v === focusCid);
+    });
+    for (let i = 0; i < namedLinks.length; i++) {
+      const [fromId, toId, count] = namedLinks[i];
+      const a = clProj.get(fromId), b = clProj.get(toId);
+      if (!a || !b) continue;
+      const angA = Math.atan2((a.y - cy) / ringRy, (a.x - cx) / ringRx);
+      const angB = Math.atan2((b.y - cy) / ringRy, (b.x - cx) / ringRx);
+      let diff = angB - angA;
+      if (diff > Math.PI) diff -= Math.PI * 2;
+      if (diff < -Math.PI) diff += Math.PI * 2;
+      if (Math.abs(diff) > 2.55) continue;
+      const segs = 18;
+      const pts = [];
+      const rBoost = 1.0 + Math.min(0.14, Math.abs(diff) * 0.06);
+      for (let s = 0; s <= segs; s++) {
+        const u = s / segs;
+        const ang = angA + diff * u;
+        const arch = Math.sin(u * Math.PI);
+        pts.push([
+          (a.x * (1 - u) + b.x * u) * (1 - arch * 0.72) + (cx + Math.cos(ang) * ringRx * rBoost) * (arch * 0.72),
+          (a.y * (1 - u) + b.y * u) * (1 - arch * 0.72) + (cy + Math.sin(ang) * ringRy * rBoost) * (arch * 0.72)
+        ]);
+      }
+      const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
+      const alpha = (isLight ? 0.34 : 0.38) + strength * 0.20;
+      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      grad.addColorStop(0, rgba(a.col, alpha));
+      grad.addColorStop(1, rgba(b.col, alpha));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 0.9 + strength * 0.55;
+      ctx.beginPath();
+      pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
+      ctx.stroke();
+    }
+  }
+
+  // PASS 5: DELICATE INTRA-GALAXY CONSTELLATION TREES (pure background star-cluster structure, whisper-thin!)
   for (let cid = 0; cid < clusters.length; cid++) {
     const col = nebPalette[cid % nebPalette.length];
     const clId = clusters[cid]?.id ?? cid;
@@ -3651,12 +3502,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const hasGrowth = Boolean(recentBucket(clId)?.count);
     const branchDim = clusterEmphasis(clId);
     const alpha = isSpot
-      ? (isLight ? 0.36 : 0.40)
+      ? (isLight ? 0.28 : 0.30)
       : hasGrowth
-        ? (isLight ? 0.20 : 0.22)
-        : (isLight ? 0.12 : 0.13);
-    ctx.strokeStyle = rgba(col, alpha * Math.min(1.2, branchDim));
-    ctx.lineWidth = isSpot ? 0.92 : hasGrowth ? 0.70 : 0.54;
+        ? (isLight ? 0.13 : 0.13)
+        : (isLight ? 0.065 : 0.068);
+    ctx.strokeStyle = rgba(col, alpha * Math.min(1.15, branchDim));
+    ctx.lineWidth = isSpot ? 0.75 : 0.45;
     ctx.beginPath();
     let countNormal = 0;
     for (let i = 0; i < edges.length; i++) {
@@ -3664,7 +3515,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.20) continue;
+      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.45) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
       countNormal++;
@@ -3672,30 +3523,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     if (countNormal) ctx.stroke();
   }
 
-  // PASS 5B: ALL 105 REAL CROSS-CLUSTER THEOREM-TO-THEOREM DAG EDGES (e[2] === 1)!
-  // Gossamer curved subterranean filaments physically stitching real Lean theorems across galaxies & the axiom belt!
-  for (let i = 0; i < edges.length; i++) {
-    const e = edges[i];
-    if (e[2] !== 1) continue;
-    const u = e[0], v = e[1];
-    const cu = stars[u][3], cv = stars[v][3];
-    const isHot = focusCid != null && (cu === focusCid || cv === focusCid);
-    const ux = projX[u], uy = projY[u], vx = projX[v], vy = projY[v];
-    const cmx = (ux + vx) * 0.5 * 0.74 + rootX * 0.26;
-    const cmy = (uy + vy) * 0.5 * 0.74 + rootY * 0.26;
-    const col = nebPalette[cu % nebPalette.length];
-    const alpha = isHot
-      ? (isLight ? 0.32 : 0.36)
-      : (isLight ? 0.082 : 0.095) * (focusCid != null ? 0.35 : 1.0);
-    ctx.strokeStyle = rgba(col, alpha);
-    ctx.lineWidth = isHot ? 0.85 : 0.50;
-    ctx.beginPath();
-    ctx.moveTo(ux, uy);
-    ctx.quadraticCurveTo(cmx, cmy, vx, vy);
-    ctx.stroke();
-  }
-
-  // PASS 6: Render 1,160 Still Frozen Truth DAG Stars (calm, zero strobe fatigue!)
+  // PASS 6: Crisp Astronomical Starfield (1,160 real frozen Lean theorem stars)
   for (let i = 0; i < n; i++) {
     const s = stars[i];
     const px = projX[i], py = projY[i];
@@ -3703,88 +3531,61 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const mask = maskFor(s[3], px, py);
     const isSpot = focusCid != null && s[3] === focusCid;
     const hasGrowth = Boolean(recentBucket(s[3])?.count);
-    const grow = focusK > 0 && s[3] === growthFocus.cid ? 1 + 0.55 * focusK : 1;
-    if (mask < 0.14) continue;
+    const grow = focusK > 0 && s[3] === growthFocus.cid ? 1 + 0.50 * focusK : 1;
+    if (mask < 0.16) continue;
     const col = nebPalette[s[3] % nebPalette.length];
     const degW = s[5];
-    const baseA = isSpot ? 0.68 : hasGrowth ? 0.38 : 0.22;
-    const aCore = (baseA + (degW >= 7 ? 0.10 : 0)) * mask * Math.min(1.2, clusterEmphasis(s[3]));
-    const sz = (degW >= 7 ? 1.55 : 1.05) * grow;
-    ctx.fillStyle = rgba(col, Math.min(0.82, aCore));
+    const baseA = isSpot ? 0.68 : hasGrowth ? 0.38 : 0.24;
+    const aCore = (baseA + (degW >= 7 ? 0.12 : 0)) * mask * Math.min(1.15, clusterEmphasis(s[3]));
+    const sz = (degW >= 7 ? 1.5 : 1.0) * grow;
+    ctx.fillStyle = rgba(degW >= 8 && !isLight ? [232, 244, 255] : col, Math.min(0.84, aCore));
     ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
   }
 
-  // PASS 6B: Live arriving growth animation (when a new D5 module arrives during the current viewing session)
+  // PASS 6B: Live arriving growth animation
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
 
-  // PASS 7: ORGANIC SLOW-MOTION "孕育 → 伸展分叉 → 绽放" REAL TRUTH DAG FRONTIER GROWTH!
-  // Smooth curved botanical/cosmological outward extension + branching ONLY on real newly-frozen D5 modules!
+  // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules!)
   for (let k = 0; k < truthGrowth.recentSprouts.length; k++) {
     const sp = truthGrowth.recentSprouts[k];
     const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000);
     const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000);
     if (pxEnd < -24 || pxEnd > w + 24 || pyEnd < -24 || pyEnd > h + 24) continue;
     const mask = maskFor(sp.cid, pxEnd, pyEnd);
-    if (mask < 0.18) continue;
+    if (mask < 0.22) continue;
     const col = nebPalette[sp.cid % nebPalette.length];
     const isSpot = focusCid != null && sp.cid === focusCid;
-    const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.42 : 1.0);
+    const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.38 : 1.0);
     const parentX = projX[sp.parentIdx], parentY = projY[sp.parentIdx];
-    const [fxEnd, fyEnd] = sp.hasFork ? projectNeb(sp.fx / 1000, sp.fy / 1000, sp.fz / 1000) : [pxEnd, pyEnd];
-    // Anchor point of the secondary micro-fork at t=0.56 along the quadratic curve
-    const forkT = 0.56, invFT = 1 - forkT;
-    const fBaseX = invFT * invFT * parentX + 2 * invFT * forkT * mx + forkT * forkT * pxEnd;
-    const fBaseY = invFT * invFT * parentY + 2 * invFT * forkT * my + forkT * forkT * pyEnd;
 
-    // Permanent softly-lit expanded crown filament + settled micro-fork so the outer expansion is ALWAYS legible
-    const baseEdgeA = (isLight ? 0.28 : 0.34) * mask * Math.min(1.2, dim);
-    ctx.strokeStyle = rgba(col, baseEdgeA);
-    ctx.lineWidth = isSpot ? 1.1 : 0.80;
+    // Whisper-thin permanent outer crown filament
+    ctx.strokeStyle = rgba(col, (isLight ? 0.24 : 0.24) * mask * Math.min(1.15, dim));
+    ctx.lineWidth = isSpot ? 0.85 : 0.60;
     ctx.beginPath();
     ctx.moveTo(parentX, parentY);
     ctx.quadraticCurveTo(mx, my, pxEnd, pyEnd);
     ctx.stroke();
 
-    if (sp.hasFork) {
-      ctx.strokeStyle = rgba(col, baseEdgeA * 0.72);
-      ctx.lineWidth = isSpot ? 0.85 : 0.62;
-      ctx.beginPath();
-      ctx.moveTo(fBaseX, fBaseY);
-      ctx.lineTo(fxEnd, fyEnd);
-      ctx.stroke();
-      ctx.fillStyle = rgba(col, (isLight ? 0.50 : 0.46) * mask * Math.min(1.2, dim));
-      ctx.beginPath();
-      ctx.arc(fxEnd, fyEnd, isSpot ? 1.35 : 1.0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Settled outer crown node (steady, calm glow)
-    ctx.fillStyle = rgba(col, (isLight ? 0.65 : 0.60) * mask * Math.min(1.2, dim));
+    ctx.fillStyle = rgba(isLight ? col : [220, 242, 255], (isLight ? 0.58 : 0.52) * mask * Math.min(1.15, dim));
     ctx.beginPath();
-    ctx.arc(pxEnd, pyEnd, isSpot ? 1.9 : 1.4, 0, Math.PI * 2);
+    ctx.arc(pxEnd, pyEnd, isSpot ? 1.5 : 1.1, 0, Math.PI * 2);
     ctx.fill();
 
-    // Slow organic gestation -> outward extension & fork -> bloom cycle (8.8–13.2s, staggered calmly)
+    // Calm slow-motion outer crystallization cycle (9–13s, staggered, zero flashiness)
     if (!quiet) {
-      const cyc = (tEff / (sp.period || 10.0) + (sp.phase || 0)) % 1;
-      if (cyc < 0.20) {
-        // Stage 1 — 孕育 (Gestation): warm bud slowly swells at the parent star
-        const u = cyc / 0.20;
+      const cyc = (tEff / (sp.period || 10.5) + (sp.phase || 0)) % 1;
+      if (cyc < 0.22) {
+        const u = cyc / 0.22;
         const bud = Math.sin(u * Math.PI);
-        const rBud = 2.2 + bud * 5.6;
-        const bg = ctx.createRadialGradient(parentX, parentY, 0.5, parentX, parentY, rBud);
-        bg.addColorStop(0, rgba(isLight ? col : [240, 255, 244], bud * 0.76 * mask * dim));
-        bg.addColorStop(1, rgba(col, 0));
-        ctx.fillStyle = bg;
+        ctx.fillStyle = rgba(isLight ? col : [225, 244, 255], bud * 0.55 * mask * dim);
         ctx.beginPath();
-        ctx.arc(parentX, parentY, rBud, 0, Math.PI * 2);
+        ctx.arc(parentX, parentY, 1.4 + bud * 2.2, 0, Math.PI * 2);
         ctx.fill();
       } else if (cyc < 0.68) {
-        // Stage 2 — 伸展分叉 (Outward Extension + Micro-Fork): curved branch smoothly grows 0 -> 100% outward
-        const u = growthEase((cyc - 0.20) / 0.48);
+        const u = growthEase((cyc - 0.22) / 0.46);
         const steps = 10;
-        ctx.strokeStyle = rgba(isLight ? col : [215, 255, 236], (isLight ? 0.76 : 0.84) * mask * Math.min(1.2, dim));
-        ctx.lineWidth = isSpot ? 1.65 : 1.25;
+        ctx.strokeStyle = rgba(isLight ? col : [210, 238, 252], (isLight ? 0.62 : 0.66) * mask * Math.min(1.15, dim));
+        ctx.lineWidth = isSpot ? 1.15 : 0.85;
         ctx.beginPath();
         let tipX = parentX, tipY = parentY;
         for (let s = 0; s <= steps; s++) {
@@ -3799,65 +3600,29 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         }
         ctx.stroke();
 
-        // Secondary outward micro-fork unfurls once main branch passes 54%
-        if (sp.hasFork && u > 0.54) {
-          const fu = growthEase((u - 0.54) / 0.46);
-          const fTipX = fBaseX + (fxEnd - fBaseX) * fu;
-          const fTipY = fBaseY + (fyEnd - fBaseY) * fu;
-          ctx.strokeStyle = rgba(isLight ? col : [205, 255, 232], (isLight ? 0.66 : 0.74) * mask * Math.min(1.2, dim));
-          ctx.lineWidth = isSpot ? 1.15 : 0.90;
-          ctx.beginPath();
-          ctx.moveTo(fBaseX, fBaseY);
-          ctx.lineTo(fTipX, fTipY);
-          ctx.stroke();
-          ctx.fillStyle = rgba(isLight ? col : [242, 255, 248], 0.82 * mask * dim);
-          ctx.beginPath();
-          ctx.arc(fTipX, fTipY, 1.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Soft luminous growing frontier bud at the advancing tip
-        const tipGlow = ctx.createRadialGradient(tipX, tipY, 0.5, tipX, tipY, 7.6);
-        tipGlow.addColorStop(0, rgba(isLight ? col : [245, 255, 248], 0.90 * mask * dim));
-        tipGlow.addColorStop(0.45, rgba(col, 0.36 * mask * dim));
-        tipGlow.addColorStop(1, rgba(col, 0));
-        ctx.fillStyle = tipGlow;
+        ctx.fillStyle = rgba(isLight ? col : [240, 250, 255], 0.85 * mask * dim);
         ctx.beginPath();
-        ctx.arc(tipX, tipY, 7.6, 0, Math.PI * 2);
+        ctx.arc(tipX, tipY, 1.7, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        // Stage 3 — 绽放定型 (Bloom & Settle): soft concentric halo blooms at the new outer theorem node
         const u = (cyc - 0.68) / 0.32;
         const fade = Math.sin(u * Math.PI);
-        const rBloom = 3.2 + u * 10.2;
-        ctx.strokeStyle = rgba(col, fade * (isLight ? 0.58 : 0.72) * mask * dim);
-        ctx.lineWidth = 0.95;
+        ctx.strokeStyle = rgba(col, fade * (isLight ? 0.42 : 0.48) * mask * dim);
+        ctx.lineWidth = 0.70;
         ctx.beginPath();
-        ctx.arc(pxEnd, pyEnd, rBloom, 0, Math.PI * 2);
+        ctx.arc(pxEnd, pyEnd, 2.2 + u * 6.8, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = rgba(isLight ? col : [245, 255, 246], (0.55 + fade * 0.40) * mask * dim);
-        ctx.beginPath();
-        ctx.arc(pxEnd, pyEnd, 2.2, 0, Math.PI * 2);
-        ctx.fill();
-        if (sp.hasFork) {
-          ctx.strokeStyle = rgba(col, fade * (isLight ? 0.42 : 0.52) * mask * dim);
-          ctx.lineWidth = 0.75;
-          ctx.beginPath();
-          ctx.arc(fxEnd, fyEnd, 2.0 + u * 5.8, 0, Math.PI * 2);
-          ctx.stroke();
-        }
       }
     }
   }
 
   ctx.restore();
 
-  // PASS 8: HIGH-SIGNAL GALAXY LABELS — CLEARLY SHOWING WHICH GALAXIES ARE GROWING RIGHT NOW!
+  // PASS 8: MINIMALIST AEROSPACE STAR-TRACKER COORDINATE LABELS (NO chunky game boxes!)
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
-  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(2, 10, 5, 0.92)';
+  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(4, 7, 12, 0.92)';
 
-  // Identify top 2 fastest-growing named galaxies so their latest real module name shows cleanly at rest
   const topGrowingIds = new Set(
     [...truthGrowth.recentByCluster.entries()]
       .filter(([cid]) => clusters.find(c => c.id === cid && c.name !== 'Other'))
@@ -3874,9 +3639,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const bucket = recentBucket(cl.id);
     const delta = bucket?.count || 0;
     const isFeatured = delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2;
-    const padX = isFeatured ? 386 : 340;
+    const padX = isFeatured ? 380 : 336;
     const lx = Math.max(padX, Math.min(w - padX, px));
-    const ly = isBottom ? Math.min(h - 114, py + 28) : Math.max(82, py - (isMidUpper ? 40 : 24));
+    const ly = isBottom ? Math.min(h - 114, py + 26) : Math.max(82, py - (isMidUpper ? 36 : 24));
     if (lx < 292 || lx > w - 292) continue;
 
     holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
@@ -3884,19 +3649,17 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
     if (isHovered) {
       ctx.save();
-      ctx.strokeStyle = rgba(col, isLight ? 0.85 : 0.88);
-      ctx.lineWidth = 1.3;
-      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = rgba(col, isLight ? 0.75 : 0.78);
+      ctx.lineWidth = 0.9;
       ctx.beginPath();
-      ctx.arc(px, py, 32, 0, Math.PI * 2);
+      ctx.arc(px, py, 26, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.setLineDash([]);
       ctx.restore();
     }
 
     ctx.globalAlpha = focusK > 0.05
       ? Math.min(1, growthDim(cl.id))
-      : (isHovered ? 1.0 : delta > 0 ? 0.96 : 0.46);
+      : (isHovered ? 1.0 : delta > 0 ? 0.88 : 0.42);
     const mainLabel = delta > 0
       ? `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}  +${delta}`
       : `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
@@ -3907,59 +3670,26 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       const featured = evList[rotIdx] || bucket?.latest;
       const latestShort = featured ? shortModuleName(featured.module) : '';
       subText = isHovered
-        ? (latestShort ? `最新扩张: ${latestShort} · 点击特写 ↗` : `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗`)
-        : (latestShort ? `孕育扩张 ↗ ${latestShort.slice(0, 24)}${latestShort.length > 24 ? '…' : ''}` : '');
+        ? (latestShort ? `↗ ${latestShort} · 点击查看星系` : `${cl.en || cl.name.toUpperCase()} · 点击查看星系`)
+        : (latestShort ? `↗ ${latestShort.slice(0, 24)}${latestShort.length > 24 ? '…' : ''}` : '');
     }
 
-    // Whisper-clean frosted capsule backdrop for actively growing / hovered galaxies so bright tendrils NEVER hurt text legibility
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const mainFont = `${(isHovered || delta > 0) ? '700 9.5px' : '600 8.8px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
-    const subFont = '600 8px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-    if (delta > 0 || isHovered) {
-      ctx.font = mainFont;
-      const wMain = ctx.measureText(mainLabel).width;
-      ctx.font = subFont;
-      const wSub = subText ? ctx.measureText(subText).width : 0;
-      const pillW = Math.max(wMain, wSub) + 22;
-      const pillH = subText ? 31 : 19;
-      const pillCenterY = subText ? (ly + (isBottom ? 6.5 : -6.5)) : ly;
-      const rx0 = lx - pillW * 0.5;
-      const ry0 = pillCenterY - pillH * 0.5;
-      const rad = 7;
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(rx0 + rad, ry0);
-      ctx.lineTo(rx0 + pillW - rad, ry0);
-      ctx.quadraticCurveTo(rx0 + pillW, ry0, rx0 + pillW, ry0 + rad);
-      ctx.lineTo(rx0 + pillW, ry0 + pillH - rad);
-      ctx.quadraticCurveTo(rx0 + pillW, ry0 + pillH, rx0 + pillW - rad, ry0 + pillH);
-      ctx.lineTo(rx0 + rad, ry0 + pillH);
-      ctx.quadraticCurveTo(rx0, ry0 + pillH, rx0, ry0 + pillH - rad);
-      ctx.lineTo(rx0, ry0 + rad);
-      ctx.quadraticCurveTo(rx0, ry0, rx0 + rad, ry0);
-      ctx.closePath();
-      ctx.fillStyle = isLight ? 'rgba(248, 245, 238, 0.88)' : 'rgba(2, 13, 8, 0.76)';
-      ctx.fill();
-      ctx.strokeStyle = rgba(col, isHovered ? 0.56 : 0.30);
-      ctx.lineWidth = 0.85;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.font = mainFont;
-    ctx.lineWidth = 2.8;
+    ctx.font = `${(isHovered || delta > 0) ? '600 9px' : '500 8.5px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    ctx.lineWidth = 3.2;
     ctx.strokeStyle = strokeHalo;
-    if (!(delta > 0 || isHovered)) ctx.strokeText(mainLabel, lx, ly);
+    ctx.strokeText(mainLabel, lx, ly);
     ctx.fillStyle = isLight
-      ? rgba(col, (isHovered || delta > 0) ? 0.98 : 0.72)
-      : (delta > 0 ? rgba([228, 255, 240], 0.96) : rgba(col, isHovered ? 1.0 : 0.72));
+      ? rgba(col, (isHovered || delta > 0) ? 0.95 : 0.70)
+      : (delta > 0 ? rgba([218, 234, 248], 0.92) : rgba([152, 176, 202], isHovered ? 0.96 : 0.68));
     ctx.fillText(mainLabel, lx, ly);
 
     if (subText) {
-      ctx.font = subFont;
-      ctx.fillStyle = isLight ? rgba(col, 0.94) : rgba(col, 0.95);
-      ctx.fillText(subText, lx, ly + (isBottom ? 13 : -13));
+      ctx.font = '500 7.8px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      ctx.strokeText(subText, lx, ly + (isBottom ? 12 : -12));
+      ctx.fillStyle = isLight ? rgba(col, 0.86) : rgba(col, 0.84);
+      ctx.fillText(subText, lx, ly + (isBottom ? 12 : -12));
     }
     ctx.globalAlpha = 1;
   }
@@ -4860,8 +4590,8 @@ function drawHolo3DFrame(dt = 0.016) {
   const isBlueprint = document.documentElement.dataset.look === 'blueprint';
   const isHolo = !isLight && !isBlueprint;
 
-  // 1. Background Atmosphere (The Matrix Construct / Blueprint / Architectural Maquette)
-  const bg = ctx.createRadialGradient(w * 0.5, h * 0.36, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
+  // 1. Background Atmosphere (Deep Orbital Obsidian Space / Blueprint / Architectural Maquette)
+  const bg = ctx.createRadialGradient(w * 0.5, h * 0.34, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
   if (isLight) {
     bg.addColorStop(0, '#f7f4ec');
     bg.addColorStop(0.6, '#eeeae0');
@@ -4871,55 +4601,23 @@ function drawHolo3DFrame(dt = 0.016) {
     bg.addColorStop(0.55, '#0a182d');
     bg.addColorStop(1, '#061020');
   } else {
-    bg.addColorStop(0, '#072213');
-    bg.addColorStop(0.42, '#020d06');
-    bg.addColorStop(1, '#010402');
+    bg.addColorStop(0, '#0a1220');
+    bg.addColorStop(0.45, '#050912');
+    bg.addColorStop(1, '#020408');
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
   initHoloParticles();
 
-  // Far-Background Matrix Mathematical & Lean Proof Code Rain (subtle, atmospheric, razor-sharp!)
+  // Subtle deep-space upper atmospheric scatter (NO cliché green Matrix rain!)
   if (isHolo) {
-    const aura = ctx.createRadialGradient(w * 0.5, h * 0.16, 10, w * 0.5, h * 0.32, w * 0.46);
-    aura.addColorStop(0, 'rgba(0, 255, 136, 0.085)');
-    aura.addColorStop(0.45, 'rgba(244, 197, 83, 0.032)');
+    const aura = ctx.createRadialGradient(w * 0.5, h * 0.14, 10, w * 0.5, h * 0.32, w * 0.44);
+    aura.addColorStop(0, 'rgba(103, 185, 232, 0.055)');
+    aura.addColorStop(0.55, 'rgba(56, 112, 168, 0.020)');
     aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, w, h);
-
-    const matrixGlyphs = ['∀', '∃', '⊢', '∎', 'λ', 'Σ', 'π', '∫', '∈', '⊂', '≤', '≥', '⊕', '⊗', '∞', '∅', '0', '1', 'L', 'e', 'a', 'n', 'Q', 'E', 'D', '→', '↔', '≡', '¬', '∧'];
-    const tRain = (state.quiet || reduced) ? 3.5 : t;
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    for (const col of holoCam.matrixCols) {
-      const px = col.u * w;
-      // Gently attenuate in dead center so the 3D campus pops with crisp Matrix atmosphere on the flanks
-      const centerDist = Math.abs(col.u - 0.5) * 2;
-      if (centerDist < 0.42) continue;
-      const zoneFade = Math.max(0, (centerDist - 0.42) * 1.15);
-      const stepY = col.size + 4;
-      const rows = Math.ceil(h / stepY) + col.len + 6;
-      const headRow = Math.floor((tRain * col.speed + col.phase) % rows);
-      ctx.font = `600 ${col.size}px "Geist Mono", ui-monospace, Menlo, monospace`;
-      for (let k = 0; k < col.len; k++) {
-        const r = headRow - k;
-        const py = r * stepY;
-        if (py < -stepY || py > h) continue;
-        const gIdx = Math.abs((col.seed + r * 7 + Math.floor(tRain * 1.4) * (k === 0 ? 3 : 0)) % matrixGlyphs.length);
-        const ch = matrixGlyphs[gIdx];
-        if (k === 0) {
-          ctx.fillStyle = `rgba(218, 255, 232, ${(0.075 * col.depth * zoneFade).toFixed(3)})`;
-        } else {
-          const decay = Math.pow(1 - k / col.len, 1.55);
-          ctx.fillStyle = `rgba(0, 238, 122, ${(0.040 * decay * col.depth * zoneFade).toFixed(3)})`;
-        }
-        ctx.fillText(ch, px, py);
-      }
-    }
-    ctx.restore();
   }
 
   // 1B. LIVING EXPANDING 3D TRUTH DAG COSMIC NEBULA (real 18,367-node trureturing Truth DAG!)
@@ -5022,9 +4720,10 @@ function drawHolo3DFrame(dt = 0.016) {
   // Spacious institutional wing architecture — Lean is the glowing central
   // structural bridge connecting independent wings, NOT swallowing them!
   // ==========================================================================
-  const tier1RGB = [244, 197, 83];
-  const hubRGB = isBlueprint ? [150, 215, 255] : [0, 255, 208];
-  const matrixRGB = isBlueprint ? [125, 185, 245] : [0, 235, 120];
+  const tier1RGB = [229, 192, 123];
+  const hubRGB = isBlueprint ? [150, 215, 255] : [116, 224, 244];
+  const matrixRGB = isBlueprint ? [125, 185, 245] : [132, 174, 214];
+  const titaniumRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [148, 188, 224];
   const hubX = 0.0, hubY = 0.22, hubZ = -0.45;
   const eyeCfg = holoWorld.direction;
   const activeId = state.hovered || state.selected;
@@ -5034,15 +4733,15 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.gazeX += (gazeTarget.x - holoCam.gazeX) * 0.09;
   holoCam.gazeZ += (gazeTarget.z - holoCam.gazeZ) * 0.09;
 
-  // 4A. Quiet Receding 3D Matrix Construct Floor Grid (atmospheric depth, zero clutter)
+  // 4A. Quiet Receding 3D Orbital CAD Floor Grid (crisp hairline architectural depth)
   ctx.save();
   for (let gx = -8; gx <= 8; gx += 2.0) {
     const edgeFade = 1 - Math.abs(gx) / 10;
     draw3DSeg(
       project(gx, -0.04, -4.8),
       project(gx, -0.04, 6.4),
-      rgba(matrixRGB, (isLight ? 0.042 : isBlueprint ? 0.055 : 0.046) * edgeFade),
-      0.7
+      rgba(matrixRGB, (isLight ? 0.040 : isBlueprint ? 0.052 : 0.036) * edgeFade),
+      0.65
     );
   }
   for (let gz = -4.0; gz <= 6.0; gz += 2.0) {
@@ -5050,23 +4749,22 @@ function drawHolo3DFrame(dt = 0.016) {
     draw3DSeg(
       project(-8.6, -0.04, gz),
       project(8.6, -0.04, gz),
-      rgba(matrixRGB, (isLight ? 0.042 : isBlueprint ? 0.055 : 0.046) * Math.max(0.25, zFade)),
-      0.7
+      rgba(matrixRGB, (isLight ? 0.040 : isBlueprint ? 0.052 : 0.036) * Math.max(0.25, zFade)),
+      0.65
     );
   }
   ctx.restore();
 
-  // 4B. Serene Symmetric Oversight Veil & Gentle Upward Telemetry into the Akasha Eye
+  // 4B. Whisper-subtle atmospheric optical veil beneath the Supervisory Aperture (zero loud pyramid cone!)
   const eyeOrigin = project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
-  const rimL = project(-6.45, 0.05, -0.35);
-  const rimR = project( 6.45, 0.05, -0.35);
-  const eyeBoost = activeId === 'direction' ? 1.55 : 1.0;
+  const rimL = project(-6.20, 0.05, -0.35);
+  const rimR = project( 6.20, 0.05, -0.35);
+  const eyeBoost = activeId === 'direction' ? 1.85 : 1.0;
   if (eyeOrigin && rimL && rimR) {
     ctx.save();
-    if (!isLight) ctx.globalCompositeOperation = 'lighter';
     const veil = ctx.createLinearGradient(eyeOrigin.x, eyeOrigin.y, eyeOrigin.x, Math.max(rimL.y, rimR.y));
-    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.075 : 0.095) * eyeBoost));
-    veil.addColorStop(0.48, rgba(tier1RGB, (isLight ? 0.020 : 0.024) * eyeBoost));
+    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.045 : 0.038) * eyeBoost));
+    veil.addColorStop(0.45, rgba(tier1RGB, (isLight ? 0.012 : 0.010) * eyeBoost));
     veil.addColorStop(1, rgba(tier1RGB, 0));
     ctx.fillStyle = veil;
     ctx.beginPath();
@@ -5078,7 +4776,7 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.restore();
   }
 
-  // 4C. FOUR CLEAN SOVEREIGN ARCHITECTURAL WING TERRACES (Minimalist hairlines at rest, crisp glow when active)
+  // 4C. FOUR CLEAN SOVEREIGN ARCHITECTURAL WING TERRACES (Unified titanium CAD hairlines at rest, crisp accent on active!)
   const drawSectorTerrace = (sx, sz, hx, hz, rgb, isHot = false) => {
     const ch = 0.36;
     const poly = [
@@ -5089,16 +4787,17 @@ function drawHolo3DFrame(dt = 0.016) {
     ];
     const pts = poly.map(([px, pz]) => project(px, 0.0, pz));
     if (pts.some(p => !p)) return;
+    const strokeRGB = isHot ? rgb : titaniumRGB;
     ctx.save();
     ctx.beginPath();
     pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.closePath();
     ctx.fillStyle = isLight
-      ? (isHot ? 'rgba(255, 253, 247, 0.76)' : 'rgba(249, 247, 240, 0.44)')
-      : rgba(rgb, isHot ? 0.075 : 0.024);
+      ? (isHot ? 'rgba(255, 253, 247, 0.72)' : 'rgba(249, 247, 240, 0.40)')
+      : rgba(strokeRGB, isHot ? 0.048 : 0.014);
     ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? (isHot ? 0.62 : 0.22) : (isHot ? 0.70 : 0.19));
-    ctx.lineWidth = isHot ? 1.55 : 0.95;
+    ctx.strokeStyle = rgba(strokeRGB, isLight ? (isHot ? 0.56 : 0.20) : (isHot ? 0.54 : 0.14));
+    ctx.lineWidth = isHot ? 1.15 : 0.80;
     ctx.stroke();
     ctx.restore();
   };
@@ -5109,23 +4808,17 @@ function drawHolo3DFrame(dt = 0.016) {
   const sec4Hot = activeId === 'studio';
   const bridgeHot = activeId === 'verification';
 
-  // Left Wing: Sector 01 — Theory & Adversarial Audit (数学攻坚 + 独立评审)
-  drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [29, 255, 130], sec1Hot);
-  // Right Wing: Sector 02 — OUTREACH ENGINE (论文与知识 ⇄ 对外学术合作 ▸ 写回形式化)
-  drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, isBlueprint ? [150, 215, 255] : [245, 168, 92], sec2Hot);
-  // Front-Left: Sector 03 — Independent Living Books Division (理论书写 · trureturing-books)
-  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [217, 150, 245], sec3Hot);
-  // Front-Right: Sector 04 — Independent Tooling & Expression Foundry (工具与表达)
-  drawSectorTerrace( 3.35,  5.35, 1.68, 1.05, isBlueprint ? [150, 215, 255] : [108, 214, 255], sec4Hot);
+  drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, holoWorld.research.hex, sec1Hot);
+  drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, holoWorld.publication.hex, sec2Hot);
+  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, holoWorld.books.hex, sec3Hot);
+  drawSectorTerrace( 3.35,  5.35, 1.68, 1.05, holoWorld.studio.hex, sec4Hot);
 
-  // 4D. SUSPENDED STRUCTURAL LEAN BRIDGE DECK + TWIN HORIZONTAL BRIDGE TRUSS SPANS!
-  // Visually establishes Formal Verification as the structural BRIDGE joining the wings!
+  // 4D. PRECISION CAD SUSPENDED LEAN BRIDGE DECK + TWIN TRUSS SPANS
   const drawBridgeSpan = (xStart, xEnd, zCenter, yDeck, halfW, rgb, isHot) => {
     const segs = 4;
     const step = (xEnd - xStart) / segs;
-    const strokeMain = rgba(rgb, isLight ? (isHot ? 0.72 : 0.45) : (isHot ? 0.85 : 0.46));
-    const strokeTruss = rgba(rgb, isLight ? 0.28 : 0.24);
-    // Translucent bridge roadway fill
+    const strokeMain = rgba(rgb, isLight ? (isHot ? 0.65 : 0.36) : (isHot ? 0.66 : 0.30));
+    const strokeTruss = rgba(rgb, isLight ? 0.20 : 0.14);
     const deckCorners = [
       project(xStart, yDeck, zCenter - halfW),
       project(xEnd, yDeck, zCenter - halfW),
@@ -5136,24 +4829,22 @@ function drawHolo3DFrame(dt = 0.016) {
       ctx.beginPath();
       deckCorners.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
       ctx.closePath();
-      ctx.fillStyle = isLight ? rgba(rgb, 0.14) : rgba(rgb, isHot ? 0.14 : 0.075);
+      ctx.fillStyle = isLight ? rgba(rgb, 0.10) : rgba(rgb, isHot ? 0.08 : 0.036);
       ctx.fill();
     }
-    // North & South bridge side rails
-    draw3DSeg(project(xStart, yDeck, zCenter - halfW), project(xEnd, yDeck, zCenter - halfW), strokeMain, 1.5);
-    draw3DSeg(project(xStart, yDeck, zCenter + halfW), project(xEnd, yDeck, zCenter + halfW), strokeMain, 1.5);
-    // Architectural X-truss cross-bracing beneath the bridge deck
+    draw3DSeg(project(xStart, yDeck, zCenter - halfW), project(xEnd, yDeck, zCenter - halfW), strokeMain, 1.05);
+    draw3DSeg(project(xStart, yDeck, zCenter + halfW), project(xEnd, yDeck, zCenter + halfW), strokeMain, 1.05);
     for (let i = 0; i < segs; i++) {
       const xa = xStart + i * step, xb = xa + step;
-      draw3DSeg(project(xa, yDeck, zCenter - halfW), project(xb, yDeck, zCenter + halfW), strokeTruss, 0.9);
-      draw3DSeg(project(xa, yDeck, zCenter + halfW), project(xb, yDeck, zCenter - halfW), strokeTruss, 0.9);
-      draw3DSeg(project(xa, yDeck, zCenter - halfW), project(xa, yDeck, zCenter + halfW), strokeTruss, 0.9);
+      draw3DSeg(project(xa, yDeck, zCenter - halfW), project(xb, yDeck, zCenter + halfW), strokeTruss, 0.70);
+      draw3DSeg(project(xa, yDeck, zCenter + halfW), project(xb, yDeck, zCenter - halfW), strokeTruss, 0.70);
+      draw3DSeg(project(xa, yDeck, zCenter - halfW), project(xa, yDeck, zCenter + halfW), strokeTruss, 0.70);
     }
   };
   drawBridgeSpan(-3.67, -1.45, hubZ, hubY * 0.72, 0.44, hubRGB, bridgeHot || sec1Hot);
   drawBridgeSpan( 1.45,  3.67, hubZ, hubY * 0.72, 0.44, hubRGB, bridgeHot || sec2Hot);
 
-  // Sculpted elevated 3D octagonal CENTRAL LEAN BRIDGE DECK!
+  // Sleek precision CAD octagonal CENTRAL LEAN BRIDGE DECK (zero neon glare or rotating dashed radar rings!)
   const drawBridgeDeck = (hx, hy, hz, radX, radZ, rgb) => {
     const sides = 8;
     const topPts = [], botPts = [];
@@ -5171,29 +4862,28 @@ function drawHolo3DFrame(dt = 0.016) {
       ctx.lineTo(botPts[j].x, botPts[j].y);
       ctx.lineTo(botPts[i].x, botPts[i].y);
       ctx.closePath();
-      ctx.fillStyle = isLight ? rgba(rgb, 0.16) : rgba(rgb, 0.18);
+      ctx.fillStyle = isLight ? rgba(rgb, 0.12) : rgba(rgb, 0.085);
       ctx.fill();
-      ctx.strokeStyle = rgba(rgb, isLight ? 0.44 : 0.50);
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = rgba(rgb, isLight ? 0.34 : 0.28);
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
     ctx.beginPath();
     topPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.closePath();
-    ctx.fillStyle = isLight ? 'rgba(235, 250, 246, 0.90)' : rgba(rgb, 0.14);
+    ctx.fillStyle = isLight ? 'rgba(235, 250, 246, 0.88)' : 'rgba(8, 18, 28, 0.72)';
     ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.78 : 0.94);
-    ctx.lineWidth = 2.0;
+    ctx.strokeStyle = rgba(rgb, isLight ? 0.65 : 0.62);
+    ctx.lineWidth = 1.25;
     ctx.stroke();
-    draw3DRing(hx, 0.02, hz, radX * 1.18, radZ * 1.18, 40, rgba(rgb, isLight ? 0.34 : 0.46), 1.2, [8, 6], t * 0.22);
-    draw3DRing(hx, hy + 0.01, hz, radX * 0.78, radZ * 0.78, 32, rgba(rgb, isLight ? 0.36 : 0.56), 1.1, null, -t * 0.35);
+    draw3DRing(hx, hy + 0.01, hz, radX * 0.76, radZ * 0.76, 32, rgba(rgb, isLight ? 0.26 : 0.28), 0.75);
   };
   drawBridgeDeck(hubX, hubY, hubZ, 1.52, 1.22, hubRGB);
 
-  // Boot Shockwave Ring expanding from the Central Bridge during 0..1.1s
-  if (holoCam.bootAge < 1.1 && !state.quiet && !reduced) {
-    const bu = holoCam.bootAge / 1.1;
-    draw3DRing(hubX, 0.04, hubZ, 0.6 + bu * 7.2, 0.5 + bu * 5.2, 64, rgba(hubRGB, (1 - bu) * 0.85), 2.4);
+  // Subtle boot pulse ring expanding from Central Bridge during 0..1.0s
+  if (holoCam.bootAge < 1.0 && !state.quiet && !reduced) {
+    const bu = holoCam.bootAge / 1.0;
+    draw3DRing(hubX, 0.04, hubZ, 0.8 + bu * 5.8, 0.6 + bu * 4.2, 64, rgba(hubRGB, (1 - bu) * 0.38), 1.1);
   }
 
   // ==========================================================================
@@ -5272,10 +4962,10 @@ function drawHolo3DFrame(dt = 0.016) {
         const rawU = (t * speed + k / particles) % 1;
         const u = (bidir && k % 2 === 1) ? (1 - rawU) : rawU;
         const s = sampleAt(u);
-        ctx.fillStyle = rgba([235, 255, 252], 0.95);
-        ctx.beginPath(); ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = rgba(colorRGB, 0.42);
-        ctx.beginPath(); ctx.arc(s.x, s.y, 5.0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba([230, 246, 255], 0.90);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 1.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(colorRGB, 0.28);
+        ctx.beginPath(); ctx.arc(s.x, s.y, 3.2, 0, Math.PI * 2); ctx.fill();
       }
     }
   };
@@ -5286,23 +4976,22 @@ function drawHolo3DFrame(dt = 0.016) {
     if (!pt) return;
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
-    ctx.font = `${isHot ? '700' : '600'} ${size}px "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    ctx.font = `${isHot ? '600' : '500'} ${size}px "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const halfText = ctx.measureText(text).width * 0.5;
     const tx = w >= 1120 ? Math.max(292 + halfText, Math.min(w - 292 - halfText, pt.x)) : pt.x;
-    ctx.lineWidth = 3.2;
-    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.94)' : 'rgba(2, 10, 5, 0.92)';
+    ctx.lineWidth = 3.0;
+    ctx.strokeStyle = isLight ? 'rgba(248, 245, 238, 0.94)' : 'rgba(4, 7, 12, 0.92)';
     ctx.strokeText(text, tx, pt.y);
-    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 1.0 : 0.92) : rgba(rgb, isHot ? 1.0 : 0.84);
+    ctx.fillStyle = isLight ? rgba(rgb, isHot ? 0.96 : 0.86) : rgba(rgb, isHot ? 0.96 : 0.72);
     ctx.fillText(text, tx, pt.y);
     ctx.restore();
   };
 
   ctx.save();
-  if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // 1. MULTI-DEPARTMENT ARCHITECTURAL CONDUITS (Sovereign Wings + Central Lean Bridge + Outreach Engine!)
+  // 1. MULTI-DEPARTMENT ARCHITECTURAL CONDUITS (Precision hairline telemetry vectors, crisp on hover/active!)
   const thHot = activeId === 'research' || activeId === 'verification';
   const rvHot = activeId === 'review' || activeId === 'verification';
   const pbHot = activeId === 'publication' || activeId === 'verification';
@@ -5315,86 +5004,87 @@ function drawHolo3DFrame(dt = 0.016) {
   const bkRevHot = activeId === 'books' || activeId === 'review' || activeId === 'research';
   const loopClosedHot = activeId === 'research' || activeId === 'publication' || activeId === 'outreach';
 
-  // Calm unified resting tint for inactive routes; signature neon only on active/hovered routes!
-  const calmRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [64, 210, 155];
+  const calmRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [142, 182, 218];
 
-  // A. LEFT LEAN BRIDGE SPAN: Sector 01 (数学攻坚 / 独立评审) ⇄ Central Lean Bridge (形式验证)
+  // A. LEFT LEAN BRIDGE SPAN
   drawConduit3D(
     [[-4.45, 0.06, -2.40], [-3.20, 0.14, -0.68], [-1.35, 0.22, -0.55]],
-    thHot ? (isBlueprint ? [150, 215, 255] : [29, 255, 130]) : calmRGB,
-    { lw: thHot ? 2.6 : 1.35, alpha: thHot ? 0.92 : 0.36, particles: thHot ? 3 : 1, speed: 0.42, bidir: true, chevrons: thHot }
+    thHot ? holoWorld.research.hex : calmRGB,
+    { lw: thHot ? 1.55 : 0.95, alpha: thHot ? 0.78 : 0.26, particles: thHot ? 2 : 1, speed: 0.34, bidir: true, chevrons: thHot }
   );
   drawConduit3D(
     [[-5.10, 0.06, 1.45], [-3.20, 0.14, -0.20], [-1.35, 0.22, -0.32]],
-    rvHot ? (isBlueprint ? [150, 215, 255] : [184, 148, 255]) : calmRGB,
-    { lw: rvHot ? 2.3 : 1.0, alpha: rvHot ? 0.88 : 0.22, particles: rvHot ? 2 : 0, speed: 0.38, chevrons: rvHot }
+    rvHot ? holoWorld.review.hex : calmRGB,
+    { lw: rvHot ? 1.4 : 0.8, alpha: rvHot ? 0.72 : 0.16, particles: rvHot ? 1 : 0, speed: 0.32, chevrons: rvHot }
   );
 
-  // B. RIGHT LEAN BRIDGE SPAN — THE OUTREACH ENGINE LOOP
+  // B. RIGHT LEAN BRIDGE SPAN
   drawConduit3D(
     [[1.35, 0.22, -0.55], [3.20, 0.14, -0.68], [4.45, 0.06, -2.40]],
-    pbHot ? (isBlueprint ? [150, 215, 255] : [61, 242, 180]) : calmRGB,
-    { lw: pbHot ? 2.6 : 1.35, alpha: pbHot ? 0.92 : 0.36, particles: pbHot ? 3 : 1, speed: 0.42, bidir: true, chevrons: pbHot }
+    pbHot ? holoWorld.publication.hex : calmRGB,
+    { lw: pbHot ? 1.55 : 0.95, alpha: pbHot ? 0.78 : 0.26, particles: pbHot ? 2 : 1, speed: 0.34, bidir: true, chevrons: pbHot }
   );
   drawConduit3D(
     [[5.10, 0.06, 1.45], [3.20, 0.14, -0.20], [1.35, 0.22, -0.32]],
-    coHot ? (isBlueprint ? [150, 215, 255] : [245, 161, 86]) : calmRGB,
-    { lw: coHot ? 2.5 : 1.05, alpha: coHot ? 0.90 : 0.24, particles: coHot ? 2 : 0, speed: 0.40, chevrons: coHot }
+    coHot ? holoWorld.outreach.hex : calmRGB,
+    { lw: coHot ? 1.4 : 0.8, alpha: coHot ? 0.72 : 0.16, particles: coHot ? 1 : 0, speed: 0.32, chevrons: coHot }
   );
 
-  // C. SOUTH-LEFT LEAN BRIDGE SPAN: Sector 03 (独立理论书写部) ⇄ Central Lean Bridge
+  // C. SOUTH-LEFT LEAN BRIDGE SPAN
   drawConduit3D(
     [[-2.75, 0.06, 4.45], [-1.45, 0.14, 2.25], [-0.45, 0.22, 0.78]],
-    bkHot ? (isBlueprint ? [150, 215, 255] : [217, 150, 245]) : calmRGB,
-    { lw: bkHot ? 2.4 : 1.05, alpha: bkHot ? 0.90 : 0.24, particles: bkHot ? 2 : 0, speed: 0.38, bidir: true, chevrons: bkHot }
+    bkHot ? holoWorld.books.hex : calmRGB,
+    { lw: bkHot ? 1.4 : 0.8, alpha: bkHot ? 0.72 : 0.16, particles: bkHot ? 1 : 0, speed: 0.32, bidir: true, chevrons: bkHot }
   );
 
   // D. SOVEREIGN INTRA-WING LOOPS
   drawConduit3D(
     [[-5.40, 0.06, -2.05], [-5.75, 0.06, -0.45], [-5.95, 0.06, 1.15]],
-    rrHot ? (isBlueprint ? [150, 215, 255] : [184, 148, 255]) : calmRGB,
-    { lw: rrHot ? 2.3 : 1.0, alpha: rrHot ? 0.88 : 0.24, particles: rrHot ? 2 : 0, speed: 0.42, bidir: true, chevrons: rrHot }
+    rrHot ? holoWorld.review.hex : calmRGB,
+    { lw: rrHot ? 1.4 : 0.8, alpha: rrHot ? 0.72 : 0.18, particles: rrHot ? 1 : 0, speed: 0.34, bidir: true, chevrons: rrHot }
   );
   drawConduit3D(
     [[5.40, 0.06, -2.05], [5.75, 0.06, -0.45], [5.95, 0.06, 1.15]],
-    poHot ? (isBlueprint ? [150, 215, 255] : [245, 161, 86]) : calmRGB,
-    { lw: poHot ? 2.4 : 1.05, alpha: poHot ? 0.90 : 0.26, particles: poHot ? 2 : 0, speed: 0.42, bidir: true, chevrons: poHot }
+    poHot ? holoWorld.outreach.hex : calmRGB,
+    { lw: poHot ? 1.4 : 0.8, alpha: poHot ? 0.72 : 0.18, particles: poHot ? 1 : 0, speed: 0.34, bidir: true, chevrons: poHot }
   );
 
   // E. INDEPENDENT BOOK & ENGINEERING PLATFORM ROUTES
   drawConduit3D(
     [[1.65, 0.06, 5.35], [0.0, 0.06, 5.48], [-1.65, 0.06, 5.35]],
-    stBkHot ? (isBlueprint ? [150, 215, 255] : [108, 214, 255]) : calmRGB,
-    { lw: stBkHot ? 2.3 : 1.0, alpha: stBkHot ? 0.88 : 0.22, particles: stBkHot ? 2 : 0, speed: 0.36, chevrons: stBkHot }
+    stBkHot ? holoWorld.studio.hex : calmRGB,
+    { lw: stBkHot ? 1.4 : 0.8, alpha: stBkHot ? 0.72 : 0.16, particles: stBkHot ? 1 : 0, speed: 0.32, chevrons: stBkHot }
   );
   drawConduit3D(
     [[4.25, 0.06, 4.55], [5.35, 0.06, 3.65], [5.85, 0.06, 2.85]],
-    stOutHot ? (isBlueprint ? [150, 215, 255] : [108, 214, 255]) : calmRGB,
-    { lw: stOutHot ? 2.3 : 1.0, alpha: stOutHot ? 0.88 : 0.20, particles: stOutHot ? 2 : 0, speed: 0.38, chevrons: stOutHot }
+    stOutHot ? holoWorld.studio.hex : calmRGB,
+    { lw: stOutHot ? 1.4 : 0.8, alpha: stOutHot ? 0.72 : 0.15, particles: stOutHot ? 1 : 0, speed: 0.32, chevrons: stOutHot }
   );
   drawConduit3D(
     [[-4.25, 0.06, 4.55], [-5.35, 0.06, 3.65], [-5.85, 0.06, 2.85]],
-    bkRevHot ? (isBlueprint ? [150, 215, 255] : [217, 150, 245]) : calmRGB,
-    { lw: bkRevHot ? 2.3 : 1.0, alpha: bkRevHot ? 0.88 : 0.20, particles: bkRevHot ? 2 : 0, speed: 0.36, bidir: true, chevrons: bkRevHot }
+    bkRevHot ? holoWorld.books.hex : calmRGB,
+    { lw: bkRevHot ? 1.4 : 0.8, alpha: bkRevHot ? 0.72 : 0.15, particles: bkRevHot ? 1 : 0, speed: 0.32, bidir: true, chevrons: bkRevHot }
   );
 
-  // F. NORTH AUTONOMOUS INSTITUTE RETURN ARC (subtle dashed skyline, lights up on hover!)
-  drawConduit3D(
-    [[4.35, 0.12, -3.55], [2.40, 0.22, -4.35], [0.0, 0.24, -4.55], [-2.40, 0.22, -4.35], [-4.35, 0.12, -3.55]],
-    loopClosedHot ? (isBlueprint ? [150, 215, 255] : [0, 240, 145]) : calmRGB,
-    { lw: loopClosedHot ? 1.8 : 0.9, alpha: loopClosedHot ? 0.58 : 0.15, dashed: true, particles: loopClosedHot ? 2 : 0, speed: 0.26, chevrons: loopClosedHot }
-  );
+  // F. NORTH RETURN ARC (only softly visible when hovered/active — zero noisy dashed line at rest!)
+  if (loopClosedHot) {
+    drawConduit3D(
+      [[4.35, 0.12, -3.55], [2.40, 0.22, -4.35], [0.0, 0.24, -4.55], [-2.40, 0.22, -4.35], [-4.35, 0.12, -3.55]],
+      hubRGB,
+      { lw: 1.0, alpha: 0.36, dashed: true, particles: 1, speed: 0.24, chevrons: true }
+    );
+  }
 
-  // 3. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
+  // 3. Restrained live telemetry flares
   for (const fl of holoCam.flares) {
     const a = holoWorld[fl.fromId], b = holoWorld[fl.toId];
     if (!a || !b) continue;
     const u = fl.age;
-    const tailU = Math.max(0, u - 0.18);
+    const tailU = Math.max(0, u - 0.16);
     const ptAt = frac => {
       const lx = a.x + (b.x - a.x) * frac;
       const lz = a.z + (b.z - a.z) * frac;
-      const ly = (a.y || 0.08) + ((b.y || 0.16) - (a.y || 0.08)) * frac + Math.sin(frac * Math.PI) * 0.42;
+      const ly = (a.y || 0.08) + ((b.y || 0.16) - (a.y || 0.08)) * frac + Math.sin(frac * Math.PI) * 0.35;
       return project(lx, ly, lz);
     };
     const pHead = ptAt(u), pTail = ptAt(tailU);
@@ -5402,153 +5092,123 @@ function drawHolo3DFrame(dt = 0.016) {
     const fade = Math.sin(u * Math.PI);
     const grad = ctx.createLinearGradient(pTail.x, pTail.y, pHead.x, pHead.y);
     grad.addColorStop(0, rgba(fl.rgb, 0));
-    grad.addColorStop(1, rgba([240, 255, 255], fade * 0.95));
+    grad.addColorStop(1, rgba([230, 248, 255], fade * 0.78));
     ctx.strokeStyle = grad;
-    ctx.lineWidth = 2.6;
+    ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(pTail.x, pTail.y); ctx.lineTo(pHead.x, pHead.y); ctx.stroke();
-    ctx.fillStyle = rgba([255, 255, 255], fade);
-    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 3.0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = rgba(fl.rgb, fade * 0.45);
-    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 6.8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = rgba([245, 252, 255], fade * 0.9);
+    ctx.beginPath(); ctx.arc(pHead.x, pHead.y, 1.8, 0, Math.PI * 2); ctx.fill();
   }
 
   ctx.restore();
 
   // ==========================================================================
-  // 8. EIGHT BESPOKE 3D BIOMIMETIC HOLOGRAPHIC DEPARTMENT ENTITIES!
-  // Each department has its own unmistakable living holographic silhouette!
+  // 8. EIGHT PRECISION SCI-FI 3D CAD HOLOGRAPHIC DEPARTMENT INSTRUMENTS
+  // Fine-line architectural wireframes with restrained glass depth — zero neon blowout!
   // ==========================================================================
   const drawBiomimetic = (id, cfg, hEntity, yBase, rgb, isSel, running, bootK, pulseBoost) => {
     const cx3 = cfg.x, cz3 = cfg.z;
-    const glowA = (isSel ? 0.95 : running ? 0.82 : 0.56) + pulseBoost * 0.35;
-    const fillA = isLight ? 0.24 : (isSel ? 0.26 : running ? 0.20 : 0.12) + pulseBoost * 0.14;
+    const glowA = Math.min(1.0, (isSel ? 0.86 : running ? 0.68 : 0.46) + pulseBoost * 0.22);
+    const fillA = isLight ? 0.14 : (isSel ? 0.14 : running ? 0.085 : 0.05) + pulseBoost * 0.06;
+    const hiRGB = isLight ? rgb : [220, 236, 250];
 
     ctx.save();
-    if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-    // Pedestal Hex Base Plate (for the 7 grounded closed-loop entities — NOT the independent floating Eye!)
+    // Precision CAD Hex Pedestal Ring (crisp hairlines, zero spinning dashed game rings!)
     if (!cfg.eye) {
-      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.96 * bootK, cfg.r * 0.96 * bootK, 6, rgba(rgb, glowA * 0.72), isSel ? 1.9 : 1.2, null, Math.PI / 6);
-      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.56 * bootK, cfg.r * 0.56 * bootK, 6, rgba(rgb, glowA * 0.38), 0.9, null, Math.PI / 6);
+      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.94 * bootK, cfg.r * 0.94 * bootK, 6, rgba(rgb, glowA * 0.56), isSel ? 1.25 : 0.85, null, Math.PI / 6);
+      draw3DRing(cx3, yBase + 0.02, cz3, cfg.r * 0.54 * bootK, cfg.r * 0.54 * bootK, 6, rgba(rgb, glowA * 0.28), 0.65, null, Math.PI / 6);
       if (isSel) {
-        draw3DRing(cx3, yBase + 0.04, cz3, cfg.r * 1.36, cfg.r * 1.36, 6, rgba(rgb, 0.92), 1.8, [10, 6], t * 0.5);
+        draw3DRing(cx3, yBase + 0.03, cz3, cfg.r * 1.22, cfg.r * 1.22, 6, rgba(rgb, 0.52), 0.9, null, Math.PI / 6);
       }
     }
 
     if (id === 'direction') {
-      // 01 INDEPENDENT SUPERVISORY LAYER: THE EYE OF AKASHA (阿卡西之眼 · 人类监管与指引)
-      // Hovering independently above the closed-loop workflow, with a living tracking iris!
-      const sy = yBase + Math.sin(t * 1.4) * 0.05;
+      // 01 SUPERVISORY OPTICAL APERTURE (监管之眼 · 精密光学轨道视界 — zero cartoon eyelashes!)
+      const sy = yBase + Math.sin(t * 1.1) * 0.03;
       const ePt = project(cx3, sy, cz3);
       if (ePt) {
         const sc = Math.max(0.65, ePt.s / 62) * bootK;
-        const wEye = 56 * sc;
-        const hEye = 24 * sc;
+        const wEye = 50 * sc;
+        const hEye = 20 * sc;
 
         ctx.save();
         ctx.translate(ePt.x, ePt.y);
 
-        // 1. Delicate outer Akasha sacred-geometry halo & rotating dashed constraint ring
-        ctx.strokeStyle = rgba(rgb, isLight ? 0.42 : 0.38);
-        ctx.lineWidth = 1.1;
-        ctx.setLineDash([4, 6]);
+        // Minimalist concentric orbital optical reticle rings + hairline crosshairs
+        ctx.strokeStyle = rgba(rgb, isLight ? 0.28 : 0.24);
+        ctx.lineWidth = 0.75;
         ctx.beginPath();
-        ctx.arc(0, 0, wEye * 0.82, t * 0.25, t * 0.25 + Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Delicate celestial eyebrow crown & lower supervisory arc
-        ctx.strokeStyle = rgba(rgb, isLight ? 0.58 : 0.52);
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(-wEye * 1.08, 0);
-        ctx.quadraticCurveTo(0, -hEye * 1.72, wEye * 1.08, 0);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-wEye * 0.88, hEye * 0.12);
-        ctx.quadraticCurveTo(0, hEye * 1.55, wEye * 0.88, hEye * 0.12);
+        ctx.arc(0, 0, wEye * 0.86, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Subtle golden cardinal lashes / optical telemetry ticks around the eye
-        for (let k = -2; k <= 2; k++) {
-          const ang = -Math.PI / 2 + k * 0.32;
-          const r1 = hEye * 1.38, r2 = hEye * (k === 0 ? 1.85 : 1.62);
-          ctx.strokeStyle = rgba(rgb, isLight ? 0.65 : 0.68);
-          ctx.lineWidth = k === 0 ? 1.6 : 1.0;
-          ctx.beginPath();
-          ctx.moveTo(Math.cos(ang) * r1 * 1.25, Math.sin(ang) * r1);
-          ctx.lineTo(Math.cos(ang) * r2 * 1.25, Math.sin(ang) * r2);
-          ctx.stroke();
+        // Cardinal reticle hairlines (precision aerospace optics)
+        for (const [x1, y1, x2, y2] of [
+          [-wEye * 1.16, 0, -wEye * 0.96, 0],
+          [ wEye * 0.96, 0,  wEye * 1.16, 0],
+          [0, -hEye * 1.65, 0, -hEye * 1.25],
+          [0,  hEye * 1.25, 0,  hEye * 1.65]
+        ]) {
+          ctx.strokeStyle = rgba(rgb, isLight ? 0.42 : 0.36);
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
         }
 
-        // 2. Sculpted Almond (Vesica Piscis) Eye Aperture with luminous sclera glass fill
+        // Clean sculpted Vesica optical aperture
         ctx.beginPath();
         ctx.moveTo(-wEye, 0);
-        ctx.quadraticCurveTo(0, -hEye * 1.35, wEye, 0);
-        ctx.quadraticCurveTo(0,  hEye * 1.35, -wEye, 0);
+        ctx.quadraticCurveTo(0, -hEye * 1.32, wEye, 0);
+        ctx.quadraticCurveTo(0,  hEye * 1.32, -wEye, 0);
         ctx.closePath();
-        ctx.fillStyle = isLight ? 'rgba(255, 250, 236, 0.88)' : 'rgba(18, 14, 6, 0.78)';
+        ctx.fillStyle = isLight ? 'rgba(255, 252, 244, 0.84)' : 'rgba(6, 10, 16, 0.86)';
         ctx.fill();
-        ctx.strokeStyle = rgba([255, 224, 140], glowA);
-        ctx.lineWidth = 2.0;
+        ctx.strokeStyle = rgba(rgb, glowA * 0.95);
+        ctx.lineWidth = 1.25;
         ctx.stroke();
 
-        // 3. Living Tracking Iris & Optical Aperture Blades (follows active department!)
+        // Calm tracking optical iris (follows active department)
         ctx.save();
-        ctx.clip(); // Keep iris cleanly inside the almond eyelids!
+        ctx.clip();
         const gxOff = Math.max(-1, Math.min(1, holoCam.gazeX / 5.2)) * (wEye * 0.24);
-        const gyOff = Math.max(-0.3, Math.min(1, (holoCam.gazeZ + 1.5) / 5.5)) * (hEye * 0.20);
-        const rIris = hEye * 0.76;
+        const gyOff = Math.max(-0.3, Math.min(1, (holoCam.gazeZ + 1.5) / 5.5)) * (hEye * 0.18);
+        const rIris = hEye * 0.74;
 
-        // Soft golden-cyan iris aura
-        const ig = ctx.createRadialGradient(gxOff, gyOff, 2, gxOff, gyOff, rIris * 1.25);
-        ig.addColorStop(0, rgba([255, 248, 215], 0.96));
-        ig.addColorStop(0.36, rgba(rgb, 0.88));
-        ig.addColorStop(0.75, rgba(isBlueprint ? [150, 215, 255] : [94, 237, 236], 0.55));
+        const ig = ctx.createRadialGradient(gxOff, gyOff, 1, gxOff, gyOff, rIris * 1.15);
+        ig.addColorStop(0, rgba(hiRGB, 0.55));
+        ig.addColorStop(0.45, rgba(rgb, 0.42));
         ig.addColorStop(1, rgba(rgb, 0));
         ctx.fillStyle = ig;
-        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 1.25, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 1.15, 0, Math.PI * 2); ctx.fill();
 
-        // Precision segmented iris ring + 12 rotating optical aperture spokes
-        ctx.strokeStyle = rgba([255, 235, 165], 0.95);
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = rgba([94, 237, 236], 0.78);
+        ctx.strokeStyle = rgba(rgb, 0.82);
         ctx.lineWidth = 1.0;
-        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 0.58, 0, Math.PI * 2); ctx.stroke();
-        for (let b = 0; b < 12; b++) {
-          const ba = (b / 12) * Math.PI * 2 + t * 0.45;
-          ctx.strokeStyle = rgba(rgb, 0.55);
-          ctx.lineWidth = 0.9;
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = rgba(hubRGB, 0.55);
+        ctx.lineWidth = 0.75;
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 0.56, 0, Math.PI * 2); ctx.stroke();
+        for (let b = 0; b < 8; b++) {
+          const ba = (b / 8) * Math.PI * 2 + t * 0.18;
+          ctx.strokeStyle = rgba(rgb, 0.36);
+          ctx.lineWidth = 0.7;
           ctx.beginPath();
           ctx.moveTo(gxOff + Math.cos(ba) * rIris * 0.56, gyOff + Math.sin(ba) * rIris * 0.56);
           ctx.lineTo(gxOff + Math.cos(ba) * rIris * 0.98, gyOff + Math.sin(ba) * rIris * 0.98);
           ctx.stroke();
         }
 
-        // Sharp dark vertical diamond pupil + bright white specular glint (living gaze!)
-        ctx.fillStyle = isLight ? '#2c1e06' : '#050810';
-        ctx.beginPath();
-        ctx.arc(gxOff, gyOff, rIris * 0.34, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255, 252, 240, 0.98)';
-        ctx.beginPath();
-        ctx.arc(gxOff - rIris * 0.14, gyOff - rIris * 0.14, Math.max(1.8, rIris * 0.12), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = isLight ? '#1c1914' : '#04070c';
+        ctx.beginPath(); ctx.arc(gxOff, gyOff, rIris * 0.34, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(hiRGB, 0.90);
+        ctx.beginPath(); ctx.arc(gxOff - rIris * 0.12, gyOff - rIris * 0.12, Math.max(1.3, rIris * 0.10), 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
-        // Crisp inner corner diamond nodes at left & right eye tips
-        for (const sx of [-wEye, wEye]) {
-          ctx.fillStyle = rgba([255, 236, 175], 0.95);
-          ctx.beginPath(); ctx.arc(sx, 0, 2.4, 0, Math.PI * 2); ctx.fill();
-        }
         ctx.restore();
       }
     } else if (id === 'research') {
-      // 02 MATH RESEARCH (数学攻坚): Emerald Firing Neural-Brain Cortex Polyhedron!
+      // 02 MATH RESEARCH (数学攻坚): Precision Slow-Rotating Geodesic Polyhedron CAD Wireframe (zero flashing strobe!)
       const cy3 = yBase + hEntity * 0.56 * bootK;
-      const rad = 0.68 * bootK;
-      const spin = t * 0.30;
+      const rad = 0.66 * bootK;
+      const spin = t * 0.18;
       const nodes = [];
       for (let i = 0; i < 12; i++) {
         const phi = Math.acos(1 - 2 * ((i + 0.5) / 12));
@@ -5562,57 +5222,43 @@ function drawHolo3DFrame(dt = 0.016) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y, nodes[i].z - nodes[j].z);
           if (dist < rad * 1.28) {
-            const fire = Math.sin(t * 4.5 + i * 1.3 + j) > 0.62;
-            draw3DSeg(nodes[i].p, nodes[j].p, rgba(fire ? [225, 255, 245] : rgb, fire ? 0.95 : glowA * 0.55), fire ? 1.8 : 1.0);
+            draw3DSeg(nodes[i].p, nodes[j].p, rgba(rgb, glowA * 0.55), 0.9);
           }
         }
       }
       for (let i = 0; i < nodes.length; i++) {
         const pt = nodes[i].p;
         if (!pt) continue;
-        ctx.fillStyle = rgba(i % 3 === 0 ? [225, 255, 245] : rgb, 0.94);
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(i % 4 === 0 ? hiRGB : rgb, 0.88);
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 1.8, 0, Math.PI * 2); ctx.fill();
       }
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3 - rad * 0.82, cz3), rgba(rgb, 0.55), 2.2);
-      const midPt = project(cx3, cy3, cz3);
-      if (midPt) {
-        const g = ctx.createRadialGradient(midPt.x, midPt.y, 1, midPt.x, midPt.y, Math.max(10, rad * midPt.s * 0.85));
-        g.addColorStop(0, rgba([215, 255, 242], 0.62));
-        g.addColorStop(0.55, rgba(rgb, 0.22));
-        g.addColorStop(1, rgba(rgb, 0));
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(midPt.x, midPt.y, Math.max(10, rad * midPt.s * 0.85), 0, Math.PI * 2); ctx.fill();
-      }
-      draw3DRing(cx3, cy3, cz3, rad * 1.30, rad * 1.30, 32, rgba(rgb, 0.48), 1.2, [6, 5], -t * 0.42);
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3 - rad * 0.84, cz3), rgba(rgb, 0.42), 1.0);
+      draw3DRing(cx3, cy3, cz3, rad * 1.18, rad * 1.18, 32, rgba(rgb, 0.24), 0.75);
     } else if (id === 'review') {
-      // 03 INDEPENDENT REVIEW (独立评审): Unmistakable 3D Holographic Justice Balance Scales (平衡天平)!
+      // 03 INDEPENDENT REVIEW (独立评审): Precision CAD Balance Scales
       const hPole = 1.05 * bootK;
-      const tilt = Math.sin(t * 1.35) * 0.14;
-      const arm = 0.66 * bootK;
+      const tilt = Math.sin(t * 0.9) * 0.10;
+      const arm = 0.64 * bootK;
       const baseP = project(cx3, 0.04, cz3);
       const fulcP = project(cx3, hPole, cz3);
-      draw3DSeg(baseP, fulcP, rgba(rgb, glowA * 0.92), 2.6);
-      // Fulcrum glowing amethyst eye crown
-      const eyeTop = project(cx3, hPole + 0.28 * bootK, cz3);
-      draw3DSeg(fulcP, eyeTop, rgba([230, 215, 255], glowA), 1.8);
+      draw3DSeg(baseP, fulcP, rgba(rgb, glowA * 0.78), 1.35);
+      const eyeTop = project(cx3, hPole + 0.24 * bootK, cz3);
+      draw3DSeg(fulcP, eyeTop, rgba(hiRGB, glowA * 0.75), 1.0);
       if (eyeTop) {
-        ctx.fillStyle = rgba([235, 225, 255], 0.96);
-        ctx.beginPath(); ctx.arc(eyeTop.x, eyeTop.y, 4.0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(hiRGB, 0.90);
+        ctx.beginPath(); ctx.arc(eyeTop.x, eyeTop.y, 2.4, 0, Math.PI * 2); ctx.fill();
       }
-      // Oscillating horizontal balance beam + twin suspended glowing scale pans!
       const lx = cx3 - Math.cos(tilt) * arm, ly = hPole + Math.sin(tilt) * arm;
       const rx = cx3 + Math.cos(tilt) * arm, ry = hPole - Math.sin(tilt) * arm;
-      draw3DSeg(project(lx, ly, cz3), project(rx, ry, cz3), rgba([230, 215, 255], glowA), 2.3);
+      draw3DSeg(project(lx, ly, cz3), project(rx, ry, cz3), rgba(hiRGB, glowA * 0.82), 1.25);
       for (const [px, py] of [[lx, ly], [rx, ry]]) {
         const panY = py - 0.42 * bootK;
-        const rPan = 0.30 * bootK;
+        const rPan = 0.28 * bootK;
         const topArm = project(px, py, cz3);
-        // 3 suspension chains down to glowing scale pan
         for (let k = 0; k < 3; k++) {
-          const a = (k / 3) * Math.PI * 2 + t * 0.35;
-          draw3DSeg(topArm, project(px + Math.cos(a) * rPan, panY, cz3 + Math.sin(a) * rPan), rgba(rgb, glowA * 0.65), 1.0);
+          const a = (k / 3) * Math.PI * 2 + t * 0.18;
+          draw3DSeg(topArm, project(px + Math.cos(a) * rPan, panY, cz3 + Math.sin(a) * rPan), rgba(rgb, glowA * 0.48), 0.75);
         }
-        // Solid translucent hexagonal scale pan dish
         const panPts = [];
         for (let k = 0; k < 6; k++) {
           const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
@@ -5622,62 +5268,60 @@ function drawHolo3DFrame(dt = 0.016) {
           ctx.beginPath();
           panPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
           ctx.closePath();
-          ctx.fillStyle = rgba(rgb, fillA * 1.4);
+          ctx.fillStyle = rgba(rgb, fillA * 1.2);
           ctx.fill();
-          ctx.strokeStyle = rgba([230, 215, 255], glowA);
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = rgba(hiRGB, glowA * 0.76);
+          ctx.lineWidth = 0.95;
           ctx.stroke();
         }
       }
     } else if (id === 'verification') {
-      // CENTRAL HUB (形式验证): Hero Ice-Cyan DNA Double-Helix Proof Lighthouse + Diamond Crown!
+      // CENTRAL HUB (形式验证): Precision Ice-Cyan Architectural Double-Helix Lattice inside Hairline Prism Frame
       const hHelix = hEntity * bootK;
-      const rH = 0.60 * bootK;
-      const turns = 2.2;
+      const rH = 0.56 * bootK;
+      const turns = 2.0;
       const steps = 28;
       for (let k = 0; k < 4; k++) {
         const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-        draw3DSeg(project(cx3 + Math.cos(a) * (rH * 1.24), yBase + 0.04, cz3 + Math.sin(a) * (rH * 1.24)),
-          project(cx3 + Math.cos(a) * (rH * 1.24), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.24)), rgba(rgb, 0.30), 1.0);
+        draw3DSeg(project(cx3 + Math.cos(a) * (rH * 1.26), yBase + 0.04, cz3 + Math.sin(a) * (rH * 1.26)),
+          project(cx3 + Math.cos(a) * (rH * 1.26), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.26)), rgba(rgb, 0.24), 0.75);
       }
-      draw3DRing(cx3, yBase + hHelix, cz3, rH * 1.24, rH * 1.24, 4, rgba(rgb, 0.78), 1.6, null, Math.PI / 4);
-      // Crystalline apex beacon above the DNA column
-      const apexTop = project(cx3, yBase + hHelix + 0.36 * bootK, cz3);
+      draw3DRing(cx3, yBase + hHelix, cz3, rH * 1.26, rH * 1.26, 4, rgba(rgb, 0.52), 1.0, null, Math.PI / 4);
+      const apexTop = project(cx3, yBase + hHelix + 0.34 * bootK, cz3);
       for (let k = 0; k < 4; k++) {
         const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-        draw3DSeg(apexTop, project(cx3 + Math.cos(a) * (rH * 1.24), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.24)), rgba([215, 255, 255], glowA * 0.75), 1.3);
+        draw3DSeg(apexTop, project(cx3 + Math.cos(a) * (rH * 1.26), yBase + hHelix, cz3 + Math.sin(a) * (rH * 1.26)), rgba(hiRGB, glowA * 0.58), 0.85);
       }
       const sA = [], sB = [];
       for (let i = 0; i <= steps; i++) {
         const u = i / steps;
-        const a = u * Math.PI * 2 * turns + t * 0.95;
+        const a = u * Math.PI * 2 * turns + t * 0.52;
         const py = yBase + 0.08 + u * (hHelix - 0.12);
         sA.push(project(cx3 + Math.cos(a) * rH, py, cz3 + Math.sin(a) * rH));
         sB.push(project(cx3 + Math.cos(a + Math.PI) * rH, py, cz3 + Math.sin(a + Math.PI) * rH));
-        if (i % 3 === 0) {
-          draw3DSeg(sA[i], sB[i], rgba(running ? [190, 255, 252] : rgb, running ? 0.78 : 0.40), 1.25);
+        if (i % 4 === 0) {
+          draw3DSeg(sA[i], sB[i], rgba(rgb, running ? 0.52 : 0.28), 0.80);
         }
       }
       for (const strand of [sA, sB]) {
         ctx.beginPath();
         strand.forEach((pt, idx) => { if (pt) idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y); });
-        ctx.strokeStyle = rgba(rgb, glowA);
-        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = rgba(rgb, glowA * 0.92);
+        ctx.lineWidth = 1.30;
         ctx.stroke();
       }
       if (running && !state.quiet && !reduced) {
-        const su = (t * 0.58) % 1;
-        draw3DRing(cx3, yBase + 0.08 + su * hHelix, cz3, rH * 1.38, rH * 1.38, 12, rgba([245, 255, 255], 0.95), 2.2);
+        const su = (t * 0.36) % 1;
+        draw3DRing(cx3, yBase + 0.08 + su * hHelix, cz3, rH * 1.30, rH * 1.30, 16, rgba(hiRGB, Math.sin(su * Math.PI) * 0.55), 0.95);
       }
     } else if (id === 'books') {
-      // 05 THEORY BOOKS (理论书写): Unmistakable 3D Open Hardcover Codex with Turning Luminous Page!
-      const py = 0.34 * bootK + Math.sin(t * 1.5) * 0.04;
-      const wLeaf = 0.78 * bootK, dLeaf = 0.54 * bootK, lift = 0.22 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, py, cz3), rgba(rgb, 0.52), 2.0);
-      // Thick book cover base + 3 crisp stacked open-wing pages
+      // 05 THEORY BOOKS (理论书写): Fine-Line Glass Architectural Codex
+      const py = 0.34 * bootK + Math.sin(t * 1.0) * 0.03;
+      const wLeaf = 0.74 * bootK, dLeaf = 0.50 * bootK, lift = 0.20 * bootK;
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, py, cz3), rgba(rgb, 0.38), 1.0);
       for (let lv = 0; lv < 3; lv++) {
-        const yL = py + lv * 0.11 * bootK;
-        const arch = (lv === 2 ? 0.28 : 0.14 + lv * 0.06) * bootK;
+        const yL = py + lv * 0.10 * bootK;
+        const arch = (lv === 2 ? 0.25 : 0.13 + lv * 0.05) * bootK;
         const spF = project(cx3, yL, cz3 + dLeaf), spB = project(cx3, yL, cz3 - dLeaf);
         const lMF = project(cx3 - wLeaf * 0.52, yL + arch, cz3 + dLeaf), lMB = project(cx3 - wLeaf * 0.52, yL + arch, cz3 - dLeaf);
         const lEF = project(cx3 - wLeaf, yL + lift * 0.55, cz3 + dLeaf), lEB = project(cx3 - wLeaf, yL + lift * 0.55, cz3 - dLeaf);
@@ -5688,40 +5332,39 @@ function drawHolo3DFrame(dt = 0.016) {
           ctx.beginPath();
           poly.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
           ctx.closePath();
-          ctx.fillStyle = rgba(rgb, fillA * (lv === 2 ? 1.35 : 0.75));
+          ctx.fillStyle = rgba(rgb, fillA * (lv === 2 ? 1.15 : 0.65));
           ctx.fill();
-          ctx.strokeStyle = rgba(lv === 2 ? [238, 215, 255] : rgb, glowA * (lv === 2 ? 0.96 : 0.55));
-          ctx.lineWidth = lv === 2 ? 1.8 : 1.1;
+          ctx.strokeStyle = rgba(lv === 2 ? hiRGB : rgb, glowA * (lv === 2 ? 0.78 : 0.44));
+          ctx.lineWidth = lv === 2 ? 1.1 : 0.75;
           ctx.stroke();
         }
       }
-      // Animated translucent page turning smoothly across the book spine!
-      const turnA = ((t * 0.55) % 1) * Math.PI;
-      const yTop = py + 0.26 * bootK;
-      const tX = cx3 + Math.cos(turnA) * wLeaf * 0.88;
-      const tY = yTop + Math.sin(turnA) * wLeaf * 0.78;
+      const turnA = ((t * 0.34) % 1) * Math.PI;
+      const yTop = py + 0.24 * bootK;
+      const tX = cx3 + Math.cos(turnA) * wLeaf * 0.86;
+      const tY = yTop + Math.sin(turnA) * wLeaf * 0.74;
       const turnPoly = [
-        project(cx3, yTop, cz3 + dLeaf * 0.92),
-        project(tX, tY, cz3 + dLeaf * 0.92),
-        project(tX, tY, cz3 - dLeaf * 0.92),
-        project(cx3, yTop, cz3 - dLeaf * 0.92)
+        project(cx3, yTop, cz3 + dLeaf * 0.90),
+        project(tX, tY, cz3 + dLeaf * 0.90),
+        project(tX, tY, cz3 - dLeaf * 0.90),
+        project(cx3, yTop, cz3 - dLeaf * 0.90)
       ];
       if (!turnPoly.some(p => !p)) {
         ctx.beginPath();
         turnPoly.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
         ctx.closePath();
-        ctx.fillStyle = rgba([240, 222, 255], Math.sin(turnA) * 0.28);
+        ctx.fillStyle = rgba(hiRGB, Math.sin(turnA) * 0.10);
         ctx.fill();
-        ctx.strokeStyle = rgba([250, 238, 255], Math.sin(turnA) * 0.92);
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = rgba(hiRGB, Math.sin(turnA) * 0.65);
+        ctx.lineWidth = 0.9;
         ctx.stroke();
       }
     } else if (id === 'publication') {
-      // 06 PAPERS & KNOWLEDGE (论文与知识): Mint Crystal Knowledge Constellation Tree + Paper Scrolls!
+      // 06 PAPERS & KNOWLEDGE (论文与知识): Precision Crystal Knowledge Constellation Lattice
       const hTree = hEntity * bootK;
       const basePt = project(cx3, 0.04, cz3);
       const forkPt = project(cx3, hTree * 0.44, cz3);
-      draw3DSeg(basePt, forkPt, rgba(rgb, glowA * 0.95), 2.6);
+      draw3DSeg(basePt, forkPt, rgba(rgb, glowA * 0.78), 1.35);
       const branches = [
         [0, 1.02, 0],
         [-0.64, 0.84, 0.24], [0.64, 0.84, 0.24],
@@ -5731,49 +5374,49 @@ function drawHolo3DFrame(dt = 0.016) {
       const tips = [];
       for (let i = 0; i < branches.length; i++) {
         const [bx, by, bz] = branches[i];
-        const rot = t * 0.18;
+        const rot = t * 0.14;
         const rx = bx * Math.cos(rot) - bz * Math.sin(rot);
         const rz = bx * Math.sin(rot) + bz * Math.cos(rot);
         const tip = project(cx3 + rx * bootK, by * hTree, cz3 + rz * bootK);
         tips.push(tip);
-        draw3DSeg(forkPt, tip, rgba(rgb, glowA * 0.76), 1.5);
+        draw3DSeg(forkPt, tip, rgba(rgb, glowA * 0.62), 0.95);
       }
       for (let i = 1; i < tips.length; i++) {
-        draw3DSeg(tips[0], tips[i], rgba(rgb, 0.34), 0.9);
-        draw3DSeg(tips[i], tips[(i % (tips.length - 1)) + 1], rgba(rgb, 0.26), 0.8);
+        draw3DSeg(tips[0], tips[i], rgba(rgb, 0.28), 0.70);
+        draw3DSeg(tips[i], tips[(i % (tips.length - 1)) + 1], rgba(rgb, 0.22), 0.65);
       }
       for (let i = 0; i < tips.length; i++) {
         if (!tips[i]) continue;
-        ctx.fillStyle = rgba(i === 0 ? [225, 255, 245] : rgb, 0.96);
-        ctx.beginPath(); ctx.arc(tips[i].x, tips[i].y, i === 0 ? 4.6 : 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rgba(i === 0 ? hiRGB : rgb, 0.92);
+        ctx.beginPath(); ctx.arc(tips[i].x, tips[i].y, i === 0 ? 2.8 : 2.0, 0, Math.PI * 2); ctx.fill();
       }
     } else if (id === 'outreach') {
-      // 07 ACADEMIC OUTREACH (学术交流): Coral Deep-Space Parabolic Radio Dish + Expanding Signal Waves!
+      // 07 ACADEMIC OUTREACH (学术交流): Deep-Space Precision Parabolic Telemetry Array
       const hDish = hEntity * 0.58 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, hDish, cz3), rgba(rgb, glowA * 0.88), 2.5);
-      draw3DRing(cx3, hDish + 0.10, cz3, 0.36 * bootK, 0.36 * bootK, 16, rgba(rgb, glowA * 0.75), 1.4);
-      draw3DRing(cx3, hDish + 0.30, cz3, 0.72 * bootK, 0.72 * bootK, 20, rgba([255, 212, 175], glowA), 2.1);
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, hDish, cz3), rgba(rgb, glowA * 0.76), 1.3);
+      draw3DRing(cx3, hDish + 0.10, cz3, 0.34 * bootK, 0.34 * bootK, 16, rgba(rgb, glowA * 0.55), 0.9);
+      draw3DRing(cx3, hDish + 0.28, cz3, 0.68 * bootK, 0.68 * bootK, 24, rgba(hiRGB, glowA * 0.80), 1.2);
       for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2 + t * 0.25;
-        draw3DSeg(project(cx3, hDish, cz3), project(cx3 + Math.cos(a) * 0.72 * bootK, hDish + 0.30, cz3 + Math.sin(a) * 0.72 * bootK), rgba(rgb, 0.56), 1.0);
+        const a = (k / 8) * Math.PI * 2 + t * 0.14;
+        draw3DSeg(project(cx3, hDish, cz3), project(cx3 + Math.cos(a) * 0.68 * bootK, hDish + 0.28, cz3 + Math.sin(a) * 0.68 * bootK), rgba(rgb, 0.42), 0.75);
       }
-      const tip = project(cx3, hDish + 0.56 * bootK, cz3);
-      draw3DSeg(project(cx3, hDish, cz3), tip, rgba([255, 232, 205], 0.95), 1.8);
-      if (tip) { ctx.fillStyle = rgba([255, 235, 210], 0.98); ctx.beginPath(); ctx.arc(tip.x, tip.y, 3.6, 0, Math.PI * 2); ctx.fill(); }
-      for (let wv = 0; wv < 3; wv++) {
-        const u = (t * 0.52 + wv / 3) % 1;
-        const rad = (0.28 + u * 0.90) * bootK;
-        draw3DRing(cx3, hDish + 0.48 + u * 0.82, cz3, rad, rad, 24, rgba(rgb, (1 - u) * 0.88), 1.6);
+      const tip = project(cx3, hDish + 0.52 * bootK, cz3);
+      draw3DSeg(project(cx3, hDish, cz3), tip, rgba(hiRGB, 0.78), 1.0);
+      if (tip) { ctx.fillStyle = rgba(hiRGB, 0.92); ctx.beginPath(); ctx.arc(tip.x, tip.y, 2.2, 0, Math.PI * 2); ctx.fill(); }
+      for (let wv = 0; wv < 2; wv++) {
+        const u = (t * 0.32 + wv * 0.5) % 1;
+        const rad = (0.30 + u * 0.72) * bootK;
+        draw3DRing(cx3, hDish + 0.46 + u * 0.65, cz3, rad, rad, 24, rgba(rgb, Math.sin(u * Math.PI) * 0.46), 0.85);
       }
     } else {
-      // 08 STUDIO & TOOLING (工具与表达): Titanium Interlocking 3D Foundry Gears + Wireframe Holo Cube!
+      // 08 STUDIO & TOOLING (工具与表达): Precision Titanium CAD Gears + Holo Cube
       const cy3 = 0.52 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3, cz3), rgba(rgb, 0.58), 2.2);
+      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3, cz3), rgba(rgb, 0.45), 1.15);
       const drawGear = (gx, gy, gz, rIn, rOut, dir, vertical = false) => {
         ctx.beginPath();
         const teeth = 8, pts = teeth * 4;
         for (let i = 0; i <= pts; i++) {
-          const a = (i / pts) * Math.PI * 2 + t * 0.60 * dir;
+          const a = (i / pts) * Math.PI * 2 + t * 0.36 * dir;
           const rG = (i % 4 < 2 ? rOut : rIn) * bootK;
           const pt = vertical
             ? project(gx + Math.cos(a) * rG, gy + Math.sin(a) * rG, gz)
@@ -5781,30 +5424,29 @@ function drawHolo3DFrame(dt = 0.016) {
           if (!pt) continue;
           if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
         }
-        ctx.fillStyle = rgba(rgb, fillA * 1.25);
+        ctx.fillStyle = rgba(rgb, fillA * 1.1);
         ctx.fill();
-        ctx.strokeStyle = rgba([210, 235, 250], glowA * 0.95);
-        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = rgba(hiRGB, glowA * 0.78);
+        ctx.lineWidth = 1.0;
         ctx.stroke();
       };
-      drawGear(cx3 - 0.16 * bootK, cy3, cz3, 0.44, 0.60, 1, false);
-      drawGear(cx3 + 0.34 * bootK, cy3 + 0.38 * bootK, cz3, 0.28, 0.42, -1.4, true);
-      // Floating wireframe holographic projector cube hovering above the gears
-      const cY = cy3 + 0.72 * bootK, cs = 0.22 * bootK, rot = t * 0.7;
+      drawGear(cx3 - 0.16 * bootK, cy3, cz3, 0.42, 0.58, 1, false);
+      drawGear(cx3 + 0.34 * bootK, cy3 + 0.36 * bootK, cz3, 0.26, 0.40, -1.4, true);
+      const cY = cy3 + 0.70 * bootK, cs = 0.20 * bootK, rot = t * 0.42;
       const cubeV = [-1, 1].flatMap(sy => [0, 1, 2, 3].map(k => {
         const a = rot + k * Math.PI / 2 + Math.PI / 4;
         return project(cx3 - 0.16 * bootK + Math.cos(a) * cs * 1.4, cY + sy * cs, cz3 + Math.sin(a) * cs * 1.4);
       }));
       for (const [u, v] of [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]) {
-        draw3DSeg(cubeV[u], cubeV[v], rgba([180, 240, 255], glowA * 0.85), 1.15);
+        draw3DSeg(cubeV[u], cubeV[v], rgba(rgb, glowA * 0.72), 0.85);
       }
     }
 
-    // Synchronized Live Intel Pulse Shockwave Ring!
+    // Restrained Live Intel Pulse Ring
     for (const p of holoCam.pulses) {
       if (p.id !== id) continue;
-      const rad = cfg.r * (0.95 + p.age * 1.45);
-      draw3DRing(cx3, yBase + 0.04, cz3, rad, rad, 24, rgba(rgb, (1 - p.age) * 0.92 * p.strength), 2.2);
+      const rad = cfg.r * (0.95 + p.age * 1.25);
+      draw3DRing(cx3, yBase + 0.04, cz3, rad, rad, 24, rgba(rgb, (1 - p.age) * 0.48 * p.strength), 1.0);
     }
 
     ctx.restore();
@@ -5813,7 +5455,7 @@ function drawHolo3DFrame(dt = 0.016) {
   const list = departments();
   const sorted = list
     .map(d => {
-      const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1.2, order: 0, hex: [94, 237, 236] };
+      const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1.2, order: 0, hex: [116, 224, 244] };
       const center = project(cfg.x, cfg.y + towerHeight(d.id) * 0.5, cfg.z);
       return { d, cfg, depth: center ? center.z : 999 };
     })
@@ -5834,31 +5476,30 @@ function drawHolo3DFrame(dt = 0.016) {
     const pulseObj = holoCam.pulses.find(p => p.id === d.id);
     const pulseBoost = pulseObj ? (1 - pulseObj.age) : 0;
 
-    // Ground glow aura (for grounded workflow entities; Eye floats cleanly above in deep space!)
+    // Subtle ground ambient shadow/reflection (restrained, zero loud neon puddle!)
     if (!cfg.eye) {
       const gPt = project(cfg.x, yBase + 0.02, cfg.z);
       if (gPt) {
-        const gRad = cfg.r * gPt.s * (isSel ? 1.9 : running ? 1.45 : 1.1) * bootK;
+        const gRad = cfg.r * gPt.s * (isSel ? 1.45 : running ? 1.15 : 0.92) * bootK;
         const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
-        glow.addColorStop(0, rgba(rgb, isLight ? 0.18 : (isSel ? 0.38 : running ? 0.24 : 0.11) + pulseBoost * 0.18));
+        glow.addColorStop(0, rgba(rgb, isLight ? 0.10 : (isSel ? 0.18 : running ? 0.10 : 0.05) + pulseBoost * 0.08));
         glow.addColorStop(1, rgba(rgb, 0));
         ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.48, 0, 0, Math.PI * 2); ctx.fill();
       }
     }
 
     if (isSel && !isLight && !cfg.eye) {
-      const topBeam = project(cfg.x, yBase + hEntity + 1.05, cfg.z);
+      const topBeam = project(cfg.x, yBase + hEntity + 0.9, cfg.z);
       const botBeam = project(cfg.x, yBase, cfg.z);
       if (topBeam && botBeam) {
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
         const bgGrad = ctx.createLinearGradient(botBeam.x, botBeam.y, topBeam.x, topBeam.y);
-        bgGrad.addColorStop(0, rgba(rgb, 0.30));
-        bgGrad.addColorStop(0.65, rgba(rgb, 0.07));
+        bgGrad.addColorStop(0, rgba(rgb, 0.12));
+        bgGrad.addColorStop(0.65, rgba(rgb, 0.03));
         bgGrad.addColorStop(1, rgba(rgb, 0));
         ctx.strokeStyle = bgGrad;
-        ctx.lineWidth = Math.max(12, cfg.r * botBeam.s * 0.52);
+        ctx.lineWidth = Math.max(10, cfg.r * botBeam.s * 0.42);
         ctx.beginPath(); ctx.moveTo(botBeam.x, botBeam.y); ctx.lineTo(topBeam.x, topBeam.y); ctx.stroke();
         ctx.restore();
       }
@@ -5927,12 +5568,12 @@ function drawHolo3DFrame(dt = 0.016) {
   }
 
   // Minimalist wing designations at rest; conduit captions reveal progressively ONLY on active focus!
-  drawHoloText(-5.45, 0.55, -4.65, '01 理论与复核部', isLight ? [4, 104, 74] : [80, 255, 165], sec1Hot, 9);
-  drawHoloText( 5.45, 0.55, -4.65, '02 论文与对外合作', isLight ? [154, 52, 18] : [255, 210, 155], sec2Hot, 9);
-  if (thHot || rvHot) drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [4, 104, 74] : [125, 255, 210], true, 9);
-  if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [154, 52, 18] : [255, 214, 165], true, 9);
-  if (bkHot)          drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [232, 198, 255], true, 9);
-  if (stBkHot)        drawHoloText( 0.0,  0.08,  5.68, '出版模板 ◂ 工程底座', isLight ? [3, 105, 161] : [155, 232, 255], true, 9);
+  drawHoloText(-5.45, 0.55, -4.65, '01 理论与复核部', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.8);
+  drawHoloText( 5.45, 0.55, -4.65, '02 论文与对外合作', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.8);
+  if (thHot || rvHot) drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
+  if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
+  if (bkHot)          drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [79, 70, 229] : [188, 198, 242], true, 8.8);
+  if (stBkHot)        drawHoloText( 0.0,  0.08,  5.68, '出版模板 ◂ 工程底座', isLight ? [3, 105, 161] : [162, 212, 242], true, 8.8);
 }
 
 function startHoloLoop() {
