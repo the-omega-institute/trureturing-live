@@ -773,3 +773,103 @@ test('an opened galaxy gathers the galaxies it depends on around it and a clicke
     assert.ok(pose.pitch>0.6,'the opened galaxy is seen from above');
   }finally{dom.window.close();}
 });
+
+test('clicking empty space while a window is open goes back one step',async()=>{
+  const {dom,win,doc}=await boot();try{
+    const press=(el,extra={})=>{
+      el.dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,cancelable:true,button:0,clientX:400,clientY:300,...extra}));
+      el.dispatchEvent(new win.MouseEvent('pointerup',{bubbles:true,cancelable:true,button:0,clientX:400,clientY:300,...extra}));
+      el.dispatchEvent(new win.MouseEvent('click',{bubbles:true,cancelable:true,button:0,clientX:400,clientY:300,...extra}));
+    };
+    const scene=doc.querySelector('#holo-3d');
+    doc.querySelector('[data-method-department="verification"]').click();
+    const lens=doc.querySelector('#department-lens');
+    assert.equal(lens.hidden,false,'the department opens');
+    doc.querySelector('[data-dock-tab]').click();
+    assert.ok(doc.querySelector('#telemetry-dock').classList.contains('is-open'));
+    press(scene);
+    assert.ok(!doc.querySelector('#telemetry-dock').classList.contains('is-open'),'the drawer closes first');
+    assert.equal(lens.hidden,false,'one click goes back one step');
+    press(scene);
+    assert.equal(lens.hidden,true,'then the department closes');
+    doc.querySelector('[data-dock-tab]').click();
+    press(doc.querySelector('#telemetry-dock .dock-drawer-title')||doc.querySelector('#dock-drawer-title'));
+    assert.ok(doc.querySelector('#telemetry-dock').classList.contains('is-open'),'text inside a window does not close it');
+    doc.querySelector('[data-method-department="verification"]').click();
+    assert.equal(lens.hidden,false);
+    press(doc.querySelector('#dept-zoom-canvas'));
+    assert.ok(!doc.querySelector('#telemetry-dock').classList.contains('is-open'),'empty space in a window underneath closes the window on top');
+    assert.equal(lens.hidden,false,'and only that window');
+    press(doc.querySelector('#dept-zoom-canvas'));
+    assert.equal(lens.hidden,true,'the next click goes back again');
+  }finally{dom.window.close();}
+});
+
+test('links open in the built-in browser, GitHub pages render inside it',async()=>{
+  const {dom,win,doc}=await boot();try{
+    const r=u=>win.resolveInlineBrowserRoute(u);
+    assert.equal(r('https://github.com/o/r/pull/5').kind,'github-pr');
+    assert.equal(r('https://github.com/o/r/pull/5').api,'https://api.github.com/repos/o/r/pulls/5');
+    assert.equal(r('https://github.com/o/r/issues/7').kind,'github-issue');
+    assert.equal(r('https://github.com/o/r/actions/runs/123/job/9').kind,'github-run');
+    assert.equal(r('https://github.com/o/r/actions/runs/123').api,'https://api.github.com/repos/o/r/actions/runs/123');
+    assert.equal(r('https://github.com/o/r/blob/abc/D5/S1/X.lean').raw,'https://raw.githubusercontent.com/o/r/abc/D5/S1/X.lean');
+    assert.equal(r('https://github.com/o/r/commit/abc123').kind,'github-commit');
+    assert.equal(r('https://github.com/o/r/releases/tag/v1').kind,'github-release');
+    assert.equal(r('https://github.com/o/r').kind,'github-repo');
+    assert.equal(r('https://arxiv.org/abs/2611.15431v1').src,'https://arxiv.org/pdf/2611.15431v1','arXiv opens its PDF, which may be embedded');
+    assert.equal(r('https://books.trureturing.org/').kind,'frame');
+    assert.equal(r('https://openreview.net/forum?id=x').kind,'blocked','sites that refuse embedding say so');
+    assert.equal(r('javascript:alert(1)'),null);
+    assert.equal(r('http://example.com/'),null,'only https opens');
+
+    const box=doc.querySelector('#inline-browser');
+    const link=doc.querySelector('a[href="https://books.trureturing.org/"]');
+    const meta=new win.MouseEvent('click',{bubbles:true,cancelable:true,metaKey:true});
+    link.dispatchEvent(meta);
+    assert.equal(meta.defaultPrevented,false,'a modified click keeps the browser default');
+    assert.equal(box.hidden,true);
+    const plain=new win.MouseEvent('click',{bubbles:true,cancelable:true});
+    link.dispatchEvent(plain);
+    assert.equal(plain.defaultPrevented,true,'a plain click stays on the page');
+    assert.equal(box.hidden,false);
+    assert.equal(doc.querySelector('.ib-url').textContent,'https://books.trureturing.org/');
+    assert.equal(doc.querySelector('.ib-frame').getAttribute('src'),'https://books.trureturing.org/');
+    assert.equal(doc.querySelector('[data-ib-out]').getAttribute('href'),'https://books.trureturing.org/');
+
+    const calls=[];
+    win.fetch=async(u,opts)=>{
+      calls.push(String(u));
+      if(String(u).includes('/pulls/5'))return{ok:true,status:200,headers:{get:()=>null},json:async()=>({number:5,title:'Prove <b>things</b>',state:'closed',merged_at:'2026-11-25T08:00:00Z',draft:false,user:{login:'loning'},created_at:'2026-11-25T07:00:00Z',head:{ref:'lane/x'},base:{ref:'dev'},additions:12,deletions:3,changed_files:2,commits:1,labels:[{name:'math'}],body_html:'<p>Body</p>'})};
+      if(String(u).includes('/issues/9'))return{ok:false,status:403,headers:{get:h=>/remaining/i.test(h)?'0':null},json:async()=>({message:'API rate limit exceeded'})};
+      return{ok:false,status:404,headers:{get:()=>null},json:async()=>({})};
+    };
+    win.openInlineBrowser('https://github.com/o/r/pull/5');
+    await settle();await settle();
+    const native=doc.querySelector('.ib-native');
+    const html=native.getAttribute('srcdoc')||'';
+    assert.ok(html.includes('Prove &lt;b&gt;things&lt;/b&gt;'),'the title is shown, escaped');
+    assert.ok(html.includes('已合并'),'the PR state is shown');
+    assert.ok(html.includes('<p>Body</p>'),'the rendered description is shown');
+    assert.ok(html.includes('+12')&&html.includes('lane/x'));
+    assert.equal(native.getAttribute('sandbox'),'allow-same-origin','rendered GitHub content cannot run scripts');
+    assert.ok(calls.some(u=>u==='https://api.github.com/repos/o/r/pulls/5'));
+    win.openInlineBrowser('https://github.com/o/r/issues/9');
+    await settle();await settle();
+    assert.match(doc.querySelector('.ib-status').textContent,/额度/,'an exhausted GitHub quota is explained');
+    doc.querySelector('[data-ib="back"]').click();
+    await settle();
+    assert.equal(doc.querySelector('.ib-url').textContent,'https://github.com/o/r/pull/5','back returns to the previous page');
+    assert.equal(calls.filter(u=>u.endsWith('/pulls/5')).length,1,'a page already read is not fetched again');
+    doc.querySelector('[data-ib="forward"]').click();
+    await settle();
+    assert.equal(doc.querySelector('.ib-url').textContent,'https://github.com/o/r/issues/9');
+    doc.querySelector('[data-ib-backdrop]').click();
+    assert.equal(box.hidden,true,'clicking outside the browser closes it');
+    win.openInlineBrowser('https://books.trureturing.org/');
+    doc.querySelector('[data-dock-tab]').click();
+    doc.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+    assert.equal(box.hidden,true,'Esc closes the browser first');
+    assert.ok(doc.querySelector('#telemetry-dock').classList.contains('is-open'));
+  }finally{dom.window.close();}
+});
