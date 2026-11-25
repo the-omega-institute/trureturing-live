@@ -21,10 +21,12 @@ from collections import Counter, defaultdict
 BASE_URL = "https://www.trureturing.org/"
 MANIFEST_URL = BASE_URL + "data/atlas-startup.v1.json"
 OUT_PATH = pathlib.Path(__file__).resolve().parents[1] / "site" / "data" / "truth-nebula.v1.json"
+DETAILS_PATH = OUT_PATH.with_name("truth-nebula-details.v1.json")
 
 MAX_STARS = 1160
 MAX_INTRA_EDGES = 640
 MAX_CROSS_EDGES = 120
+MAX_SUMMARY = 240
 USER_AGENT = "Mozilla/5.0 (compatible; trureturing-live-nebula-sync/1.0; +https://live.trureturing.org)"
 
 # Wide outer cosmic perimeter anchors framing the ENTIRE widescreen sky AROUND
@@ -54,7 +56,25 @@ def safe_subpath(path: str) -> str:
     return clean
 
 
-def build_nebula(manifest: dict, layout: dict, graph: dict) -> dict:
+def star_detail(node: list) -> list:
+    """Module path, title, summary, topology role, DAG layer and theorem count of one star."""
+    summary = str(node[4] or "") if len(node) > 4 else ""
+    if len(summary) > MAX_SUMMARY:
+        summary = summary[:MAX_SUMMARY].rstrip() + "…"
+    admission = node[16] if len(node) > 16 and isinstance(node[16], dict) else {}
+    layer = node[12] if len(node) > 12 and isinstance(node[12], int) else 0
+    return [
+        str(node[0] or ""),
+        str(node[3] or "") if len(node) > 3 else "",
+        summary,
+        str(node[10] or "") if len(node) > 10 else "",
+        layer,
+        int(admission.get("theorem_count") or 0),
+    ]
+
+
+def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]:
+    """The sampled nebula and, aligned star by star, the details shown when a galaxy is opened."""
     nodes = graph.get("nodes") or []
     edges = graph.get("edges") or []
     positions = layout.get("positions") or []
@@ -293,10 +313,18 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> dict:
         chosen_edges.append([u, v, 1])
 
     snap = graph.get("source_snapshot") or {}
+    source_commit = snap.get("source_commit") or ""
+    release = manifest.get("truth_release_digest") or ""
+    details = {
+        "schema_version": "trureturing-truth-nebula-details.v1",
+        "source_commit": source_commit,
+        "truth_release_digest": release,
+        "stars": [star_detail(nodes[i]) for i in selected],
+    }
     return {
         "schema_version": "trureturing-truth-nebula.v1",
-        "source_commit": snap.get("source_commit") or "",
-        "truth_release_digest": manifest.get("truth_release_digest") or "",
+        "source_commit": source_commit,
+        "truth_release_digest": release,
         "counts": {
             "total_nodes": len(nodes),
             "truth_nodes": len(truth_indices),
@@ -309,7 +337,7 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> dict:
         "cluster_links": directed_links,
         "stars": stars,
         "edges": chosen_edges,
-    }
+    }, details
 
 
 def main() -> int:
@@ -320,12 +348,13 @@ def main() -> int:
 
     layout = json.loads(gzip.decompress(fetch_bytes(BASE_URL + layout_path)).decode("utf-8"))
     graph = json.loads(gzip.decompress(fetch_bytes(BASE_URL + graph_path)).decode("utf-8"))
-    payload = build_nebula(manifest, layout, graph)
+    payload, details = build_nebula(manifest, layout, graph)
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = OUT_PATH.with_suffix(".json.tmp")
-    tmp_path.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
-    tmp_path.replace(OUT_PATH)
+    for path, data in ((DETAILS_PATH, details), (OUT_PATH, payload)):
+        tmp_path = path.with_suffix(".json.tmp")
+        tmp_path.write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+        tmp_path.replace(path)
     print(
         f"Wrote {OUT_PATH.relative_to(OUT_PATH.parents[2])} "
         f"({OUT_PATH.stat().st_size:,} bytes): "
