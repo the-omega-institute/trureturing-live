@@ -3390,11 +3390,209 @@ function commitGrowth(record, cid, born, visible) {
 // side so the galaxy becomes the main view; the station and the other galaxies
 // fall back out of frame and return when the view closes.
 const GALAXY_VIEW_FILL = 0.62;
+// The opened galaxy is seen from above so its depth spreads over the screen.
+const GALAXY_VIEW_PITCH = 0.92;
 
-function galaxyCameraPose(center, radius, fovY) {
+function galaxyCameraPose(center, radius, fovY, fill = GALAXY_VIEW_FILL) {
   const [x, y, z] = center;
-  const dist = Math.max(3.2, Math.min(10, radius / (GALAXY_VIEW_FILL * Math.tan(fovY / 2))));
-  return { yaw: Math.atan2(-x, -z), pitch: 0.1, dist, lookX: x, lookY: y, lookZ: z };
+  const dist = Math.max(3.2, Math.min(15, radius / (fill * Math.tan(fovY / 2))));
+  return { yaw: Math.atan2(-x, -z), pitch: GALAXY_VIEW_PITCH, dist, lookX: x, lookY: y, lookZ: z };
+}
+
+// Screen-right and screen-up world directions of a camera with this yaw and pitch.
+function galaxyViewBasis(yaw, pitch) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  return { right: [cy, 0, -sy], up: [-sy * sp, cp, -cy * sp] };
+}
+
+// ---- Gathering related galaxies ---------------------------------------------
+// An opened galaxy is joined by the galaxies its theorems depend on (the real
+// inter-galaxy dependency bundles, strongest first). A sparsely linked galaxy is
+// topped up with its nearest galaxies. They are shown smaller on a ring around it,
+// spaced evenly in the order they already lie around it; unrelated galaxies dim in place.
+const GATHER_MAX = 4;
+const GATHER_MIN = 3;
+const GATHER_SCALE = 0.5;
+const GATHER_DIM = 0.26;
+
+function galaxyGatherNeighbors(focusCid, clusters, links, frames) {
+  const named = (clusters || []).filter(c => c.name !== 'Other' && c.id !== focusCid && frames.has(c.id));
+  const strength = new Map();
+  for (const [u, v, count, rev] of links || []) {
+    const other = u === focusCid ? v : v === focusCid ? u : null;
+    if (other == null) continue;
+    strength.set(other, (strength.get(other) || 0) + (count || 0) + (rev || 0));
+  }
+  const out = named
+    .filter(c => strength.has(c.id))
+    .sort((a, b) => strength.get(b.id) - strength.get(a.id))
+    .slice(0, GATHER_MAX)
+    .map(c => ({ cid: c.id, strength: strength.get(c.id), linked: true }));
+  const fc = frames.get(focusCid)?.center;
+  if (fc) {
+    const gap = c => Math.hypot(...frames.get(c.id).center.map((v, i) => v - fc[i]));
+    const near = named.filter(c => !strength.has(c.id)).sort((a, b) => gap(a) - gap(b));
+    while (out.length < GATHER_MIN && near.length) out.push({ cid: near.shift().id, strength: 0, linked: false });
+  }
+  return out;
+}
+
+// Evenly spaced angles for the given directions, keeping their cyclic order and turned
+// to stay as close as possible to where each one already lies.
+function gatherSlots(angles) {
+  const n = angles.length;
+  if (!n) return [];
+  const order = angles.map((a, i) => [a, i]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+  const gap = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+  let best = null;
+  for (let step = 0; step < 72; step++) {
+    const phase = (step / 72) * 2 * Math.PI;
+    const slots = new Array(n);
+    let cost = 0;
+    order.forEach((idx, k) => {
+      slots[idx] = phase + (k * 2 * Math.PI) / n;
+      cost += gap(slots[idx], angles[idx]);
+    });
+    if (!best || cost < best.cost) best = { cost, slots };
+  }
+  return best.slots;
+}
+
+function galaxyGatherPlan(focusCid, clusters, links, frames, basis, aspect) {
+  const focus = frames.get(focusCid);
+  if (!focus) return null;
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const stretch = Math.sqrt(Math.max(0.5, Math.min(2.2, aspect || 1)));
+  const ellX = stretch, ellY = 1 / stretch;
+  let extentX = focus.radius, extentY = focus.radius;
+  const neighbors = [];
+  const chosen = galaxyGatherNeighbors(focusCid, clusters, links, frames);
+  const slots = gatherSlots(chosen.map(n => {
+    const d = frames.get(n.cid).center.map((v, i) => v - focus.center[i]);
+    return Math.atan2(dot(d, basis.up), dot(d, basis.right));
+  }));
+  chosen.forEach((n, k) => {
+    const frame = frames.get(n.cid);
+    const slot = slots[k];
+    const radius = frame.radius * GATHER_SCALE;
+    const ring = focus.radius * 1.3 + radius + 0.3;
+    const sx = Math.cos(slot) * ring * ellX, sy = Math.sin(slot) * ring * ellY;
+    const target = focus.center.map((v, i) => v + basis.right[i] * sx + basis.up[i] * sy);
+    extentX = Math.max(extentX, Math.abs(sx) + radius);
+    extentY = Math.max(extentY, Math.abs(sy) + radius);
+    neighbors.push({ ...n, slot, pivot: frame.center, scale: GATHER_SCALE, radius, target, offset: target.map((v, i) => v - frame.center[i]) });
+  });
+  return { focusCid, neighbors, extentX, extentY };
+}
+
+// Per-galaxy transform targets: gathered galaxies move and shrink about their own
+// centre, the opened one stays, the rest dim in place.
+function galaxyGatherTargets(plan, clusters) {
+  const targets = new Map();
+  for (const c of clusters || []) {
+    const n = plan?.neighbors.find(x => x.cid === c.id);
+    const active = Boolean(plan);
+    targets.set(c.id, n
+      ? { pivot: n.pivot, offset: n.offset, scale: n.scale, alpha: 1 }
+      : { pivot: [0, 0, 0], offset: [0, 0, 0], scale: 1, alpha: !active || c.id === plan.focusCid ? 1 : GATHER_DIM });
+  }
+  return targets;
+}
+
+function galaxyGatherPlanFor(cid, frame, fovY, aspect) {
+  if (!holoCam.gatherPlans) holoCam.gatherPlans = new Map();
+  const key = `${cid}:${aspect >= 1 ? 'w' : 't'}`;
+  if (holoCam.gatherPlans.has(key)) return holoCam.gatherPlans.get(key);
+  const frames = new Map();
+  for (const c of truthNebula.clusters) {
+    const f = galaxyWorldFrame(c.id);
+    if (f) frames.set(c.id, f);
+  }
+  const pose = galaxyCameraPose(frame.center, frame.radius, fovY);
+  const plan = galaxyGatherPlan(cid, truthNebula.clusters, truthNebula.clusterLinks, frames, galaxyViewBasis(pose.yaw, pose.pitch), aspect);
+  holoCam.gatherPlans.set(key, plan);
+  return plan;
+}
+
+// Eases every galaxy's gather transform toward the plan (or back to rest) and hands it to the GPU.
+function stepGalaxyGather(plan, k) {
+  const gl = holoCam.gl;
+  if (!gl || !truthNebula.loaded) return;
+  if (!holoCam.gather) holoCam.gather = new Map();
+  const entries = [];
+  for (const [cid, t] of galaxyGatherTargets(plan, truthNebula.clusters)) {
+    let cur = holoCam.gather.get(cid);
+    if (!cur) {
+      cur = { pivot: t.pivot.slice(), offset: [0, 0, 0], scale: 1, alpha: 1 };
+      holoCam.gather.set(cid, cur);
+    }
+    if (t.scale !== 1) cur.pivot = t.pivot.slice();
+    cur.offset = cur.offset.map((v, i) => v + (t.offset[i] - v) * k);
+    cur.scale += (t.scale - cur.scale) * k;
+    cur.alpha += (t.alpha - cur.alpha) * k;
+    entries.push({ cid, pivot: cur.pivot, offset: cur.offset, scale: cur.scale, alpha: cur.alpha });
+  }
+  gl.setGather(entries);
+  holoCam.gatherPlan = plan;
+}
+
+function nebulaAdjacency() {
+  if (truthNebula.adjacency && truthNebula.adjacencyFor === truthNebula.edges) return truthNebula.adjacency;
+  const adj = new Map();
+  for (const [u, v] of truthNebula.edges || []) {
+    if (!adj.has(u)) adj.set(u, []);
+    if (!adj.has(v)) adj.set(v, []);
+    adj.get(u).push(v);
+    adj.get(v).push(u);
+  }
+  truthNebula.adjacency = adj;
+  truthNebula.adjacencyFor = truthNebula.edges;
+  return adj;
+}
+
+// Prerequisite and dependent stars of a star: from the full dependency graph when the
+// details carry it, otherwise the undirected sampled edges.
+function nodeConnections(idx, details) {
+  const row = details?.stars?.[idx];
+  if (row && Array.isArray(row[8])) return { prereqs: row[8], dependents: Array.isArray(row[9]) ? row[9] : [], other: [] };
+  return { prereqs: [], dependents: [], other: nebulaAdjacency().get(idx) || [] };
+}
+
+function nodeLinks(idx) {
+  const list = nebulaAdjacency().get(idx) || [];
+  const cid = truthNebula.stars[idx]?.[3];
+  return { total: list.length, cross: list.filter(j => truthNebula.stars[j]?.[3] !== cid).length };
+}
+
+// World position of the selected node and of its connections where they will be drawn.
+function selectedNodeView(cid, plan) {
+  const sel = galaxyDetail.selectedNode;
+  const gl = holoCam.gl;
+  if (!sel || sel.cid !== cid || !gl) return null;
+  const world = gl.mapSkyPointBase(sel.nx, sel.ny, sel.nz, sel.cid);
+  const neighbors = [];
+  if (sel.kind === 'star') {
+    const c = nodeConnections(sel.idx, galaxyDetail.data);
+    for (const j of [...c.prereqs, ...c.dependents, ...c.other]) {
+      const st = truthNebula.stars[j];
+      const n = plan?.neighbors.find(x => x.cid === st[3]);
+      if (st[3] !== cid && !n) continue;
+      const p = gl.mapSkyPointBase(st[0] / 1000, st[1] / 1000, st[2] / 1000, st[3]);
+      neighbors.push(n ? p.map((v, i) => n.pivot[i] + (v - n.pivot[i]) * n.scale + n.offset[i]) : p);
+    }
+  }
+  return { world, neighbors };
+}
+
+// A clicked node becomes the centre of view, zoomed in past the galaxy view but wide
+// enough to keep its connections in frame.
+function nodeCameraPose(node, neighbors, fovY, aspect, yaw, pitch) {
+  const [x, y, z] = node;
+  let reach = 0;
+  for (const p of neighbors || []) reach = Math.max(reach, Math.hypot(p[0] - x, p[1] - y, p[2] - z));
+  const tan = Math.tan(fovY / 2) * Math.min(1, aspect || 1);
+  const dist = Math.max(3, Math.min(6.5, reach / (0.78 * tan)));
+  return { yaw, pitch, dist, lookX: x, lookY: y, lookZ: z };
 }
 
 // A user-opened galaxy always takes the view; growth takes it only when the reader is
@@ -3436,7 +3634,7 @@ function syncGalaxyMainView(active) {
 const GALAXY_NODE_PICK_PX = 16;
 const TRUTH_SOURCE_BLOB = 'https://github.com/the-omega-institute/trureturing/blob';
 const NODE_ROLE_ZH = { hub: '枢纽定理', interface: '接口定理', bridge: '桥接定理', foundation: '基础定理', internal: '内部定理', 'specialized-leaf': '专门叶定理' };
-const galaxyDetail = { status: 'idle', data: null, picks: [], hoverKey: null, selectedKey: null, bounds: null };
+const galaxyDetail = { status: 'idle', data: null, picks: [], hoverKey: null, selectedKey: null, selectedNode: null, bounds: null };
 
 function galaxyNodeKey(pick) {
   return pick.kind === 'star' ? `s${pick.idx}` : `n${pick.module}`;
@@ -3466,7 +3664,7 @@ function galaxyNodeSourceUrl(module, commit) {
   return `${TRUTH_SOURCE_BLOB}/${commit}/${module}.lean`;
 }
 
-function galaxyNodeInfo(pick, details, clusters) {
+function galaxyNodeInfo(pick, details, clusters, links = null) {
   const cluster = (clusters || []).find(c => c.id === pick.cid);
   const galaxy = cluster ? `${cluster.zh || cluster.name}星系` : '真值星系';
   if (pick.kind === 'new') {
@@ -3485,25 +3683,29 @@ function galaxyNodeInfo(pick, details, clusters) {
   if (!row) {
     return { isNew: false, badge: '定理节点', title: `${galaxy} · 定理节点`, module: '', summary: '节点名称暂不可用。', meta: [galaxy], href: null };
   }
-  const [module, title, summary, role, layer, theorems] = row;
+  const [module, title, summary, role, layer, theorems, prereqCount, dependentCount] = row;
+  const depMeta = Number.isInteger(prereqCount)
+    ? [`依赖 ${prereqCount} 个模块 · 被 ${dependentCount || 0} 个模块依赖`]
+    : links?.total ? [`图中相连 ${links.total} 个节点${links.cross ? `（${links.cross} 个跨星系）` : ''}`] : [];
   return {
     isNew: false,
     badge: NODE_ROLE_ZH[role] || '定理节点',
     title: title || shortModuleName(module),
     module,
     summary: summary || '',
-    meta: [galaxy, `DAG 第 ${layer} 层`, `${theorems} 条定理`],
+    meta: [galaxy, `DAG 第 ${layer} 层`, `${theorems} 条定理`, ...depMeta],
     href: galaxyNodeSourceUrl(module, details.source_commit)
   };
 }
 
 // Greedy label placement: candidates in priority order, each tried at four corners of
-// its node, kept only when it overlaps no placed label and stays on the stage.
-function planGalaxyLabels(cands, max, bounds) {
+// its node, kept only when it overlaps no placed label or blocked area and stays on the stage.
+function planGalaxyLabels(cands, max, bounds, blocked = []) {
   const placed = [];
   const h = 15;
+  const clear = (r, o) => r.lx + r.w <= o.lx || o.lx + o.w <= r.lx || r.ly + r.h <= o.ly || o.ly + o.h <= r.ly;
   const fits = r => r.lx >= bounds.left && r.ly >= bounds.top && r.lx + r.w <= bounds.right && r.ly + r.h <= bounds.bottom
-    && placed.every(o => r.lx + r.w <= o.lx || o.lx + o.w <= r.lx || r.ly + r.h <= o.ly || o.ly + o.h <= r.ly);
+    && placed.every(o => clear(r, o)) && blocked.every(o => clear(r, o));
   for (const c of cands) {
     if (placed.length >= max) break;
     const tries = [[c.x + 9, c.y - h - 3], [c.x - 9 - c.w, c.y - h - 3], [c.x + 9, c.y + 4], [c.x - 9 - c.w, c.y + 4]];
@@ -3538,15 +3740,20 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
   }
   card.replaceChildren(...parts);
   card.hidden = false;
+  placeGalaxyNodeCard(bounds);
+}
+
+// The card docks at the top left of the stage so the focused node, which the camera
+// brings to the centre, and its connections stay in view.
+function placeGalaxyNodeCard(bounds) {
+  const card = document.querySelector('#galaxy-node-card');
+  if (!card || card.hidden || !bounds) return null;
   const width = Math.min(320, Math.max(200, bounds.right - bounds.left - 24));
-  const height = 190;
-  let left = x + 18;
-  if (left + width > bounds.right) left = x - 18 - width;
-  left = Math.max(bounds.left, Math.min(bounds.right - width, left));
-  const top = Math.max(bounds.top, Math.min(bounds.bottom - height, y - 40));
-  card.style.width = `${width}px`;
-  card.style.left = `${Math.round(left)}px`;
-  card.style.top = `${Math.round(top)}px`;
+  const next = [`${width}px`, `${Math.round(bounds.left + 6)}px`, `${Math.round(bounds.top + 4)}px`];
+  if (card.style.width !== next[0]) card.style.width = next[0];
+  if (card.style.left !== next[1]) card.style.left = next[1];
+  if (card.style.top !== next[2]) card.style.top = next[2];
+  return { lx: bounds.left + 6, ly: bounds.top + 4, w: width, h: Math.max(150, card.offsetHeight || 0) };
 }
 
 // Marks new nodes and hub theorems of the main-view galaxy, labels them and records the
@@ -3560,23 +3767,25 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     return;
   }
   const onStage = (x, y) => x > 18 && x < right && y > 70 && y < h - 60;
+  const plan = holoCam.gatherPlan?.focusCid === cid ? holoCam.gatherPlan : null;
+  const group = new Set([cid, ...(plan?.neighbors || []).map(n => n.cid)]);
   const picks = [];
   const stars = truthNebula.stars;
   for (let i = 0; i < (truthNebula.baseCount || 0); i++) {
-    if (stars[i][3] !== cid) continue;
+    if (!group.has(stars[i][3])) continue;
     const x = truthNebula.projX[i], y = truthNebula.projY[i];
-    if (onStage(x, y)) picks.push({ kind: 'star', idx: i, cid, x, y, weight: stars[i][5] || 0 });
+    if (onStage(x, y)) picks.push({ kind: 'star', idx: i, cid: stars[i][3], x, y, weight: stars[i][5] || 0, nx: stars[i][0] / 1000, ny: stars[i][1] / 1000, nz: stars[i][2] / 1000 });
   }
   const freshByModule = new Map();
   for (const sp of truthGrowth.recentSprouts) {
-    if (sp.cid !== cid || !sp.module) continue;
-    const [x, y] = project(sp.x / 1000, sp.y / 1000, sp.z / 1000, cid);
-    if (onStage(x, y)) freshByModule.set(sp.module, { kind: 'new', cid, module: sp.module, at: sp.at, commit: sp.commit, x, y });
+    if (!group.has(sp.cid) || !sp.module) continue;
+    const [x, y] = project(sp.x / 1000, sp.y / 1000, sp.z / 1000, sp.cid);
+    if (onStage(x, y)) freshByModule.set(sp.module, { kind: 'new', cid: sp.cid, module: sp.module, at: sp.at, commit: sp.commit, x, y, nx: sp.x / 1000, ny: sp.y / 1000, nz: sp.z / 1000 });
   }
   for (const g of truthGrowth.grown) {
-    if (g.cid !== cid || !g.module || now - g.born < GROWTH_EDGE_MS) continue;
-    const [x, y] = project(g.x / 1000, g.y / 1000, g.z / 1000, cid);
-    if (onStage(x, y)) freshByModule.set(g.module, { kind: 'new', cid, module: g.module, at: g.at, commit: g.commit, preview: g.preview, x, y });
+    if (!group.has(g.cid) || !g.module || now - g.born < GROWTH_EDGE_MS) continue;
+    const [x, y] = project(g.x / 1000, g.y / 1000, g.z / 1000, g.cid);
+    if (onStage(x, y)) freshByModule.set(g.module, { kind: 'new', cid: g.cid, module: g.module, at: g.at, commit: g.commit, preview: g.preview, x, y, nx: g.x / 1000, ny: g.y / 1000, nz: g.z / 1000 });
   }
   const fresh = [...freshByModule.values()].sort((a, b) => (timestamp(b.at) || 0) - (timestamp(a.at) || 0));
   picks.push(...fresh);
@@ -3585,7 +3794,92 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   const details = galaxyDetail.data;
   const col = palette[cid % palette.length];
   const gold = isLight ? [160, 104, 16] : [255, 214, 128];
-  const hubs = details ? picks.filter(p => p.kind === 'star').sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
+  const hubs = details ? picks.filter(p => p.kind === 'star' && p.cid === cid).sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
+  const sel = galaxyDetail.selectedNode;
+  const conn = sel?.kind === 'star' ? nodeConnections(sel.idx, details) : { prereqs: [], dependents: [], other: [] };
+  const linked = [...conn.prereqs, ...conn.dependents, ...conn.other];
+  const otherId = truthNebula.clusters.find(c => c.name === 'Other')?.id;
+  for (const j of linked) {
+    if (picks.some(p => p.kind === 'star' && p.idx === j) || stars[j]?.[3] === otherId) continue;
+    const x = truthNebula.projX[j], y = truthNebula.projY[j];
+    if (onStage(x, y)) picks.push({ kind: 'star', idx: j, cid: stars[j][3], x, y, weight: stars[j][5] || 0, nx: stars[j][0] / 1000, ny: stars[j][1] / 1000, nz: stars[j][2] / 1000 });
+  }
+  if (alpha > 0.5) galaxyDetail.picks = picks;
+  const selPick = sel ? picks.find(p => galaxyNodeKey(p) === galaxyDetail.selectedKey) : null;
+  const linkedPicks = linked.map(j => picks.find(p => p.kind === 'star' && p.idx === j)).filter(Boolean);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Dependency bundles between the opened galaxy and the galaxies gathered around it.
+  const focusCl = truthNebula.clusters.find(c => c.id === cid);
+  if (plan && focusCl) {
+    const [fx, fy] = project(focusCl.center[0] / 1000, focusCl.center[1] / 1000, focusCl.center[2] / 1000, cid);
+    ctx.font = '600 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const n of plan.neighbors) {
+      const cl = truthNebula.clusters.find(c => c.id === n.cid);
+      if (!cl) continue;
+      const [nx, ny] = project(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000, n.cid);
+      const ncol = palette[n.cid % palette.length];
+      const strength = n.linked ? Math.min(1, Math.log1p(n.strength) / Math.log1p(600)) : 0;
+      const mx = (fx + nx) / 2 + (fy - ny) * 0.12, my = (fy + ny) / 2 - (fx - nx) * 0.12;
+      const grad = ctx.createLinearGradient(fx, fy, nx, ny);
+      grad.addColorStop(0, rgba(col, n.linked ? 0.5 : 0.2));
+      grad.addColorStop(1, rgba(ncol, n.linked ? 0.62 : 0.24));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = n.linked ? 1.2 + strength * 3.2 : 1;
+      ctx.setLineDash(n.linked ? [] : [4, 6]);
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.quadraticCurveTo(mx, my, nx, ny);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const lx = 0.25 * fx + 0.5 * mx + 0.25 * nx, ly = 0.25 * fy + 0.5 * my + 0.25 * ny;
+      const text = n.linked ? `${n.strength} 条依赖` : '邻近';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(4, 7, 12, 0.92)';
+      ctx.strokeText(text, lx, ly);
+      ctx.fillStyle = rgba(ncol, n.linked ? 0.95 : 0.7);
+      ctx.fillText(text, lx, ly);
+    }
+    // Sampled theorem-level dependencies crossing between the gathered galaxies.
+    ctx.lineWidth = 0.8;
+    for (const [u, v, kind] of truthNebula.edges) {
+      if (kind !== 1) continue;
+      const cu = stars[u]?.[3], cv = stars[v]?.[3];
+      if (!(cu === cid && group.has(cv)) && !(cv === cid && group.has(cu))) continue;
+      ctx.strokeStyle = rgba(palette[(cu === cid ? cv : cu) % palette.length], 0.42);
+      ctx.beginPath();
+      ctx.moveTo(truthNebula.projX[u], truthNebula.projY[u]);
+      ctx.lineTo(truthNebula.projX[v], truthNebula.projY[v]);
+      ctx.stroke();
+    }
+  }
+  // The selected node's connections: solid to what it depends on, dashed to what depends on it.
+  if (selPick && sel.kind === 'star') {
+    const ink = isLight ? [20, 40, 44] : [236, 252, 248];
+    const kinds = [[conn.prereqs, ink, []], [conn.dependents, gold, [5, 5]], [conn.other, ink, [2, 4]]];
+    for (const [list, tone, dash] of kinds) {
+      for (const j of list) {
+        const x = truthNebula.projX[j], y = truthNebula.projY[j];
+        ctx.strokeStyle = rgba(tone, 0.82);
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash(dash);
+        ctx.beginPath();
+        ctx.moveTo(selPick.x, selPick.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = rgba(tone, 0.95);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  const cardRect = galaxyDetail.selectedKey ? placeGalaxyNodeCard(galaxyDetail.bounds) : null;
+  ctx.restore();
   const byKey = new Map(picks.map(p => [galaxyNodeKey(p), p]));
   const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
   const textFor = p => (p.kind === 'new' ? `新 · ${shortModuleName(p.module)}` : clip(details?.stars?.[p.idx]?.[1] || '定理节点', 34));
@@ -3596,7 +3890,8 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   };
   add(byKey.get(galaxyDetail.selectedKey), 'focus');
   add(byKey.get(galaxyDetail.hoverKey), 'focus');
-  fresh.slice(0, 6).forEach(p => add(p, 'new'));
+  linkedPicks.slice(0, 6).forEach(p => add(p, 'focus'));
+  fresh.filter(p => p.cid === cid).slice(0, 6).forEach(p => add(p, 'new'));
   hubs.forEach(p => add(p, 'hub'));
 
   ctx.save();
@@ -3637,7 +3932,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
 
   ctx.font = '600 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
   for (const c of cands) c.w = ctx.measureText(c.text).width + 4;
-  const placed = planGalaxyLabels(cands, 11, galaxyDetail.bounds);
+  const placed = planGalaxyLabels(cands, selPick ? 13 : 11, galaxyDetail.bounds, cardRect ? [cardRect] : []);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
@@ -3660,17 +3955,27 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   }
   ctx.textAlign = 'center';
   ctx.font = '600 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-  const legend = `◆ 新加入 ${fresh.length}${details ? ' · ○ 枢纽定理' : ''} · 悬停或点击节点查看详情`;
+  const freshHere = fresh.filter(p => p.cid === cid).length;
+  const legend = selPick
+    ? (() => {
+      const row = details?.stars?.[sel.idx];
+      const counts = sel.kind === 'star' && Number.isInteger(row?.[6])
+        ? `── 依赖 ${row[6]} · ┄ 被依赖 ${row[7] || 0}（图中 ${conn.prereqs.length + conn.dependents.length} 条）`
+        : sel.kind === 'star' ? `图中相连 ${conn.other.length}` : '新加入节点';
+      return `◎ 已聚焦节点 · ${counts} · 点击相连节点继续 · 点空白或 Esc 退回星系`;
+    })()
+    : `◆ 新加入 ${freshHere}${details ? ' · ○ 枢纽定理' : ''}${plan?.neighbors.length ? ` · 聚集 ${plan.neighbors.length} 个相关星系` : ''} · 点击节点聚焦`;
   ctx.lineWidth = 3.2;
   ctx.strokeStyle = halo;
   ctx.strokeText(legend, w * 0.5, 98);
-  ctx.fillStyle = rgba(fresh.length ? gold : col, 0.92);
+  ctx.fillStyle = rgba(freshHere && !selPick ? gold : col, 0.92);
   ctx.fillText(legend, w * 0.5, 98);
   ctx.restore();
 }
 
 function closeGalaxyNodeCard() {
   galaxyDetail.selectedKey = null;
+  galaxyDetail.selectedNode = null;
   const card = document.querySelector('#galaxy-node-card');
   if (card) card.hidden = true;
 }
@@ -3698,8 +4003,10 @@ function openGalaxyNode(node) {
     if (cluster) truthGrowth.manualFocus = { cid: node.cid, cluster, start: now - 1000, closing: false };
   }
   galaxyDetail.selectedKey = galaxyNodeKey(node);
+  galaxyDetail.selectedNode = { kind: node.kind, idx: node.idx, module: node.module, cid: node.cid, nx: node.nx, ny: node.ny, nz: node.nz };
   const bounds = galaxyDetail.bounds || { left: 12, top: 96, right: window.innerWidth - 12, bottom: window.innerHeight - 80 };
-  renderGalaxyNodeCard(galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters), node.x, node.y, bounds);
+  const links = node.kind === 'star' ? nodeLinks(node.idx) : null;  // used only when the details lack full counts
+  renderGalaxyNodeCard(galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters, links), node.x, node.y, bounds);
 }
 function galaxyWorldFrame(cid) {
   const gl = holoCam.gl;
@@ -3708,11 +4015,11 @@ function galaxyWorldFrame(cid) {
   if (!holoCam.galaxyFrames) holoCam.galaxyFrames = new Map();
   const key = `${cid}:${truthNebula.stars.length}`;
   if (holoCam.galaxyFrames.has(key)) return holoCam.galaxyFrames.get(key);
-  const c = gl.mapSkyPoint(cluster.center[0] / 1000, cluster.center[1] / 1000, cluster.center[2] / 1000, cid);
+  const c = gl.mapSkyPointBase(cluster.center[0] / 1000, cluster.center[1] / 1000, cluster.center[2] / 1000, cid);
   const spread = [];
   for (const s of truthNebula.stars) {
     if (s[3] !== cid) continue;
-    const p = gl.mapSkyPoint(s[0] / 1000, s[1] / 1000, s[2] / 1000, cid);
+    const p = gl.mapSkyPointBase(s[0] / 1000, s[1] / 1000, s[2] / 1000, cid);
     spread.push(Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]));
   }
   spread.sort((a, b) => a - b);
@@ -4001,7 +4308,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
   // A growth close-up stays local: sky-wide arcs keep their resting state. Hovering or
   // opening a galaxy still lights its connections.
-  const webCid = autoFocus && focusK > 0.05 ? null : focusCid;
+  const webCid = (autoFocus && focusK > 0.05) || (useGLSky && holoCam.galaxyMainCid != null) ? null : focusCid;
   const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
     if (focusK > 0.05 && cid === growthFocus?.cid) return 1.50;
@@ -5716,17 +6023,28 @@ function drawHolo3DFrame(dt = 0.016) {
   const galaxyFrame = galaxyCam ? galaxyWorldFrame(galaxyCam.cid) : null;
   holoCam.galaxyMainCid = galaxyFrame ? galaxyCam.cid : null;
   syncGalaxyMainView(galaxyFrame);
+  const fly = 1 - Math.exp(-Math.max(0.008, stepDt) * 3.4);
+  const fovY = holoCam.gl?.fovY || (40 * Math.PI / 180);
+  const stageAspect = Math.max(0.4, (w - rightGutter) / Math.max(1, h));
+  const gatherPlan = galaxyFrame ? galaxyGatherPlanFor(galaxyCam.cid, galaxyFrame, fovY, stageAspect) : null;
+  if (useGL) stepGalaxyGather(gatherPlan, fly);
   if (galaxyFrame) {
-    // Galaxy main view: fly to the galaxy from the station side; the station fades back.
-    const pose = galaxyCameraPose(galaxyFrame.center, galaxyFrame.radius, holoCam.gl.fovY || (40 * Math.PI / 180));
-    const fly = 1 - Math.exp(-Math.max(0.008, stepDt) * 3.4);
+    // Galaxy main view: fly to the galaxy (and the galaxies gathered around it) from the
+    // station side; a selected node zooms in further. The station fades back.
+    const restPose = galaxyCameraPose(galaxyFrame.center, galaxyFrame.radius, fovY);
+    const nodeView = selectedNodeView(galaxyCam.cid, gatherPlan);
+    const pose = nodeView
+      ? nodeCameraPose(nodeView.world, nodeView.neighbors, fovY, stageAspect, restPose.yaw, restPose.pitch)
+      : gatherPlan?.neighbors.length
+        ? galaxyCameraPose(galaxyFrame.center, Math.max(gatherPlan.extentY, gatherPlan.extentX / stageAspect), fovY, 0.9)
+        : restPose;
     holoCam.lookX += (pose.lookX - holoCam.lookX) * fly;
     holoCam.lookY += (pose.lookY - holoCam.lookY) * fly;
     holoCam.lookZ += (pose.lookZ - holoCam.lookZ) * fly;
     holoCam.yaw += (pose.yaw - holoCam.yaw) * fly;
     holoCam.pitch += (pose.pitch - holoCam.pitch) * fly;
     holoCam.dist += (pose.dist - holoCam.dist) * fly;
-    holoCam.stationAlpha += (0.12 - holoCam.stationAlpha) * fly;
+    holoCam.stationAlpha += ((gatherPlan?.neighbors.length ? 0.05 : 0.12) - holoCam.stationAlpha) * fly;
     holoCam.galaxyAlpha += (1.3 - holoCam.galaxyAlpha) * fly;
   } else if (useGL && state.focused && holoWorld[state.focused]) {
     const fc = holoWorld[state.focused];
@@ -7176,6 +7494,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
           truthGrowth.manualFocus.closing = true;
           truthGrowth.manualFocus.closeStart = now;
         } else {
+          closeGalaxyNodeCard();
           truthGrowth.manualFocus = { cid: gHit.cl.id, cluster: gHit.cl, start: now, closing: false };
           if (!state.quiet && !reduced) {
             xpFx.bursts.push({ kind: 'ring', x: gHit.x, y: gHit.y, rgb: gHit.col, start: now, dur: 760, maxR: 48, width: 1.8 });

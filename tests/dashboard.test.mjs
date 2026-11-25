@@ -673,6 +673,10 @@ test('nodes in an opened galaxy can be picked, labelled and read, and new nodes 
     }
     assert.ok(placed.every(p=>p.lx>=0&&p.ly>=0&&p.lx+p.w<=600&&p.ly+p.h<=500),'labels stay on the stage');
     assert.equal(placed[0].text,'a','the first candidate has priority');
+    const cardBox={lx:90,ly:80,w:200,h:120};
+    const aside=[...win.planGalaxyLabels([{x:100,y:100,w:80,text:'a'},{x:400,y:300,w:80,text:'c'}],3,{left:0,top:0,right:600,bottom:500},[cardBox])];
+    assert.ok(aside.every(p=>p.lx+p.w<=cardBox.lx||cardBox.lx+cardBox.w<=p.lx||p.ly+p.h<=cardBox.ly||cardBox.ly+cardBox.h<=p.ly),'labels stay clear of the node card');
+    assert.ok(aside.some(p=>p.text==='c'));
     win.renderGalaxyNodeCard(fresh,200,150,{left:0,top:0,right:900,bottom:700});
     const card=doc.querySelector('#galaxy-node-card');
     assert.equal(card.hidden,false);
@@ -682,5 +686,67 @@ test('nodes in an opened galaxy can be picked, labelled and read, and new nodes 
     assert.equal(card.querySelector('a'),null);
     win.closeGalaxyNodeCard();
     assert.equal(card.hidden,true);
+  }finally{dom.window.close();}
+});
+
+test('an opened galaxy gathers the galaxies it depends on around it and a clicked node becomes the next focus',async()=>{
+  const {dom,win}=await boot();try{
+    const clusters=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'},{id:2,name:'Arith'},{id:3,name:'ConceptDynamics'},{id:5,name:'Weil'},{id:6,name:'Observer'},{id:7,name:'Other'}];
+    const links=[[7,1,328,251],[0,7,315,198],[5,1,131,2],[6,1,61,32],[0,1,43,19],[6,0,34,2],[3,6,28,4],[5,2,79,25]];
+    const frames=new Map([[0,{center:[-5.7,3.45,-9.8],radius:1.4}],[1,{center:[-9.9,1.35,-3.9],radius:1.2}],[2,{center:[5.7,3.45,-9.8],radius:1.3}],
+      [3,{center:[-9.1,2.45,-6.5],radius:1.2}],[5,{center:[9.1,2.45,-6.5],radius:1.2}],[6,{center:[0,3.55,-11.2],radius:1.1}],[7,{center:[0,2,-10],radius:9}]]);
+    const ids=list=>[...list].map(n=>n.cid).join(',');
+    assert.equal(ids(win.galaxyGatherNeighbors(1,clusters,links,frames)),'5,6,0','linked galaxies, strongest dependency bundle first; the foundations belt is not gathered');
+    const sparse=[...win.galaxyGatherNeighbors(3,clusters,links,frames)];
+    assert.equal(ids(sparse),'6,1,0','a sparsely linked galaxy is joined by its nearest galaxies');
+    assert.deepEqual(sparse.map(n=>n.linked),[true,false,false]);
+    const pose=win.galaxyCameraPose(frames.get(1).center,1.2,38*Math.PI/180);
+    const basis=win.galaxyViewBasis(pose.yaw,pose.pitch);
+    const plan=win.galaxyGatherPlan(1,clusters,links,frames,basis,1.4);
+    const f=frames.get(1).center,dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],sub=(a,b)=>a.map((x,i)=>x-b[i]);
+    const flat=p=>[dot(sub(p,f),basis.right),dot(sub(p,f),basis.up)];
+    assert.equal(plan.neighbors.length,3);
+    for(const n of plan.neighbors){
+      assert.ok(n.scale>0.3&&n.scale<1,'gathered galaxies are shown smaller than the opened one');
+      assert.deepEqual(n.offset.map(x=>+x.toFixed(9)),sub(n.target,n.pivot).map(x=>+x.toFixed(9)));
+      const [x,y]=flat(n.target);
+      assert.ok(Math.hypot(x,y)>1.2+n.radius,'a gathered galaxy does not cover the opened one');
+      assert.ok(plan.extentX>=Math.abs(x)+n.radius-1e-9&&plan.extentY>=Math.abs(y)+n.radius-1e-9,'the framing extent covers the group');
+    }
+    for(let i=0;i<plan.neighbors.length;i++)for(let j=i+1;j<plan.neighbors.length;j++){
+      const a=plan.neighbors[i],b=plan.neighbors[j];
+      assert.ok(Math.hypot(...sub(a.target,b.target))>a.radius+b.radius,'gathered galaxies do not overlap');
+    }
+    const targets=win.galaxyGatherTargets(plan,clusters);
+    assert.equal(targets.get(1).scale,1);assert.equal(targets.get(1).alpha,1);
+    assert.equal(targets.get(5).scale,plan.neighbors[0].scale);
+    assert.ok(targets.get(2).alpha<0.5,'unrelated galaxies dim');
+    assert.equal(targets.get(2).scale,1);assert.deepEqual([...targets.get(2).offset],[0,0,0]);
+    const rest=win.galaxyGatherTargets(null,clusters);
+    assert.ok([...rest.values()].every(t=>t.scale===1&&t.alpha===1&&t.offset.every(v=>v===0)),'without an opened galaxy nothing moves');
+    const node=[-9.6,1.6,-4.2];
+    const near=win.nodeCameraPose(node,[[-9.2,1.9,-4.4]],38*Math.PI/180,1.4,pose.yaw,pose.pitch);
+    const far=win.nodeCameraPose(node,[[-8.0,2.6,-5.2]],38*Math.PI/180,1.4,pose.yaw,pose.pitch);
+    assert.deepEqual([near.lookX,near.lookY,near.lookZ],node,'the clicked node is the centre of view');
+    assert.ok(near.dist<pose.dist,'opening a node zooms in further than the galaxy view');
+    assert.ok(far.dist>near.dist,'the view widens to keep the node\'s connections in frame');
+    assert.ok(far.dist<=6.5&&near.dist>=3,'a node is approached closely but its galaxy stays in view');
+    const even=[...win.gatherSlots([0.1,0.3,2.0])];
+    const gaps=even.map(a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI)).sort((a,b)=>a-b);
+    const spacing=[gaps[1]-gaps[0],gaps[2]-gaps[1],2*Math.PI-gaps[2]+gaps[0]];
+    assert.ok(spacing.every(d=>Math.abs(d-2*Math.PI/3)<1e-9),'gathered galaxies are spaced evenly around the opened one');
+    const order=[0.1,0.3,2.0].map((_,i)=>i).sort((i,j)=>((even[i]-even[0])%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-((even[j]-even[0])%(2*Math.PI)+2*Math.PI)%(2*Math.PI));
+    assert.deepEqual(order,[0,1,2],'and keep the order in which they lie around it');
+    assert.equal(near.yaw,pose.yaw,'zooming into a node keeps the galaxy view direction');
+    const details={source_commit:'c'.repeat(40),stars:[['D5/S0/A/B','T','S','hub',3,4]]};
+    const info=win.galaxyNodeInfo({kind:'star',idx:0,cid:0},details,clusters,{total:5,cross:2});
+    assert.ok(info.meta.some(m=>m.includes('5')&&m.includes('相连')),'the card counts the node\'s connections');
+    assert.ok(info.meta.some(m=>m.includes('2')&&m.includes('跨星系')));
+    const full={source_commit:'c'.repeat(40),stars:[['D5/S0/A/B','T','S','hub',3,4,7,12,[1,2],[3]],['D5/S0/A/C','U','','internal',1,1,0,1,[],[0]]]};
+    const deps=win.galaxyNodeInfo({kind:'star',idx:0,cid:0},full,clusters);
+    assert.ok(deps.meta.some(m=>m.includes('依赖 7')&&m.includes('被 12')),'the card shows how many modules it depends on and how many depend on it');
+    const conn=win.nodeConnections(0,full);
+    assert.deepEqual([[...conn.prereqs],[...conn.dependents]],[[1,2],[3]],'connections come from the full dependency graph when known');
+    assert.ok(pose.pitch>0.6,'the opened galaxy is seen from above');
   }finally{dom.window.close();}
 });
