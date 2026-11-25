@@ -27,6 +27,7 @@ MAX_STARS = 1160
 MAX_INTRA_EDGES = 640
 MAX_CROSS_EDGES = 120
 MAX_SUMMARY = 240
+MAX_NODE_LINKS = 8
 USER_AGENT = "Mozilla/5.0 (compatible; trureturing-live-nebula-sync/1.0; +https://live.trureturing.org)"
 
 # Wide outer cosmic perimeter anchors framing the ENTIRE widescreen sky AROUND
@@ -56,8 +57,9 @@ def safe_subpath(path: str) -> str:
     return clean
 
 
-def star_detail(node: list) -> list:
-    """Module path, title, summary, topology role, DAG layer and theorem count of one star."""
+def star_detail(node: list, prereq_count: int = 0, dependent_count: int = 0, prereqs: list | None = None, dependents: list | None = None) -> list:
+    """Module path, title, summary, topology role, DAG layer, theorem count, full prerequisite and
+    dependent counts, and the prerequisite and dependent stars among the sampled stars."""
     summary = str(node[4] or "") if len(node) > 4 else ""
     if len(summary) > MAX_SUMMARY:
         summary = summary[:MAX_SUMMARY].rstrip() + "…"
@@ -70,6 +72,10 @@ def star_detail(node: list) -> list:
         str(node[10] or "") if len(node) > 10 else "",
         layer,
         int(admission.get("theorem_count") or 0),
+        prereq_count,
+        dependent_count,
+        list(prereqs or [])[:MAX_NODE_LINKS],
+        list(dependents or [])[:MAX_NODE_LINKS],
     ]
 
 
@@ -91,6 +97,9 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
     in_deg = Counter()
     out_deg = Counter()
     truth_edges: list[tuple[int, int]] = []
+    # An edge (u, v) runs from a prerequisite u to the module v that depends on it.
+    prereqs_of: dict[int, list[int]] = defaultdict(list)
+    dependents_of: dict[int, list[int]] = defaultdict(list)
     for e in edges:
         if len(e) >= 3 and e[2] == "truth-dependency":
             u, v = e[0], e[1]
@@ -100,6 +109,8 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
                 deg[v] += 1
                 out_deg[u] += 1
                 in_deg[v] += 1
+                prereqs_of[v].append(u)
+                dependents_of[u].append(v)
 
     # Top 7 mathematical domains + Other (= 8 galaxies)
     dom_counts = Counter((nodes[i][5] or "Other") for i in truth_indices)
@@ -319,7 +330,16 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
         "schema_version": "trureturing-truth-nebula-details.v1",
         "source_commit": source_commit,
         "truth_release_digest": release,
-        "stars": [star_detail(nodes[i]) for i in selected],
+        "stars": [
+            star_detail(
+                nodes[i],
+                in_deg[i],
+                out_deg[i],
+                sorted((idx_to_star[u] for u in prereqs_of[i] if u in idx_to_star), key=lambda k: (-deg[selected[k]], k)),
+                sorted((idx_to_star[v] for v in dependents_of[i] if v in idx_to_star), key=lambda k: (-deg[selected[k]], k)),
+            )
+            for i in selected
+        ],
     }
     return {
         "schema_version": "trureturing-truth-nebula.v1",

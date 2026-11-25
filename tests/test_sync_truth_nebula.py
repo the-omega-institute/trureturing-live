@@ -30,14 +30,27 @@ class NebulaDetailTests(unittest.TestCase):
         self.assertEqual(len(details['stars']), len(nebula['stars']))
         clusters = {c['id']: c['name'] for c in nebula['clusters']}
         for star, row in zip(nebula['stars'], details['stars']):
-            module, title, summary, role, layer, theorems = row
+            module, title, summary, role, layer, theorems, prereq_count, dependent_count, prereqs, dependents = row
             domain = module.split('/')[2]
             self.assertEqual(clusters[star[3]], domain, 'a detail row belongs to the galaxy of its star')
             self.assertEqual(title, ('Quantum ' if domain == 'Quantum' else 'Title ') + module.rsplit('/', 1)[1][1:])
             self.assertIn(role, {'internal'})
             self.assertEqual(theorems, 2)
         self.assertTrue(all(row[0].startswith('D5/') for row in details['stars']), 'blueprint nodes are not stars')
-        self.assertIn(['D5/S2/Quantum/Q0', 'Quantum 0', '', 'internal', 1, 2], details['stars'])
+        self.assertIn('D5/S2/Quantum/Q0', [row[0] for row in details['stars']])
+
+    def test_each_star_knows_its_prerequisites_and_dependents_among_the_stars(self):
+        nebula, details = build_nebula(*atlas())
+        index = {row[0]: i for i, row in enumerate(details['stars'])}
+        m1 = details['stars'][index['D5/S1/Combinatorics/M1']]
+        self.assertEqual(m1[6:8], [1, 1], 'M1 has one prerequisite (M0) and one dependent (M2)')
+        self.assertEqual(m1[8], [index['D5/S1/Combinatorics/M0']])
+        self.assertEqual(m1[9], [index['D5/S1/Combinatorics/M2']])
+        m2 = details['stars'][index['D5/S1/Combinatorics/M2']]
+        self.assertEqual(m2[9], [index['D5/S2/Quantum/Q0']], 'dependencies cross galaxies')
+        q1 = details['stars'][index['D5/S2/Quantum/Q1']]
+        self.assertEqual(q1[8], [index['D5/S2/Quantum/Q0']])
+        self.assertEqual(details['stars'][index['D5/S1/Combinatorics/M5']][6:], [0, 0, [], []])
 
     def test_long_summaries_are_shortened(self):
         manifest, layout, graph = atlas()
