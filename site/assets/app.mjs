@@ -2983,7 +2983,7 @@ function rebuildRecentTruthGrowth() {
     bucket.events.push(ev);
   }
 
-  // Sort each cluster's events newest-first and build deterministic real frontier sprouts
+  // Sort each cluster's events newest-first and build deterministic outward-expanding organic sprouts
   for (const [cid, bucket] of truthGrowth.recentByCluster) {
     bucket.events.sort((a, b) => (timestamp(b.at) || 0) - (timestamp(a.at) || 0));
     bucket.latest = bucket.events[0] || null;
@@ -2991,21 +2991,65 @@ function rebuildRecentTruthGrowth() {
     const members = truthGrowth.members.get(cid);
     if (!cluster || !members?.length) continue;
     const ctr = cluster.center;
-    for (const ev of bucket.events.slice(0, 12)) {
+    // Prefer outer-rim stars of this galaxy so new proof branches visibly expand OUTWARD!
+    const sortedOuter = members
+      .slice()
+      .sort((ia, ib) => {
+        const sa = truthNebula.stars[ia], sb = truthNebula.stars[ib];
+        const da = Math.hypot(sa[0], sa[1]);
+        const db = Math.hypot(sb[0], sb[1]);
+        return db - da;
+      });
+    const rimPool = sortedOuter.slice(0, Math.max(8, Math.floor(sortedOuter.length * 0.45)));
+    const cap = Math.min(18, bucket.events.length);
+    for (let idx = 0; idx < cap; idx++) {
+      const ev = bucket.events[idx];
       const [a, b, c, d] = growthOffset(ev.module || '');
-      const parentIdx = members[Math.floor(a * members.length)];
+      const parentIdx = rimPool[Math.floor(a * rimPool.length)];
       const p = truthNebula.stars[parentIdx];
-      const dx = p[0] - ctr[0], dy = p[1] - ctr[1], dz = p[2] - ctr[2];
-      const len = Math.hypot(dx, dy, dz) || 1;
-      const step = 34 + b * 44;
+      // Blend outward from galaxy centroid + outward from universe origin (using star position so ring clusters like Other always expand outward!)
+      const gdx = p[0] - ctr[0], gdy = p[1] - ctr[1], gdz = p[2] - ctr[2];
+      const glen = Math.hypot(gdx, gdy, gdz) || 1;
+      const prLen = Math.hypot(p[0], p[1]) || 1;
+      const isRingCluster = cluster.name === 'Other';
+      const wGal = isRingCluster ? 0.18 : 0.48;
+      const wUni = 1.0 - wGal;
+      const ox = (gdx / glen) * wGal + (p[0] / prLen) * wUni;
+      const oy = (gdy / glen) * wGal + (p[1] / prLen) * wUni;
+      const oz = (gdz / glen) * 0.45;
+      const olen = Math.hypot(ox, oy, oz) || 1;
+      const ux = ox / olen, uy = oy / olen, uz = oz / olen;
+      const step = 64 + b * 68;
+      const tx = p[0] + ux * step + (c - 0.5) * 32;
+      const ty = p[1] + uy * step + (d - 0.5) * 32;
+      const tz = p[2] + uz * step * 0.52;
+      // Gentle perpendicular curve offset so each growing filament arcs organically like a botanical/neural root
+      const perpX = -uy * (c - 0.5) * 36;
+      const perpY =  ux * (c - 0.5) * 36;
+      // Secondary micro-fork branching outward from 56% along the main filament (living tree / coral gestation!)
+      const forkSign = d >= 0.5 ? 1 : -1;
+      const forkAng = Math.atan2(uy, ux) + forkSign * (0.42 + a * 0.24);
+      const forkLen = step * (0.38 + c * 0.18);
+      const bx = (p[0] + tx) * 0.5 + perpX * 0.55;
+      const by = (p[1] + ty) * 0.5 + perpY * 0.55;
+      const bz = (p[2] + tz) * 0.5;
       truthGrowth.recentSprouts.push({
         cid,
         parentIdx,
         module: ev.module,
         at: ev.at,
-        x: p[0] + (dx / len) * step + (c - 0.5) * 28,
-        y: p[1] + (dy / len) * step + (d - 0.5) * 28,
-        z: p[2] + (dz / len) * step * 0.55
+        x: tx,
+        y: ty,
+        z: tz,
+        mx: (p[0] + tx) * 0.5 + perpX,
+        my: (p[1] + ty) * 0.5 + perpY,
+        mz: (p[2] + tz) * 0.5,
+        fx: bx + Math.cos(forkAng) * forkLen,
+        fy: by + Math.sin(forkAng) * forkLen,
+        fz: bz + uz * forkLen * 0.45,
+        hasFork: idx < 10,
+        phase: (idx / Math.max(1, cap) + a * 0.25) % 1,
+        period: 8.8 + b * 4.4
       });
     }
   }
@@ -3298,38 +3342,90 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // PASS 1: Serene Volumetric Nebula Mist — stronger ONLY on galaxies with real recent growth!
+  // PASS 1: Organic Gestating Nebula Mist + Slow Concentric Outward Expansion Halos on Growing Galaxies!
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
   const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
     if (focusK > 0.05) return cid === growthFocus?.cid ? 1.55 : 0.40;
     if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.45 : 0.50;
-    return recentBucket(cid)?.count ? 1.25 : 0.72;
+    return recentBucket(cid)?.count ? 1.28 : 0.72;
   };
   for (const { cl, x: px, y: py, inv, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
-    const hasGrowth = Boolean(recentBucket(cl.id)?.count);
+    const delta = recentBucket(cl.id)?.count || 0;
+    const hasGrowth = delta > 0;
     const weight = Math.min(1.42, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.48);
-    const rad = Math.min(w, h) * (hasGrowth ? 0.22 : 0.17) * weight * inv;
+    // Slow organic breathing expansion on actively growing galaxies (zero harsh flicker!)
+    const swell = (hasGrowth && !quiet) ? (1.0 + 0.075 * Math.sin(tEff * 0.52 + cl.id * 1.3)) : 1.0;
+    const rad = Math.min(w, h) * (hasGrowth ? 0.24 : 0.16) * weight * inv * swell;
     const g = ctx.createRadialGradient(px, py, 6, px, py, rad);
-    const baseA = (isLight ? (hasGrowth ? 0.052 : 0.022) : (hasGrowth ? 0.085 : 0.036)) * maskFor(cl.id, px, py) * Math.min(1.35, clusterEmphasis(cl.id));
+    const baseA = (isLight ? (hasGrowth ? 0.064 : 0.020) : (hasGrowth ? 0.108 : 0.034)) * maskFor(cl.id, px, py) * Math.min(1.35, clusterEmphasis(cl.id));
     g.addColorStop(0, rgba(col, baseA));
-    g.addColorStop(0.52, rgba(col, baseA * 0.42));
+    g.addColorStop(0.50, rgba(col, baseA * 0.46));
     g.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(px, py, rad, 0, Math.PI * 2);
     ctx.fill();
+
+    // Silky, ultra-slow OUTWARD-FACING crescent wavefronts ("外围孕育扩张波纹") ONLY around growing galaxies!
+    // Faces strictly away from the campus center so the outer rim visibly expands without encroaching inward.
+    if (hasGrowth && !quiet && focusK < 0.4) {
+      const outAng = Math.atan2(py - cy, px - cx);
+      const ringCount = delta >= 8 ? 3 : 1;
+      for (let rIdx = 0; rIdx < ringCount; rIdx++) {
+        const u = (tEff * 0.082 + cl.id * 0.23 + rIdx / ringCount) % 1;
+        const rRing = (24 + u * Math.min(w, h) * (delta >= 8 ? 0.165 : 0.105)) * inv;
+        const env = Math.sin(u * Math.PI);
+        const alphaRing = env * env * (isLight ? 0.28 : 0.36) * maskFor(cl.id, px, py);
+        if (alphaRing > 0.008) {
+          const halfSpan = 1.38;
+          const arcSegs = 12;
+          const baseLW = 1.45 - u * 0.72;
+          for (let s = 0; s < arcSegs; s++) {
+            const f0 = s / arcSegs;
+            const f1 = (s + 1) / arcSegs;
+            const taper = Math.sin(((f0 + f1) * 0.5) * Math.PI);
+            const segA = alphaRing * taper * taper;
+            if (segA < 0.005) continue;
+            const a0 = outAng - halfSpan + f0 * halfSpan * 2;
+            const a1 = outAng - halfSpan + f1 * halfSpan * 2;
+            ctx.strokeStyle = rgba(col, segA);
+            ctx.lineWidth = Math.max(0.45, baseLW * (0.55 + 0.45 * taper));
+            ctx.beginPath();
+            ctx.arc(px, py, rRing, a0, a1);
+            ctx.stroke();
+          }
+        }
+      }
+    }
   }
 
-  // PASS 2: Only real verification ripples (ZERO fake sweeping disco wavefronts!)
+  // PASS 2: Majestic Dual-Layer Ultra-Slow Outer Cosmic Expansion Horizon (outer perimeter ONLY — serene, silky!)
   const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [0, 255, 168];
+  if (!quiet) {
+    for (let layer = 0; layer < 2; layer++) {
+      const uOuter = (tEff * 0.048 + layer * 0.50) % 1;
+      const radScale = 0.84 + uOuter * 0.36;
+      const env = Math.sin(uOuter * Math.PI);
+      const rx = w * 0.44 * radScale;
+      const ry = h * 0.44 * radScale;
+      const outerA = env * env * (isLight ? 0.11 : 0.15);
+      if (outerA > 0.006) {
+        ctx.strokeStyle = rgba(waveColor, outerA);
+        ctx.lineWidth = 1.15 - uOuter * 0.45;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
   for (const rp of holoCam.nebulaRipples) {
-    const u = 0.62 + rp.age * 0.66;
-    if (u <= 0.62 || u >= 1.28) continue;
-    const fade = Math.sin(Math.min(1, (u - 0.62) / 0.66) * Math.PI);
-    ctx.strokeStyle = rgba(waveColor, fade * (isLight ? 0.07 : 0.11));
-    ctx.lineWidth = 0.9;
+    const u = 0.68 + rp.age * 0.58;
+    if (u <= 0.68 || u >= 1.26) continue;
+    const fade = Math.sin(Math.min(1, (u - 0.68) / 0.58) * Math.PI);
+    ctx.strokeStyle = rgba(waveColor, fade * (isLight ? 0.08 : 0.13));
+    ctx.lineWidth = 1.0;
     ctx.beginPath();
     ctx.ellipse(cx, cy, w * 0.45 * u, h * 0.45 * u, 0, 0, Math.PI * 2);
     ctx.stroke();
@@ -3398,10 +3494,23 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
   }
 
-  // PASS 4: Project all 1,160 real frozen Truth DAG stars cleanly (still, non-flickering astronomical chart!)
+  // PASS 4: Project all 1,160 real frozen Truth DAG stars with imperceptibly gentle outward expansion on growing galaxies
   for (let i = 0; i < n; i++) {
     const s = stars[i];
-    const [px, py, pz] = projectNeb(s[0] / 1000, s[1] / 1000, s[2] / 1000);
+    const hasGrowth = Boolean(recentBucket(s[3])?.count);
+    let nx = s[0] / 1000, ny = s[1] / 1000, nz = s[2] / 1000;
+    if (hasGrowth && !quiet) {
+      const cl = clProj.get(s[3])?.cl;
+      if (cl && cl.name !== 'Other') {
+        const gen = s[4] / 100;
+        const swell = 1.0 + gen * 0.055 * (0.5 + 0.5 * Math.sin(tEff * 0.46 + s[3] * 1.1));
+        const cx3 = cl.center[0] / 1000, cy3 = cl.center[1] / 1000, cz3 = cl.center[2] / 1000;
+        nx = cx3 + (nx - cx3) * swell;
+        ny = cy3 + (ny - cy3) * swell;
+        nz = cz3 + (nz - cz3) * swell;
+      }
+    }
+    const [px, py, pz] = projectNeb(nx, ny, nz);
     projX[i] = px;
     projY[i] = py;
     projZ[i] = pz;
@@ -3459,33 +3568,137 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   // PASS 6B: Live arriving growth animation (when a new D5 module arrives during the current viewing session)
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
 
-  // PASS 7: REAL RECENT TRUTH DAG GROWTH SPROUTS (ONLY genuine newly-frozen D5 modules glow!)
+  // PASS 7: ORGANIC SLOW-MOTION "孕育 → 伸展分叉 → 绽放" REAL TRUTH DAG FRONTIER GROWTH!
+  // Smooth curved botanical/cosmological outward extension + branching ONLY on real newly-frozen D5 modules!
   for (let k = 0; k < truthGrowth.recentSprouts.length; k++) {
     const sp = truthGrowth.recentSprouts[k];
-    const [px, py] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000);
-    if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
-    const mask = maskFor(sp.cid, px, py);
-    if (mask < 0.20) continue;
+    const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000);
+    const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000);
+    if (pxEnd < -24 || pxEnd > w + 24 || pyEnd < -24 || pyEnd > h + 24) continue;
+    const mask = maskFor(sp.cid, pxEnd, pyEnd);
+    if (mask < 0.18) continue;
     const col = nebPalette[sp.cid % nebPalette.length];
     const isSpot = focusCid != null && sp.cid === focusCid;
-    const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.45 : 1.0);
+    const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.42 : 1.0);
     const parentX = projX[sp.parentIdx], parentY = projY[sp.parentIdx];
-    ctx.strokeStyle = rgba(col, (isLight ? 0.62 : 0.72) * mask * Math.min(1.2, dim));
-    ctx.lineWidth = isSpot ? 1.45 : 1.05;
+    const [fxEnd, fyEnd] = sp.hasFork ? projectNeb(sp.fx / 1000, sp.fy / 1000, sp.fz / 1000) : [pxEnd, pyEnd];
+    // Anchor point of the secondary micro-fork at t=0.56 along the quadratic curve
+    const forkT = 0.56, invFT = 1 - forkT;
+    const fBaseX = invFT * invFT * parentX + 2 * invFT * forkT * mx + forkT * forkT * pxEnd;
+    const fBaseY = invFT * invFT * parentY + 2 * invFT * forkT * my + forkT * forkT * pyEnd;
+
+    // Permanent softly-lit expanded crown filament + settled micro-fork so the outer expansion is ALWAYS legible
+    const baseEdgeA = (isLight ? 0.28 : 0.34) * mask * Math.min(1.2, dim);
+    ctx.strokeStyle = rgba(col, baseEdgeA);
+    ctx.lineWidth = isSpot ? 1.1 : 0.80;
     ctx.beginPath();
     ctx.moveTo(parentX, parentY);
-    ctx.lineTo(px, py);
+    ctx.quadraticCurveTo(mx, my, pxEnd, pyEnd);
     ctx.stroke();
 
-    const rHalo = isSpot ? 6.0 : 4.2;
-    ctx.fillStyle = rgba(col, (isLight ? 0.22 : 0.30) * mask * Math.min(1.2, dim));
+    if (sp.hasFork) {
+      ctx.strokeStyle = rgba(col, baseEdgeA * 0.72);
+      ctx.lineWidth = isSpot ? 0.85 : 0.62;
+      ctx.beginPath();
+      ctx.moveTo(fBaseX, fBaseY);
+      ctx.lineTo(fxEnd, fyEnd);
+      ctx.stroke();
+      ctx.fillStyle = rgba(col, (isLight ? 0.50 : 0.46) * mask * Math.min(1.2, dim));
+      ctx.beginPath();
+      ctx.arc(fxEnd, fyEnd, isSpot ? 1.35 : 1.0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Settled outer crown node (steady, calm glow)
+    ctx.fillStyle = rgba(col, (isLight ? 0.65 : 0.60) * mask * Math.min(1.2, dim));
     ctx.beginPath();
-    ctx.arc(px, py, rHalo, 0, Math.PI * 2);
+    ctx.arc(pxEnd, pyEnd, isSpot ? 1.9 : 1.4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = isLight ? rgba(col, 0.96 * mask * Math.min(1.2, dim)) : rgba([245, 255, 240], 0.94 * mask * Math.min(1.2, dim));
-    ctx.beginPath();
-    ctx.arc(px, py, isSpot ? 2.2 : 1.65, 0, Math.PI * 2);
-    ctx.fill();
+
+    // Slow organic gestation -> outward extension & fork -> bloom cycle (8.8–13.2s, staggered calmly)
+    if (!quiet) {
+      const cyc = (tEff / (sp.period || 10.0) + (sp.phase || 0)) % 1;
+      if (cyc < 0.20) {
+        // Stage 1 — 孕育 (Gestation): warm bud slowly swells at the parent star
+        const u = cyc / 0.20;
+        const bud = Math.sin(u * Math.PI);
+        const rBud = 2.2 + bud * 5.6;
+        const bg = ctx.createRadialGradient(parentX, parentY, 0.5, parentX, parentY, rBud);
+        bg.addColorStop(0, rgba(isLight ? col : [240, 255, 244], bud * 0.76 * mask * dim));
+        bg.addColorStop(1, rgba(col, 0));
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        ctx.arc(parentX, parentY, rBud, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (cyc < 0.68) {
+        // Stage 2 — 伸展分叉 (Outward Extension + Micro-Fork): curved branch smoothly grows 0 -> 100% outward
+        const u = growthEase((cyc - 0.20) / 0.48);
+        const steps = 10;
+        ctx.strokeStyle = rgba(isLight ? col : [215, 255, 236], (isLight ? 0.76 : 0.84) * mask * Math.min(1.2, dim));
+        ctx.lineWidth = isSpot ? 1.65 : 1.25;
+        ctx.beginPath();
+        let tipX = parentX, tipY = parentY;
+        for (let s = 0; s <= steps; s++) {
+          const f = (s / steps) * u;
+          const invF = 1 - f;
+          const qx = invF * invF * parentX + 2 * invF * f * mx + f * f * pxEnd;
+          const qy = invF * invF * parentY + 2 * invF * f * my + f * f * pyEnd;
+          if (s === 0) ctx.moveTo(qx, qy);
+          else ctx.lineTo(qx, qy);
+          tipX = qx;
+          tipY = qy;
+        }
+        ctx.stroke();
+
+        // Secondary outward micro-fork unfurls once main branch passes 54%
+        if (sp.hasFork && u > 0.54) {
+          const fu = growthEase((u - 0.54) / 0.46);
+          const fTipX = fBaseX + (fxEnd - fBaseX) * fu;
+          const fTipY = fBaseY + (fyEnd - fBaseY) * fu;
+          ctx.strokeStyle = rgba(isLight ? col : [205, 255, 232], (isLight ? 0.66 : 0.74) * mask * Math.min(1.2, dim));
+          ctx.lineWidth = isSpot ? 1.15 : 0.90;
+          ctx.beginPath();
+          ctx.moveTo(fBaseX, fBaseY);
+          ctx.lineTo(fTipX, fTipY);
+          ctx.stroke();
+          ctx.fillStyle = rgba(isLight ? col : [242, 255, 248], 0.82 * mask * dim);
+          ctx.beginPath();
+          ctx.arc(fTipX, fTipY, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Soft luminous growing frontier bud at the advancing tip
+        const tipGlow = ctx.createRadialGradient(tipX, tipY, 0.5, tipX, tipY, 7.6);
+        tipGlow.addColorStop(0, rgba(isLight ? col : [245, 255, 248], 0.90 * mask * dim));
+        tipGlow.addColorStop(0.45, rgba(col, 0.36 * mask * dim));
+        tipGlow.addColorStop(1, rgba(col, 0));
+        ctx.fillStyle = tipGlow;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 7.6, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Stage 3 — 绽放定型 (Bloom & Settle): soft concentric halo blooms at the new outer theorem node
+        const u = (cyc - 0.68) / 0.32;
+        const fade = Math.sin(u * Math.PI);
+        const rBloom = 3.2 + u * 10.2;
+        ctx.strokeStyle = rgba(col, fade * (isLight ? 0.58 : 0.72) * mask * dim);
+        ctx.lineWidth = 0.95;
+        ctx.beginPath();
+        ctx.arc(pxEnd, pyEnd, rBloom, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = rgba(isLight ? col : [245, 255, 246], (0.55 + fade * 0.40) * mask * dim);
+        ctx.beginPath();
+        ctx.arc(pxEnd, pyEnd, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        if (sp.hasFork) {
+          ctx.strokeStyle = rgba(col, fade * (isLight ? 0.42 : 0.52) * mask * dim);
+          ctx.lineWidth = 0.75;
+          ctx.beginPath();
+          ctx.arc(fxEnd, fyEnd, 2.0 + u * 5.8, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
   }
 
   ctx.restore();
@@ -3508,14 +3721,16 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   for (const { cl, x: px, y: py, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const isBottom = cl.center[1] < 0;
-    const lx = Math.max(332, Math.min(w - 332, px));
-    const ly = isBottom ? Math.min(h - 118, py + 26) : Math.max(78, py - 24);
+    const bucket = recentBucket(cl.id);
+    const delta = bucket?.count || 0;
+    const isFeatured = delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2;
+    const padX = isFeatured ? 386 : 340;
+    const lx = Math.max(padX, Math.min(w - padX, px));
+    const ly = isBottom ? Math.min(h - 114, py + 28) : Math.max(82, py - 24);
     if (lx < 292 || lx > w - 292) continue;
 
     holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
     const isHovered = holoCam.hoveredGalaxy === cl.id && focusK < 0.2;
-    const bucket = recentBucket(cl.id);
-    const delta = bucket?.count || 0;
 
     if (isHovered) {
       ctx.save();
@@ -3531,33 +3746,70 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
     ctx.globalAlpha = focusK > 0.05
       ? Math.min(1, growthDim(cl.id))
-      : (isHovered ? 1.0 : delta > 0 ? 0.95 : 0.46);
+      : (isHovered ? 1.0 : delta > 0 ? 0.96 : 0.46);
     const mainLabel = delta > 0
       ? `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}  +${delta}`
       : `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
+    let subText = '';
+    if (isHovered || isFeatured) {
+      const evList = bucket?.events || [];
+      const rotIdx = (!isHovered && !quiet && evList.length > 1) ? Math.floor(tEff / 6.5) % Math.min(6, evList.length) : 0;
+      const featured = evList[rotIdx] || bucket?.latest;
+      const latestShort = featured ? shortModuleName(featured.module) : '';
+      subText = isHovered
+        ? (latestShort ? `最新扩张: ${latestShort} · 点击特写 ↗` : `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗`)
+        : (latestShort ? `孕育扩张 ↗ ${latestShort.slice(0, 24)}${latestShort.length > 24 ? '…' : ''}` : '');
+    }
+
+    // Whisper-clean frosted capsule backdrop for actively growing / hovered galaxies so bright tendrils NEVER hurt text legibility
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${(isHovered || delta > 0) ? '700 9.5px' : '600 8.8px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
-    ctx.lineWidth = 3.2;
+    const mainFont = `${(isHovered || delta > 0) ? '700 9.5px' : '600 8.8px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    const subFont = '600 8px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    if (delta > 0 || isHovered) {
+      ctx.font = mainFont;
+      const wMain = ctx.measureText(mainLabel).width;
+      ctx.font = subFont;
+      const wSub = subText ? ctx.measureText(subText).width : 0;
+      const pillW = Math.max(wMain, wSub) + 22;
+      const pillH = subText ? 31 : 19;
+      const pillCenterY = subText ? (ly + (isBottom ? 6.5 : -6.5)) : ly;
+      const rx0 = lx - pillW * 0.5;
+      const ry0 = pillCenterY - pillH * 0.5;
+      const rad = 7;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(rx0 + rad, ry0);
+      ctx.lineTo(rx0 + pillW - rad, ry0);
+      ctx.quadraticCurveTo(rx0 + pillW, ry0, rx0 + pillW, ry0 + rad);
+      ctx.lineTo(rx0 + pillW, ry0 + pillH - rad);
+      ctx.quadraticCurveTo(rx0 + pillW, ry0 + pillH, rx0 + pillW - rad, ry0 + pillH);
+      ctx.lineTo(rx0 + rad, ry0 + pillH);
+      ctx.quadraticCurveTo(rx0, ry0 + pillH, rx0, ry0 + pillH - rad);
+      ctx.lineTo(rx0, ry0 + rad);
+      ctx.quadraticCurveTo(rx0, ry0, rx0 + rad, ry0);
+      ctx.closePath();
+      ctx.fillStyle = isLight ? 'rgba(248, 245, 238, 0.88)' : 'rgba(2, 13, 8, 0.76)';
+      ctx.fill();
+      ctx.strokeStyle = rgba(col, isHovered ? 0.56 : 0.30);
+      ctx.lineWidth = 0.85;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.font = mainFont;
+    ctx.lineWidth = 2.8;
     ctx.strokeStyle = strokeHalo;
-    ctx.strokeText(mainLabel, lx, ly);
+    if (!(delta > 0 || isHovered)) ctx.strokeText(mainLabel, lx, ly);
     ctx.fillStyle = isLight
       ? rgba(col, (isHovered || delta > 0) ? 0.98 : 0.72)
       : (delta > 0 ? rgba([228, 255, 240], 0.96) : rgba(col, isHovered ? 1.0 : 0.72));
     ctx.fillText(mainLabel, lx, ly);
 
-    if (isHovered || (delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2)) {
-      const latest = bucket?.latest;
-      const latestShort = latest ? shortModuleName(latest.module) : '';
-      const subText = isHovered
-        ? (latestShort ? `最新: ${latestShort} · 点击特写 ↗` : `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗`)
-        : (latestShort ? `↗ ${latestShort.slice(0, 26)}${latestShort.length > 26 ? '…' : ''}` : '');
-      if (subText) {
-        ctx.font = '600 8px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-        ctx.strokeText(subText, lx, ly + (isBottom ? 13 : -13));
-        ctx.fillStyle = isLight ? rgba(col, 0.92) : rgba(col, 0.92);
-        ctx.fillText(subText, lx, ly + (isBottom ? 13 : -13));
-      }
+    if (subText) {
+      ctx.font = subFont;
+      ctx.fillStyle = isLight ? rgba(col, 0.94) : rgba(col, 0.95);
+      ctx.fillText(subText, lx, ly + (isBottom ? 13 : -13));
     }
     ctx.globalAlpha = 1;
   }
