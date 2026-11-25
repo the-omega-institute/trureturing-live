@@ -552,3 +552,30 @@ test('conjecture resolution and refutation ledger stores verdicts and merges liv
     assert.ok(provedCards.every(c=>!c.classList.contains('is-refuted')));
   }finally{dom.window.close();}
 });
+
+test('five-tier real-automation LEVEL UP planner maps settled conjectures to galaxy rockets, papers to Mathesis prism, and outreach to scholar sync',async()=>{
+  const {dom,win}=await boot();try{
+    const rocketProof=win.xpPlanFor({kind:'contribution',status:'merged',department:'research',label:'Prove sharp quantum Bloch entanglement bound'});
+    assert.equal(rocketProof.tier,3);
+    assert.equal(rocketProof.fx,'rocket');
+    assert.equal(rocketProof.galaxyCid,1,'maps quantum proof rocket into Quantum galaxy (cid 1)');
+
+    const rocketRefute=win.xpPlanFor({kind:'task',status:'closed',department:'research',label:'Counterexample disproving Robin prime conjecture variant'});
+    assert.equal(rocketRefute.tier,3);
+    assert.equal(rocketRefute.fx,'rocket');
+    assert.equal(rocketRefute.label,'猜想反驳');
+    assert.equal(rocketRefute.galaxyCid,2,'maps number theory refutation rocket into Arith galaxy (cid 2)');
+
+    const paperPlan=win.xpPlanFor({kind:'contribution',status:'merged',department:'publication',label:'Publish Mathesis preprint'});
+    assert.equal(paperPlan.tier,3);
+    assert.equal(paperPlan.fx,'paper');
+
+    const outreachPlan=win.xpPlanFor({kind:'contribution',status:'merged',department:'outreach',label:'Sync external scholar reply'});
+    assert.equal(outreachPlan.tier,3);
+    assert.equal(outreachPlan.fx,'outreach');
+
+    const failPlan=win.xpPlanFor({kind:'automation',status:'failed',department:'verification',label:'Lean CI check'});
+    assert.equal(failPlan.tier,-1);
+    assert.equal(failPlan.fx,'fail');
+  }finally{dom.window.close();}
+});

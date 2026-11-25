@@ -517,22 +517,25 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   filter: drop-shadow(0 0 10px var(--live));
 }
 
-/* Subtle bottom-center cinema coordinates (optically centered in open left-to-center 3D stage!) */
+/* Subtle bottom-right cinema hint inside open 3D stage (zero overlap with #human-console on left!) */
 .fui-corner-telemetry {
   position: fixed;
-  left: calc((100vw - 290px) * 0.5);
-  bottom: 66px;
-  transform: translateX(-50%);
+  left: auto;
+  right: 312px;
+  bottom: 76px;
+  transform: none;
   z-index: 30;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: 1px;
+  max-width: calc(100vw - 720px);
   pointer-events: none;
-  transition: opacity 0.25s ease, left 0.28s ease;
+  transition: opacity 0.25s ease, right 0.28s ease;
 }
 .research-room.is-hud-zen .fui-corner-telemetry {
-  left: 50%;
+  left: auto;
+  right: 26px;
 }
 
 .fui-coord {
