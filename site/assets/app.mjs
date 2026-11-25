@@ -3486,15 +3486,20 @@ function galaxyGatherPlan(focusCid, clusters, links, frames, basis, aspect) {
 }
 
 // Per-galaxy transform targets: gathered galaxies move and shrink about their own
-// centre, the opened one stays, the rest dim in place.
-function galaxyGatherTargets(plan, clusters) {
+// centre, the opened one stays, the rest dim in place; a growing galaxy is enlarged
+// about its centre while everything else stays put.
+function galaxyGatherTargets(plan, clusters, swell = null) {
   const targets = new Map();
   for (const c of clusters || []) {
+    if (swell && c.id === swell.cid) {
+      targets.set(c.id, { pivot: swell.pivot, offset: swell.offset || [0, 0, 0], scale: swell.scale, stretch: [1, swell.lift || 1, 1], alpha: 1.4 });
+      continue;
+    }
     const n = plan?.neighbors.find(x => x.cid === c.id);
     const active = Boolean(plan);
     targets.set(c.id, n
-      ? { pivot: n.pivot, offset: n.offset, scale: n.scale, alpha: 1 }
-      : { pivot: [0, 0, 0], offset: [0, 0, 0], scale: 1, alpha: !active || c.id === plan.focusCid ? 1 : GATHER_DIM });
+      ? { pivot: n.pivot, offset: n.offset, scale: n.scale, stretch: [1, 1, 1], alpha: 1 }
+      : { pivot: [0, 0, 0], offset: [0, 0, 0], scale: 1, stretch: [1, 1, 1], alpha: !active || c.id === plan.focusCid ? 1 : GATHER_DIM });
   }
   return targets;
 }
@@ -3515,22 +3520,23 @@ function galaxyGatherPlanFor(cid, frame, fovY, aspect) {
 }
 
 // Eases every galaxy's gather transform toward the plan (or back to rest) and hands it to the GPU.
-function stepGalaxyGather(plan, k) {
+function stepGalaxyGather(plan, k, swell = null) {
   const gl = holoCam.gl;
   if (!gl || !truthNebula.loaded) return;
   if (!holoCam.gather) holoCam.gather = new Map();
   const entries = [];
-  for (const [cid, t] of galaxyGatherTargets(plan, truthNebula.clusters)) {
+  for (const [cid, t] of galaxyGatherTargets(plan, truthNebula.clusters, swell)) {
     let cur = holoCam.gather.get(cid);
     if (!cur) {
-      cur = { pivot: t.pivot.slice(), offset: [0, 0, 0], scale: 1, alpha: 1 };
+      cur = { pivot: t.pivot.slice(), offset: [0, 0, 0], scale: 1, stretch: [1, 1, 1], alpha: 1 };
       holoCam.gather.set(cid, cur);
     }
-    if (t.scale !== 1) cur.pivot = t.pivot.slice();
+    if (t.scale !== 1 || t.stretch.some(v => v !== 1)) cur.pivot = t.pivot.slice();
     cur.offset = cur.offset.map((v, i) => v + (t.offset[i] - v) * k);
     cur.scale += (t.scale - cur.scale) * k;
+    cur.stretch = cur.stretch.map((v, i) => v + (t.stretch[i] - v) * k);
     cur.alpha += (t.alpha - cur.alpha) * k;
-    entries.push({ cid, pivot: cur.pivot, offset: cur.offset, scale: cur.scale, alpha: cur.alpha });
+    entries.push({ cid, pivot: cur.pivot, offset: cur.offset, scale: cur.scale, stretch: cur.stretch, alpha: cur.alpha });
   }
   gl.setGather(entries);
   holoCam.gatherPlan = plan;
@@ -3595,21 +3601,52 @@ function nodeCameraPose(node, neighbors, fovY, aspect, yaw, pitch) {
   return { yaw, pitch, dist, lookX: x, lookY: y, lookZ: z };
 }
 
-// A user-opened galaxy always takes the view; growth takes it only when the reader is
-// not looking at the station, a department or another opened galaxy.
+// Only a galaxy the reader opens moves the camera. A growing galaxy keeps the layout and
+// is enlarged where it is, unless the reader is on the station, in a department or has
+// a galaxy open.
 function galaxyCameraAllowed(kind, view) {
-  if (view.mode !== 'organization' || view.focusedDepartment) return false;
-  if (kind === 'manual') return true;
-  return view.layer !== 'station' && !view.manual;
+  return kind === 'manual' && view.mode === 'organization' && !view.focusedDepartment;
 }
 
-function galaxyCameraFocus(now) {
+function galaxyCameraFocus() {
   const manual = truthGrowth.manualFocus && !truthGrowth.manualFocus.closing ? truthGrowth.manualFocus : null;
   const view = { mode: state.mode, layer: state.layer, focusedDepartment: state.focused, manual: Boolean(manual) };
-  const pick = (focus, kind) => (focus && focus.cluster?.name !== 'Other' && galaxyCameraAllowed(kind, view) ? { cid: focus.cid, kind } : null);
-  if (manual) return pick(manual, 'manual');
+  return manual && manual.cluster?.name !== 'Other' && galaxyCameraAllowed('manual', view) ? { cid: manual.cid, kind: 'manual' } : null;
+}
+
+const GROWTH_SWELL = 3.2;
+// A galaxy is a flat band seen from the station; while it grows it also opens up
+// vertically so its new branches separate.
+const GROWTH_SWELL_LIFT = 1.8;
+
+function growthSwellAllowed(view) {
+  return view.mode === 'organization' && !view.focusedDepartment && view.layer !== 'station' && !view.manual;
+}
+
+// Scale of a growing galaxy over its close-up: eases up, holds while it grows, eases back.
+function growthSwellScale(elapsed) {
+  return 1 + (GROWTH_SWELL - 1) * growthFocusAmount(elapsed);
+}
+
+// Screen shift (px) that keeps an enlarged galaxy of the given half size on stage:
+// none when it fits, just enough when it crosses an edge, centred when it is too big.
+function growthSwellShift(center, halfW, halfH, stage) {
+  const axis = (c, half, lo, hi) => {
+    if (2 * half >= hi - lo) return (lo + hi) / 2 - c;
+    if (c - half < lo) return lo - (c - half);
+    if (c + half > hi) return hi - (c + half);
+    return 0;
+  };
+  return [axis(center[0], halfW, stage.left, stage.right), axis(center[1], halfH, stage.top, stage.bottom)];
+}
+
+function growthSwellFocus(now) {
   const auto = truthGrowth.focus;
-  return auto && now - auto.start < GROWTH_HOLD_MS ? pick(auto, 'growth') : null;
+  const manual = truthGrowth.manualFocus && !truthGrowth.manualFocus.closing;
+  const view = { mode: state.mode, layer: state.layer, focusedDepartment: state.focused, manual: Boolean(manual) };
+  if (!auto || auto.cluster?.name === 'Other' || !growthSwellAllowed(view)) return null;
+  const amount = growthFocusAmount(now - auto.start);
+  return amount > 0.001 ? { cid: auto.cid, scale: growthSwellScale(now - auto.start), lift: 1 + (GROWTH_SWELL_LIFT - 1) * amount } : null;
 }
 
 // World-space centre and framing radius (85th percentile of its stars) of a galaxy.
@@ -3758,8 +3795,14 @@ function placeGalaxyNodeCard(bounds) {
 
 // Marks new nodes and hub theorems of the main-view galaxy, labels them and records the
 // projected nodes that the pointer can pick.
-function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGutter, now) {
-  const alpha = Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4));
+// In 'main' mode the galaxy is opened (gathered group, hub labels, legend); in 'swell'
+// mode it is growing in place and only its new nodes are marked.
+function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGutter, now, mode = 'main') {
+  const main = mode === 'main';
+  const swellNow = holoCam.gather?.get(cid)?.scale || 1;
+  const alpha = main
+    ? Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4))
+    : Math.max(0, Math.min(1, ((swellNow - 1) / (GROWTH_SWELL - 1)) * 1.25));
   const right = w - rightGutter - 14;
   galaxyDetail.bounds = { left: 16, top: 104, right, bottom: h - 70 };
   if (alpha < 0.05) {
@@ -3767,7 +3810,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     return;
   }
   const onStage = (x, y) => x > 18 && x < right && y > 70 && y < h - 60;
-  const plan = holoCam.gatherPlan?.focusCid === cid ? holoCam.gatherPlan : null;
+  const plan = main && holoCam.gatherPlan?.focusCid === cid ? holoCam.gatherPlan : null;
   const group = new Set([cid, ...(plan?.neighbors || []).map(n => n.cid)]);
   const picks = [];
   const stars = truthNebula.stars;
@@ -3794,7 +3837,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   const details = galaxyDetail.data;
   const col = palette[cid % palette.length];
   const gold = isLight ? [160, 104, 16] : [255, 214, 128];
-  const hubs = details ? picks.filter(p => p.kind === 'star' && p.cid === cid).sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
+  const hubs = details && main ? picks.filter(p => p.kind === 'star' && p.cid === cid).sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
   const sel = galaxyDetail.selectedNode;
   const conn = sel?.kind === 'star' ? nodeConnections(sel.idx, details) : { prereqs: [], dependents: [], other: [] };
   const linked = [...conn.prereqs, ...conn.dependents, ...conn.other];
@@ -3891,7 +3934,8 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   add(byKey.get(galaxyDetail.selectedKey), 'focus');
   add(byKey.get(galaxyDetail.hoverKey), 'focus');
   linkedPicks.slice(0, 6).forEach(p => add(p, 'focus'));
-  fresh.filter(p => p.cid === cid).slice(0, 6).forEach(p => add(p, 'new'));
+  const growing = !main ? new Set((truthGrowth.focus?.cid === cid ? truthGrowth.focus.modules : []).map(r => r.module)) : null;
+  fresh.filter(p => p.cid === cid && (!growing || growing.has(p.module))).slice(0, 6).forEach(p => add(p, 'new'));
   hubs.forEach(p => add(p, 'hub'));
 
   ctx.save();
@@ -3952,6 +3996,10 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     ctx.strokeText(c.text, c.lx + 2, c.ly + c.h / 2);
     ctx.fillStyle = rgba(tone, 0.98);
     ctx.fillText(c.text, c.lx + 2, c.ly + c.h / 2);
+  }
+  if (!main) {
+    ctx.restore();
+    return;
   }
   ctx.textAlign = 'center';
   ctx.font = '600 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
@@ -4580,7 +4628,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   ctx.restore();
 
   if (useGLSky && holoCam.galaxyMainCid != null) {
-    drawGalaxyNodeLayer(ctx, holoCam.galaxyMainCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow);
+    drawGalaxyNodeLayer(ctx, holoCam.galaxyMainCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow, 'main');
+  } else if (useGLSky && holoCam.swellCid != null) {
+    drawGalaxyNodeLayer(ctx, holoCam.swellCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow, 'swell');
   } else if (galaxyDetail.picks.length) {
     galaxyDetail.picks = [];
   }
@@ -6019,7 +6069,7 @@ function drawHolo3DFrame(dt = 0.016) {
   const targetShiftX = rightGutter > 0 ? (rightGutter / Math.max(1, w)) : 0.0;
   holoCam.ndcShiftX += (targetShiftX - holoCam.ndcShiftX) * damp;
 
-  const galaxyCam = useGL && truthNebula.loaded ? galaxyCameraFocus(performance.now()) : null;
+  const galaxyCam = useGL && truthNebula.loaded ? galaxyCameraFocus() : null;
   const galaxyFrame = galaxyCam ? galaxyWorldFrame(galaxyCam.cid) : null;
   holoCam.galaxyMainCid = galaxyFrame ? galaxyCam.cid : null;
   syncGalaxyMainView(galaxyFrame);
@@ -6027,7 +6077,21 @@ function drawHolo3DFrame(dt = 0.016) {
   const fovY = holoCam.gl?.fovY || (40 * Math.PI / 180);
   const stageAspect = Math.max(0.4, (w - rightGutter) / Math.max(1, h));
   const gatherPlan = galaxyFrame ? galaxyGatherPlanFor(galaxyCam.cid, galaxyFrame, fovY, stageAspect) : null;
-  if (useGL) stepGalaxyGather(gatherPlan, fly);
+  const swell = useGL && !galaxyFrame && truthNebula.loaded ? growthSwellFocus(performance.now()) : null;
+  const swellFrame = swell ? galaxyWorldFrame(swell.cid) : null;
+  holoCam.swellCid = swellFrame ? swell.cid : null;
+  if (swellFrame) loadGalaxyDetails();
+  let swellOffset = [0, 0, 0];
+  const swellAt = swellFrame ? holoCam.gl.project(...swellFrame.center) : null;
+  if (swellAt) {
+    // Plan the shift for the full enlargement so the galaxy moves once, smoothly with the swell.
+    const half = swellFrame.radius * GROWTH_SWELL * swellAt.s;
+    const [dx, dy] = growthSwellShift([swellAt.x, swellAt.y], half, half * 0.45 * GROWTH_SWELL_LIFT, { left: 30, right: w - rightGutter - 30, top: 110, bottom: h * 0.56 });
+    const amount = (swell.scale - 1) / (GROWTH_SWELL - 1);
+    const b = galaxyViewBasis(holoCam.yaw, holoCam.pitch);
+    swellOffset = [0, 1, 2].map(i => ((b.right[i] * dx - b.up[i] * dy) / swellAt.s) * amount);
+  }
+  if (useGL) stepGalaxyGather(gatherPlan, fly, swellFrame ? { cid: swell.cid, pivot: swellFrame.center, scale: swell.scale, lift: swell.lift, offset: swellOffset } : null);
   if (galaxyFrame) {
     // Galaxy main view: fly to the galaxy (and the galaxies gathered around it) from the
     // station side; a selected node zooms in further. The station fades back.

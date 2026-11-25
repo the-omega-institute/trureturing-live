@@ -597,7 +597,7 @@ test('independent embedded review and studio branch pills select each branch cle
   }finally{dom.window.close();}
 });
 
-test('opening or growing a galaxy flies the camera to it as the main view',async()=>{
+test('opening a galaxy flies the camera to it as the main view; growth enlarges the galaxy in place',async()=>{
   const {dom,win}=await boot();try{
     const fov=38*Math.PI/180;
     const pose=win.galaxyCameraPose([-5.6,3.45,-9.9],1.4,fov);
@@ -610,13 +610,36 @@ test('opening or growing a galaxy flies the camera to it as the main view',async
     assert.ok(win.galaxyCameraPose([0,3.5,-10.6],0.05,fov).dist>=3,'tiny galaxies are not approached too closely');
     const view=(o={})=>({mode:'organization',layer:'mix',focusedDepartment:null,manual:false,...o});
     assert.equal(win.galaxyCameraAllowed('manual',view()),true);
-    assert.equal(win.galaxyCameraAllowed('growth',view()),true,'growth also takes the main view');
-    assert.equal(win.galaxyCameraAllowed('growth',view({layer:'galaxy'})),true);
-    assert.equal(win.galaxyCameraAllowed('growth',view({layer:'station'})),false,'the station view is not taken over by growth');
-    assert.equal(win.galaxyCameraAllowed('growth',view({manual:true})),false,'growth does not steal an opened galaxy');
-    assert.equal(win.galaxyCameraAllowed('growth',view({focusedDepartment:'research'})),false);
+    assert.equal(win.galaxyCameraAllowed('growth',view()),false,'growth keeps the layout: the camera stays');
     assert.equal(win.galaxyCameraAllowed('manual',view({focusedDepartment:'research'})),false);
     assert.equal(win.galaxyCameraAllowed('manual',view({mode:'journey'})),false);
+    assert.equal(win.growthSwellAllowed(view()),true,'a growing galaxy is enlarged in the normal view');
+    assert.equal(win.growthSwellAllowed(view({layer:'galaxy'})),true);
+    assert.equal(win.growthSwellAllowed(view({layer:'station'})),false,'the station view is left alone');
+    assert.equal(win.growthSwellAllowed(view({manual:true})),false,'an opened galaxy is not disturbed');
+    assert.equal(win.growthSwellAllowed(view({focusedDepartment:'research'})),false);
+    assert.equal(win.growthSwellScale(0),1);
+    assert.ok(win.growthSwellScale(600)>1&&win.growthSwellScale(600)<win.growthSwellScale(1300),'the galaxy grows in smoothly');
+    assert.ok(win.growthSwellScale(3000)>=1.8,'and is clearly enlarged while it grows');
+    assert.ok(win.growthSwellScale(6400)<win.growthSwellScale(3000),'it shrinks back when growth ends');
+    assert.equal(win.growthSwellScale(7000),1,'and returns to its size');
+    const cl=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'}];
+    const sw=win.galaxyGatherTargets(null,cl,{cid:1,pivot:[-9.9,1.35,-3.9],scale:2.1,lift:1.8});
+    assert.equal(sw.get(1).scale,2.1);assert.deepEqual([...sw.get(1).pivot],[-9.9,1.35,-3.9]);assert.deepEqual([...sw.get(1).offset],[0,0,0],'it is enlarged where it is');
+    assert.ok(sw.get(1).alpha>=1);
+    assert.ok(sw.get(1).stretch[1]>1&&sw.get(1).stretch[0]===1,'its flat band opens up vertically while it grows');
+    assert.deepEqual([...sw.get(0).stretch],[1,1,1]);
+    assert.ok(win.growthSwellScale(3000)>=3,'the growing galaxy is enlarged enough to read');
+    const stage={left:30,right:1100,top:110,bottom:500};
+    assert.deepEqual([...win.growthSwellShift([600,300],120,80,stage)],[0,0],'a galaxy with room is enlarged exactly where it is');
+    const [lx]=win.growthSwellShift([60,300],120,80,stage);
+    assert.equal(lx,90,'a galaxy at the edge moves just far enough to stay on stage');
+    const [,ty]=win.growthSwellShift([600,150],120,80,stage);
+    assert.equal(ty,40);
+    const [bx,by]=win.growthSwellShift([1080,480],120,80,stage);
+    assert.equal(bx,-100);assert.equal(by,-60);
+    assert.deepEqual([...win.growthSwellShift([500,300],700,80,stage)],[65,0],'a galaxy wider than the stage is centred');
+    assert.equal(sw.get(0).scale,1);assert.equal(sw.get(0).alpha,1);assert.deepEqual([...sw.get(0).offset],[0,0,0],'the rest of the layout stays');
     const preview=[...win.previewGrowthRecords(['Quantum','Arith'])];
     assert.ok(preview.length>=2&&preview.every(r=>r.preview===true),'preview growth is marked as preview');
     assert.deepEqual([...new Set(preview.map(r=>r.domain))],['Quantum','Arith']);

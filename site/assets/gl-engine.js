@@ -732,9 +732,10 @@
   uniform float uDpr;
   uniform float uAlphaMul;
   // Per-galaxy gather transform (slot 0 = no galaxy, slot cid+1 = galaxy cid):
-  // p' = pivot + (p - pivot) * scale + offset, alpha scaled per galaxy.
+  // p' = pivot + (p - pivot) * scale * stretch + offset, alpha scaled per galaxy.
   uniform vec4 uGather[9];
   uniform vec3 uGatherPivot[9];
+  uniform vec3 uGatherStretch[9];
   uniform float uGatherAlpha[9];
   out vec3 vCol;
   out float vAlpha;
@@ -742,11 +743,12 @@
   void main() {
     int gi = clamp(int(aSlot + 0.5), 0, 8);
     vec4 g = uGather[gi];
-    vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w + g.xyz;
+    vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
     vec4 clip = uViewProj * vec4(wp, 1.0);
     gl_Position = clip;
     float pSize = aSize * uDpr * clamp(32.0 / max(10.0, clip.w), 0.78, 2.45);
-    gl_PointSize = pSize;
+    // Sprites follow their galaxy's scale: nebula clouds fully, stars more gently.
+    gl_PointSize = pSize * (aSize > 18.0 ? g.w : pow(g.w, 0.6));
     vCol = aCol;
     vAlpha = aAlpha * uAlphaMul * uGatherAlpha[gi];
     // 0 = Lean verified jewel star, 1 = gentle silk nebula cloud, 2 = warm settled conjecture lantern star!
@@ -793,16 +795,17 @@
   uniform mat4 uModel;
   uniform float uAlphaMul;
   // Per-galaxy gather transform (slot 0 = no galaxy, slot cid+1 = galaxy cid):
-  // p' = pivot + (p - pivot) * scale + offset, alpha scaled per galaxy.
+  // p' = pivot + (p - pivot) * scale * stretch + offset, alpha scaled per galaxy.
   uniform vec4 uGather[9];
   uniform vec3 uGatherPivot[9];
+  uniform vec3 uGatherStretch[9];
   uniform float uGatherAlpha[9];
   out vec3 vCol;
   out float vAlpha;
   void main() {
     int gi = clamp(int(aSlot + 0.5), 0, 8);
     vec4 g = uGather[gi];
-    vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w + g.xyz;
+    vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
     gl_Position = uViewProj * uModel * vec4(wp, 1.0);
     vCol = aCol;
     vAlpha = aAlpha * uAlphaMul * uGatherAlpha[gi];
@@ -1350,14 +1353,16 @@
       this.skyClusters = []; // cached 3D celestial ring positions of Truth DAG clusters
       this.gatherVec = new Float32Array(36);
       this.gatherPivot = new Float32Array(27);
+      this.gatherStretch = new Float32Array(27);
       this.gatherAlpha = new Float32Array(9);
       this.setGather([]);
     }
 
-    // Per-galaxy gather transforms: [{ cid, pivot, offset, scale, alpha }]; unlisted galaxies stay put.
+    // Per-galaxy gather transforms: [{ cid, pivot, offset, scale, stretch, alpha }]; unlisted galaxies stay put.
     setGather(entries) {
       this.gatherVec.fill(0);
       this.gatherPivot.fill(0);
+      this.gatherStretch.fill(1);
       this.gatherAlpha.fill(1);
       for (let i = 0; i < 9; i++) this.gatherVec[i * 4 + 3] = 1;
       for (const e of entries || []) {
@@ -1365,6 +1370,7 @@
         if (!(slot >= 1 && slot <= 8)) continue;
         this.gatherVec.set([e.offset[0], e.offset[1], e.offset[2], e.scale], slot * 4);
         this.gatherPivot.set(e.pivot, slot * 3);
+        if (e.stretch) this.gatherStretch.set(e.stretch, slot * 3);
         this.gatherAlpha[slot] = e.alpha;
       }
     }
@@ -1372,14 +1378,15 @@
     applyGather(p, cid) {
       const slot = cid == null ? 0 : Number(cid) + 1;
       if (!(slot >= 1 && slot <= 8)) return p;
-      const g = this.gatherVec, q = this.gatherPivot, o = slot * 4, b = slot * 3;
-      return [q[b] + (p[0] - q[b]) * g[o + 3] + g[o], q[b + 1] + (p[1] - q[b + 1]) * g[o + 3] + g[o + 1], q[b + 2] + (p[2] - q[b + 2]) * g[o + 3] + g[o + 2]];
+      const g = this.gatherVec, q = this.gatherPivot, st = this.gatherStretch, o = slot * 4, b = slot * 3;
+      return [0, 1, 2].map(i => q[b + i] + (p[i] - q[b + i]) * g[o + 3] * st[b + i] + g[o + i]);
     }
 
     bindGather(prog) {
       const gl = this.gl;
       gl.uniform4fv(prog.u.uGather, this.gatherVec);
       gl.uniform3fv(prog.u.uGatherPivot, this.gatherPivot);
+      gl.uniform3fv(prog.u.uGatherStretch, this.gatherStretch);
       gl.uniform1fv(prog.u.uGatherAlpha, this.gatherAlpha);
     }
 
