@@ -1825,6 +1825,56 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .step-badge { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; color: var(--muted); padding: 1px 5px; border-radius: 999px; background: rgba(148, 163, 184, 0.12); white-space: nowrap; }
 .step-badge.is-hot { color: var(--live-ink); background: var(--live-soft); }
 
+.branch-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: color-mix(in srgb, var(--border-strong) 72%, transparent);
+}
+
+.method-steps .branch-pill {
+  height: 26px;
+  padding: 0 8px;
+  border-style: dashed;
+  border-width: 1px;
+  gap: 4px;
+}
+
+.method-steps .branch-pill strong { font-size: 11px; }
+.branch-glyph { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; opacity: 0.88; }
+
+.method-steps .branch-pill.is-review {
+  border-color: color-mix(in srgb, var(--c-review) 42%, transparent);
+  background: color-mix(in srgb, var(--c-review) 8%, transparent);
+}
+.method-steps .branch-pill.is-review .branch-glyph { color: var(--c-review); }
+.method-steps .branch-pill.is-review:hover,
+.method-steps .branch-pill.is-review[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--c-review);
+  background: color-mix(in srgb, var(--c-review) 20%, transparent);
+}
+
+.method-steps .branch-pill.is-studio {
+  border-color: color-mix(in srgb, var(--c-studio) 42%, transparent);
+  background: color-mix(in srgb, var(--c-studio) 8%, transparent);
+}
+.method-steps .branch-pill.is-studio .branch-glyph { color: var(--c-studio); }
+.method-steps .branch-pill.is-studio:hover,
+.method-steps .branch-pill.is-studio[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--c-studio);
+  background: color-mix(in srgb, var(--c-studio) 20%, transparent);
+}
+
+@media (max-width: 1520px) {
+  .method-steps .step-badge { display: none; }
+  .method-steps button { padding: 0 6px; gap: 4px; }
+  .method-steps .branch-pill { padding: 0 6px; }
+  .ticker-pill { min-width: 110px; padding: 0 8px; }
+}
+
 .ticker-pill {
   flex: 1;
   min-width: 140px;

@@ -980,11 +980,16 @@
 
     // SUSPENDED FLOATING ORBITAL STATION HULL (y = 0.0, floating 1.35m ABOVE the abyss floor!)
     const campus = new MeshBuilder();
-    // 4 Sovereign Floating Wing Decks WITH sculpted underside architectural thruster keels!
+    // 2 Main Sovereign Floating Wing Decks + 2 Compact Cantilevered South-Ring Embedded Branch Pods!
     campus.addChamferedTerrace(-5.65, -0.50, 2.02, 3.78, 0.42, 0.0, 0.11, 0, 0.44);
     campus.addChamferedTerrace( 5.65, -0.50, 2.02, 3.78, 0.42, 0.0, 0.11, 0, 0.44);
-    campus.addChamferedTerrace(-3.35,  5.35, 1.72, 1.08, 0.34, 0.0, 0.11, 0, 0.34);
-    campus.addChamferedTerrace( 3.35,  5.35, 1.72, 1.08, 0.34, 0.0, 0.11, 0, 0.34);
+    campus.addChamferedTerrace(-4.25,  5.20, 1.50, 0.96, 0.32, 0.0, 0.10, 0, 0.30);
+    campus.addChamferedTerrace( 4.25,  5.20, 1.50, 0.96, 0.32, 0.0, 0.10, 0, 0.30);
+    // Angled radial structural gusset struts physically bolting both independent branch pods directly into the outer titanium orbital ring!
+    const angRev = Math.atan2(4.85, -4.25);
+    const angStu = Math.atan2(4.85,  4.25);
+    campus.addBox(-5.24, 0.02, 6.33, 2.10, 0.08, 0.36, 2, angRev);
+    campus.addBox( 5.24, 0.02, 6.33, 2.10, 0.08, 0.36, 2, angStu);
 
     // Suspended Central Verification Octagonal Deck + Deep Tapered Reactor Keel Underneath!
     campus.addPrism(0, 0.0, -0.45, 1.82, 1.66, 0.16, 8, 0, Math.PI / 8);
@@ -1000,15 +1005,6 @@
     campus.addBox( 2.58, 0.21, -0.82, 2.25, 0.04, 0.05, 2);
     campus.addBox( 2.58, 0.21, -0.08, 2.25, 0.04, 0.05, 2);
 
-    // South On-Demand Sliding Rheostat Busbar Rail (links review & studio support dock cleanly below main wings!)
-    campus.addBox(0.0, 0.08, 3.62, 8.6, 0.05, 0.14, 2);
-    campus.addBox(0.0, 0.12, 3.62, 8.4, 0.025, 0.04, 3);
-    campus.addBox(-3.35, 0.07, 4.46, 0.24, 0.05, 1.65, 0);
-    campus.addBox( 3.35, 0.07, 4.46, 0.24, 0.05, 1.65, 0);
-    // Subtle end-stop pylons on the rheostat rail
-    campus.addBox(-4.35, 0.12, 3.62, 0.22, 0.16, 0.28, 2);
-    campus.addBox( 4.35, 0.12, 3.62, 0.22, 0.16, 0.28, 2);
-
     // Sleek Brushed-Titanium Outer Orbital Station Structural Ring (unites all decks as one floating Space Station!)
     campus.addTorusRing(0, -0.04, 0.35, 8.95, 0.055, 64, 6, 0, 0, 2);
     for (let k = 0; k < 8; k++) {
@@ -1017,10 +1013,32 @@
     }
     g.campus = campus.build(gl, 20);
 
-    // Dynamic 3D Sliding Rheostat Wiper Contact (glides smoothly along z=3.62 rail toward active demand!)
+    // BRANCH A (02 独立评审 · 红队审计支路): Independent inner violet sliding busbar (z = 3.08, x = -5.40..+3.60)
+    // Physically isolated from Studio's feeder at x = +4.25 (zero crossing!)
+    const revRail = new MeshBuilder();
+    revRail.addBox(-0.90, 0.07, 3.08, 9.0, 0.045, 0.12, 2);
+    revRail.addBox(-0.90, 0.11, 3.08, 8.8, 0.024, 0.042, 3);
+    revRail.addBox(-4.25, 0.06, 3.66, 0.24, 0.05, 1.24, 0);
+    revRail.addBox(-4.25, 0.10, 3.66, 0.045, 0.022, 1.18, 3);
+    revRail.addBox(-5.45, 0.11, 3.08, 0.18, 0.14, 0.24, 2);
+    revRail.addBox( 3.65, 0.11, 3.08, 0.18, 0.14, 0.24, 2);
+    g.revRail = revRail.build(gl, 20);
+
+    // BRANCH B (06 工具与表达 · 工具基建支路): Independent outer ice-cyan sliding busbar (z = 3.88, x = -3.60..+5.40)
+    // Physically isolated from Review's feeder at x = -4.25 (zero crossing!)
+    const stuRail = new MeshBuilder();
+    stuRail.addBox( 0.90, 0.07, 3.88, 9.0, 0.045, 0.12, 2);
+    stuRail.addBox( 0.90, 0.11, 3.88, 8.8, 0.024, 0.042, 3);
+    stuRail.addBox( 4.25, 0.06, 4.08, 0.24, 0.05, 0.44, 0);
+    stuRail.addBox( 4.25, 0.10, 4.08, 0.045, 0.022, 0.40, 3);
+    stuRail.addBox(-3.65, 0.11, 3.88, 0.18, 0.14, 0.24, 2);
+    stuRail.addBox( 5.45, 0.11, 3.88, 0.18, 0.14, 0.24, 2);
+    g.stuRail = stuRail.build(gl, 20);
+
+    // Dynamic 3D Sliding Rheostat Wiper Contact (instanced independently on Branch A & Branch B rails!)
     const wiper = new MeshBuilder();
-    wiper.addBox(0, 0.14, 0, 0.56, 0.12, 0.34, 2);
-    wiper.addOctahedron(0, 0.28, 0, 0.16, 0.18, 0.16, 3);
+    wiper.addBox(0, 0.14, 0, 0.50, 0.11, 0.30, 2);
+    wiper.addOctahedron(0, 0.27, 0, 0.15, 0.17, 0.15, 3);
     g.wiper = wiper.build(gl, 18);
 
     // Pedestal Hex Plinth
@@ -1590,7 +1608,7 @@
       const {
         t, themeIdx, entities, activeId, focusedId, bootAge, quiet,
         stationAlpha = 1.0, galaxyAlpha = 1.0, sonarRadius = 0.0, sonarAlpha = 0.0,
-        rheostatX = 0.0
+        rheostatRevX = -2.0, rheostatStuX = 2.0
       } = params;
       const gl = this.gl;
       const tAnim = quiet ? 4.2 : t;
@@ -1696,11 +1714,29 @@
           M4.identity(this.modelMat);
           const campusAccent = isLight ? [0.16, 0.48, 0.48] : isBlueprint ? [0.56, 0.82, 1.0] : [0.46, 0.84, 0.94];
           this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha);
-          // Dynamic 3D Sliding Rheostat Wiper gliding along the south on-demand busbar rail!
+          // Independent Embedded Branch A Rail (02 独立评审 · Violet-Silver) + Sliding Wiper A
+          const revAccent = isLight ? [0.38, 0.34, 0.72] : isBlueprint ? [0.62, 0.82, 1.0] : [0.68, 0.74, 0.98];
+          const revAct = activeId === 'review' ? 1.0 : 0.25;
+          if (this.geo.revRail) {
+            M4.identity(this.modelMat);
+            this.drawMesh(this.geo.revRail, this.modelMat, revAccent, revAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha);
+          }
           if (this.geo.wiper) {
-            const wx = Math.max(-4.0, Math.min(4.0, rheostatX));
-            M4.compose(this.modelMat, wx, 0.0, 3.62, 0, 0, 0, 1, 1, 1);
-            this.drawMesh(this.geo.wiper, this.modelMat, [0.92, 0.80, 0.50], 0.85, 1.0, themeIdx, tAnim, 0.55, stationAlpha);
+            const rx = Math.max(-5.15, Math.min(3.35, rheostatRevX));
+            M4.compose(this.modelMat, rx, 0.0, 3.08, 0, 0, 0, 1, 1, 1);
+            this.drawMesh(this.geo.wiper, this.modelMat, revAccent, Math.max(0.75, revAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha);
+          }
+          // Independent Embedded Branch B Rail (06 工具与表达 · Ice-Cyan) + Sliding Wiper B
+          const stuAccent = isLight ? [0.10, 0.46, 0.66] : isBlueprint ? [0.54, 0.86, 1.0] : [0.48, 0.84, 0.98];
+          const stuAct = activeId === 'studio' ? 1.0 : 0.25;
+          if (this.geo.stuRail) {
+            M4.identity(this.modelMat);
+            this.drawMesh(this.geo.stuRail, this.modelMat, stuAccent, stuAct, 0.65, themeIdx, tAnim, isLight ? 0.34 : 0.44, stationAlpha);
+          }
+          if (this.geo.wiper) {
+            const sx = Math.max(-3.35, Math.min(5.15, rheostatStuX));
+            M4.compose(this.modelMat, sx, 0.0, 3.88, 0, 0, 0, 1, 1, 1);
+            this.drawMesh(this.geo.wiper, this.modelMat, stuAccent, Math.max(0.75, stuAct), 1.0, themeIdx, tAnim, 0.56, stationAlpha);
           }
         }
 
