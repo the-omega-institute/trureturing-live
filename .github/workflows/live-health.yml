@@ -1,7 +1,7 @@
 name: Live Health Caretaker (Omega Live Ops)
 on:
   schedule:
-    # Low-frequency daily health check (read-only code, issues-only reporting)
+    # Low-frequency daily health check (read-only diagnosis separated from GitHub issue writes)
     - cron: '30 2 * * *'
   workflow_dispatch:
     inputs:
@@ -11,20 +11,22 @@ on:
         type: string
         default: ''
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: trureturing-live-health
   cancel-in-progress: false
 
 jobs:
-  live-health:
+  diagnose:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     permissions:
       contents: read
-      issues: write
+    outputs:
+      config_state: ${{ steps.config.outputs.state }}
+      verdict: ${{ steps.evaluate.outputs.verdict }}
+      model_status: ${{ steps.evaluate.outputs.model_status }}
     steps:
       - name: Check Omega Live Ops health key configuration
         id: config
@@ -33,31 +35,35 @@ jobs:
           NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
         run: |
           if [ -z "$NYXID_KEY" ] || [ -z "$NYXID_BASE_URL" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping live-health: configure repo secret NYXID_LIVE_HEALTH_KEY (from NyxID org Omega Live Ops) and repo variable NYXID_LIVE_CODEX_BASE_URL."
+            echo "state=not_configured" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Live Health Caretaker: Not Configured"
+              echo "- Missing \`NYXID_LIVE_HEALTH_KEY\` or \`NYXID_LIVE_CODEX_BASE_URL\`."
+              echo "- No diagnosis was executed."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "state=configured" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        if: steps.config.outputs.ready == 'true'
+        if: steps.config.outputs.state == 'configured'
         with:
           persist-credentials: false
           submodules: true
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        if: steps.config.outputs.ready == 'true'
+        if: steps.config.outputs.state == 'configured'
         with:
           node-version: '22'
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        if: steps.config.outputs.ready == 'true'
+        if: steps.config.outputs.state == 'configured'
         with:
           python-version: '3.12'
 
-      - name: Collect read-only live telemetry & local test status
+      - name: Run deterministic probes (tests + live identity & freshness)
         id: probe
-        if: steps.config.outputs.ready == 'true'
+        if: steps.config.outputs.state == 'configured'
         run: |
           set +e
           npm ci --ignore-scripts > /tmp/probe-npm.log 2>&1
@@ -66,39 +72,35 @@ jobs:
           py_rc=$?
           npm test > /tmp/probe-js.log 2>&1
           js_rc=$?
-          live_code=$(curl -sS -o /dev/null -w '%{http_code}' https://live.trureturing.org/ || echo "000")
-          atlas_code=$(curl -sS -o /dev/null -w '%{http_code}' https://www.trureturing.org/data/atlas-startup.v1.json || echo "000")
-          echo "npm_rc=$npm_rc py_rc=$py_rc js_rc=$js_rc live_code=$live_code atlas_code=$atlas_code"
-          echo "py_rc=$py_rc" >> "$GITHUB_OUTPUT"
-          echo "js_rc=$js_rc" >> "$GITHUB_OUTPUT"
-          echo "live_code=$live_code" >> "$GITHUB_OUTPUT"
-          echo "atlas_code=$atlas_code" >> "$GITHUB_OUTPUT"
+          set -e
+          python3 scripts/caretaker_guard.py probe-live \
+            --npm-rc "$npm_rc" \
+            --py-rc "$py_rc" \
+            --js-rc "$js_rc" \
+            --out /tmp/probe.json
+          cat /tmp/probe.json
 
       - name: Install Codex CLI
-        if: steps.config.outputs.ready == 'true'
+        if: steps.config.outputs.state == 'configured'
         run: npm install -g @openai/codex
 
-      - name: Run read-only live-health Codex diagnosis
-        if: steps.config.outputs.ready == 'true'
+      - name: Run read-only Codex diagnosis (no GitHub write token)
+        id: model
+        if: steps.config.outputs.state == 'configured'
         env:
           NYXID_API_KEY: ${{ secrets.NYXID_LIVE_HEALTH_KEY }}
           NYXID_BASE_URL: ${{ vars.NYXID_LIVE_CODEX_BASE_URL }}
           CODEX_MODEL: ${{ vars.NYXID_LIVE_CODEX_MODEL }}
           AUDIT_NOTE: ${{ inputs.note }}
-          PY_RC: ${{ steps.probe.outputs.py_rc }}
-          JS_RC: ${{ steps.probe.outputs.js_rc }}
-          LIVE_CODE: ${{ steps.probe.outputs.live_code }}
-          ATLAS_CODE: ${{ steps.probe.outputs.atlas_code }}
         run: |
           set -euo pipefail
-          model="${CODEX_MODEL:-gpt-5.4}"
+          model="${CODEX_MODEL:-gpt-6.1-sol}"
           codex_home="$RUNNER_TEMP/codex-home"
           mkdir -p "$codex_home"
           cat <<EOF > "$codex_home/config.toml"
           approval_policy = "never"
           model_provider = "nyxid"
           model = "${model}"
-          disable_response_storage = true
 
           [model_providers.nyxid]
           name = "nyxid"
@@ -110,57 +112,119 @@ jobs:
           cat <<'EOF' > /tmp/health-prompt.txt
           You are the read-only live-health caretaker for the-omega-institute/trureturing-live (NyxID org: Omega Live Ops).
           HARD BOUNDARIES:
-          - DO NOT modify repository files or run git commit/push.
-          - Inspect only the probe summary and (if any check failed) the probe logs / local files.
-          - Your final response MUST follow this exact format:
-            - If everything is healthy (py_rc=0, js_rc=0, live_code=200, atlas_code=200, and no broken data contract), output a single line:
-              HEALTHY
-            - If there IS a concrete anomaly, output `ALERT` on the first line, followed by a concise actionable markdown diagnostic report (under 25 lines, zero secrets/usernames).
+          - DO NOT modify repository files or run git commands that write.
+          - Inspect the deterministic probe JSON below and local repo files if any check failed.
+          - Your final response MUST strictly follow one of two formats:
+            1) If all deterministic probes passed and there is no anomaly, output ONLY this single line with nothing else:
+               HEALTHY
+            2) If there IS a concrete anomaly, output `ALERT` on line 1, followed by a concise actionable markdown diagnostic report (under 25 lines, zero secrets/usernames).
           EOF
-          printf "\nProbe summary: py_rc=%s js_rc=%s live_code=%s atlas_code=%s\nOperator note: %s\n" \
-            "$PY_RC" "$JS_RC" "$LIVE_CODE" "$ATLAS_CODE" "$AUDIT_NOTE" >> /tmp/health-prompt.txt
+          printf "\nDeterministic probe JSON:\n" >> /tmp/health-prompt.txt
+          cat /tmp/probe.json >> /tmp/health-prompt.txt
+          printf "\nOperator note: %s\n" "$AUDIT_NOTE" >> /tmp/health-prompt.txt
 
+          set +e
           CODEX_HOME="$codex_home" codex exec \
             --ephemeral \
             --sandbox read-only \
             --output-last-message /tmp/health-out.txt \
             - < /tmp/health-prompt.txt
+          model_rc=$?
+          set -e
+          echo "model_rc=$model_rc" >> "$GITHUB_OUTPUT"
+
+      - name: Strictly evaluate combined deterministic + model verdict
+        id: evaluate
+        if: steps.config.outputs.state == 'configured'
+        env:
+          MODEL_RC: ${{ steps.model.outputs.model_rc }}
+        run: |
+          set -euo pipefail
+          out=$(python3 scripts/caretaker_guard.py evaluate-health \
+            --probe /tmp/probe.json \
+            --model-output /tmp/health-out.txt \
+            --model-rc "${MODEL_RC:-1}" \
+            --out /tmp/health-verdict.json)
+          echo "$out"
+          verdict=$(echo "$out" | awk -F= '$1=="verdict"{print $2}')
+          model_status=$(echo "$out" | awk -F= '$1=="model_status"{print $2}')
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+          echo "model_status=$model_status" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Live Health Caretaker Verdict: \`${verdict}\`"
+            echo "- Model status: \`${model_status}\`"
+            echo "- Candidate SHA: \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload health verdict artifact
+        if: steps.config.outputs.state == 'configured'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: live-health-verdict
+          path: |
+            /tmp/probe.json
+            /tmp/health-verdict.json
+          retention-days: 7
+          if-no-files-found: error
+
+  report:
+    needs: diagnose
+    if: always() && needs.diagnose.outputs.config_state == 'configured' && needs.diagnose.outputs.verdict != 'healthy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - name: Download health verdict artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: live-health-verdict
+          path: /tmp/verdict-bundle
 
       - name: File deduplicated health issue with github-event-v2 footer
-        if: steps.config.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          VERDICT: ${{ needs.diagnose.outputs.verdict }}
         run: |
           set -euo pipefail
-          first_line=$(awk 'NF {print; exit}' /tmp/health-out.txt 2>/dev/null | tr -d '\r' || echo "HEALTHY")
-          echo "Codex health verdict: $first_line"
-          if [ "$first_line" != "ALERT" ]; then
-            echo "Live observatory healthy; no issue filed."
-            exit 0
-          fi
-
-          tail -n +2 /tmp/health-out.txt > /tmp/health-report.md
-          if [ ! -s /tmp/health-report.md ]; then
-            echo "ALERT verdict had empty body; skipping."
-            exit 0
-          fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("/tmp/verdict-bundle/health-verdict.json").read_text(encoding="utf-8"))
+          Path("/tmp/health-report.md").write_text(data.get("report_markdown") or "Empty health report.", encoding="utf-8")
+          PY
 
           open_issue=$(gh issue list --repo "$REPO" --state open --search "[live-health] in:title" --json number --jq '.[0].number // empty')
           target="self"
           if [ -n "$open_issue" ]; then
             target="${REPO}#${open_issue}"
           fi
+          event_state="progress"
+          if [ "$VERDICT" = "invalid_diagnosis" ]; then
+            event_state="failed"
+          fi
           event_line=$(python3 scripts/format_agent_event.py \
             --agent codex/live-ops/health \
             --action issue \
-            --state progress \
+            --state "$event_state" \
             --target "$target")
 
           {
             cat /tmp/health-report.md
-            printf "\n\nWorkflow run: %s/actions/runs/%s\n\n%s\n" "https://github.com/$REPO" "$RUN_ID" "$event_line"
+            printf "\n\nVerdict: \`%s\` · Commit: \`%s\` · Workflow run: https://github.com/%s/actions/runs/%s\n\n%s\n" \
+              "$VERDICT" "$SHA" "$REPO" "$RUN_ID" "$event_line"
           } > /tmp/issue-body.md
 
           if [ -n "$open_issue" ]; then
@@ -169,4 +233,9 @@ jobs:
             gh issue create --repo "$REPO" \
               --title "[live-health] Automated observatory health alert" \
               --body-file /tmp/issue-body.md
+          fi
+
+          if [ "$VERDICT" = "invalid_diagnosis" ]; then
+            echo "Failing job so invalid/incomplete model diagnosis is explicitly visible."
+            exit 1
           fi
