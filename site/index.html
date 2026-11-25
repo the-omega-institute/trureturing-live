@@ -8,8 +8,9 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v36">
-  <script type="module" src="assets/app.mjs?v=hive-v36"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v37">
+  <script defer src="assets/gl-engine.js?v=hive-v37"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v37"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -41,6 +42,7 @@
           <button type="button" data-mode="journey" aria-pressed="false">接力轨迹</button>
         </div>
         <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随</span></button>
+        <button class="hud-icon-btn" id="hud-zen-toggle" type="button" aria-pressed="false" title="隐藏两侧面板，纯享 3D 空间">纯净</button>
         <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="暂停旋转 / 静看">静看</button>
         <button class="hud-icon-btn fullscreen-button" id="expand-room" type="button" aria-pressed="false" aria-label="进入全屏" title="全屏显示">
           <svg class="fs-enter" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
@@ -55,7 +57,8 @@
 
     <!-- Full-Viewport 100vw x 100vh 3D Holographic Citadel Room -->
     <main class="research-room" id="research-room">
-      <div class="hive-board" id="hive-board" role="group" aria-label="3D 全息研究院架构大屏；拖拽旋转视角，悬浮预览部门，点击飞入部门全息舱">
+      <div class="hive-board" id="hive-board" role="group" aria-label="3D 全息研究院架构大屏；拖拽旋转视角，滚轮推进，悬浮预览部门，点击飞入部门全息舱">
+        <canvas id="holo-gl" class="holo-gl-canvas" aria-hidden="true"></canvas>
         <canvas id="holo-3d" class="holo-3d-canvas" aria-hidden="true"></canvas>
 
         <!-- Minimal SVG layer strictly for live arrival flare particles & accessibility compatibility -->
