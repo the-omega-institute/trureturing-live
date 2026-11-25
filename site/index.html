@@ -8,9 +8,9 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v46">
-  <script defer src="assets/gl-engine.js?v=hive-v46"></script>
-  <script type="module" src="assets/app.mjs?v=hive-v46"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v47">
+  <script defer src="assets/gl-engine.js?v=hive-v47"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v47"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -59,6 +59,25 @@
     </header>
 
     <p id="connection-note" class="connection-note" role="status" hidden></p>
+
+    <div id="inline-browser" class="inline-browser" hidden>
+      <div class="ib-backdrop" data-ib-backdrop></div>
+      <section class="ib-window" role="dialog" aria-modal="true" aria-label="内置浏览器">
+        <header class="ib-bar">
+          <button type="button" class="ib-btn" data-ib="back" aria-label="后退">‹</button>
+          <button type="button" class="ib-btn" data-ib="forward" aria-label="前进">›</button>
+          <button type="button" class="ib-btn" data-ib="reload" aria-label="刷新">⟳</button>
+          <div class="ib-address"><span class="ib-kind"></span><span class="ib-url"></span></div>
+          <a class="ib-btn ib-out" data-ib-out href="#" target="_blank" rel="noopener noreferrer">新标签打开 ↗</a>
+          <button type="button" class="ib-btn ib-close" data-ib="close" aria-label="关闭">×</button>
+        </header>
+        <div class="ib-body">
+          <iframe class="ib-frame" title="内置浏览器网页" referrerpolicy="no-referrer" allow="fullscreen" hidden></iframe>
+          <iframe class="ib-native" title="内置浏览器内容" sandbox="allow-same-origin" hidden></iframe>
+          <div class="ib-status" hidden></div>
+        </div>
+      </section>
+    </div>
 
     <!-- Full-Viewport 100vw x 100vh 3D Holographic Citadel Room -->
     <main class="research-room" id="research-room">

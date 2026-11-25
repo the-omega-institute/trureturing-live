@@ -7847,6 +7847,349 @@ bindBackgroundBack($('#department-lens'), () => closeDepartmentLens());
 bindBackgroundBack($('#journey-panel'), () => setMode('organization'));
 bindBackgroundBack($('#telemetry-dock'), closeDockDrawer);
 
+// With a window open, a press on empty space outside it (the 3D scene, or the empty part
+// of a window underneath) closes just that window, the topmost one: the built-in browser,
+// then the drawer, then the department. Empty space inside a window is handled by
+// bindBackgroundBack.
+function topWindow() {
+  const browser = $('#inline-browser');
+  if (browser && !browser.hidden) return { el: browser.querySelector('.ib-window'), close: closeInlineBrowser };
+  const dock = $('#telemetry-dock');
+  if (dock?.classList.contains('is-open')) return { el: dock, close: closeDockDrawer };
+  if (state.focused) return { el: $('#department-lens'), close: closeDepartmentLens };
+  return null;
+}
+
+const isEmptySpot = target => {
+  if (!(target instanceof Element)) return false;
+  if (['holo-3d', 'holo-gl', 'hive-board'].includes(target.id) || target.hasAttribute('data-ib-backdrop')) return true;
+  if (target.closest(panelControlSelector)) return false;
+  return ![...target.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+};
+let windowPress = null;
+document.addEventListener('pointerdown', event => {
+  windowPress = null;
+  const top = topWindow();
+  if (event.button !== 0 || !top || top.el?.contains(event.target) || !isEmptySpot(event.target)) return;
+  windowPress = { x: event.clientX, y: event.clientY, close: top.close };
+  event.stopPropagation();
+}, true);
+document.addEventListener('click', event => {
+  const press = windowPress;
+  windowPress = null;
+  if (!press || !isEmptySpot(event.target)) return;
+  event.stopPropagation();
+  if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6) return;
+  if (String(window.getSelection?.() || '').trim()) return;
+  press.close();
+}, true);
+
+// ---- Built-in browser -------------------------------------------------------
+// Every outside link opens in a window on the page. GitHub refuses to be framed, so its
+// pull requests, issues, Actions runs, commits, files, releases and repositories are read
+// from the public GitHub API and laid out here; the description HTML GitHub renders is
+// shown in a sandboxed frame that cannot run scripts. arXiv opens its PDF, which may be
+// framed; sites that allow framing open directly; the rest explain and offer a new tab.
+const INLINE_BLOCKED_HOSTS = /(^|\.)(openreview\.net|x\.com|twitter\.com|google\.com|youtube\.com|linkedin\.com|facebook\.com)$/;
+const inlineBrowser = { history: [], index: -1, cache: new Map(), token: 0 };
+
+function resolveInlineBrowserRoute(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:' || url.username || url.password) return null;
+  const href = url.href;
+  if (url.hostname === 'github.com') {
+    const [owner, repo, section, ...rest] = url.pathname.split('/').filter(Boolean);
+    if (owner && repo) {
+      const api = `https://api.github.com/repos/${owner}/${repo}`;
+      const base = { href, owner, repo };
+      if (!section) return { ...base, kind: 'github-repo', api };
+      if (section === 'pull' && /^\d+$/.test(rest[0] || '')) return { ...base, kind: 'github-pr', number: Number(rest[0]), api: `${api}/pulls/${rest[0]}` };
+      if (section === 'issues' && /^\d+$/.test(rest[0] || '')) return { ...base, kind: 'github-issue', number: Number(rest[0]), api: `${api}/issues/${rest[0]}` };
+      if (section === 'actions' && rest[0] === 'runs' && /^\d+$/.test(rest[1] || '')) return { ...base, kind: 'github-run', api: `${api}/actions/runs/${rest[1]}`, job: rest[2] === 'job' ? rest[3] || null : null };
+      if (section === 'commit' && /^[0-9a-f]{4,40}$/i.test(rest[0] || '')) return { ...base, kind: 'github-commit', api: `${api}/commits/${rest[0]}` };
+      if (section === 'blob' && rest.length >= 2) return { ...base, kind: 'github-blob', ref: rest[0], path: rest.slice(1).join('/'), raw: `https://raw.githubusercontent.com/${owner}/${repo}/${rest.join('/')}` };
+      if (section === 'releases') return { ...base, kind: 'github-release', tag: rest[0] === 'tag' ? rest[1] || null : null, api: rest[0] === 'tag' && rest[1] ? `${api}/releases/tags/${rest[1]}` : `${api}/releases?per_page=8` };
+    }
+    return { href, kind: 'blocked', host: url.hostname };
+  }
+  if (url.hostname === 'arxiv.org' || url.hostname === 'www.arxiv.org') {
+    const m = url.pathname.match(/^\/(?:abs|pdf)\/(.+?)(?:\.pdf)?$/);
+    return m ? { href, kind: 'frame', src: `https://arxiv.org/pdf/${m[1]}`, label: 'arXiv 论文' } : { href, kind: 'blocked', host: url.hostname };
+  }
+  if (INLINE_BLOCKED_HOSTS.test(url.hostname)) return { href, kind: 'blocked', host: url.hostname };
+  return { href, kind: 'frame', src: href, label: '网页' };
+}
+
+const htmlEscape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ibTime = iso => (iso ? `${new Date(iso).toLocaleString('zh-CN', { hour12: false })}（${relative(iso)}）` : '—');
+const ibDuration = (a, b) => {
+  const ms = timestamp(b) - timestamp(a);
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const s = Math.round(ms / 1000);
+  return s >= 60 ? `${Math.floor(s / 60)} 分 ${s % 60} 秒` : `${s} 秒`;
+};
+const IB_KIND_LABEL = { 'github-pr': 'Pull Request', 'github-issue': 'Issue', 'github-run': 'Actions 运行', 'github-commit': '提交', 'github-blob': '源码', 'github-release': '发布', 'github-repo': '仓库', frame: '网页', blocked: '外部站点' };
+
+const IB_DOC_CSS = `
+:root{color-scheme:dark}
+body{margin:0;padding:22px 28px 40px;background:#0a141d;color:#dceeed;font:14px/1.6 -apple-system,"PingFang SC","Segoe UI",sans-serif}
+body.light{background:#faf7f0;color:#1d2a2c}
+h1{font-size:21px;line-height:1.35;margin:4px 0 10px;color:#f2fffd}
+body.light h1{color:#10302e}
+.kind{font:600 11px/1 ui-monospace,monospace;letter-spacing:.08em;color:#7fe3dc;text-transform:uppercase}
+body.light .kind{color:#10766e}
+.num{color:#8aa9b0;font-weight:500}
+.meta{color:#9bb8be;font-size:13px;margin:6px 0}
+body.light .meta{color:#4a6468}
+.chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;margin-right:6px;border:1px solid currentColor}
+.chip.merged{color:#c49bff}.chip.open,.chip.success{color:#4fdc9c}.chip.closed,.chip.failure,.chip.cancelled{color:#ff7a7a}.chip.draft,.chip.neutral,.chip.skipped,.chip.queued,.chip.in_progress{color:#a8b8c0}
+.label{display:inline-block;padding:1px 8px;border-radius:6px;background:rgba(127,227,220,.12);color:#9fe9e2;font-size:12px;margin:0 4px 4px 0}
+.add{color:#4fdc9c}.del{color:#ff7a7a}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px}
+p code,li code,.meta code{background:rgba(127,227,220,.1);padding:1px 5px;border-radius:4px}
+.markdown{margin-top:18px;padding-top:14px;border-top:1px solid rgba(127,227,220,.18)}
+.markdown img{max-width:100%}
+.markdown pre{background:rgba(0,0,0,.28);padding:10px 12px;border-radius:8px;overflow:auto}
+body.light .markdown pre{background:rgba(0,0,0,.05)}
+.markdown table{border-collapse:collapse}.markdown td,.markdown th{border:1px solid rgba(127,227,220,.22);padding:4px 8px}
+.markdown blockquote{margin:0;padding-left:12px;border-left:3px solid rgba(127,227,220,.35);color:#9bb8be}
+a{color:#7fe3dc}body.light a{color:#10766e}
+.muted{color:#7d969b}
+table.rows{border-collapse:collapse;width:100%;margin-top:14px}
+table.rows td{padding:6px 8px;border-bottom:1px solid rgba(127,227,220,.12);vertical-align:top}
+table.rows tr.hit td{background:rgba(127,227,220,.1)}
+.steps{color:#9bb8be;font-size:12.5px;margin:4px 0 0;padding-left:18px}
+pre.code{counter-reset:line;background:rgba(0,0,0,.28);border-radius:8px;padding:10px 0;overflow:auto;line-height:1.5}
+body.light pre.code{background:rgba(0,0,0,.04)}
+pre.code span{display:block;padding:0 14px 0 0;white-space:pre}
+pre.code span::before{counter-increment:line;content:counter(line);display:inline-block;width:46px;margin-right:14px;text-align:right;color:#5d7a80}
+`;
+
+function ibPage(route, body) {
+  const light = document.documentElement.dataset.theme === 'light' ? 'light' : '';
+  return `<!doctype html><html><head><meta charset="utf-8"><base href="https://github.com/"><style>${IB_DOC_CSS}</style></head><body class="${light}">`
+    + `<div class="kind">${htmlEscape(IB_KIND_LABEL[route.kind] || '')} · ${htmlEscape(`${route.owner}/${route.repo}`)}</div>${body}</body></html>`;
+}
+
+async function ibFetch(url, accept, asText = false) {
+  const resp = await fetch(url, { headers: { Accept: accept } });
+  if (!resp.ok) {
+    const remaining = resp.headers?.get?.('x-ratelimit-remaining');
+    if ((resp.status === 403 || resp.status === 429) && remaining === '0') {
+      throw new Error('GitHub 公开接口本小时的访问额度已用完（每位访客每小时 60 次）。请稍后再试，或在新标签打开原页面。');
+    }
+    if (resp.status === 404) throw new Error('GitHub 上找不到这个页面，或它不是公开的。');
+    throw new Error(`GitHub 暂时无法读取（HTTP ${resp.status}）。`);
+  }
+  return asText ? resp.text() : resp.json();
+}
+
+const ibLabels = labels => (labels || []).map(l => `<span class="label">${htmlEscape(l.name || l)}</span>`).join('');
+const ibMarkdown = html => `<article class="markdown">${html || '<p class="muted">（没有正文）</p>'}</article>`;
+
+async function githubView(route) {
+  const JSONH = 'application/vnd.github.html+json';
+  if (route.kind === 'github-pr') {
+    const pr = await ibFetch(route.api, JSONH);
+    const [label, cls] = pr.merged_at ? ['已合并', 'merged'] : pr.state === 'open' ? (pr.draft ? ['草稿', 'draft'] : ['进行中', 'open']) : ['已关闭', 'closed'];
+    return ibPage(route, `<h1>${htmlEscape(pr.title)} <span class="num">#${pr.number}</span></h1>`
+      + `<p class="meta"><span class="chip ${cls}">${label}</span>${htmlEscape(pr.user?.login || '')} · 创建于 ${htmlEscape(ibTime(pr.created_at))}${pr.merged_at ? ` · 合并于 ${htmlEscape(ibTime(pr.merged_at))}` : ''}</p>`
+      + `<p class="meta"><code>${htmlEscape(pr.head?.ref)}</code> → <code>${htmlEscape(pr.base?.ref)}</code> · <span class="add">+${pr.additions ?? 0}</span> <span class="del">−${pr.deletions ?? 0}</span> · ${pr.changed_files ?? 0} 个文件 · ${pr.commits ?? 0} 个提交</p>`
+      + `<p>${ibLabels(pr.labels)}</p>${ibMarkdown(pr.body_html)}`);
+  }
+  if (route.kind === 'github-issue') {
+    const is = await ibFetch(route.api, JSONH);
+    const [label, cls] = is.state === 'open' ? ['进行中', 'open'] : ['已关闭', 'closed'];
+    return ibPage(route, `<h1>${htmlEscape(is.title)} <span class="num">#${is.number}</span></h1>`
+      + `<p class="meta"><span class="chip ${cls}">${label}</span>${htmlEscape(is.user?.login || '')} · 创建于 ${htmlEscape(ibTime(is.created_at))} · ${is.comments ?? 0} 条评论${is.closed_at ? ` · 关闭于 ${htmlEscape(ibTime(is.closed_at))}` : ''}</p>`
+      + `<p>${ibLabels(is.labels)}</p>${ibMarkdown(is.body_html)}`);
+  }
+  if (route.kind === 'github-run') {
+    const run = await ibFetch(route.api, 'application/vnd.github+json');
+    const jobs = await ibFetch(`${route.api}/jobs?per_page=50`, 'application/vnd.github+json').catch(() => ({ jobs: [] }));
+    const verdict = run.conclusion || run.status;
+    const rows = (jobs.jobs || []).map(j => {
+      const hit = route.job && String(j.id) === String(route.job);
+      const steps = hit ? `<ol class="steps">${(j.steps || []).map(st => `<li>${htmlEscape(st.name)} · ${htmlEscape(st.conclusion || st.status)}</li>`).join('')}</ol>` : '';
+      return `<tr class="${hit ? 'hit' : ''}"><td>${htmlEscape(j.name)}${steps}</td><td><span class="chip ${htmlEscape(j.conclusion || j.status)}">${htmlEscape(j.conclusion || j.status)}</span></td><td>${htmlEscape(ibDuration(j.started_at, j.completed_at))}</td></tr>`;
+    }).join('');
+    return ibPage(route, `<h1>${htmlEscape(run.display_title || run.name)} <span class="num">#${run.run_number ?? ''}</span></h1>`
+      + `<p class="meta"><span class="chip ${htmlEscape(verdict)}">${htmlEscape(verdict)}</span>${htmlEscape(run.name)} · ${htmlEscape(run.event)} · <code>${htmlEscape(run.head_branch)}</code> · <code>${htmlEscape(String(run.head_sha || '').slice(0, 7))}</code></p>`
+      + `<p class="meta">开始 ${htmlEscape(ibTime(run.run_started_at || run.created_at))} · 用时 ${htmlEscape(ibDuration(run.run_started_at || run.created_at, run.updated_at))}</p>`
+      + (rows ? `<table class="rows">${rows}</table>` : ''));
+  }
+  if (route.kind === 'github-commit') {
+    const c = await ibFetch(route.api, 'application/vnd.github+json');
+    const [head, ...rest] = String(c.commit?.message || '').split('\n');
+    const files = (c.files || []).slice(0, 200).map(f => `<tr><td><code>${htmlEscape(f.filename)}</code></td><td class="add">+${f.additions}</td><td class="del">−${f.deletions}</td></tr>`).join('');
+    return ibPage(route, `<h1>${htmlEscape(head)}</h1>`
+      + `<p class="meta">${htmlEscape(c.commit?.author?.name || '')} · ${htmlEscape(ibTime(c.commit?.author?.date))} · <code>${htmlEscape(String(c.sha || '').slice(0, 10))}</code> · <span class="add">+${c.stats?.additions ?? 0}</span> <span class="del">−${c.stats?.deletions ?? 0}</span></p>`
+      + (rest.join('\n').trim() ? `<pre>${htmlEscape(rest.join('\n').trim())}</pre>` : '')
+      + (files ? `<table class="rows">${files}</table>` : ''));
+  }
+  if (route.kind === 'github-blob') {
+    const text = await ibFetch(route.raw, 'text/plain', true);
+    const lines = String(text).slice(0, 400000).split('\n').slice(0, 6000);
+    return ibPage(route, `<h1>${htmlEscape(route.path.split('/').pop())}</h1><p class="meta"><code>${htmlEscape(route.path)}</code> · <code>${htmlEscape(route.ref.slice(0, 12))}</code> · ${lines.length} 行</p>`
+      + `<pre class="code">${lines.map(l => `<span>${htmlEscape(l) || ' '}</span>`).join('')}</pre>`);
+  }
+  if (route.kind === 'github-release') {
+    const data = await ibFetch(route.api, JSONH);
+    const list = Array.isArray(data) ? data : [data];
+    return ibPage(route, list.map(r => `<h1>${htmlEscape(r.name || r.tag_name)}</h1><p class="meta"><code>${htmlEscape(r.tag_name)}</code> · ${htmlEscape(r.author?.login || '')} · ${htmlEscape(ibTime(r.published_at))}</p>${ibMarkdown(r.body_html)}`).join('') || '<p class="muted">还没有发布。</p>');
+  }
+  if (route.kind === 'github-repo') {
+    const repo = await ibFetch(route.api, 'application/vnd.github+json');
+    const readme = await ibFetch(`${route.api}/readme`, 'application/vnd.github.html', true).catch(() => '');
+    return ibPage(route, `<h1>${htmlEscape(repo.full_name)}</h1><p>${htmlEscape(repo.description || '')}</p>`
+      + `<p class="meta">★ ${repo.stargazers_count ?? 0} · ${htmlEscape(repo.language || '')} · 最近推送 ${htmlEscape(ibTime(repo.pushed_at))}</p><p>${ibLabels(repo.topics)}</p>${ibMarkdown(readme)}`);
+  }
+  throw new Error('无法显示这个 GitHub 页面。');
+}
+
+function ibStatus(message, offerTab = false) {
+  const status = $('#inline-browser .ib-status');
+  if (!status) return;
+  status.replaceChildren(element('p', message));
+  if (offerTab) {
+    const out = element('a', '在新标签打开原页面 ↗', 'ib-status-out');
+    out.href = inlineBrowser.history[inlineBrowser.index] || '#';
+    out.target = '_blank';
+    out.rel = 'noopener noreferrer';
+    out.setAttribute('data-ib-out', '');
+    status.append(out);
+  }
+  status.hidden = false;
+}
+
+function showInlineBrowserRoute(route) {
+  const box = $('#inline-browser');
+  if (!box) return;
+  box.hidden = false;
+  const frame = box.querySelector('.ib-frame');
+  const native = box.querySelector('.ib-native');
+  const status = box.querySelector('.ib-status');
+  box.querySelector('.ib-url').textContent = route.href;
+  box.querySelector('.ib-kind').textContent = route.label || IB_KIND_LABEL[route.kind] || '';
+  box.querySelector('[data-ib-out]').setAttribute('href', route.href);
+  box.querySelector('[data-ib="back"]').disabled = inlineBrowser.index <= 0;
+  box.querySelector('[data-ib="forward"]').disabled = inlineBrowser.index >= inlineBrowser.history.length - 1;
+  const token = ++inlineBrowser.token;
+  status.hidden = true;
+  if (route.kind === 'frame') {
+    native.hidden = true;
+    native.removeAttribute('srcdoc');
+    frame.hidden = false;
+    if (frame.getAttribute('src') !== route.src) frame.setAttribute('src', route.src);
+    return;
+  }
+  frame.hidden = true;
+  if (frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
+  native.hidden = true;
+  if (route.kind === 'blocked') {
+    ibStatus(`${route.host} 不允许在其他网页里显示，只能在新标签打开。`, true);
+    return;
+  }
+  const cached = inlineBrowser.cache.get(route.href);
+  const show = html => {
+    if (token !== inlineBrowser.token) return;
+    inlineBrowser.cache.set(route.href, html);
+    native.setAttribute('srcdoc', html);
+    native.hidden = false;
+    status.hidden = true;
+  };
+  if (cached) {
+    show(cached);
+    return;
+  }
+  ibStatus('正在从 GitHub 读取…');
+  githubView(route).then(show).catch(err => {
+    if (token === inlineBrowser.token) ibStatus(err.message || '读取失败。', true);
+  });
+}
+
+function openInlineBrowser(url) {
+  const route = resolveInlineBrowserRoute(url);
+  if (!route) return false;
+  inlineBrowser.history = inlineBrowser.history.slice(0, inlineBrowser.index + 1);
+  inlineBrowser.history.push(route.href);
+  inlineBrowser.index = inlineBrowser.history.length - 1;
+  showInlineBrowserRoute(route);
+  return true;
+}
+
+function stepInlineBrowser(delta) {
+  const next = inlineBrowser.index + delta;
+  if (next < 0 || next >= inlineBrowser.history.length) return;
+  inlineBrowser.index = next;
+  showInlineBrowserRoute(resolveInlineBrowserRoute(inlineBrowser.history[next]));
+}
+
+function closeInlineBrowser() {
+  const box = $('#inline-browser');
+  if (!box || box.hidden) return;
+  box.hidden = true;
+  inlineBrowser.token += 1;
+  inlineBrowser.history = [];
+  inlineBrowser.index = -1;
+  const frame = box.querySelector('.ib-frame');
+  if (frame && frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
+  box.querySelector('.ib-native')?.removeAttribute('srcdoc');
+}
+
+// Plain clicks on outside links open the built-in browser; modified clicks keep the
+// browser's own behaviour (new tab or window).
+document.addEventListener('click', event => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+  if (!link || link.hasAttribute('data-ib-out') || link.hasAttribute('download')) return;
+  const href = link.href;
+  if (!/^https:\/\//.test(href)) return;
+  try {
+    if (new URL(href).origin === location.origin) return;
+  } catch {
+    return;
+  }
+  if (openInlineBrowser(href)) event.preventDefault();
+});
+
+{
+  const box = $('#inline-browser');
+  box?.querySelector('[data-ib-backdrop]')?.addEventListener('click', () => closeInlineBrowser());
+  box?.querySelector('[data-ib="close"]')?.addEventListener('click', () => closeInlineBrowser());
+  box?.querySelector('[data-ib="back"]')?.addEventListener('click', () => stepInlineBrowser(-1));
+  box?.querySelector('[data-ib="forward"]')?.addEventListener('click', () => stepInlineBrowser(1));
+  box?.querySelector('[data-ib="reload"]')?.addEventListener('click', () => {
+    const href = inlineBrowser.history[inlineBrowser.index];
+    if (!href) return;
+    inlineBrowser.cache.delete(href);
+    const frame = box.querySelector('.ib-frame');
+    if (frame && !frame.hidden) frame.setAttribute('src', 'about:blank');
+    showInlineBrowserRoute(resolveInlineBrowserRoute(href));
+  });
+  // Links inside rendered GitHub content stay in the built-in browser too.
+  const native = box?.querySelector('.ib-native');
+  native?.addEventListener('load', () => {
+    const doc = native.contentDocument;
+    doc?.addEventListener('click', event => {
+      const link = event.target?.closest?.('a[href]');
+      if (!link) return;
+      event.preventDefault();
+      const raw = link.getAttribute('href') || '';
+      if (raw.startsWith('#')) {
+        doc.getElementById(decodeURIComponent(raw.slice(1)))?.scrollIntoView();
+        return;
+      }
+      if (!openInlineBrowser(link.href)) window.open(link.href, '_blank', 'noopener');
+    });
+  });
+}
+
 $('#follow-live').addEventListener('click', () => {
   state.follow = !state.follow;
   if (state.follow) {
@@ -7903,6 +8246,10 @@ document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
+    if ($('#inline-browser') && !$('#inline-browser').hidden) {
+      closeInlineBrowser();
+      return;
+    }
     if (galaxyDetail.selectedKey) {
       closeGalaxyNodeCard();
       return;
