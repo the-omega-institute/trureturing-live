@@ -492,7 +492,7 @@ test('a growing galaxy is magnified locally while the rest of the sky stays put'
   }finally{dom.window.close();}
 });
 
-test('spatial layers and human resonance pulses advance explorer rank and trigger level up',async()=>{
+test('spatial layers, tactile sonar sweep, and authentic automation-only realm level-up',async()=>{
   const {dom,win}=await boot();try{
     const doc=win.document;
     const room=doc.querySelector('#research-room');
@@ -502,12 +502,20 @@ test('spatial layers and human resonance pulses advance explorer rank and trigge
     assert.equal(doc.querySelector('[data-layer="galaxy"]').getAttribute('aria-pressed'),'true');
     doc.querySelector('[data-layer="station"]').click();
     assert.equal(room.dataset.layer,'station','switches cleanly to orbital space station layer');
-    assert.equal(doc.querySelector('#human-lv').textContent,'LV.01','two layer discoveries earn 40 XP');
 
-    const pulseBtn=doc.querySelector('#human-pulse-btn');
-    for(let i=0;i<5;i++)pulseBtn.click();
-    assert.notEqual(doc.querySelector('#human-lv').textContent,'LV.01','rapid 5x resonance overdrive levels up the observer rank');
-    assert.ok(doc.querySelector('#human-rank-name').textContent.length>0);
+    win.syncInstituteRealm(18367);
+    assert.equal(doc.querySelector('#realm-stage').textContent,'境·IV');
+    assert.equal(doc.querySelector('#realm-name').textContent,'化神');
+
+    // Manual tactile sonar clicks MUST NOT fake-farm level ups!
+    const sonarBtn=doc.querySelector('#sonar-pulse-btn');
+    for(let i=0;i<6;i++)sonarBtn.click();
+    assert.equal(doc.querySelector('#realm-stage').textContent,'境·IV','manual clicks never inflate automated realm level');
+
+    // Only real automated theorem milestone advancement levels up the realm!
+    win.syncInstituteRealm(20012);
+    assert.equal(doc.querySelector('#realm-stage').textContent,'境·V');
+    assert.equal(doc.querySelector('#realm-name').textContent,'渡劫');
 
     const soundBtn=doc.querySelector('#human-sound-btn');
     soundBtn.click();

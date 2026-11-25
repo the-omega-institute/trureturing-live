@@ -80,17 +80,37 @@
     }
   };
 
-  // ---- Map 2D/3D Atlas Truth DAG Coordinates into the Grand Overhead 3D Sky Canopy (STRATUM 3: 星空) ----
-  // Places all 7 galaxies in a panoramic sweeping celestial arc cleanly ABOVE and BEHIND the suspended Space Station!
-  function mapStarToSkyVault(nx, ny, nz) {
-    // nx in [-1.05, 1.05], ny in [-0.97, 1.08], nz in [-0.32, 0.03]
-    // Sculpted panoramic 3D galactic belt cleanly above the suspended Space Station,
-    // with a gentle central zenith arch lifting Observer cleanly above the Direction apex!
-    const centerLowArch = Math.max(0, 1.0 - Math.abs(nx) * 1.45) * Math.max(0, -ny) * 1.55;
-    const wx = nx * 13.6;
-    const wy = 6.72 + ny * 2.55 + centerLowArch - Math.abs(nx) * 0.38;
-    const wz = -14.2 - Math.hypot(nx * 0.65, ny * 0.35) * 4.8 + nz * 4.6;
-    return [wx, wy, wz];
+  // ---- Map Truth DAG Coordinates into a 3D Celestial Helical Ring (周天星斗大阵) ----
+  // Wraps all 7 named mathematical galaxies + the 360° Foundation Star River cleanly BETWEEN
+  // the reflective Ground Abyss (y = -1.35) and the hovering Akasha Eye (y = 4.2..4.6)!
+  const CELESTIAL_ANCHORS = {
+    0: [-0.52, 5.55, 10.6], // Combinatorics: upper-left halo beside Akasha Eye
+    2: [ 0.52, 5.55, 10.6], // Arith: upper-right halo beside Akasha Eye
+    3: [-0.96, 3.85, 10.8], // ConceptDynamics: mid-left ascending helical wing
+    5: [ 0.96, 3.85, 10.8], // Weil: mid-right ascending helical wing
+    1: [-1.24, 1.95, 10.4], // Quantum: lower-left flank hovering above ground
+    4: [ 1.24, 1.95, 10.4], // Analytic: lower-right flank hovering above ground
+    6: [ 0.00, 6.25, 10.6]  // Observer: high zenith crown above Akasha Eye
+  };
+
+  function mapStarToCelestialRing(nx, ny, nz, cid, clusterCenters) {
+    const anc = cid != null ? CELESTIAL_ANCHORS[cid] : null;
+    if (anc) {
+      const cc = clusterCenters?.get(cid);
+      const dx = cc ? (nx - cc[0] / 1000) : 0;
+      const dy = cc ? (ny - cc[1] / 1000) : 0;
+      const dz = cc ? (nz - cc[2] / 1000) : 0;
+      const az = anc[0] + dx * 0.72;
+      const rad = anc[2] + dz * 4.0 + Math.abs(dx) * 0.55;
+      const wy = anc[1] + dy * 2.75;
+      return [Math.sin(az) * rad, wy, -Math.cos(az) * rad - 0.65];
+    }
+    // Foundations Belt (Other): continuous 360° ascending celestial spiral river encircling the whole sanctuary!
+    const rawAng = Math.atan2(nx, ny);
+    const az = rawAng * 1.12;
+    const rad = 10.2 + ((Math.abs(nx * 7.3 + ny * 5.1) % 1) * 2.1) + nz * 2.8;
+    const wy = 0.55 + (Math.cos(az) * 0.5 + 0.5) * 5.2 + ny * 0.55;
+    return [Math.sin(az) * rad, wy, -Math.cos(az) * rad - 0.55];
   }
 
   // ---- Procedural Architectural Mesh Builder + Sharp Crease Edge Extractor (EdgesGeometry equivalent) ----
@@ -426,6 +446,8 @@
   uniform float uTheme;
   uniform float uTime;
   uniform float uStationAlpha;
+  uniform float uSonarRadius;
+  uniform float uSonarAlpha;
   out vec4 fragColor;
 
   float gridFactor(vec2 coord, float scale, float width) {
@@ -452,15 +474,23 @@
     float gridMask = (majorG * 0.68 + minorG * 0.16) * gridFade;
     col = mix(col, uGridColor, gridMask * (uTheme > 1.5 ? 0.30 : 0.28));
 
-    // Concentric Orbital Foundation Trench Rings on the Ground Plane (r = 9.0, r = 13.8) + slow pulse ring
-    float r1 = (1.0 - smoothstep(0.0, 0.07, abs(dist - 9.0))) * 0.42;
+    // Concentric Orbital Foundation Trench Rings on the Ground Plane (r = 9.0, r = 11.4, r = 13.8) + slow pulse ring
+    float r1 = (1.0 - smoothstep(0.0, 0.07, abs(dist - 9.0))) * 0.44;
+    float rMid = (1.0 - smoothstep(0.0, 0.045, abs(dist - 11.4))) * 0.28;
     float r2 = (1.0 - smoothstep(0.0, 0.055, abs(dist - 13.8))) * 0.22;
     float waveR = fract(uTime * 0.065) * 16.0;
     float rWave = (1.0 - smoothstep(0.0, 0.22, abs(dist - waveR))) * sin(fract(uTime * 0.065) * 3.14159) * 0.16;
-    // 8 radial azimuth degree lines across the orbital floor
+    // 8 radial celestial formation azimuth lines across the orbital floor
     float ang = atan(P.z, P.x);
-    float radTick = pow(abs(cos(ang * 4.0)), 64.0) * smoothstep(2.5, 5.0, dist) * exp(-dist * 0.08) * 0.24;
-    col += uGridColor * (r1 + r2 + rWave + radTick) * (uTheme > 1.5 ? 0.45 : 0.72);
+    float radTick = pow(abs(cos(ang * 4.0)), 64.0) * smoothstep(2.5, 5.0, dist) * exp(-dist * 0.075) * 0.26;
+    col += uGridColor * (r1 + rMid + r2 + rWave + radTick) * (uTheme > 1.5 ? 0.45 : 0.72);
+    // Interactive 3D Golden-Jade Sonar Wave (✦ 灵识扫频 — purely visual & musical!)
+    if (uSonarAlpha > 0.005) {
+      float sRing = 1.0 - smoothstep(0.0, 0.42, abs(dist - uSonarRadius));
+      float sTrail = exp(-max(0.0, uSonarRadius - dist) * 0.65) * step(dist, uSonarRadius) * 0.28;
+      vec3 sonarCol = uTheme > 1.5 ? vec3(0.14, 0.56, 0.54) : vec3(0.92, 0.80, 0.48);
+      col += sonarCol * (sRing * 1.15 + sTrail) * uSonarAlpha;
+    }
 
     // Real-time reflective specular bounce pools from ALL 8 suspended monoliths hovering ABOVE the abyss!
     float fres = pow(1.0 - max(dot(N, V), 0.0), 2.8);
@@ -528,6 +558,8 @@
   uniform float uTheme;
   uniform float uTime;
   uniform float uStationAlpha;
+  uniform float uSonarRadius;
+  uniform float uSonarAlpha;
   out vec4 fragColor;
 
   void main() {
@@ -739,11 +771,12 @@
   layout(location=1) in vec3 aCol;
   layout(location=2) in float aAlpha;
   uniform mat4 uViewProj;
+  uniform mat4 uModel;
   uniform float uAlphaMul;
   out vec3 vCol;
   out float vAlpha;
   void main() {
-    gl_Position = uViewProj * vec4(aPos, 1.0);
+    gl_Position = uViewProj * uModel * vec4(aPos, 1.0);
     vCol = aCol;
     vAlpha = aAlpha * uAlphaMul;
   }`;
@@ -756,6 +789,35 @@
   void main() {
     if (vAlpha < 0.005) discard;
     fragColor = vec4(vCol, clamp(vAlpha, 0.0, 0.85));
+  }`;
+
+  // GPU-Animated Ascending Ethereal Qi / Starlight Motes (修仙灵气螺旋上升星尘!)
+  const QI_VS = `#version 300 es
+  precision highp float;
+  layout(location=0) in vec4 aOrb;   // (radius, baseAngle, phase, speed)
+  layout(location=1) in vec3 aCol;
+  layout(location=2) in vec2 aStyle; // (size, alpha)
+  uniform mat4 uViewProj;
+  uniform float uTime;
+  uniform float uDpr;
+  uniform float uAlphaMul;
+  out vec3 vCol;
+  out float vAlpha;
+  out float vSoft;
+  void main() {
+    float u = fract(aOrb.z + uTime * aOrb.w);
+    float wy = -1.1 + u * 7.6; // gently rises from reflective ground abyss (-1.1) up to Akasha crown (+6.5)!
+    float ang = aOrb.y + u * 1.45 + uTime * 0.055;
+    // Slight inward taper as ethereal qi gathers toward the Akasha Eye crown
+    float rad = aOrb.x * (1.04 - u * 0.14);
+    vec3 wp = vec3(sin(ang) * rad, wy, -cos(ang) * rad - 0.55);
+    vec4 clip = uViewProj * vec4(wp, 1.0);
+    gl_Position = clip;
+    gl_PointSize = aStyle.x * uDpr * clamp(30.0 / max(10.0, clip.w), 0.75, 2.2);
+    float env = smoothstep(0.0, 0.16, u) * smoothstep(1.0, 0.78, u);
+    vCol = aCol;
+    vAlpha = aStyle.y * env * uAlphaMul;
+    vSoft = 0.0;
   }`;
 
   const QUAD_VS = `#version 300 es
@@ -1026,15 +1088,98 @@
     stuInner.addOctahedron(0, 0, 0, 0.24, 0.24, 0.24, 3);
     g.stuInner = stuInner.build(gl, 18);
 
-    // A0 // DIRECTION (ARCHITECT) — Floating Obsidian Diamond Crown + Twin Titanium Gimbal Rings
+    // A0 // DIRECTION (AKASHA EYE / 阿卡西之眼) — Levitating Sacred Diamond Core + Triple Celestial Astrolabe Rings
     const dirCore = new MeshBuilder();
-    dirCore.addOctahedron(0, 0, 0, 0.56, 0.78, 0.56, 1, Math.PI / 4);
-    dirCore.addOctahedron(0, 0, 0, 0.28, 0.30, 0.28, 3, 0);
+    dirCore.addOctahedron(0, 0, 0, 0.58, 0.82, 0.58, 1, Math.PI / 4);
+    dirCore.addOctahedron(0, 0, 0, 0.30, 0.32, 0.30, 3, 0);
     g.dirCore = dirCore.build(gl, 16);
     const dirRing = new MeshBuilder();
-    dirRing.addTorusRing(0, 0, 0, 1.08, 0.036, 36, 6, 0.32, 0.18, 2);
-    dirRing.addTorusRing(0, 0, 0, 0.84, 0.024, 32, 6, -0.58, -0.35, 2);
+    dirRing.addTorusRing(0, 0, 0, 1.32, 0.022, 48, 6, 0.14, -0.10, 2);
+    dirRing.addTorusRing(0, 0, 0, 1.06, 0.036, 36, 6, 0.36, 0.20, 2);
+    dirRing.addTorusRing(0, 0, 0, 0.80, 0.024, 32, 6, -0.58, -0.35, 2);
     g.dirRing = dirRing.build(gl, 28);
+
+    // 3D Sacred Celestial Meridian Rings & Ascending Double-Helix Qi Ribbons (周天星轨阵环 — between Ground & Akasha Eye!)
+    const ringVerts = [];
+    const addCelestialCircle = (yCenter, rad, tiltX, tiltZ, segs, col, alpha, ticks = 24) => {
+      const cx = Math.cos(tiltX), sx = Math.sin(tiltX);
+      const cz = Math.cos(tiltZ), sz = Math.sin(tiltZ);
+      const pt = (a, r) => {
+        let x = Math.sin(a) * r, y = 0, z = -Math.cos(a) * r;
+        const y1 = y * cx - z * sx, z1 = y * sx + z * cx;
+        const x2 = x * cz - y1 * sz, y2 = x * sz + y1 * cz;
+        return [x2, y2 + yCenter, z1 - 0.55];
+      };
+      for (let i = 0; i < segs; i++) {
+        const a0 = (i / segs) * Math.PI * 2;
+        const a1 = ((i + 1) / segs) * Math.PI * 2;
+        // Gently soften the immediate front camera window so the foreground Space Station stays crystal-clear
+        const frontFade = 0.28 + 0.72 * (1.0 - Math.max(0, Math.cos(a0 - Math.PI)) * 0.75);
+        const p0 = pt(a0, rad), p1 = pt(a1, rad);
+        ringVerts.push(
+          p0[0], p0[1], p0[2], col[0], col[1], col[2], alpha * frontFade,
+          p1[0], p1[1], p1[2], col[0], col[1], col[2], alpha * frontFade
+        );
+      }
+      for (let k = 0; k < ticks; k++) {
+        const a = (k / ticks) * Math.PI * 2;
+        const frontFade = 0.25 + 0.75 * (1.0 - Math.max(0, Math.cos(a - Math.PI)) * 0.75);
+        const pIn = pt(a, rad - (k % 3 === 0 ? 0.34 : 0.16));
+        const pOut = pt(a, rad + (k % 3 === 0 ? 0.26 : 0.12));
+        ringVerts.push(
+          pIn[0], pIn[1], pIn[2], col[0], col[1], col[2], alpha * 1.45 * frontFade,
+          pOut[0], pOut[1], pOut[2], col[0], col[1], col[2], alpha * 1.45 * frontFade
+        );
+      }
+    };
+    addCelestialCircle(1.45, 10.35,  0.05,  0.03, 96, [0.46, 0.84, 0.88], 0.24, 36);
+    addCelestialCircle(3.65, 10.95, -0.06, -0.04, 96, [0.56, 0.82, 0.96], 0.22, 36);
+    addCelestialCircle(5.55, 10.55,  0.04, -0.03, 96, [0.88, 0.80, 0.56], 0.26, 24);
+    // Twin delicate ascending 3D helical qi meridian streams sweeping from Ground -> Akasha Crown
+    for (let strand = 0; strand < 2; strand++) {
+      const hSegs = 80;
+      const offset = strand * Math.PI;
+      const hCol = strand === 0 ? [0.52, 0.86, 0.88] : [0.86, 0.78, 0.54];
+      for (let i = 0; i < hSegs; i++) {
+        const u0 = i / hSegs, u1 = (i + 1) / hSegs;
+        const a0 = -2.25 + u0 * 4.5 + offset * 0.18;
+        const a1 = -2.25 + u1 * 4.5 + offset * 0.18;
+        const r0 = 10.9 - u0 * 0.55 + Math.sin(u0 * Math.PI * 2) * 0.35;
+        const r1 = 10.9 - u1 * 0.55 + Math.sin(u1 * Math.PI * 2) * 0.35;
+        const y0 = 0.45 + u0 * 5.65;
+        const y1 = 0.45 + u1 * 5.65;
+        const env = Math.sin(u0 * Math.PI) * 0.24;
+        ringVerts.push(
+          Math.sin(a0) * r0, y0, -Math.cos(a0) * r0 - 0.55, hCol[0], hCol[1], hCol[2], env,
+          Math.sin(a1) * r1, y1, -Math.cos(a1) * r1 - 0.55, hCol[0], hCol[1], hCol[2], env
+        );
+      }
+    }
+    const celestialRingVbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, celestialRingVbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(ringVerts), gl.STATIC_DRAW);
+    g.celestialRings = { vbo: celestialRingVbo, count: ringVerts.length / 7 };
+
+    // GPU-Animated Ascending Ethereal Qi Motes (168 golden-jade & starlight particles spiralling upward!)
+    const qiVerts = [];
+    let qSeed = 4219;
+    const qRand = () => { qSeed = (qSeed * 16807) % 2147483647; return (qSeed - 1) / 2147483646; };
+    for (let i = 0; i < 168; i++) {
+      const inner = i < 36;
+      const rad = inner ? (1.1 + qRand() * 2.2) : (8.8 + qRand() * 3.2);
+      const baseAng = qRand() * Math.PI * 2;
+      const phase = qRand();
+      const speed = (inner ? 0.048 : 0.026) + qRand() * 0.024;
+      const gold = i % 3 === 0;
+      const col = gold ? [0.92, 0.82, 0.56] : [0.54, 0.88, 0.94];
+      const sz = inner ? (2.1 + qRand() * 1.4) : (1.8 + qRand() * 2.0);
+      const al = inner ? (0.36 + qRand() * 0.24) : (0.28 + qRand() * 0.34);
+      qiVerts.push(rad, baseAng, phase, speed, col[0], col[1], col[2], sz, al);
+    }
+    const qiVbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, qiVbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(qiVerts), gl.STATIC_DRAW);
+    g.qi = { vbo: qiVbo, count: qiVerts.length / 9 };
 
     // Volumetric Light Cylinder (open cylinder height 0..1, radius 1)
     const volVerts = [];
@@ -1101,6 +1246,7 @@
       this.edgeProg = createProgram(gl, EDGE_VS, EDGE_FS);
       this.volProg = createProgram(gl, VOL_VS, VOL_FS);
       this.starProg = createProgram(gl, STAR_VS, STAR_FS);
+      this.qiProg = createProgram(gl, QI_VS, STAR_FS);
       this.dagLineProg = createProgram(gl, DAG_LINE_VS, DAG_LINE_FS);
       this.brightProg = createProgram(gl, QUAD_VS, BRIGHT_FS);
       this.blurProg = createProgram(gl, QUAD_VS, BLUR_FS);
@@ -1111,6 +1257,7 @@
       this.viewMat = M4.create();
       this.viewProj = M4.create();
       this.modelMat = M4.create();
+      this.identityMat = M4.identity(M4.create());
       this.camPos = [0, 10, 22];
       this.fovY = (37 * Math.PI) / 180;
       this.cssW = 1280;
@@ -1125,7 +1272,8 @@
       this.fboW = 0;
       this.fboH = 0;
       this.starHash = '';
-      this.skyClusters = []; // cached 3D sky vault positions of Truth DAG clusters
+      this.clusterCenters = new Map();
+      this.skyClusters = []; // cached 3D celestial ring positions of Truth DAG clusters
     }
 
     ensureSize(cssW, cssH, dpr) {
@@ -1193,15 +1341,23 @@
       };
     }
 
-    mapSkyPoint(nx, ny, nz) {
-      return mapStarToSkyVault(nx, ny, nz);
+    mapSkyPoint(nx, ny, nz, cid = null) {
+      return mapStarToCelestialRing(nx, ny, nz, cid, this.clusterCenters);
     }
 
-    // Upload real 1,160 Truth DAG stars, volumetric nebula cloud sprites & intra-galaxy 3D constellation lines!
+    // Upload real 1,160 Truth DAG stars, volumetric nebula cloud sprites & intra-galaxy 3D constellation lines
+    // arranged in a 3D Celestial Helical Ring (周天星阵) encircling the space between Ground and Akasha Eye!
     syncTruthDag(stars, edges, clusters, nebPalette, recentByCluster, isLight) {
       const key = `${stars?.length || 0}:${edges?.length || 0}:${recentByCluster?.size || 0}:${isLight ? 1 : 0}`;
       if (key === this.starHash) return;
       this.starHash = key;
+
+      this.clusterCenters = new Map();
+      if (clusters && clusters.length) {
+        for (const cl of clusters) {
+          if (cl?.center) this.clusterCenters.set(cl.id, cl.center);
+        }
+      }
 
       const starData = [];
       const nebData = [];
@@ -1210,7 +1366,7 @@
       // 1. Deep-space ambient starfield dome (rich astronomical backdrop!)
       let seed = 7331;
       const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      for (let i = 0; i < 420; i++) {
+      for (let i = 0; i < 380; i++) {
         const theta = rand() * Math.PI * 2;
         const elev = -0.02 + rand() * 0.78;
         const rad = 36 + rand() * 24;
@@ -1218,40 +1374,40 @@
         const y = Math.sin(elev) * rad + 1.0;
         const z = Math.sin(theta) * Math.cos(elev) * rad - 8.0;
         const tone = isLight ? [0.22, 0.34, 0.42] : (i % 7 === 0 ? [0.95, 0.88, 0.72] : [0.74, 0.86, 0.98]);
-        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.4 + rand() * 1.9, isLight ? 0.22 : (0.20 + rand() * 0.44));
+        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.4 + rand() * 1.9, isLight ? 0.22 : (0.18 + rand() * 0.40));
       }
 
-      // 2. Real Truth DAG stars projected into the sweeping overhead 3D Cosmic Canopy (STRATUM 3!)
+      // 2. Real Truth DAG stars projected into the 3D Celestial Helical Ring wrapping Ground <-> Akasha Eye!
       const worldPts = [];
       if (stars && stars.length) {
         for (let i = 0; i < stars.length; i++) {
           const s = stars[i];
-          const [wx, wy, wz] = mapStarToSkyVault(s[0] / 1000, s[1] / 1000, s[2] / 1000);
+          const [wx, wy, wz] = mapStarToCelestialRing(s[0] / 1000, s[1] / 1000, s[2] / 1000, s[3], this.clusterCenters);
           worldPts.push([wx, wy, wz]);
           const hasG = Boolean(recentByCluster?.get(s[3])?.count);
           const col = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
           const deg = s[5] || 1;
-          const sz = (deg >= 7 ? 4.4 : 2.6) * (hasG ? 1.28 : 1.0);
-          const al = (hasG ? 0.88 : 0.48) * (isLight ? 0.76 : 1.0);
+          const isOther = s[3] === 7;
+          const sz = isOther ? 2.2 : ((deg >= 7 ? 4.4 : 2.8) * (hasG ? 1.24 : 1.0));
+          const al = (isOther ? 0.34 : (hasG ? 0.88 : 0.54)) * (isLight ? 0.78 : 1.0);
           starData.push(wx, wy, wz, col[0] / 255, col[1] / 255, col[2] / 255, sz, al);
         }
       }
 
-      // 3. Soft Volumetric 3D Nebula Cloud Sprites behind every named galaxy (eliminates empty-void feeling!)
+      // 3. Soft Volumetric 3D Nebula Cloud Sprites behind every named galaxy on the Celestial Ring!
       this.skyClusters = [];
       if (clusters && clusters.length) {
         for (const cl of clusters) {
           if (cl.name === 'Other') continue;
-          const [cx3, cy3, cz3] = mapStarToSkyVault(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000);
+          const [cx3, cy3, cz3] = mapStarToCelestialRing(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000, cl.id, this.clusterCenters);
           const col = (nebPalette && nebPalette[cl.id % nebPalette.length]) || [128, 198, 232];
           const hasG = Boolean(recentByCluster?.get(cl.id)?.count);
           this.skyClusters.push({ cl, x: cx3, y: cy3, z: cz3, col });
-          const baseSz = hasG ? 92.0 : 66.0;
-          const baseAl = isLight ? (hasG ? 0.08 : 0.04) : (hasG ? 0.22 : 0.11);
+          const baseSz = hasG ? 86.0 : 62.0;
+          const baseAl = isLight ? (hasG ? 0.08 : 0.04) : (hasG ? 0.21 : 0.11);
           nebData.push(cx3, cy3, cz3, col[0] / 255, col[1] / 255, col[2] / 255, baseSz, baseAl);
-          // 2 subtle offset outer gas puffs per galaxy for organic astronomical volume
-          nebData.push(cx3 - 1.2, cy3 + 0.45, cz3 - 0.6, col[0] / 255, col[1] / 255, col[2] / 255, baseSz * 0.72, baseAl * 0.65);
-          nebData.push(cx3 + 1.1, cy3 - 0.35, cz3 + 0.5, col[0] / 255, col[1] / 255, col[2] / 255, baseSz * 0.68, baseAl * 0.60);
+          nebData.push(cx3 - 0.9, cy3 + 0.35, cz3 - 0.5, col[0] / 255, col[1] / 255, col[2] / 255, baseSz * 0.70, baseAl * 0.62);
+          nebData.push(cx3 + 0.9, cy3 - 0.28, cz3 + 0.4, col[0] / 255, col[1] / 255, col[2] / 255, baseSz * 0.66, baseAl * 0.58);
         }
       }
 
@@ -1264,6 +1420,8 @@
           const pu = worldPts[u], pv = worldPts[v];
           if (!pu || !pv) continue;
           const cid = stars[u][3];
+          if (stars[v][3] !== cid) continue; // strictly intra-cluster edges — zero stray cross-galaxy stretch lines!
+          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 2.15) continue;
           const hasG = Boolean(recentByCluster?.get(cid)?.count);
           const col = (nebPalette && nebPalette[cid % nebPalette.length]) || [128, 198, 232];
           const al = (hasG ? 0.28 : 0.14) * (isLight ? 0.85 : 1.0);
@@ -1351,7 +1509,7 @@
     render(params) {
       const {
         t, themeIdx, entities, activeId, focusedId, bootAge, quiet,
-        stationAlpha = 1.0, galaxyAlpha = 1.0
+        stationAlpha = 1.0, galaxyAlpha = 1.0, sonarRadius = 0.0, sonarAlpha = 0.0
       } = params;
       const gl = this.gl;
       const tAnim = quiet ? 4.2 : t;
@@ -1410,12 +1568,179 @@
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-      // 1B. STRATUM 3 — 3D TRUTH DAG GALAXY VAULT (Nebula Gas Clouds + 3D Constellation Trees + Starfield!)
+      // Pack 8 dynamic point lights for ground floor reflections
+      const lPos = new Float32Array(24);
+      const lCol = new Float32Array(24);
+      const lPow = new Float32Array(8);
+      for (let i = 0; i < Math.min(8, entities.length); i++) {
+        const e = entities[i];
+        lPos[i * 3] = e.x;
+        lPos[i * 3 + 1] = (e.y || 0) + (e.eye ? 1.8 : 0.6);
+        lPos[i * 3 + 2] = e.z;
+        lCol[i * 3] = e.rgb[0] / 255;
+        lCol[i * 3 + 1] = e.rgb[1] / 255;
+        lCol[i * 3 + 2] = e.rgb[2] / 255;
+        lPow[i] = (e.eye ? 0.55 : (e.isSel ? 2.6 : e.running ? 1.55 : 0.78)) * Math.max(stationAlpha, 0.28);
+      }
+
+      // 1B. STRATUM 1 — LOWERED REFLECTIVE GROUND ABYSS FLOOR (y = -1.35!)
+      const floorAlpha = Math.max(stationAlpha, galaxyAlpha * 0.34);
+      if (floorAlpha > 0.04) {
+        const fp = this.floorProg;
+        gl.useProgram(fp.p);
+        gl.uniformMatrix4fv(fp.u.uViewProj, false, this.viewProj);
+        gl.uniform3fv(fp.u.uCamPos, this.camPos);
+        gl.uniform3fv(fp.u.uFogColor, this.fogColor);
+        gl.uniform3fv(fp.u.uFloorColor, floorCol);
+        gl.uniform3fv(fp.u.uGridColor, gridCol);
+        gl.uniform3fv(fp.u.uLightPos, lPos);
+        gl.uniform3fv(fp.u.uLightCol, lCol);
+        gl.uniform1fv(fp.u.uLightPow, lPow);
+        gl.uniform1f(fp.u.uTheme, themeIdx);
+        gl.uniform1f(fp.u.uTime, tAnim);
+        gl.uniform1f(fp.u.uStationAlpha, floorAlpha);
+        gl.uniform1f(fp.u.uSonarRadius, sonarRadius);
+        gl.uniform1f(fp.u.uSonarAlpha, sonarAlpha);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.floor.vbo);
+        gl.disableVertexAttribArray(1);
+        gl.disableVertexAttribArray(2);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, this.geo.floor.count);
+      }
+
+      // 1C. STRATUM 2 — SUSPENDED FLOATING ORBITAL SPACE STATION + AKASHA EYE (y = 0.0..4.6!)
+      if (stationAlpha > 0.04 || galaxyAlpha > 0.04) {
+        if (stationAlpha > 0.04) {
+          M4.identity(this.modelMat);
+          const campusAccent = isLight ? [0.16, 0.48, 0.48] : isBlueprint ? [0.56, 0.82, 1.0] : [0.46, 0.84, 0.94];
+          this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha);
+        }
+
+        for (const e of entities) {
+          // Keep the Akasha Eye luminous as the celestial crown even in Galaxy Observatory mode!
+          const entAlpha = e.eye ? Math.max(stationAlpha, galaxyAlpha * 0.82) : stationAlpha;
+          if (entAlpha < 0.04) continue;
+          const rawBoot = Math.max(0.08, Math.min(1, (bootAge - e.order * 0.025) / 0.32));
+          const bootK = 1 - Math.pow(1 - rawBoot, 3);
+          const accent = [e.rgb[0] / 255, e.rgb[1] / 255, e.rgb[2] / 255];
+          const act = e.isSel ? 1.0 : (focusedId === e.id ? 1.0 : 0.0);
+          const run = e.running ? 1.0 : 0.0;
+          const edgeA = isLight ? 0.38 : (0.36 + act * 0.32);
+          const y0 = e.y || 0;
+
+          if (!e.eye && e.id !== 'verification') {
+            M4.compose(this.modelMat, e.x, y0 + 0.10, e.z, 0, 0, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.plinth, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.72, entAlpha);
+          }
+
+          if (e.id === 'verification') {
+            const scH = (0.96 + (e.hEntity - 1.44) * 0.25) * bootK;
+            M4.compose(this.modelMat, e.x, y0 + 0.06, e.z, 0, tAnim * 0.06, 0, bootK, scH, bootK);
+            this.drawMesh(this.geo.verification, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
+            M4.compose(this.modelMat, e.x, y0 + 0.84 * scH, e.z, Math.sin(tAnim * 0.32) * 0.14, -tAnim * 0.28, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.verRing, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.9, entAlpha);
+          } else if (e.id === 'research') {
+            const fy = y0 + 1.00 * bootK + Math.sin(tAnim * 0.9) * 0.05;
+            M4.compose(this.modelMat, e.x, fy, e.z, tAnim * 0.14, tAnim * 0.24, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.resShell, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
+            M4.compose(this.modelMat, e.x, fy, e.z, -tAnim * 0.22, -tAnim * 0.32, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.resCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+          } else if (e.id === 'review') {
+            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.revBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            const sway = Math.sin(tAnim * 0.85) * 0.10;
+            M4.compose(this.modelMat, e.x - 0.42 * bootK, y0 + (0.76 + sway) * bootK, e.z, 0, 0.28, 0.06, bootK, bootK, bootK);
+            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            M4.compose(this.modelMat, e.x + 0.42 * bootK, y0 + (0.76 - sway) * bootK, e.z, 0, -0.28, -0.06, bootK, bootK, bootK);
+            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+          } else if (e.id === 'books') {
+            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, tAnim * 0.16, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.bookCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            for (let lv = 0; lv < 5; lv++) {
+              const ly = y0 + (0.36 + lv * 0.185 + Math.sin(tAnim * 1.1 + lv * 0.65) * 0.028) * bootK;
+              const sc = (1.0 - lv * 0.07) * bootK;
+              M4.compose(this.modelMat, e.x, ly, e.z, 0, lv * 0.12 + Math.sin(tAnim * 0.35 + lv) * 0.08, 0, sc, bootK, sc);
+              this.drawMesh(this.geo.bookSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.95, entAlpha);
+            }
+          } else if (e.id === 'publication') {
+            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0.25 + Math.sin(tAnim * 0.2) * 0.08, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.publication, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha);
+          } else if (e.id === 'outreach') {
+            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.outBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha);
+            M4.compose(this.modelMat, e.x, y0 + 0.74 * bootK, e.z, 0, tAnim * 0.18, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.outDish, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha);
+          } else if (e.id === 'studio') {
+            const cy3 = y0 + 0.84 * bootK;
+            M4.compose(this.modelMat, e.x, cy3, e.z, tAnim * 0.14, tAnim * 0.22, 0.18, bootK, bootK, bootK);
+            this.drawMesh(this.geo.stuOuter, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.0, entAlpha);
+            M4.compose(this.modelMat, e.x, cy3, e.z, -tAnim * 0.26, -tAnim * 0.34, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
+          } else if (e.id === 'direction') {
+            const fy = y0 + Math.sin(tAnim * 0.85) * 0.08;
+            M4.compose(this.modelMat, e.x, fy, e.z, 0, tAnim * 0.20, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.dirCore, this.modelMat, accent, Math.max(act, 0.45), 1.0, themeIdx, tAnim, edgeA * 1.2, entAlpha);
+            M4.compose(this.modelMat, e.x, fy, e.z, Math.sin(tAnim * 0.28) * 0.16, -tAnim * 0.24, 0, bootK, bootK, bootK);
+            this.drawMesh(this.geo.dirRing, this.modelMat, accent, Math.max(act, 0.4), 1.0, themeIdx, tAnim, edgeA * 1.0, entAlpha);
+          }
+        }
+
+        // 1D. Volumetric Atmospheric Pillars + Celestial Ascension Aura (Ground -1.35 <-> Station <-> Akasha Eye!)
+        if (!isLight) {
+          gl.depthMask(false);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+          const ver = entities.find(e => e.id === 'verification');
+          const eyeEnt = entities.find(e => e.eye);
+          if (ver && stationAlpha > 0.05) {
+            const vc = [ver.rgb[0] / 255, ver.rgb[1] / 255, ver.rgb[2] / 255];
+            this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.8, vc, 0.13 * stationAlpha);
+            this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, 0.22 * stationAlpha);
+          }
+          if (eyeEnt) {
+            // Ethereal golden-jade sanctuary aura softly enveloping the Akasha Eye crown!
+            const ec = [0.92, 0.80, 0.50];
+            const ea = Math.max(stationAlpha, galaxyAlpha * 0.72);
+            this.drawVolumetricPillar(eyeEnt.x, (eyeEnt.y || 3.8) - 2.4, eyeEnt.z, 0.72, 4.4, ec, 0.085 * ea);
+          }
+          if (stationAlpha > 0.05) {
+            this.drawVolumetricPillar(-5.65, -1.35, -0.50, 0.42, 1.15, [0.38, 0.82, 0.78], 0.11 * stationAlpha);
+            this.drawVolumetricPillar( 5.65, -1.35, -0.50, 0.42, 1.15, [0.46, 0.78, 0.96], 0.11 * stationAlpha);
+            for (const e of entities) {
+              if (e.isSel && !e.eye && e.id !== 'verification') {
+                this.drawVolumetricPillar(e.x, (e.y || 0) + 0.12, e.z, 0.80, 3.2, [e.rgb[0] / 255, e.rgb[1] / 255, e.rgb[2] / 255], 0.16 * stationAlpha);
+              }
+            }
+          }
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          gl.depthMask(true);
+        }
+      }
+
+      // 1E. STRATUM 3 — 3D CELESTIAL HELICAL TRUTH DAG RING (周天星斗大阵) ENCIRCLING GROUND <-> AKASHA EYE!
+      // Rendered with DEPTH_TEST ON + depthMask OFF so stars, sacred meridian rings & rising spiritual qi wrap
+      // authentically BEHIND and IN FRONT OF the floating sanctuary in true 3D depth!
       if (galaxyAlpha > 0.04) {
         gl.depthMask(false);
         if (!isLight) gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
-        // Volumetric nebula puffs behind each real galaxy
+        // Sacred counter-rotating 3D Astrolabe Meridian Rings & Ascending Double-Helix Qi Ribbons
+        if (this.geo.celestialRings && this.geo.celestialRings.count > 0) {
+          const dl = this.dagLineProg;
+          gl.useProgram(dl.p);
+          M4.compose(this.modelMat, 0, 0, 0, 0, tAnim * 0.018, 0, 1, 1, 1);
+          gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
+          gl.uniformMatrix4fv(dl.u.uModel, false, this.modelMat);
+          gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha * (isLight ? 0.55 : 0.95));
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.celestialRings.vbo);
+          gl.disableVertexAttribArray(3);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
+          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
+          gl.drawArrays(gl.LINES, 0, this.geo.celestialRings.count);
+        }
+
+        // Volumetric nebula clouds behind each named galaxy along the celestial ring
         if (this.geo.nebulaCount > 0) {
           const sp = this.starProg;
           gl.useProgram(sp.p);
@@ -1435,6 +1760,7 @@
           const dl = this.dagLineProg;
           gl.useProgram(dl.p);
           gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
+          gl.uniformMatrix4fv(dl.u.uModel, false, this.identityMat);
           gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.dagEdgeVbo);
           gl.disableVertexAttribArray(3);
@@ -1444,7 +1770,7 @@
           gl.drawArrays(gl.LINES, 0, this.geo.dagEdgeCount);
         }
 
-        // 1,160+ real frozen Truth DAG stars + ambient cosmos
+        // 1,160+ real frozen Truth DAG stars + Foundation 360° Celestial River
         if (this.geo.starCount > 0) {
           const sp = this.starProg;
           gl.useProgram(sp.p);
@@ -1460,143 +1786,24 @@
           gl.disableVertexAttribArray(3);
         }
 
+        // GPU-Animated Ascending Ethereal Qi / Starlight Motes rising silently from Ground -> Akasha Eye!
+        if (this.geo.qi && this.geo.qi.count > 0 && !isLight) {
+          const qp = this.qiProg;
+          gl.useProgram(qp.p);
+          gl.uniformMatrix4fv(qp.u.uViewProj, false, this.viewProj);
+          gl.uniform1f(qp.u.uTime, tAnim);
+          gl.uniform1f(qp.u.uDpr, this.dpr);
+          gl.uniform1f(qp.u.uAlphaMul, galaxyAlpha * 0.92);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.qi.vbo);
+          gl.disableVertexAttribArray(3);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 36, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 16);
+          gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 36, 28);
+          gl.drawArrays(gl.POINTS, 0, this.geo.qi.count);
+        }
+
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.depthMask(true);
-      }
-
-      // Pack 8 dynamic point lights for ground floor reflections
-      const lPos = new Float32Array(24);
-      const lCol = new Float32Array(24);
-      const lPow = new Float32Array(8);
-      for (let i = 0; i < Math.min(8, entities.length); i++) {
-        const e = entities[i];
-        lPos[i * 3] = e.x;
-        lPos[i * 3 + 1] = (e.y || 0) + (e.eye ? 1.8 : 0.6);
-        lPos[i * 3 + 2] = e.z;
-        lCol[i * 3] = e.rgb[0] / 255;
-        lCol[i * 3 + 1] = e.rgb[1] / 255;
-        lCol[i * 3 + 2] = e.rgb[2] / 255;
-        lPow[i] = (e.eye ? 0.45 : (e.isSel ? 2.6 : e.running ? 1.55 : 0.78)) * stationAlpha;
-      }
-
-      // 1C. STRATUM 1 — LOWERED REFLECTIVE GROUND ABYSS FLOOR (y = -1.35!)
-      if (stationAlpha > 0.04) {
-        const fp = this.floorProg;
-        gl.useProgram(fp.p);
-        gl.uniformMatrix4fv(fp.u.uViewProj, false, this.viewProj);
-        gl.uniform3fv(fp.u.uCamPos, this.camPos);
-        gl.uniform3fv(fp.u.uFogColor, this.fogColor);
-        gl.uniform3fv(fp.u.uFloorColor, floorCol);
-        gl.uniform3fv(fp.u.uGridColor, gridCol);
-        gl.uniform3fv(fp.u.uLightPos, lPos);
-        gl.uniform3fv(fp.u.uLightCol, lCol);
-        gl.uniform1fv(fp.u.uLightPow, lPow);
-        gl.uniform1f(fp.u.uTheme, themeIdx);
-        gl.uniform1f(fp.u.uTime, tAnim);
-        gl.uniform1f(fp.u.uStationAlpha, stationAlpha);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.floor.vbo);
-        gl.disableVertexAttribArray(1);
-        gl.disableVertexAttribArray(2);
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
-        gl.drawArrays(gl.TRIANGLES, 0, this.geo.floor.count);
-      }
-
-      // 1D. STRATUM 2 — SUSPENDED FLOATING ORBITAL SPACE STATION + 8 CRYSTAL MONOLITHS (y = 0.0..4.2!)
-      if (stationAlpha > 0.04) {
-        M4.identity(this.modelMat);
-        const campusAccent = isLight ? [0.16, 0.48, 0.48] : isBlueprint ? [0.56, 0.82, 1.0] : [0.46, 0.84, 0.94];
-        this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha);
-
-        for (const e of entities) {
-          const rawBoot = Math.max(0.08, Math.min(1, (bootAge - e.order * 0.025) / 0.32));
-          const bootK = 1 - Math.pow(1 - rawBoot, 3);
-          const accent = [e.rgb[0] / 255, e.rgb[1] / 255, e.rgb[2] / 255];
-          const act = e.isSel ? 1.0 : (focusedId === e.id ? 1.0 : 0.0);
-          const run = e.running ? 1.0 : 0.0;
-          const edgeA = isLight ? 0.38 : (0.36 + act * 0.32);
-          const y0 = e.y || 0;
-
-          if (!e.eye && e.id !== 'verification') {
-            M4.compose(this.modelMat, e.x, y0 + 0.10, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.plinth, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.72, stationAlpha);
-          }
-
-          if (e.id === 'verification') {
-            const scH = (0.96 + (e.hEntity - 1.44) * 0.25) * bootK;
-            M4.compose(this.modelMat, e.x, y0 + 0.06, e.z, 0, tAnim * 0.06, 0, bootK, scH, bootK);
-            this.drawMesh(this.geo.verification, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, stationAlpha);
-            M4.compose(this.modelMat, e.x, y0 + 0.84 * scH, e.z, Math.sin(tAnim * 0.32) * 0.14, -tAnim * 0.28, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.verRing, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.9, stationAlpha);
-          } else if (e.id === 'research') {
-            const fy = y0 + 1.00 * bootK + Math.sin(tAnim * 0.9) * 0.05;
-            M4.compose(this.modelMat, e.x, fy, e.z, tAnim * 0.14, tAnim * 0.24, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.resShell, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, stationAlpha);
-            M4.compose(this.modelMat, e.x, fy, e.z, -tAnim * 0.22, -tAnim * 0.32, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.resCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, stationAlpha);
-          } else if (e.id === 'review') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, stationAlpha);
-            const sway = Math.sin(tAnim * 0.85) * 0.10;
-            M4.compose(this.modelMat, e.x - 0.42 * bootK, y0 + (0.76 + sway) * bootK, e.z, 0, 0.28, 0.06, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, stationAlpha);
-            M4.compose(this.modelMat, e.x + 0.42 * bootK, y0 + (0.76 - sway) * bootK, e.z, 0, -0.28, -0.06, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, stationAlpha);
-          } else if (e.id === 'books') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, tAnim * 0.16, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.bookCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, stationAlpha);
-            for (let lv = 0; lv < 5; lv++) {
-              const ly = y0 + (0.36 + lv * 0.185 + Math.sin(tAnim * 1.1 + lv * 0.65) * 0.028) * bootK;
-              const sc = (1.0 - lv * 0.07) * bootK;
-              M4.compose(this.modelMat, e.x, ly, e.z, 0, lv * 0.12 + Math.sin(tAnim * 0.35 + lv) * 0.08, 0, sc, bootK, sc);
-              this.drawMesh(this.geo.bookSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.95, stationAlpha);
-            }
-          } else if (e.id === 'publication') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0.25 + Math.sin(tAnim * 0.2) * 0.08, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.publication, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, stationAlpha);
-          } else if (e.id === 'outreach') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.outBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, stationAlpha);
-            M4.compose(this.modelMat, e.x, y0 + 0.74 * bootK, e.z, 0, tAnim * 0.18, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.outDish, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, stationAlpha);
-          } else if (e.id === 'studio') {
-            const cy3 = y0 + 0.84 * bootK;
-            M4.compose(this.modelMat, e.x, cy3, e.z, tAnim * 0.14, tAnim * 0.22, 0.18, bootK, bootK, bootK);
-            this.drawMesh(this.geo.stuOuter, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.0, stationAlpha);
-            M4.compose(this.modelMat, e.x, cy3, e.z, -tAnim * 0.26, -tAnim * 0.34, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, stationAlpha);
-          } else if (e.id === 'direction') {
-            const fy = y0 + Math.sin(tAnim * 0.85) * 0.08;
-            M4.compose(this.modelMat, e.x, fy, e.z, 0, tAnim * 0.20, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.dirCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, stationAlpha);
-            M4.compose(this.modelMat, e.x, fy, e.z, Math.sin(tAnim * 0.28) * 0.18, -tAnim * 0.26, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.dirRing, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.95, stationAlpha);
-          }
-        }
-
-        // 1E. Volumetric Atmospheric Light Shafts + Downward Gravity-Tether Columns (Ground -1.35 <-> Floating Deck 0.0!)
-        if (!isLight) {
-          gl.depthMask(false);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-          const ver = entities.find(e => e.id === 'verification');
-          if (ver) {
-            const vc = [ver.rgb[0] / 255, ver.rgb[1] / 255, ver.rgb[2] / 255];
-            // Upward central beacon shaft
-            this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.6, vc, 0.14 * stationAlpha);
-            // Downward gravity-tether beam linking floating central reactor to ground abyss (-1.35)!
-            this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, 0.22 * stationAlpha);
-          }
-          // Subtle downward suspension tethers under left & right wing terraces
-          this.drawVolumetricPillar(-5.65, -1.35, -0.50, 0.42, 1.15, [0.38, 0.82, 0.78], 0.11 * stationAlpha);
-          this.drawVolumetricPillar( 5.65, -1.35, -0.50, 0.42, 1.15, [0.46, 0.78, 0.96], 0.11 * stationAlpha);
-          for (const e of entities) {
-            if (e.isSel && !e.eye && e.id !== 'verification') {
-              this.drawVolumetricPillar(e.x, (e.y || 0) + 0.12, e.z, 0.80, 3.2, [e.rgb[0] / 255, e.rgb[1] / 255, e.rgb[2] / 255], 0.16 * stationAlpha);
-            }
-          }
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-          gl.depthMask(true);
-        }
       }
 
       // ---- PASS 2..5: SELECTIVE GPU BLOOM + ACES FILMIC + CHROMATIC EDGE + VIGNETTE + FILM GRAIN ----
