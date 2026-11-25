@@ -579,3 +579,20 @@ test('five-tier real-automation LEVEL UP planner maps settled conjectures to gal
     assert.equal(failPlan.fx,'fail');
   }finally{dom.window.close();}
 });
+
+test('independent embedded review and studio branch pills select each branch cleanly without altering the 5-stage core loop',async()=>{
+  const {dom,doc}=await boot();try{
+    assert.equal(doc.querySelectorAll('[data-method-department]').length,5);
+    assert.equal(doc.querySelectorAll('[data-branch-department]').length,2);
+    const revBtn=doc.querySelector('[data-branch-department="review"]');
+    const stuBtn=doc.querySelector('[data-branch-department="studio"]');
+    revBtn.click();
+    assert.equal(revBtn.getAttribute('aria-pressed'),'true');
+    assert.equal(stuBtn.getAttribute('aria-pressed'),'false');
+    assert.equal(doc.querySelector('#lens-title').textContent,'独立评审');
+    stuBtn.click();
+    assert.equal(stuBtn.getAttribute('aria-pressed'),'true');
+    assert.equal(revBtn.getAttribute('aria-pressed'),'false');
+    assert.equal(doc.querySelector('#lens-title').textContent,'工具与表达');
+  }finally{dom.window.close();}
+});

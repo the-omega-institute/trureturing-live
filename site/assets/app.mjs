@@ -69,12 +69,12 @@ const deptCodes = {
 const deptRoles = {
   direction: '全局监控',
   research: '猜想攻关',
-  review: '按需红队',
+  review: '评审支路',
   verification: 'Lean 核枢',
   books: '书籍理论',
   publication: 'Mathesis',
   outreach: '200+ 学者合作',
-  studio: '按需基建'
+  studio: '工具支路'
 };
 
 const hubMeta = {
@@ -84,8 +84,8 @@ const hubMeta = {
   verification: { tag: 'CORE 00 · LEAN BRIDGE', title: '形式化验证中枢' },
   publication: { tag: 'SEC.02 · PAPER FACTORY & MATHESIS', title: '自动论文 · Mathesis 审稿平台' },
   outreach: { tag: 'SEC.02 · 200+ SCHOLARS PIPELINE', title: '对外合作 · 200+ 学者联机' },
-  review: { tag: 'ON-DEMAND · RED TEAM', title: '按需对抗复核' },
-  studio: { tag: 'ON-DEMAND · FOUNDRY', title: '按需工程与表达底座' }
+  review: { tag: 'BRANCH A · ON-DEMAND RED-TEAM', title: '独立评审 · 红队支路' },
+  studio: { tag: 'BRANCH B · ON-DEMAND FOUNDRY', title: '工具与表达 · 基建支路' }
 };
 
 const deptColors = {
@@ -786,6 +786,11 @@ function renderMetrics() {
         : `${dagTag}${list.length} SECTORS ONLINE`;
   }
 
+  for (const btn of document.querySelectorAll('[data-branch-department]')) {
+    const id = btn.dataset.branchDepartment;
+    btn.setAttribute('aria-pressed', String(state.focused === id || (!state.focused && state.selected === id)));
+  }
+
   for (const btn of document.querySelectorAll('[data-method-department]')) {
     const id = btn.dataset.methodDepartment;
     const d = department(id);
@@ -884,6 +889,9 @@ function previewDepartment(id) {
   }
   for (const btn of document.querySelectorAll('[data-method-department]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.methodDepartment === id));
+  }
+  for (const btn of document.querySelectorAll('[data-branch-department]')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.branchDepartment === id));
   }
   highlightRoutes(id);
   updateHoverHint(id);
@@ -2917,8 +2925,8 @@ const holoWorld = {
   books:        { x: -5.85, y: 0.0,  z:  1.90, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [174, 184, 238] },
   publication:  { x:  5.45, y: 0.0,  z: -2.75, r: 0.72, baseH: 1.26, apex: false, eye: false, order: 4, hex: [125, 208, 245] },
   outreach:     { x:  5.85, y: 0.0,  z:  1.90, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [232, 188, 124] },
-  review:       { x: -3.35, y: 0.0,  z:  5.30, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 6, hex: [164, 178, 236], onDemand: true },
-  studio:       { x:  3.35, y: 0.0,  z:  5.30, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [148, 194, 228], onDemand: true }
+  review:       { x: -4.25, y: 0.0,  z:  5.20, r: 0.64, baseH: 1.12, apex: false, eye: false, order: 6, hex: [164, 178, 236], onDemand: true, branch: 'A' },
+  studio:       { x:  4.25, y: 0.0,  z:  5.20, r: 0.64, baseH: 1.12, apex: false, eye: false, order: 7, hex: [134, 210, 246], onDemand: true, branch: 'B' }
 };
 
 const LAYER_PRESETS = {
@@ -2941,8 +2949,10 @@ const holoCam = {
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
   sonarStart: -99999,
-  rheostatX: 0.0,
-  rheostatTargetId: 'verification',
+  rheostatRevX: -2.4,
+  rheostatRevTargetId: 'research',
+  rheostatStuX: 2.4,
+  rheostatStuTargetId: 'publication',
   workers: [],
   mouseNormX: 0.0,
   mouseNormY: 0.0,
@@ -5365,27 +5375,56 @@ function drawHolo3DFrame(dt = 0.016) {
     if (holoCam.nebulaRipples[i].age >= 1) holoCam.nebulaRipples.splice(i, 1);
   }
 
-  // Compute Sliding Rheostat On-Demand Wiper target (glides along z=3.62 rail toward active/busiest core department!)
+  // Compute TWO independent Embedded Branch sliding wipers:
+  // Branch A (02 独立评审 · 红队审计支路, inner violet rail z=3.08): serves research / books / verification / publication
+  // Branch B (06 工具与表达 · 工具基建支路, outer ice-cyan rail z=3.88): serves publication / outreach / books / verification / research
+  const REV_BRANCH_TARGETS = ['research', 'books', 'verification', 'publication'];
+  const STU_BRANCH_TARGETS = ['publication', 'outreach', 'books', 'verification', 'research'];
   const CORE_RHEOSTAT_DEPTS = ['research', 'books', 'verification', 'publication', 'outreach'];
-  let rTarget = 'verification';
-  if (activeId && CORE_RHEOSTAT_DEPTS.includes(activeId)) {
-    rTarget = activeId;
+
+  let revTarget = 'research';
+  if (activeId && REV_BRANCH_TARGETS.includes(activeId)) {
+    revTarget = activeId;
   } else {
-    const busyCore = CORE_RHEOSTAT_DEPTS
+    const busyRev = REV_BRANCH_TARGETS
       .map(id => ({ id, run: countRunning(department(id)) || 0 }))
       .filter(x => x.run > 0)
       .sort((a, b) => b.run - a.run);
-    if (busyCore.length > 1 && !state.quiet && !reduced) {
-      rTarget = busyCore[Math.floor(t / 11) % busyCore.length].id;
-    } else if (busyCore.length) {
-      rTarget = busyCore[0].id;
+    if (busyRev.length > 1 && !state.quiet && !reduced) {
+      revTarget = busyRev[Math.floor(t / 10.5) % busyRev.length].id;
+    } else if (busyRev.length) {
+      revTarget = busyRev[0].id;
     } else if (!state.quiet && !reduced) {
-      rTarget = CORE_RHEOSTAT_DEPTS[Math.floor(t / 13) % CORE_RHEOSTAT_DEPTS.length];
+      revTarget = REV_BRANCH_TARGETS[Math.floor(t / 11.5) % REV_BRANCH_TARGETS.length];
     }
   }
-  holoCam.rheostatTargetId = rTarget;
-  const targetRx = Math.max(-3.85, Math.min(3.85, (holoWorld[rTarget]?.x || 0) * 0.70));
-  holoCam.rheostatX += (targetRx - holoCam.rheostatX) * Math.min(1, damp * 0.85);
+
+  let stuTarget = 'publication';
+  if (activeId && STU_BRANCH_TARGETS.includes(activeId)) {
+    stuTarget = activeId;
+  } else {
+    const busyStu = STU_BRANCH_TARGETS
+      .map(id => ({ id, run: countRunning(department(id)) || 0 }))
+      .filter(x => x.run > 0 && x.id !== revTarget)
+      .sort((a, b) => b.run - a.run);
+    const fallbackStu = STU_BRANCH_TARGETS.filter(id => id !== revTarget);
+    if (busyStu.length > 1 && !state.quiet && !reduced) {
+      stuTarget = busyStu[Math.floor((t + 4.5) / 11.5) % busyStu.length].id;
+    } else if (busyStu.length) {
+      stuTarget = busyStu[0].id;
+    } else if (!state.quiet && !reduced) {
+      stuTarget = fallbackStu[Math.floor((t + 4.5) / 12.5) % fallbackStu.length];
+    } else {
+      stuTarget = fallbackStu[0] || 'publication';
+    }
+  }
+
+  holoCam.rheostatRevTargetId = revTarget;
+  holoCam.rheostatStuTargetId = stuTarget;
+  const targetRevX = Math.max(-5.10, Math.min(3.30, (holoWorld[revTarget]?.x || 0) * 0.78));
+  const targetStuX = Math.max(-3.30, Math.min(5.10, (holoWorld[stuTarget]?.x || 0) * 0.78));
+  holoCam.rheostatRevX += (targetRevX - holoCam.rheostatRevX) * Math.min(1, damp * 0.85);
+  holoCam.rheostatStuX += (targetStuX - holoCam.rheostatStuX) * Math.min(1, damp * 0.85);
 
   if (useGL) {
     // 1. REAL WEBGL2 3-STRATA GPU SCENE: Ground Abyss + Floating Space Station + Overhead 3D Truth DAG Cosmos!
@@ -5432,7 +5471,8 @@ function drawHolo3DFrame(dt = 0.016) {
       galaxyAlpha: holoCam.galaxyAlpha,
       sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
       sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0,
-      rheostatX: holoCam.rheostatX
+      rheostatRevX: holoCam.rheostatRevX,
+      rheostatStuX: holoCam.rheostatStuX
     });
     // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
     ctx.clearRect(0, 0, w, h);
@@ -5685,8 +5725,8 @@ function drawHolo3DFrame(dt = 0.016) {
 
   drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, holoWorld.research.hex, sec1Hot);
   drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, holoWorld.publication.hex, sec2Hot);
-  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, holoWorld.review.hex, sec3Hot);
-  drawSectorTerrace( 3.35,  5.35, 1.68, 1.05, holoWorld.studio.hex, sec4Hot);
+  drawSectorTerrace(-4.25,  5.20, 1.48, 0.96, holoWorld.review.hex, sec3Hot);
+  drawSectorTerrace( 4.25,  5.20, 1.48, 0.96, holoWorld.studio.hex, sec4Hot);
 
   // 4D. PRECISION CAD SUSPENDED LEAN BRIDGE DECK + TWIN TRUSS SPANS
   const drawBridgeSpan = (xStart, xEnd, zCenter, yDeck, halfW, rgb, isHot) => {
@@ -5884,9 +5924,8 @@ function drawHolo3DFrame(dt = 0.016) {
   const mathesisRGB = poHot
     ? [244, 206, 132]
     : (isLight ? [168, 112, 36] : isBlueprint ? [176, 224, 255] : [224, 188, 126]);
-  const rheostatRGB = onDemandHot
-    ? (activeId === 'review' ? holoWorld.review.hex : holoWorld.studio.hex)
-    : (isLight ? [146, 108, 42] : [228, 194, 126]);
+  const revBranchRGB = isLight ? [92, 82, 178] : isBlueprint ? [162, 212, 255] : [178, 192, 250];
+  const stuBranchRGB = isLight ? [20, 114, 162] : isBlueprint ? [146, 224, 255] : [132, 214, 248];
 
   // A. LEFT WING (SEC.01 // 理论生产翼: 猜想攻关 + 书籍推进 ⇄ 形式化核枢)
   drawConduit3D(
@@ -5931,79 +5970,106 @@ function drawHolo3DFrame(dt = 0.016) {
     { lw: loopClosedHot ? 1.15 : 0.80, alpha: loopClosedHot ? 0.44 : 0.15, dashed: true, particles: loopClosedHot ? 1 : 0, speed: 0.22, chevrons: loopClosedHot }
   );
 
-  // D. SOUTH ON-DEMAND SLIDING RHEOSTAT BUSBAR & DYNAMIC WIPER TAP BEAM (滑动电阻式按需调用!)
-  const rwx = Math.max(-3.85, Math.min(3.85, holoCam.rheostatX));
-  const rwTarget = holoWorld[holoCam.rheostatTargetId] || holoWorld.verification;
-  // Supply feed stubs from Red-Team Review & Foundry Studio docks into the z=3.62 sliding rail
+  // D1. EMBEDDED BRANCH A (02 独立评审 · 红队审计支路 — inner violet sliding rail z = 3.08, x = -5.40..+3.60)
+  const revWx = Math.max(-5.10, Math.min(3.30, holoCam.rheostatRevX));
+  const revTgt = holoWorld[holoCam.rheostatRevTargetId] || holoWorld.research;
+  const revFade = sec4Hot ? 0.35 : 1.0;
   drawConduit3D(
-    [[-3.35, 0.08, 4.65], [-3.35, 0.11, 3.62], [rwx, 0.14, 3.62]],
-    sec3Hot ? holoWorld.review.hex : rheostatRGB,
-    { lw: sec3Hot ? 1.45 : 0.90, alpha: sec3Hot ? 0.72 : 0.26, particles: sec3Hot ? 1 : 0, speed: 0.36, chevrons: false }
+    [[-4.25, 0.08, 4.55], [-4.25, 0.11, 3.08], [revWx, 0.14, 3.08]],
+    revBranchRGB,
+    { lw: sec3Hot ? 1.65 : 1.0, alpha: (sec3Hot ? 0.84 : 0.38) * revFade, particles: sec3Hot ? 2 : 1, speed: 0.36, chevrons: false }
   );
   drawConduit3D(
-    [[3.35, 0.08, 4.65], [3.35, 0.11, 3.62], [rwx, 0.14, 3.62]],
-    sec4Hot ? holoWorld.studio.hex : rheostatRGB,
-    { lw: sec4Hot ? 1.45 : 0.90, alpha: sec4Hot ? 0.72 : 0.26, particles: sec4Hot ? 1 : 0, speed: 0.36, chevrons: false }
+    [[revWx, 0.27, 3.08], [(revWx + revTgt.x) * 0.5, 0.56, (3.08 + revTgt.z) * 0.5], [revTgt.x, (revTgt.y || 0) + 0.26, revTgt.z]],
+    revBranchRGB,
+    { lw: sec3Hot ? 1.60 : 1.05, alpha: (sec3Hot ? 0.82 : 0.42) * revFade, dashed: true, particles: 1, speed: 0.40, chevrons: sec3Hot }
   );
-  // Dynamic arched dashed on-demand tap beam from live wiper contact -> actively served core department!
-  const midX = (rwx + rwTarget.x) * 0.5;
-  const midZ = (3.62 + rwTarget.z) * 0.5;
-  drawConduit3D(
-    [[rwx, 0.28, 3.62], [midX, 0.58, midZ], [rwTarget.x, (rwTarget.y || 0) + 0.26, rwTarget.z]],
-    rheostatRGB,
-    { lw: onDemandHot ? 1.55 : 1.05, alpha: onDemandHot ? 0.76 : 0.40, dashed: true, particles: 1, speed: 0.42, chevrons: onDemandHot }
-  );
-  const wiperPt = project(rwx, 0.28, 3.62);
-  if (wiperPt) {
+  const revWiperPt = project(revWx, 0.27, 3.08);
+  if (revWiperPt) {
     ctx.save();
-    ctx.fillStyle = rgba(rheostatRGB, isLight ? 0.78 : 0.92);
+    ctx.fillStyle = rgba(revBranchRGB, (isLight ? 0.82 : 0.94) * revFade);
     ctx.beginPath();
-    ctx.arc(wiperPt.x, wiperPt.y, 2.8, 0, Math.PI * 2);
+    ctx.arc(revWiperPt.x, revWiperPt.y, 2.7, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = rgba(rheostatRGB, 0.35);
+    ctx.strokeStyle = rgba(revBranchRGB, 0.40 * revFade);
     ctx.lineWidth = 1.0;
     ctx.beginPath();
-    ctx.arc(wiperPt.x, wiperPt.y, 6.4, 0, Math.PI * 2);
+    ctx.arc(revWiperPt.x, revWiperPt.y, 6.2, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
 
-  // E. 14 AUTONOMOUS ROAMING GEOMETRIC MICRO-WORKERS (散落按需 Worker: 哪里有活往哪里汇集!)
+  // D2. EMBEDDED BRANCH B (06 工具与表达 · 工具基建支路 — outer ice-cyan sliding rail z = 3.88, x = -3.60..+5.40)
+  const stuWx = Math.max(-3.30, Math.min(5.10, holoCam.rheostatStuX));
+  const stuTgt = holoWorld[holoCam.rheostatStuTargetId] || holoWorld.publication;
+  const stuFade = sec3Hot ? 0.35 : 1.0;
+  drawConduit3D(
+    [[4.25, 0.08, 4.55], [4.25, 0.11, 3.88], [stuWx, 0.14, 3.88]],
+    stuBranchRGB,
+    { lw: sec4Hot ? 1.65 : 1.0, alpha: (sec4Hot ? 0.84 : 0.38) * stuFade, particles: sec4Hot ? 2 : 1, speed: 0.36, chevrons: false }
+  );
+  drawConduit3D(
+    [[stuWx, 0.27, 3.88], [(stuWx + stuTgt.x) * 0.5, 0.56, (3.88 + stuTgt.z) * 0.5], [stuTgt.x, (stuTgt.y || 0) + 0.26, stuTgt.z]],
+    stuBranchRGB,
+    { lw: sec4Hot ? 1.60 : 1.05, alpha: (sec4Hot ? 0.82 : 0.42) * stuFade, dashed: true, particles: 1, speed: 0.40, chevrons: sec4Hot }
+  );
+  const stuWiperPt = project(stuWx, 0.27, 3.88);
+  if (stuWiperPt) {
+    ctx.save();
+    ctx.fillStyle = rgba(stuBranchRGB, (isLight ? 0.82 : 0.94) * stuFade);
+    ctx.beginPath();
+    ctx.arc(stuWiperPt.x, stuWiperPt.y, 2.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = rgba(stuBranchRGB, 0.40 * stuFade);
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(stuWiperPt.x, stuWiperPt.y, 6.2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // E. TWO INDEPENDENT MICRO-WORKER SQUADS (Branch A: 7 Violet Diamond Review Scouts · Branch B: 7 Ice-Cyan Square Foundry Drones)
   if (!holoCam.workers.length) {
-    const seeds = ['research', 'verification', 'books', 'publication', 'outreach'];
     for (let i = 0; i < 14; i++) {
-      const role = i % 2 === 0 ? 'review' : 'studio';
-      const tgt = seeds[i % seeds.length];
+      const role = i < 7 ? 'review' : 'studio';
+      const pool = role === 'review' ? REV_BRANCH_TARGETS : STU_BRANCH_TARGETS;
+      const tgt = pool[i % pool.length];
       const c0 = holoWorld[tgt];
       const ang = (i / 14) * Math.PI * 2;
       holoCam.workers.push({
         role,
         targetId: tgt,
         x: c0.x + Math.cos(ang) * 1.15,
-        y: (c0.y || 0) + 0.85 + (i % 3) * 0.22,
+        y: (c0.y || 0) + 0.82 + (i % 3) * 0.22,
         z: c0.z + Math.sin(ang) * 1.15,
         vx: 0,
         vz: 0,
         orbitR: 0.96 + (i % 4) * 0.14,
-        orbitY: 0.72 + (i % 3) * 0.26,
+        orbitY: 0.70 + (i % 3) * 0.26,
         orbitSpd: (i % 2 === 0 ? 1 : -1) * (0.48 + (i % 5) * 0.09),
         phase: ang,
         nextSwitch: 4.5 + (i * 1.37) % 9.0
       });
     }
   }
-  const activeRunPool = CORE_RHEOSTAT_DEPTS.filter(id => (countRunning(department(id)) || 0) > 0);
-  const demandPool = activeRunPool.length ? activeRunPool : CORE_RHEOSTAT_DEPTS;
+  const activeRevPool = REV_BRANCH_TARGETS.filter(id => (countRunning(department(id)) || 0) > 0);
+  const activeStuPool = STU_BRANCH_TARGETS.filter(id => (countRunning(department(id)) || 0) > 0);
   const wFollow = 1 - Math.exp(-Math.max(0.008, stepDt) * 1.9);
   for (let i = 0; i < holoCam.workers.length; i++) {
     const wk = holoCam.workers[i];
+    const isRevW = wk.role === 'review';
+    const branchPool = isRevW
+      ? (activeRevPool.length ? activeRevPool : REV_BRANCH_TARGETS)
+      : (activeStuPool.length ? activeStuPool : STU_BRANCH_TARGETS);
+    const branchPrimary = isRevW ? holoCam.rheostatRevTargetId : holoCam.rheostatStuTargetId;
     if (!state.quiet && !reduced) {
-      // First 4 workers rush immediately to user's hovered/selected core dept; others patrol live demand!
-      if (i < 4 && activeId && CORE_RHEOSTAT_DEPTS.includes(activeId)) {
-        wk.targetId = activeId;
+      // First 3 workers of each branch rally to that branch's active wiper target; others patrol that branch's live demand!
+      const localIdx = isRevW ? i : (i - 7);
+      if (localIdx < 3) {
+        wk.targetId = branchPrimary;
       } else if (t >= wk.nextSwitch) {
         wk.nextSwitch = t + 7.0 + ((i * 2.3) % 7.5);
-        wk.targetId = demandPool[(Math.floor(t) + i) % demandPool.length];
+        wk.targetId = branchPool[(Math.floor(t) + i) % branchPool.length];
       }
       const tc = holoWorld[wk.targetId] || holoWorld.verification;
       const orbAng = wk.phase + t * wk.orbitSpd;
@@ -6019,14 +6085,13 @@ function drawHolo3DFrame(dt = 0.016) {
     }
     const wp = project(wk.x, wk.y, wk.z);
     if (!wp) continue;
-    const wCol = wk.role === 'review'
-      ? (isLight ? [98, 92, 178] : [184, 198, 250])
-      : (isLight ? [26, 114, 156] : [142, 218, 248]);
+    const wFade = (isRevW && sec4Hot) || (!isRevW && sec3Hot) ? 0.32 : 1.0;
+    const wCol = isRevW ? revBranchRGB : stuBranchRGB;
     const speed = Math.hypot(wk.vx, wk.vz);
     if (speed > 1.1) {
       const tailP = project(wk.x - wk.vx * 0.14, wk.y, wk.z - wk.vz * 0.14);
       if (tailP) {
-        ctx.strokeStyle = rgba(wCol, isLight ? 0.36 : 0.38);
+        ctx.strokeStyle = rgba(wCol, (isLight ? 0.36 : 0.40) * wFade);
         ctx.lineWidth = 0.85;
         ctx.beginPath();
         ctx.moveTo(tailP.x, tailP.y);
@@ -6035,22 +6100,34 @@ function drawHolo3DFrame(dt = 0.016) {
       }
     }
     const rD = Math.max(2.6, Math.min(4.2, wp.s * 0.062));
-    ctx.strokeStyle = rgba(wCol, isLight ? 0.34 : 0.36);
-    ctx.lineWidth = 0.8;
+    if (isRevW) {
+      // Branch A Review Scout: Violet-silver diamond + delicate orbital halo
+      ctx.strokeStyle = rgba(wCol, (isLight ? 0.36 : 0.38) * wFade);
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(wp.x, wp.y, rD * 1.65, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = rgba(wCol, (isLight ? 0.84 : 0.92) * wFade);
+      ctx.beginPath();
+      ctx.moveTo(wp.x, wp.y - rD);
+      ctx.lineTo(wp.x + rD * 0.9, wp.y);
+      ctx.lineTo(wp.x, wp.y + rD);
+      ctx.lineTo(wp.x - rD * 0.9, wp.y);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Branch B Foundry Drone: Ice-cyan framed micro-cube glyph
+      const hs = rD * 1.38;
+      ctx.strokeStyle = rgba(wCol, (isLight ? 0.46 : 0.52) * wFade);
+      ctx.lineWidth = 0.85;
+      ctx.strokeRect(wp.x - hs, wp.y - hs, hs * 2, hs * 2);
+      ctx.fillStyle = rgba(wCol, (isLight ? 0.84 : 0.92) * wFade);
+      const cs = rD * 0.72;
+      ctx.fillRect(wp.x - cs, wp.y - cs, cs * 2, cs * 2);
+    }
+    ctx.fillStyle = rgba(isLight ? wCol : [245, 252, 255], 0.68 * wFade);
     ctx.beginPath();
-    ctx.arc(wp.x, wp.y, rD * 1.65, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = rgba(wCol, isLight ? 0.84 : 0.90);
-    ctx.beginPath();
-    ctx.moveTo(wp.x, wp.y - rD);
-    ctx.lineTo(wp.x + rD * 0.9, wp.y);
-    ctx.lineTo(wp.x, wp.y + rD);
-    ctx.lineTo(wp.x - rD * 0.9, wp.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = rgba(isLight ? wCol : [245, 252, 255], 0.68);
-    ctx.beginPath();
-    ctx.arc(wp.x, wp.y, rD * 0.42, 0, Math.PI * 2);
+    ctx.arc(wp.x, wp.y, rD * 0.36, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -6547,14 +6624,16 @@ function drawHolo3DFrame(dt = 0.016) {
     item.cell._proj = null;
   }
 
-  // Minimalist KPR wing designations placed cleanly ABOVE the rear crystal monolith spires (zero mesh overlap!)
+  // Minimalist KPR wing & dual-branch designations placed cleanly in open negative space (zero card/spire overlap!)
   drawHoloText(-5.55, 2.26, -2.75, 'SEC.01 // 理论生产翼（猜想 · 书稿）', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.6);
   drawHoloText( 5.55, 2.38, -2.75, 'SEC.02 // 论文 · Mathesis · 200+ 学者', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
-  drawHoloText( 0.0,  0.10,  4.18, 'ON-DEMAND // 滑动按需调度轨（红队 · 基建 · 14 Worker）', isLight ? [120, 88, 32] : [214, 186, 128], onDemandHot, 8.1);
+  drawHoloText(-1.55, 0.10,  4.68, 'BRANCH A // 独立评审滑轨', revBranchRGB, sec3Hot, 8.0);
+  drawHoloText( 1.55, 0.10,  4.68, 'BRANCH B // 工具表达滑轨', stuBranchRGB, sec4Hot, 8.0);
   drawHoloText( 8.05, 0.18, -0.25, 'Mathesis ⇄ 200+ 学者', isLight ? [154, 102, 28] : [236, 200, 134], poHot, 8.4);
   if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, '理论生产 ⇄ Lean 核枢', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
   if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, 'Lean 核枢 ⇄ 自动论文', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
-  if (onDemandHot)    drawHoloText( rwx,  0.12,  4.78, `按需接入 → ${department(holoCam.rheostatTargetId)?.label || '核心部门'}`, isLight ? [146, 98, 24] : [244, 212, 146], true, 8.5);
+  if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, `评审支路接入 → ${department(holoCam.rheostatRevTargetId)?.label || '数学攻坚'}`, revBranchRGB, true, 8.5);
+  if (sec4Hot)        drawHoloText( 0.0,  0.10,  5.24, `工具支路接入 → ${department(holoCam.rheostatStuTargetId)?.label || '论文与知识'}`, stuBranchRGB, true, 8.5);
 }
 
 function startHoloLoop() {
@@ -6870,6 +6949,13 @@ for (const button of document.querySelectorAll('[data-method-department]')) {
   button.addEventListener('click', () => {
     setMode('organization');
     selectDepartment(button.dataset.methodDepartment, true, true);
+  });
+}
+
+for (const button of document.querySelectorAll('[data-branch-department]')) {
+  button.addEventListener('click', () => {
+    setMode('organization');
+    selectDepartment(button.dataset.branchDepartment, true, true);
   });
 }
 
