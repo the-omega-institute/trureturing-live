@@ -38,13 +38,17 @@ function snapshot(){
 async function settle(){await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));}
 async function boot(options={}){
   const dom=new JSDOM(html,{url:'https://live.trureturing.org/',runScripts:'outside-only',pretendToBeVisual:true});
-  const win=dom.window,intervals=new Map(),responses={live:options.live||live(),snapshot:options.snapshot||snapshot()};
+  const win=dom.window,intervals=new Map(),responses={live:options.live||live(),snapshot:options.snapshot||snapshot(),conjectures:options.conjectures||null};
   win.matchMedia=query=>({matches:query.includes('prefers-reduced-motion')?!!options.reduced:query.includes('max-width')?!!options.mobile:false});
   win.HTMLElement.prototype.scrollIntoView=function(){};
   win.AbortSignal=AbortSignal;
   win.fetch=async url=>{
     if(responses.offline)throw new Error('offline');
-    return {ok:true,json:async()=>structuredClone(String(url).includes('/api/live')?responses.live:responses.snapshot)};
+    const u=String(url);
+    if(u.includes('conjectures.json')){
+      return responses.conjectures?{ok:true,json:async()=>structuredClone(responses.conjectures)}:{ok:false,json:async()=>({})};
+    }
+    return {ok:true,json:async()=>structuredClone(u.includes('/api/live')?responses.live:responses.snapshot)};
   };
   win.setInterval=(callback,ms)=>{intervals.set(ms,callback);return ms;};
   win.eval(script);await settle();
@@ -520,5 +524,31 @@ test('spatial layers, tactile sonar sweep, and authentic automation-only realm l
     const soundBtn=doc.querySelector('#human-sound-btn');
     soundBtn.click();
     assert.equal(soundBtn.getAttribute('aria-pressed'),'false','sound toggle mutes cleanly');
+  }finally{dom.window.close();}
+});
+
+test('conjecture resolution and refutation ledger stores verdicts and merges live settled proofs',async()=>{
+  const ledger=JSON.parse(await readFile(new URL('../site/data/conjectures.json',import.meta.url),'utf8'));
+  assert.equal(ledger.schema,'trureturing.conjectures.v1');
+  assert.ok(ledger.entries.some(e=>e.verdict==='proved'),'ledger stores proved theorems');
+  assert.ok(ledger.entries.some(e=>e.verdict==='refuted'),'ledger stores refuted/obstruction records');
+
+  const feed=live();
+  const mergedProof=activity('settled-pr','research','contribution',{status:'merged',label:'Prove a brand-new sharp spectral bound',url:`https://github.com/${repository}/pull/99999`});
+  feed.organization.departments.find(d=>d.id==='research').activities.push(mergedProof);
+  feed.organization.recent.push(mergedProof);
+
+  const {dom,doc}=await boot({live:feed,conjectures:ledger});try{
+    const totalCards=doc.querySelectorAll('#conjecture-cards .conjecture-card').length;
+    assert.equal(totalCards,ledger.entries.length+1,'merges permanent ledger with newly observed live Lean proof');
+    assert.equal(doc.querySelector('#conjectures-tab-count').textContent,String(totalCards));
+    doc.querySelector('[data-verdict-filter="refuted"]').click();
+    const refutedCards=[...doc.querySelectorAll('#conjecture-cards .conjecture-card')];
+    assert.ok(refutedCards.length>0,'filters refuted/obstruction verdicts');
+    assert.ok(refutedCards.every(c=>c.classList.contains('is-refuted')));
+    doc.querySelector('[data-verdict-filter="proved"]').click();
+    const provedCards=[...doc.querySelectorAll('#conjecture-cards .conjecture-card')];
+    assert.ok(provedCards.length>0,'filters proved verdicts');
+    assert.ok(provedCards.every(c=>!c.classList.contains('is-refuted')));
   }finally{dom.window.close();}
 });

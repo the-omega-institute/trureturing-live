@@ -81,16 +81,16 @@
   };
 
   // ---- Map Truth DAG Coordinates into a 3D Celestial Helical Ring (周天星斗大阵) ----
-  // Wraps all 7 named mathematical galaxies + the 360° Foundation Star River cleanly BETWEEN
-  // the reflective Ground Abyss (y = -1.35) and the hovering Akasha Eye (y = 4.2..4.6)!
+  // Wraps all 7 named mathematical galaxies + the 360° Foundation Star River cleanly BELOW
+  // the Supreme Akasha Eye (y = 6.95) and ABOVE the reflective Ground Abyss (y = -1.35)!
   const CELESTIAL_ANCHORS = {
-    0: [-0.52, 5.55, 10.6], // Combinatorics: upper-left halo beside Akasha Eye
-    2: [ 0.52, 5.55, 10.6], // Arith: upper-right halo beside Akasha Eye
-    3: [-0.96, 3.85, 10.8], // ConceptDynamics: mid-left ascending helical wing
-    5: [ 0.96, 3.85, 10.8], // Weil: mid-right ascending helical wing
-    1: [-1.24, 1.95, 10.4], // Quantum: lower-left flank hovering above ground
-    4: [ 1.24, 1.95, 10.4], // Analytic: lower-right flank hovering above ground
-    6: [ 0.00, 6.25, 10.6]  // Observer: high zenith crown above Akasha Eye
+    6: [ 0.00, 3.55, 10.6], // Observer: rear center below Supreme Akasha Eye
+    0: [-0.56, 3.45, 10.8], // Combinatorics: upper-left orbiting halo
+    2: [ 0.56, 3.45, 10.8], // Arith: upper-right orbiting halo
+    3: [-1.00, 2.45, 10.8], // ConceptDynamics: mid-left helical wing
+    5: [ 1.00, 2.45, 10.8], // Weil: mid-right helical wing
+    1: [-1.26, 1.35, 10.4], // Quantum: lower-left flank above ground
+    4: [ 1.26, 1.35, 10.4]  // Analytic: lower-right flank above ground
   };
 
   function mapStarToCelestialRing(nx, ny, nz, cid, clusterCenters) {
@@ -100,16 +100,16 @@
       const dx = cc ? (nx - cc[0] / 1000) : 0;
       const dy = cc ? (ny - cc[1] / 1000) : 0;
       const dz = cc ? (nz - cc[2] / 1000) : 0;
-      const az = anc[0] + dx * 0.72;
-      const rad = anc[2] + dz * 4.0 + Math.abs(dx) * 0.55;
-      const wy = anc[1] + dy * 2.75;
+      const az = anc[0] + dx * 0.68;
+      const rad = anc[2] + dz * 3.8 + Math.abs(dx) * 0.50;
+      const wy = anc[1] + dy * 1.90;
       return [Math.sin(az) * rad, wy, -Math.cos(az) * rad - 0.65];
     }
-    // Foundations Belt (Other): continuous 360° ascending celestial spiral river encircling the whole sanctuary!
+    // Foundations Belt (Other): continuous 360° celestial star river orbiting strictly beneath the Akasha Eye!
     const rawAng = Math.atan2(nx, ny);
     const az = rawAng * 1.12;
-    const rad = 10.2 + ((Math.abs(nx * 7.3 + ny * 5.1) % 1) * 2.1) + nz * 2.8;
-    const wy = 0.55 + (Math.cos(az) * 0.5 + 0.5) * 5.2 + ny * 0.55;
+    const rad = 10.2 + ((Math.abs(nx * 7.3 + ny * 5.1) % 1) * 2.1) + nz * 2.6;
+    const wy = 0.50 + (Math.cos(az) * 0.5 + 0.5) * 3.25 + ny * 0.42;
     return [Math.sin(az) * rad, wy, -Math.cos(az) * rad - 0.55];
   }
 
@@ -1132,10 +1132,10 @@
         );
       }
     };
-    addCelestialCircle(1.45, 10.35,  0.05,  0.03, 96, [0.46, 0.84, 0.88], 0.24, 36);
-    addCelestialCircle(3.65, 10.95, -0.06, -0.04, 96, [0.56, 0.82, 0.96], 0.22, 36);
-    addCelestialCircle(5.55, 10.55,  0.04, -0.03, 96, [0.88, 0.80, 0.56], 0.26, 24);
-    // Twin delicate ascending 3D helical qi meridian streams sweeping from Ground -> Akasha Crown
+    addCelestialCircle(1.25, 10.35,  0.04,  0.02, 96, [0.46, 0.84, 0.88], 0.24, 36);
+    addCelestialCircle(2.50, 10.95, -0.05, -0.03, 96, [0.56, 0.82, 0.96], 0.22, 36);
+    addCelestialCircle(3.75, 10.55,  0.03, -0.02, 96, [0.88, 0.80, 0.56], 0.26, 24);
+    // Twin delicate ascending 3D helical qi meridian streams sweeping from Ground -> Celestial Orbit below Akasha Eye
     for (let strand = 0; strand < 2; strand++) {
       const hSegs = 80;
       const offset = strand * Math.PI;
@@ -1144,10 +1144,10 @@
         const u0 = i / hSegs, u1 = (i + 1) / hSegs;
         const a0 = -2.25 + u0 * 4.5 + offset * 0.18;
         const a1 = -2.25 + u1 * 4.5 + offset * 0.18;
-        const r0 = 10.9 - u0 * 0.55 + Math.sin(u0 * Math.PI * 2) * 0.35;
-        const r1 = 10.9 - u1 * 0.55 + Math.sin(u1 * Math.PI * 2) * 0.35;
-        const y0 = 0.45 + u0 * 5.65;
-        const y1 = 0.45 + u1 * 5.65;
+        const r0 = 10.9 - u0 * 0.50 + Math.sin(u0 * Math.PI * 2) * 0.30;
+        const r1 = 10.9 - u1 * 0.50 + Math.sin(u1 * Math.PI * 2) * 0.30;
+        const y0 = 0.40 + u0 * 3.65;
+        const y1 = 0.40 + u1 * 3.65;
         const env = Math.sin(u0 * Math.PI) * 0.24;
         ringVerts.push(
           Math.sin(a0) * r0, y0, -Math.cos(a0) * r0 - 0.55, hCol[0], hCol[1], hCol[2], env,
@@ -1197,6 +1197,24 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, volVbo);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(volVerts), gl.STATIC_DRAW);
     g.vol = { vbo: volVbo, count: volVerts.length / 6 };
+
+    // Volumetric Global Surveillance Cone (radiates DOWNWARD from Supreme Akasha Eye over all galaxies & station!)
+    const coneVerts = [];
+    const cSegs = 32;
+    const topR = 0.16, botR = 1.0;
+    for (let i = 0; i < cSegs; i++) {
+      const a0 = (i / cSegs) * Math.PI * 2;
+      const a1 = ((i + 1) / cSegs) * Math.PI * 2;
+      const c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+      coneVerts.push(
+        c0 * botR, 0, s0 * botR, c0, 0.25, s0,  c1 * botR, 0, s1 * botR, c1, 0.25, s1,  c1 * topR, 1, s1 * topR, c1, 0.25, s1,
+        c0 * botR, 0, s0 * botR, c0, 0.25, s0,  c1 * topR, 1, s1 * topR, c1, 0.25, s1,  c0 * topR, 1, s0 * topR, c0, 0.25, s0
+      );
+    }
+    const coneVbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, coneVbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(coneVerts), gl.STATIC_DRAW);
+    g.cone = { vbo: coneVbo, count: coneVerts.length / 6 };
 
     // Lowered Infinite Reflective Abyss Floor Quad (STRATUM 1: y = -1.35!)
     const fl = 48;
@@ -1487,7 +1505,7 @@
       }
     }
 
-    drawVolumetricPillar(x, y, z, radius, height, accent, strength) {
+    drawVolumetricPillar(x, y, z, radius, height, accent, strength, useCone = false) {
       if (strength < 0.004) return;
       const gl = this.gl;
       const vp = this.volProg;
@@ -1499,11 +1517,12 @@
       gl.uniform3fv(vp.u.uAccent, accent);
       gl.uniform1f(vp.u.uStrength, strength);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.vol.vbo);
+      const geom = (useCone && this.geo.cone) ? this.geo.cone : this.geo.vol;
+      gl.bindBuffer(gl.ARRAY_BUFFER, geom.vbo);
       gl.disableVertexAttribArray(2);
       gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
-      gl.drawArrays(gl.TRIANGLES, 0, this.geo.vol.count);
+      gl.drawArrays(gl.TRIANGLES, 0, geom.count);
     }
 
     render(params) {
@@ -1679,14 +1698,15 @@
             this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha);
           } else if (e.id === 'direction') {
             const fy = y0 + Math.sin(tAnim * 0.85) * 0.08;
-            M4.compose(this.modelMat, e.x, fy, e.z, 0, tAnim * 0.20, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.dirCore, this.modelMat, accent, Math.max(act, 0.45), 1.0, themeIdx, tAnim, edgeA * 1.2, entAlpha);
-            M4.compose(this.modelMat, e.x, fy, e.z, Math.sin(tAnim * 0.28) * 0.16, -tAnim * 0.24, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.dirRing, this.modelMat, accent, Math.max(act, 0.4), 1.0, themeIdx, tAnim, edgeA * 1.0, entAlpha);
+            const scEye = bootK * 1.18;
+            M4.compose(this.modelMat, e.x, fy, e.z, 0, tAnim * 0.20, 0, scEye, scEye, scEye);
+            this.drawMesh(this.geo.dirCore, this.modelMat, accent, Math.max(act, 0.55), 1.0, themeIdx, tAnim, edgeA * 1.25, entAlpha);
+            M4.compose(this.modelMat, e.x, fy, e.z, Math.sin(tAnim * 0.28) * 0.16, -tAnim * 0.24, 0, scEye, scEye, scEye);
+            this.drawMesh(this.geo.dirRing, this.modelMat, accent, Math.max(act, 0.45), 1.0, themeIdx, tAnim, edgeA * 1.05, entAlpha);
           }
         }
 
-        // 1D. Volumetric Atmospheric Pillars + Celestial Ascension Aura (Ground -1.35 <-> Station <-> Akasha Eye!)
+        // 1D. Volumetric Atmospheric Pillars + Supreme Akasha Eye Global Surveillance Cone!
         if (!isLight) {
           gl.depthMask(false);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -1694,14 +1714,16 @@
           const eyeEnt = entities.find(e => e.eye);
           if (ver && stationAlpha > 0.05) {
             const vc = [ver.rgb[0] / 255, ver.rgb[1] / 255, ver.rgb[2] / 255];
-            this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.8, vc, 0.13 * stationAlpha);
+            this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.4, vc, 0.13 * stationAlpha);
             this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, 0.22 * stationAlpha);
           }
           if (eyeEnt) {
-            // Ethereal golden-jade sanctuary aura softly enveloping the Akasha Eye crown!
+            // Grand translucent downward Global Surveillance Light Cone radiating from Supreme Akasha Eye over all galaxies & station!
             const ec = [0.92, 0.80, 0.50];
-            const ea = Math.max(stationAlpha, galaxyAlpha * 0.72);
-            this.drawVolumetricPillar(eyeEnt.x, (eyeEnt.y || 3.8) - 2.4, eyeEnt.z, 0.72, 4.4, ec, 0.085 * ea);
+            const ea = Math.max(stationAlpha, galaxyAlpha * 0.78);
+            const eyeY = eyeEnt.y || 6.95;
+            this.drawVolumetricPillar(eyeEnt.x, 0.45, eyeEnt.z, 4.6, eyeY - 0.55, ec, 0.068 * ea, true);
+            this.drawVolumetricPillar(eyeEnt.x, 1.6, eyeEnt.z, 1.85, eyeY - 1.65, [0.58, 0.86, 0.96], 0.055 * ea, true);
           }
           if (stationAlpha > 0.05) {
             this.drawVolumetricPillar(-5.65, -1.35, -0.50, 0.42, 1.15, [0.38, 0.82, 0.78], 0.11 * stationAlpha);

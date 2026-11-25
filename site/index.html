@@ -8,9 +8,9 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v40">
-  <script defer src="assets/gl-engine.js?v=hive-v40"></script>
-  <script type="module" src="assets/app.mjs?v=hive-v40"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v41">
+  <script defer src="assets/gl-engine.js?v=hive-v41"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v41"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -274,6 +274,7 @@
         <div class="dock-triggers" role="tablist" aria-label="展开遥测抽屉">
           <button type="button" role="tab" data-dock-tab="live-ops" aria-selected="false">检验灯阵</button>
           <button type="button" role="tab" data-dock-tab="questions" aria-selected="false">在研课题</button>
+          <button type="button" role="tab" data-dock-tab="conjectures" aria-selected="false" class="dock-tab-conjectures">猜想档案<span class="dock-tab-count" id="conjectures-tab-count"></span></button>
           <button type="button" role="tab" data-dock-tab="publications" aria-selected="false">书稿论文</button>
           <button type="button" role="tab" data-dock-tab="ecosystem" aria-selected="false">开源底座</button>
         </div>
@@ -343,6 +344,18 @@
             <button id="more-questions" type="button" class="more-button" hidden>展开更多 ↓</button>
           </div>
           <div id="question-cards" class="question-cards"><p class="loading">正在同步在研课题…</p></div>
+        </div>
+
+        <div id="conjectures" class="dock-panel" data-dock-panel="conjectures">
+          <div class="dock-subbar conjecture-subbar">
+            <div class="topic-filters" role="group" aria-label="猜想结论筛选">
+              <button type="button" data-verdict-filter="all" aria-pressed="true">全部结论</button>
+              <button type="button" data-verdict-filter="proved" aria-pressed="false">✓ 已证明</button>
+              <button type="button" data-verdict-filter="refuted" aria-pressed="false">✕ 反驳 / 障碍</button>
+            </div>
+            <div class="conjecture-summary" id="conjecture-summary">正在汇总已归档与实时合入的证明与反驳记录…</div>
+          </div>
+          <div id="conjecture-cards" class="conjecture-cards"><p class="loading">正在加载猜想解决与反驳档案…</p></div>
         </div>
 
         <div id="publications" class="dock-panel" data-dock-panel="publications">

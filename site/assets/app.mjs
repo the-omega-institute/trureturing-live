@@ -20,6 +20,9 @@ const state = {
   quiet: reduced,
   filter: 'all',
   feedFilter: 'all',
+  verdictFilter: 'all',
+  conjectures: [],
+  conjecturesBusy: false,
   limit: 9,
   topic: null,
   cells: new Map(),
@@ -2631,6 +2634,139 @@ function setMode(mode) {
   }
 }
 
+function classifyConjectureVerdict(text) {
+  return /counterexample|disprov|refut|falsif|obstruct|impossib|diverg|witness|distinguish|反例|反驳|证伪|障碍/i.test(String(text || ''))
+    ? 'refuted'
+    : 'proved';
+}
+
+function isSettledMathRecord(a) {
+  const settled = (a.kind === 'contribution' && a.status === 'merged') || (a.kind === 'task' && a.status === 'closed');
+  if (!settled) return false;
+  if (!['research', 'verification', 'books', 'publication'].includes(a.department)) return false;
+  const text = `${a.label || ''} ${a.summary || ''}`;
+  if (/^ci[:(]|^chore[:(]|^test\(omega\)|^build[:(]|^fix\(ci|【已废弃】|缓存|分片|钉版|workflow|action|read formalization requests/i.test(text)) return false;
+  return /prove|proof|formaliz|certif|characteriz|classif|obstruct|counterexample|disprov|refut|falsif|witness|construct|bound|sharp|constant|compact|descend|exact|conjecture|theorem|margin|diverge|entropy|fidelity|entanglement/i.test(text);
+}
+
+function conjectureRecords() {
+  const byUrl = new Map();
+  const list = [];
+
+  // 1. Curated permanent ledger entries from site/data/conjectures.json
+  for (const item of state.conjectures || []) {
+    if (!item || !item.title) continue;
+    const normUrl = String(item.proof_url || item.id || '').trim();
+    if (normUrl && byUrl.has(normUrl)) continue;
+    const verdict = item.verdict === 'refuted' || item.verdict === 'obstruction' ? 'refuted' : 'proved';
+    const rec = {
+      id: item.id || normUrl || item.title,
+      verdict,
+      title: item.zh_title || item.title,
+      enTitle: item.title,
+      area: item.area || '数学研究',
+      summary: item.summary || '',
+      url: item.proof_url || '',
+      evidenceKind: item.evidence_kind || 'Lean 归档',
+      settledAt: item.settled_at || '',
+      live: false
+    };
+    if (normUrl) byUrl.set(normUrl, rec);
+    list.push(rec);
+  }
+
+  // 2. Automatically append newly observed live settled Lean proofs & refutations
+  const liveAll = [...(view()?.recent || []), ...departments().flatMap(d => d.activities || [])];
+  const seenIds = new Set();
+  for (const a of liveAll) {
+    if (!a || seenIds.has(a.id)) continue;
+    seenIds.add(a.id);
+    if (!isSettledMathRecord(a)) continue;
+    const normUrl = String(a.url || '').trim();
+    if (normUrl && byUrl.has(normUrl)) continue;
+    const copy = copyFor(a);
+    const verdict = classifyConjectureVerdict(`${a.label || ''} ${a.summary || ''}`);
+    const rec = {
+      id: a.id,
+      verdict,
+      title: cleanWorkTitle(a, department(a.department) || { id: a.department }),
+      enTitle: a.label || '',
+      area: copy?.area || '数学研究',
+      summary: a.kind === 'task' ? '已结案的公开研究单元，结论与验证路径已归档。' : '已通过 Lean 自动化检验并合入主分支的公开数学提交。',
+      url: normUrl,
+      evidenceKind: a.kind === 'task' ? '已结案课题' : 'Lean 已合入',
+      settledAt: a.at || '',
+      live: true
+    };
+    if (normUrl) byUrl.set(normUrl, rec);
+    list.push(rec);
+  }
+
+  list.sort((a, b) => Number(b.live) - Number(a.live) || timestamp(b.settledAt) - timestamp(a.settledAt));
+  return list;
+}
+
+function renderConjectures() {
+  const container = $('#conjecture-cards');
+  const countBadge = $('#conjectures-tab-count');
+  const summaryEl = $('#conjecture-summary');
+  const all = conjectureRecords();
+  const provedCount = all.filter(r => r.verdict === 'proved').length;
+  const refutedCount = all.filter(r => r.verdict === 'refuted').length;
+  if (countBadge) countBadge.textContent = all.length ? String(all.length) : '';
+  if (summaryEl) {
+    summaryEl.textContent = `已证明 ${provedCount} · 反驳/障碍 ${refutedCount} · 永久归档 site/data/conjectures.json + 实时合入`;
+  }
+  if (!container) return;
+  const filtered = state.verdictFilter === 'all'
+    ? all
+    : all.filter(r => r.verdict === state.verdictFilter);
+  container.replaceChildren();
+  if (!filtered.length) {
+    container.append(element('p', '当前筛选条件下暂无已归档结论，自动化证明与反驳合入后会自动追加于此。', 'loading'));
+    return;
+  }
+  for (const rec of filtered.slice(0, 36)) {
+    const card = rec.url ? external('', rec.url, 'conjecture-card' + (rec.verdict === 'refuted' ? ' is-refuted' : '')) : element('article', '', 'conjecture-card' + (rec.verdict === 'refuted' ? ' is-refuted' : ''));
+    const head = element('div', '', 'conjecture-card-head');
+    head.append(
+      element('span', rec.verdict === 'refuted' ? '✕ 反驳 / 障碍' : '✓ 已证明', 'verdict-badge ' + (rec.verdict === 'refuted' ? 'is-refuted' : 'is-proved')),
+      element('span', `${rec.area} · ${rec.evidenceKind}`, 'mono-meta')
+    );
+    const titleEl = element('strong', rec.title, 'conjecture-card-title');
+    if (rec.enTitle && rec.enTitle !== rec.title) titleEl.title = rec.enTitle;
+    const sub = element('p', rec.summary || rec.enTitle || '', 'conjecture-card-sub');
+    const foot = element('div', '', 'conjecture-card-foot');
+    const dt = rec.settledAt && Number.isFinite(timestamp(rec.settledAt)) ? (rec.live ? relative(rec.settledAt) : rec.settledAt.slice(0, 10)) : '已归档';
+    foot.append(
+      element('span', rec.live ? `LIVE 实时合入 · ${dt}` : `永久档案 · ${dt}`),
+      element('span', rec.url ? '查看证明 ↗' : '已记录', 'work-arrow')
+    );
+    card.append(head, titleEl, sub, foot);
+    container.append(card);
+  }
+}
+
+async function refreshConjectures() {
+  if (state.conjecturesBusy) return;
+  state.conjecturesBusy = true;
+  try {
+    const response = await fetch(new URL('data/conjectures.json', document.baseURI), {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data?.schema === 'trureturing.conjectures.v1' && Array.isArray(data.entries)) {
+      state.conjectures = data.entries;
+      renderConjectures();
+    }
+  } catch {
+  } finally {
+    state.conjecturesBusy = false;
+  }
+}
+
 function renderLive() {
   preserveFocus(() => {
     renderHealth();
@@ -2640,6 +2776,7 @@ function renderLive() {
     renderDepartment();
     renderDepartmentLens(department(state.focused));
     renderQuestions();
+    renderConjectures();
     renderActivity();
     renderLiveOps();
     renderBooks();
@@ -2761,7 +2898,7 @@ async function refreshLive() {
 // sovereign department sectors connected through the central Lean Formal Bridge!
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 4.10, z: -3.75, r: 0.76, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [229, 192, 123] },
+  direction:    { x:  0.0,  y: 6.95, z: -3.50, r: 0.86, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [229, 192, 123] },
   verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [116, 224, 244] },
   research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [94, 224, 206]  },
   review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [156, 174, 232] },
@@ -2772,20 +2909,20 @@ const holoWorld = {
 };
 
 const LAYER_PRESETS = {
-  mix:     { pitch:  0.25, dist: 25.4, lookY: 2.05, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵' },
+  mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵' },
   station: { pitch:  0.42, dist: 19.6, lookY: 0.45, lookZ:  0.20, stationAlpha: 1.00, galaxyAlpha: 0.24, minPitch:  0.22, maxPitch: 0.84, tag: 'STATION · 轨道空间站' },
   galaxy:  { pitch:  0.14, dist: 27.6, lookY: 3.25, lookZ: -0.35, stationAlpha: 0.16, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.55, tag: 'GALAXY · 周天星海' }
 };
 
 const holoCam = {
   yaw: 0.0,
-  pitch: 0.25,
-  dist: 25.4,
+  pitch: 0.23,
+  dist: 26.2,
   targetYaw: 0.0,
-  targetPitch: 0.25,
-  targetDist: 25.4,
+  targetPitch: 0.23,
+  targetDist: 26.2,
   lookX: 0.0,
-  lookY: 2.05,
+  lookY: 2.55,
   lookZ: -0.35,
   ndcShiftX: 0.0,
   stationAlpha: 1.0,
@@ -3374,7 +3511,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   const quiet = state.quiet || reduced;
   const tEff = quiet ? 4.2 : t;
   const isZenHud = $('#research-room')?.classList.contains('is-hud-zen');
-  const rightGutter = (w >= 1120 && !isZenHud) ? (w <= 1320 ? 266 : 290) : 0;
+  const rightGutter = (w >= 1120 && !isZenHud) ? (w <= 1320 ? 274 : 298) : 0;
   // Calm astronomical parallax (used only in legacy 2D fallback)
   const nebYaw = holoCam.yaw * 0.22;
   const nebPitch = 0.05 + (holoCam.pitch - 0.66) * 0.14;
@@ -4981,7 +5118,7 @@ function drawHolo3DFrame(dt = 0.016) {
   const useGL = Boolean(holoCam.gl);
   const activeId = state.hovered || state.selected;
   const isZenHud = $('#research-room')?.classList.contains('is-hud-zen');
-  const rightGutter = (w >= 1120 && !isZenHud && !state.focused) ? (w <= 1320 ? 266 : 290) : 0;
+  const rightGutter = (w >= 1120 && !isZenHud && !state.focused) ? (w <= 1320 ? 274 : 298) : 0;
   const preset = LAYER_PRESETS[state.layer] || LAYER_PRESETS.mix;
 
   // Smooth damped 3D camera choreography (3-Strata Layer Transitions + Igloo fly-in + Active Theory parallax!)
@@ -6029,7 +6166,7 @@ function drawHolo3DFrame(dt = 0.016) {
 
     // Anchor KPR chamfered mission tag cleanly above floating Architect monolith or below each grounded monolith!
     const anchorPt = cfg.apex
-      ? project(cfg.x, yBase + 1.05, cfg.z)
+      ? project(cfg.x, yBase + 1.18, cfg.z)
       : project(cfg.x, yBase - 0.06, cfg.z + cfg.r * (d.id === 'verification' ? 1.05 : 0.85));
     const bodyCenter = project(cfg.x, yBase + (cfg.eye ? 0.0 : hEntity * 0.55), cfg.z);
     if (anchorPt && bodyCenter) {
@@ -6360,6 +6497,7 @@ window.addEventListener('resize', () => renderHoloSky(), { passive: true });
 const dockTitles = {
   'live-ops': 'TELEMETRY // LEAN CI 检验灯阵与跨部门接力',
   'questions': 'RESEARCH // 当前在研课题索引',
+  'conjectures': 'ARCHIVE // 猜想解决与反驳档案库（永久归档 + Lean 实时合入）',
   'publications': 'ARCHIVE // 双语书稿与公开论文',
   'ecosystem': 'INFRA // 公开研究仓库与 Rust 开源模板'
 };
@@ -6419,6 +6557,16 @@ for (const button of document.querySelectorAll('[data-filter]')) {
       sibling.setAttribute('aria-pressed', String(sibling === button));
     }
     renderQuestions();
+  });
+}
+
+for (const button of document.querySelectorAll('[data-verdict-filter]')) {
+  button.addEventListener('click', () => {
+    state.verdictFilter = button.dataset.verdictFilter || 'all';
+    for (const sibling of document.querySelectorAll('[data-verdict-filter]')) {
+      sibling.setAttribute('aria-pressed', String(sibling === button));
+    }
+    renderConjectures();
   });
 }
 
@@ -6586,6 +6734,7 @@ try {
 
 updateControls();
 refreshSnapshot();
+refreshConjectures();
 refreshLive();
 setInterval(() => { if (!document.hidden) refreshSnapshot(); }, 60000);
 setInterval(() => { if (!document.hidden) refreshLive(); }, 15000);
