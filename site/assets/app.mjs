@@ -3007,6 +3007,8 @@ function initTruthNebulaData(data) {
   truthNebula.stars = data.stars;
   truthNebula.edges = Array.isArray(data.edges) ? data.edges : [];
   const n = data.stars.length;
+  truthNebula.release = data.truth_release_digest || '';
+  truthNebula.baseCount = n;
   truthNebula.projX = new Float32Array(n);
   truthNebula.projY = new Float32Array(n);
   truthNebula.projZ = new Float32Array(n);
@@ -3315,6 +3317,7 @@ function rebuildRecentTruthGrowth() {
         parentIdx,
         module: ev.module,
         at: ev.at,
+        commit: ev.commit,
         x: tx,
         y: ty,
         z: tz,
@@ -3345,8 +3348,10 @@ function observeTruthGrowth(feed) {
 function commitGrowth(record, cid, born, visible) {
   const cluster = truthNebula.clusters.find(c => c.id === cid);
   if (!cluster) return;
-  cluster.count = (cluster.count || 0) + 1;
-  if (truthNebula.counts) truthNebula.counts.truth_nodes = (truthNebula.counts.truth_nodes || 0) + 1;
+  if (!record.preview) {
+    cluster.count = (cluster.count || 0) + 1;
+    if (truthNebula.counts) truthNebula.counts.truth_nodes = (truthNebula.counts.truth_nodes || 0) + 1;
+  }
   if (!visible) return;
   if (!truthGrowth.members) {
     truthGrowth.members = new Map();
@@ -3366,6 +3371,9 @@ function commitGrowth(record, cid, born, visible) {
   const step = 34 + b * 40;
   truthGrowth.grown.push({
     module: record.module,
+    at: record.at,
+    commit: record.commit,
+    preview: Boolean(record.preview),
     cid,
     parentIdx,
     x: p[0] + (dx / len) * step + (c - 0.5) * 30,
@@ -3377,6 +3385,365 @@ function commitGrowth(record, cid, born, visible) {
 }
 
 // Advances the close-up schedule and returns the focus being shown, if any.
+// ---- Galaxy main view -------------------------------------------------------
+// Opening a galaxy, or a galaxy growing, flies the 3D camera to it from the station
+// side so the galaxy becomes the main view; the station and the other galaxies
+// fall back out of frame and return when the view closes.
+const GALAXY_VIEW_FILL = 0.62;
+
+function galaxyCameraPose(center, radius, fovY) {
+  const [x, y, z] = center;
+  const dist = Math.max(3.2, Math.min(10, radius / (GALAXY_VIEW_FILL * Math.tan(fovY / 2))));
+  return { yaw: Math.atan2(-x, -z), pitch: 0.1, dist, lookX: x, lookY: y, lookZ: z };
+}
+
+// A user-opened galaxy always takes the view; growth takes it only when the reader is
+// not looking at the station, a department or another opened galaxy.
+function galaxyCameraAllowed(kind, view) {
+  if (view.mode !== 'organization' || view.focusedDepartment) return false;
+  if (kind === 'manual') return true;
+  return view.layer !== 'station' && !view.manual;
+}
+
+function galaxyCameraFocus(now) {
+  const manual = truthGrowth.manualFocus && !truthGrowth.manualFocus.closing ? truthGrowth.manualFocus : null;
+  const view = { mode: state.mode, layer: state.layer, focusedDepartment: state.focused, manual: Boolean(manual) };
+  const pick = (focus, kind) => (focus && focus.cluster?.name !== 'Other' && galaxyCameraAllowed(kind, view) ? { cid: focus.cid, kind } : null);
+  if (manual) return pick(manual, 'manual');
+  const auto = truthGrowth.focus;
+  return auto && now - auto.start < GROWTH_HOLD_MS ? pick(auto, 'growth') : null;
+}
+
+// World-space centre and framing radius (85th percentile of its stars) of a galaxy.
+function syncGalaxyMainView(active) {
+  const room = document.querySelector('#research-room');
+  if (!room || room.classList.contains('is-galaxy-main') === Boolean(active)) return;
+  room.classList.toggle('is-galaxy-main', Boolean(active));
+  if (active) {
+    loadGalaxyDetails();
+  } else {
+    galaxyDetail.picks = [];
+    galaxyDetail.hoverKey = null;
+    closeGalaxyNodeCard();
+  }
+}
+
+// ---- Galaxy nodes -------------------------------------------------------------
+// In the galaxy main view every node can be hovered and opened. Sampled stars are named
+// from truth-nebula-details.v1.json, fetched when a galaxy first opens and used only when
+// it matches the nebula release star by star; newly frozen modules come from the live
+// growth feed and are marked 新加入.
+const GALAXY_NODE_PICK_PX = 16;
+const TRUTH_SOURCE_BLOB = 'https://github.com/the-omega-institute/trureturing/blob';
+const NODE_ROLE_ZH = { hub: '枢纽定理', interface: '接口定理', bridge: '桥接定理', foundation: '基础定理', internal: '内部定理', 'specialized-leaf': '专门叶定理' };
+const galaxyDetail = { status: 'idle', data: null, picks: [], hoverKey: null, selectedKey: null, bounds: null };
+
+function galaxyNodeKey(pick) {
+  return pick.kind === 'star' ? `s${pick.idx}` : `n${pick.module}`;
+}
+
+function pickGalaxyNode(picks, x, y, radius = GALAXY_NODE_PICK_PX) {
+  let best = null;
+  let bestD = radius;
+  for (const p of picks || []) {
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d <= bestD) {
+      best = p;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+function galaxyDetailsUsable(details, release, count) {
+  return Boolean(details && details.schema_version === 'trureturing-truth-nebula-details.v1'
+    && release && details.truth_release_digest === release
+    && Array.isArray(details.stars) && details.stars.length === count);
+}
+
+function galaxyNodeSourceUrl(module, commit) {
+  if (!module || !/^[0-9a-f]{40}$/.test(String(commit || ''))) return null;
+  return `${TRUTH_SOURCE_BLOB}/${commit}/${module}.lean`;
+}
+
+function galaxyNodeInfo(pick, details, clusters) {
+  const cluster = (clusters || []).find(c => c.id === pick.cid);
+  const galaxy = cluster ? `${cluster.zh || cluster.name}星系` : '真值星系';
+  if (pick.kind === 'new') {
+    const stratum = String(pick.module || '').split('/')[1] || '';
+    return {
+      isNew: true,
+      badge: pick.preview ? '新加入（预览）' : '新加入',
+      title: shortModuleName(pick.module),
+      module: pick.module,
+      summary: pick.preview ? '预览演示节点，不计入真值图谱。' : 'dev 分支上新增冻结状态的 D5 模块。',
+      meta: [`${relative(pick.at)}冻结`, galaxy, stratum].filter(Boolean),
+      href: pick.preview ? null : galaxyNodeSourceUrl(pick.module, pick.commit)
+    };
+  }
+  const row = details?.stars?.[pick.idx];
+  if (!row) {
+    return { isNew: false, badge: '定理节点', title: `${galaxy} · 定理节点`, module: '', summary: '节点名称暂不可用。', meta: [galaxy], href: null };
+  }
+  const [module, title, summary, role, layer, theorems] = row;
+  return {
+    isNew: false,
+    badge: NODE_ROLE_ZH[role] || '定理节点',
+    title: title || shortModuleName(module),
+    module,
+    summary: summary || '',
+    meta: [galaxy, `DAG 第 ${layer} 层`, `${theorems} 条定理`],
+    href: galaxyNodeSourceUrl(module, details.source_commit)
+  };
+}
+
+// Greedy label placement: candidates in priority order, each tried at four corners of
+// its node, kept only when it overlaps no placed label and stays on the stage.
+function planGalaxyLabels(cands, max, bounds) {
+  const placed = [];
+  const h = 15;
+  const fits = r => r.lx >= bounds.left && r.ly >= bounds.top && r.lx + r.w <= bounds.right && r.ly + r.h <= bounds.bottom
+    && placed.every(o => r.lx + r.w <= o.lx || o.lx + o.w <= r.lx || r.ly + r.h <= o.ly || o.ly + o.h <= r.ly);
+  for (const c of cands) {
+    if (placed.length >= max) break;
+    const tries = [[c.x + 9, c.y - h - 3], [c.x - 9 - c.w, c.y - h - 3], [c.x + 9, c.y + 4], [c.x - 9 - c.w, c.y + 4]];
+    for (const [lx, ly] of tries) {
+      const r = { ...c, lx, ly, h };
+      if (fits(r)) {
+        placed.push(r);
+        break;
+      }
+    }
+  }
+  return placed;
+}
+
+function renderGalaxyNodeCard(info, x, y, bounds) {
+  const card = document.querySelector('#galaxy-node-card');
+  if (!card) return;
+  const close = element('button', '×', 'gnc-close');
+  close.type = 'button';
+  close.setAttribute('aria-label', '关闭节点详情');
+  close.addEventListener('click', () => closeGalaxyNodeCard());
+  const parts = [close, element('span', info.badge, `gnc-badge${info.isNew ? ' is-new' : ''}`), element('h3', info.title, 'gnc-title')];
+  if (info.module) parts.push(element('p', info.module, 'gnc-module'));
+  if (info.summary) parts.push(element('p', info.summary, 'gnc-summary'));
+  if (info.meta?.length) parts.push(element('p', info.meta.join(' · '), 'gnc-meta'));
+  if (info.href) {
+    const link = element('a', '查看 Lean 源码 ↗', 'gnc-link');
+    link.href = info.href;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    parts.push(link);
+  }
+  card.replaceChildren(...parts);
+  card.hidden = false;
+  const width = Math.min(320, Math.max(200, bounds.right - bounds.left - 24));
+  const height = 190;
+  let left = x + 18;
+  if (left + width > bounds.right) left = x - 18 - width;
+  left = Math.max(bounds.left, Math.min(bounds.right - width, left));
+  const top = Math.max(bounds.top, Math.min(bounds.bottom - height, y - 40));
+  card.style.width = `${width}px`;
+  card.style.left = `${Math.round(left)}px`;
+  card.style.top = `${Math.round(top)}px`;
+}
+
+// Marks new nodes and hub theorems of the main-view galaxy, labels them and records the
+// projected nodes that the pointer can pick.
+function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGutter, now) {
+  const alpha = Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4));
+  const right = w - rightGutter - 14;
+  galaxyDetail.bounds = { left: 16, top: 104, right, bottom: h - 70 };
+  if (alpha < 0.05) {
+    galaxyDetail.picks = [];
+    return;
+  }
+  const onStage = (x, y) => x > 18 && x < right && y > 70 && y < h - 60;
+  const picks = [];
+  const stars = truthNebula.stars;
+  for (let i = 0; i < (truthNebula.baseCount || 0); i++) {
+    if (stars[i][3] !== cid) continue;
+    const x = truthNebula.projX[i], y = truthNebula.projY[i];
+    if (onStage(x, y)) picks.push({ kind: 'star', idx: i, cid, x, y, weight: stars[i][5] || 0 });
+  }
+  const freshByModule = new Map();
+  for (const sp of truthGrowth.recentSprouts) {
+    if (sp.cid !== cid || !sp.module) continue;
+    const [x, y] = project(sp.x / 1000, sp.y / 1000, sp.z / 1000, cid);
+    if (onStage(x, y)) freshByModule.set(sp.module, { kind: 'new', cid, module: sp.module, at: sp.at, commit: sp.commit, x, y });
+  }
+  for (const g of truthGrowth.grown) {
+    if (g.cid !== cid || !g.module || now - g.born < GROWTH_EDGE_MS) continue;
+    const [x, y] = project(g.x / 1000, g.y / 1000, g.z / 1000, cid);
+    if (onStage(x, y)) freshByModule.set(g.module, { kind: 'new', cid, module: g.module, at: g.at, commit: g.commit, preview: g.preview, x, y });
+  }
+  const fresh = [...freshByModule.values()].sort((a, b) => (timestamp(b.at) || 0) - (timestamp(a.at) || 0));
+  picks.push(...fresh);
+  galaxyDetail.picks = alpha > 0.5 ? picks : [];
+
+  const details = galaxyDetail.data;
+  const col = palette[cid % palette.length];
+  const gold = isLight ? [160, 104, 16] : [255, 214, 128];
+  const hubs = details ? picks.filter(p => p.kind === 'star').sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
+  const byKey = new Map(picks.map(p => [galaxyNodeKey(p), p]));
+  const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+  const textFor = p => (p.kind === 'new' ? `新 · ${shortModuleName(p.module)}` : clip(details?.stars?.[p.idx]?.[1] || '定理节点', 34));
+  const cands = [];
+  const add = (p, kind) => {
+    if (!p || cands.some(c => c.key === galaxyNodeKey(p))) return;
+    cands.push({ key: galaxyNodeKey(p), x: p.x, y: p.y, text: textFor(p), kind: p.kind === 'new' ? 'new' : kind });
+  };
+  add(byKey.get(galaxyDetail.selectedKey), 'focus');
+  add(byKey.get(galaxyDetail.hoverKey), 'focus');
+  fresh.slice(0, 6).forEach(p => add(p, 'new'));
+  hubs.forEach(p => add(p, 'hub'));
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for (const p of fresh) {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 520 + (p.x + p.y) * 0.01);
+    const r = 5 + 2.2 * pulse;
+    ctx.strokeStyle = rgba(gold, 0.55 + 0.4 * pulse);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - r);
+    ctx.lineTo(p.x + r, p.y);
+    ctx.lineTo(p.x, p.y + r);
+    ctx.lineTo(p.x - r, p.y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = rgba(gold, 0.95);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 1.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const p of hubs) {
+    ctx.strokeStyle = rgba(col, 0.7);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  for (const key of [galaxyDetail.hoverKey, galaxyDetail.selectedKey]) {
+    const p = byKey.get(key);
+    if (!p) continue;
+    ctx.strokeStyle = isLight ? 'rgba(20, 40, 44, 0.9)' : 'rgba(240, 255, 252, 0.95)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.font = '600 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+  for (const c of cands) c.w = ctx.measureText(c.text).width + 4;
+  const placed = planGalaxyLabels(cands, 11, galaxyDetail.bounds);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  const halo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(4, 7, 12, 0.92)';
+  for (const c of placed) {
+    const tone = c.kind === 'new' ? gold : c.kind === 'focus' ? (isLight ? [20, 40, 44] : [240, 255, 252]) : col;
+    const ax = c.lx < c.x ? c.lx + c.w : c.lx;
+    const ay = c.ly < c.y ? c.ly + c.h : c.ly;
+    ctx.strokeStyle = rgba(tone, 0.5);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = halo;
+    ctx.strokeText(c.text, c.lx + 2, c.ly + c.h / 2);
+    ctx.fillStyle = rgba(tone, 0.98);
+    ctx.fillText(c.text, c.lx + 2, c.ly + c.h / 2);
+  }
+  ctx.textAlign = 'center';
+  ctx.font = '600 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+  const legend = `◆ 新加入 ${fresh.length}${details ? ' · ○ 枢纽定理' : ''} · 悬停或点击节点查看详情`;
+  ctx.lineWidth = 3.2;
+  ctx.strokeStyle = halo;
+  ctx.strokeText(legend, w * 0.5, 98);
+  ctx.fillStyle = rgba(fresh.length ? gold : col, 0.92);
+  ctx.fillText(legend, w * 0.5, 98);
+  ctx.restore();
+}
+
+function closeGalaxyNodeCard() {
+  galaxyDetail.selectedKey = null;
+  const card = document.querySelector('#galaxy-node-card');
+  if (card) card.hidden = true;
+}
+
+async function loadGalaxyDetails() {
+  if (galaxyDetail.status !== 'idle' || /jsdom/i.test(navigator.userAgent || '')) return;
+  galaxyDetail.status = 'loading';
+  try {
+    const release = truthNebula.release || '';
+    const resp = await fetch(`data/truth-nebula-details.v1.json?r=${encodeURIComponent(release.slice(-16))}`);
+    const data = resp.ok ? await resp.json() : null;
+    galaxyDetail.data = galaxyDetailsUsable(data, release, truthNebula.baseCount) ? data : null;
+    galaxyDetail.status = galaxyDetail.data ? 'ready' : 'failed';
+  } catch {
+    galaxyDetail.status = 'failed';
+  }
+}
+
+// Opening a node during a growth close-up pins that galaxy so the card stays readable.
+function openGalaxyNode(node) {
+  const now = performance.now();
+  const manual = truthGrowth.manualFocus;
+  if (!manual || manual.closing || manual.cid !== node.cid) {
+    const cluster = truthNebula.clusters.find(c => c.id === node.cid);
+    if (cluster) truthGrowth.manualFocus = { cid: node.cid, cluster, start: now - 1000, closing: false };
+  }
+  galaxyDetail.selectedKey = galaxyNodeKey(node);
+  const bounds = galaxyDetail.bounds || { left: 12, top: 96, right: window.innerWidth - 12, bottom: window.innerHeight - 80 };
+  renderGalaxyNodeCard(galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters), node.x, node.y, bounds);
+}
+function galaxyWorldFrame(cid) {
+  const gl = holoCam.gl;
+  const cluster = truthNebula.clusters.find(c => c.id === cid);
+  if (!gl || !cluster) return null;
+  if (!holoCam.galaxyFrames) holoCam.galaxyFrames = new Map();
+  const key = `${cid}:${truthNebula.stars.length}`;
+  if (holoCam.galaxyFrames.has(key)) return holoCam.galaxyFrames.get(key);
+  const c = gl.mapSkyPoint(cluster.center[0] / 1000, cluster.center[1] / 1000, cluster.center[2] / 1000, cid);
+  const spread = [];
+  for (const s of truthNebula.stars) {
+    if (s[3] !== cid) continue;
+    const p = gl.mapSkyPoint(s[0] / 1000, s[1] / 1000, s[2] / 1000, cid);
+    spread.push(Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]));
+  }
+  spread.sort((a, b) => a - b);
+  const frame = { center: c, radius: Math.max(0.6, spread.length ? spread[Math.floor(spread.length * 0.85)] : 1.2) };
+  holoCam.galaxyFrames.set(key, frame);
+  return frame;
+}
+
+// ?preview=growth[&galaxy=Quantum,Arith] plays marked preview growth so the close-up
+// can be seen without waiting for a real freeze; preview growth never changes counts.
+function previewGrowthRecords(domains) {
+  const at = new Date().toISOString();
+  return domains.flatMap((domain, i) => Array.from({ length: i === 0 ? 3 : 1 }, (_, k) => ({
+    module: `D5/预览/${domain}/示例模块${k + 1}`, domain, stratum: '预览', at, commit: 'preview', preview: true
+  })));
+}
+
+function startGrowthPreview() {
+  let domains = null;
+  try {
+    const query = new URLSearchParams(location.search);
+    if (query.get('preview') === 'growth') domains = (query.get('galaxy') || 'Combinatorics,Quantum,Arith').split(',').map(s => s.trim()).filter(Boolean);
+  } catch {}
+  if (!domains?.length || /jsdom/i.test(navigator.userAgent || '')) return;
+  const timer = setInterval(() => {
+    if (!truthNebula.loaded) return;
+    clearInterval(timer);
+    truthGrowth.queue = enqueueGrowth(truthGrowth.queue, previewGrowthRecords(domains), truthNebula.clusters, performance.now());
+  }, 500);
+}
+
 function stepTruthGrowth(now) {
   if (!truthNebula.loaded) return null;
   const g = truthGrowth;
@@ -3464,8 +3831,11 @@ function drawTruthGrowthFocus(ctx, f, k, now, gx, gy, lensR, w, col, halo) {
   const name = f.cluster.name === 'Other' ? (f.modules[0]?.domain || '其他领域') : (f.cluster.zh || f.cluster.name);
   const recent = f.modules.slice(Math.max(0, shown - 2), shown).map(record => record.module.split('/').slice(-2).join(' / '));
   const cx = w * 0.5;
-  const title = `⟡ 真值图谱生长 · ${name} +${shown} 新冻结模块`;
-  const detail = `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} 模块${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`;
+  const preview = f.modules.some(record => record.preview);
+  const title = `⟡ 真值图谱生长 · ${name} +${shown} 新冻结模块${preview ? '（预览）' : ''}`;
+  const detail = preview
+    ? '预览演示 · 不计入真值图谱'
+    : `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} 模块${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`;
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = k;
@@ -3583,7 +3953,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
   // The close-up is a local magnifying lens over the focused galaxy; the rest of the sky stays put.
   let focusTx = 0, focusTy = 0, lensR = 0;
-  const lensD = GROWTH_LENS * focusK;
+  // With WebGL the camera flies to the galaxy instead; the lens serves the 2D fallback.
+  const lensD = useGLSky ? 0 : GROWTH_LENS * focusK;
   if (focusK > 0) {
     const c = growthFocus.cluster.center;
     const rim = (growthFocus.cluster.radius || 200) / 1000;
@@ -3825,7 +4196,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   // PASS 6B: Live arriving growth animation
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
   if (focusK > 0) {
-    drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
+    if (!useGLSky) drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
   }
 
   // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules!)
@@ -3900,6 +4271,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   ctx.restore();
+
+  if (useGLSky && holoCam.galaxyMainCid != null) {
+    drawGalaxyNodeLayer(ctx, holoCam.galaxyMainCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow);
+  } else if (galaxyDetail.picks.length) {
+    galaxyDetail.picks = [];
+  }
 
   // PASS 8: MINIMALIST AEROSPACE STAR-TRACKER COORDINATE LABELS (NO chunky game boxes!)
   ctx.save();
@@ -5335,7 +5712,23 @@ function drawHolo3DFrame(dt = 0.016) {
   const targetShiftX = rightGutter > 0 ? (rightGutter / Math.max(1, w)) : 0.0;
   holoCam.ndcShiftX += (targetShiftX - holoCam.ndcShiftX) * damp;
 
-  if (useGL && state.focused && holoWorld[state.focused]) {
+  const galaxyCam = useGL && truthNebula.loaded ? galaxyCameraFocus(performance.now()) : null;
+  const galaxyFrame = galaxyCam ? galaxyWorldFrame(galaxyCam.cid) : null;
+  holoCam.galaxyMainCid = galaxyFrame ? galaxyCam.cid : null;
+  syncGalaxyMainView(galaxyFrame);
+  if (galaxyFrame) {
+    // Galaxy main view: fly to the galaxy from the station side; the station fades back.
+    const pose = galaxyCameraPose(galaxyFrame.center, galaxyFrame.radius, holoCam.gl.fovY || (40 * Math.PI / 180));
+    const fly = 1 - Math.exp(-Math.max(0.008, stepDt) * 3.4);
+    holoCam.lookX += (pose.lookX - holoCam.lookX) * fly;
+    holoCam.lookY += (pose.lookY - holoCam.lookY) * fly;
+    holoCam.lookZ += (pose.lookZ - holoCam.lookZ) * fly;
+    holoCam.yaw += (pose.yaw - holoCam.yaw) * fly;
+    holoCam.pitch += (pose.pitch - holoCam.pitch) * fly;
+    holoCam.dist += (pose.dist - holoCam.dist) * fly;
+    holoCam.stationAlpha += (0.12 - holoCam.stationAlpha) * fly;
+    holoCam.galaxyAlpha += (1.3 - holoCam.galaxyAlpha) * fly;
+  } else if (useGL && state.focused && holoWorld[state.focused]) {
     const fc = holoWorld[state.focused];
     const flyY = (fc.y || 0) + (fc.eye ? 0.0 : 0.85);
     const flyYaw = (!state.quiet && !reduced) ? Math.sin(t * 0.24) * 0.55 : 0.25;
@@ -6692,7 +7085,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   };
 
   boardEl.addEventListener('pointerdown', e => {
-    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel')) return;
+    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card')) return;
     holoCam.dragging = true;
     holoCam.dragMoved = false;
     holoCam.lastX = e.clientX;
@@ -6718,6 +7111,19 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       holoCam.targetPitch = Math.max(lp.minPitch, Math.min(lp.maxPitch, holoCam.targetPitch + dy * 0.0034));
       return;
     }
+    if (!state.focused && e.target === $('#holo-3d') && galaxyDetail.picks.length) {
+      const rect = boardEl.getBoundingClientRect();
+      const node = pickGalaxyNode(galaxyDetail.picks, e.clientX - rect.left, e.clientY - rect.top);
+      galaxyDetail.hoverKey = node ? galaxyNodeKey(node) : null;
+      boardEl.style.cursor = node ? 'pointer' : 'grab';
+      const hint = $('#hive-hover-hint');
+      if (hint) {
+        hint.textContent = node
+          ? `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · 点击查看详情`
+          : '悬停或点击节点查看详情 · 点击空白处或 Esc 返回全景';
+      }
+      return;
+    }
     if (!state.focused && e.target === $('#holo-3d')) {
       const hit = state.layer === 'galaxy' ? null : hitTowerAt(e.clientX, e.clientY);
       if (hit) {
@@ -6730,7 +7136,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
         boardEl.style.cursor = gHit ? 'pointer' : 'grab';
         const hint = $('#hive-hover-hint');
         if (gHit && hint) {
-          hint.textContent = `⟡ ${gHit.cl.zh || gHit.cl.name} 星系（${(gHit.cl.count || 0).toLocaleString()} 冻结定理）· 点击放大特写`;
+          hint.textContent = `⟡ ${gHit.cl.zh || gHit.cl.name} 星系（${(gHit.cl.count || 0).toLocaleString()} 冻结定理）· 点击设为主视角`;
         } else if (!gHit) {
           updateHoverHint(state.hovered || state.selected);
         }
@@ -6743,6 +7149,18 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     const moved = holoCam.dragMoved;
     holoCam.dragging = false;
     boardEl.classList.remove('is-dragging');
+    if (!moved && !state.focused && e.target === $('#holo-3d') && galaxyDetail.picks.length) {
+      const rect = boardEl.getBoundingClientRect();
+      const node = pickGalaxyNode(galaxyDetail.picks, e.clientX - rect.left, e.clientY - rect.top);
+      if (node) {
+        openGalaxyNode(node);
+        return;
+      }
+      if (galaxyDetail.selectedKey) {
+        closeGalaxyNodeCard();
+        return;
+      }
+    }
     if (!moved && !state.focused && e.target === $('#holo-3d')) {
       const hit = state.layer === 'galaxy' ? null : hitTowerAt(e.clientX, e.clientY);
       if (hit) {
@@ -7102,6 +7520,10 @@ document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
+    if (galaxyDetail.selectedKey) {
+      closeGalaxyNodeCard();
+      return;
+    }
     if ($('#telemetry-dock')?.classList.contains('is-open')) closeDockDrawer();
     if (state.focused) closeDepartmentLens();
     if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
@@ -7125,6 +7547,7 @@ try {
   triggerScanSweep();
 }
 startHoloLoop();
+startGrowthPreview();
 
 try {
   const saved = JSON.parse(localStorage.getItem(cacheKey));

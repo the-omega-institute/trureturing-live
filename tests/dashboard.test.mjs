@@ -596,3 +596,91 @@ test('independent embedded review and studio branch pills select each branch cle
     assert.equal(doc.querySelector('#lens-title').textContent,'工具与表达');
   }finally{dom.window.close();}
 });
+
+test('opening or growing a galaxy flies the camera to it as the main view',async()=>{
+  const {dom,win}=await boot();try{
+    const fov=38*Math.PI/180;
+    const pose=win.galaxyCameraPose([-5.6,3.45,-9.9],1.4,fov);
+    const cam=[pose.lookX+pose.dist*Math.cos(pose.pitch)*Math.sin(pose.yaw),pose.lookY+pose.dist*Math.sin(pose.pitch),pose.lookZ+pose.dist*Math.cos(pose.pitch)*Math.cos(pose.yaw)];
+    assert.ok(Math.hypot(cam[0],cam[2])<Math.hypot(-5.6,-9.9),'the camera looks at the galaxy from the station side');
+    assert.deepEqual([pose.lookX,pose.lookY,pose.lookZ],[-5.6,3.45,-9.9],'the galaxy is the centre of view');
+    const fill=1.4/(pose.dist*Math.tan(fov/2));
+    assert.ok(fill>0.5&&fill<0.75,'the galaxy fills most of the view');
+    assert.ok(win.galaxyCameraPose([0,3.5,-10.6],3,fov).dist>pose.dist,'larger galaxies are framed from further away');
+    assert.ok(win.galaxyCameraPose([0,3.5,-10.6],0.05,fov).dist>=3,'tiny galaxies are not approached too closely');
+    const view=(o={})=>({mode:'organization',layer:'mix',focusedDepartment:null,manual:false,...o});
+    assert.equal(win.galaxyCameraAllowed('manual',view()),true);
+    assert.equal(win.galaxyCameraAllowed('growth',view()),true,'growth also takes the main view');
+    assert.equal(win.galaxyCameraAllowed('growth',view({layer:'galaxy'})),true);
+    assert.equal(win.galaxyCameraAllowed('growth',view({layer:'station'})),false,'the station view is not taken over by growth');
+    assert.equal(win.galaxyCameraAllowed('growth',view({manual:true})),false,'growth does not steal an opened galaxy');
+    assert.equal(win.galaxyCameraAllowed('growth',view({focusedDepartment:'research'})),false);
+    assert.equal(win.galaxyCameraAllowed('manual',view({focusedDepartment:'research'})),false);
+    assert.equal(win.galaxyCameraAllowed('manual',view({mode:'journey'})),false);
+    const preview=[...win.previewGrowthRecords(['Quantum','Arith'])];
+    assert.ok(preview.length>=2&&preview.every(r=>r.preview===true),'preview growth is marked as preview');
+    assert.deepEqual([...new Set(preview.map(r=>r.domain))],['Quantum','Arith']);
+    const room=dom.window.document.querySelector('#research-room');
+    win.syncGalaxyMainView(true);
+    assert.ok(room.classList.contains('is-galaxy-main'),'station labels step aside while a galaxy is the main view');
+    win.syncGalaxyMainView(false);
+    assert.ok(!room.classList.contains('is-galaxy-main'),'station labels return with the panorama');
+  }finally{dom.window.close();}
+});
+
+test('nodes in an opened galaxy can be picked, labelled and read, and new nodes are marked',async()=>{
+  const {dom,win}=await boot();try{
+    const doc=dom.window.document;
+    const picks=[{kind:'star',idx:0,x:100,y:100},{kind:'new',module:'D5/S1/Combinatorics/Words/Lyndon',x:130,y:100}];
+    assert.equal(win.pickGalaxyNode(picks,104,103)?.idx,0,'the nearest node is picked');
+    assert.equal(win.pickGalaxyNode(picks,127,98)?.kind,'new');
+    assert.equal(win.pickGalaxyNode(picks,300,300),null,'empty sky picks nothing');
+    const release='sha256:r';
+    const details={schema_version:'trureturing-truth-nebula-details.v1',truth_release_digest:release,source_commit:'c'.repeat(40),
+      stars:[['D5/S0/Asymptotics/Bonferroni/TailBounds','Capture-Count Tail Bounds','Positive capture-count tails are bounded.','interface',7,3]]};
+    assert.equal(win.galaxyDetailsUsable(details,release,1),true);
+    assert.equal(win.galaxyDetailsUsable(details,'sha256:other',1),false,'details of another release are not shown');
+    assert.equal(win.galaxyDetailsUsable(details,release,2),false,'details must line up star by star');
+    assert.equal(win.galaxyDetailsUsable({...details,schema_version:'x'},release,1),false);
+    const clusters=[{id:0,name:'Combinatorics',zh:'组合数学'}];
+    const star=win.galaxyNodeInfo({kind:'star',idx:0,cid:0},details,clusters);
+    assert.equal(star.title,'Capture-Count Tail Bounds');
+    assert.equal(star.summary,'Positive capture-count tails are bounded.');
+    assert.equal(star.module,'D5/S0/Asymptotics/Bonferroni/TailBounds');
+    assert.equal(star.isNew,false);
+    assert.ok(star.meta.some(m=>m.includes('3')&&m.includes('定理')),'theorem count is shown');
+    assert.ok(star.meta.some(m=>m.includes('7')),'DAG layer is shown');
+    assert.equal(star.href,`https://github.com/the-omega-institute/trureturing/blob/${'c'.repeat(40)}/D5/S0/Asymptotics/Bonferroni/TailBounds.lean`);
+    const bare=win.galaxyNodeInfo({kind:'star',idx:0,cid:0},null,clusters);
+    assert.equal(bare.href,null,'without details a sampled star is not named');
+    assert.ok(bare.title.includes('组合数学'));
+    const fresh=win.galaxyNodeInfo({kind:'new',cid:0,module:'D5/S1/Combinatorics/Words/Lyndon',at:new Date(Date.now()-120000).toISOString(),commit:'b'.repeat(40)},details,clusters);
+    assert.equal(fresh.isNew,true);
+    assert.equal(fresh.badge,'新加入');
+    assert.equal(fresh.title,'Lyndon');
+    assert.ok(fresh.meta.some(m=>m.includes('2 分钟前')),'the freeze time is shown');
+    assert.equal(fresh.href,`https://github.com/the-omega-institute/trureturing/blob/${'b'.repeat(40)}/D5/S1/Combinatorics/Words/Lyndon.lean`);
+    const preview=win.galaxyNodeInfo({kind:'new',cid:0,module:'D5/预览/Combinatorics/示例模块1',at:new Date().toISOString(),commit:'preview',preview:true},details,clusters);
+    assert.equal(preview.href,null,'preview nodes link nowhere');
+    assert.ok(preview.badge.includes('预览'));
+    const placed=win.planGalaxyLabels([
+      {x:100,y:100,w:80,text:'a'},{x:104,y:102,w:80,text:'b'},{x:400,y:300,w:80,text:'c'},{x:5,y:5,w:80,text:'d'}
+    ],3,{left:0,top:0,right:600,bottom:500});
+    assert.ok(placed.length<=3);
+    for(let i=0;i<placed.length;i++)for(let j=i+1;j<placed.length;j++){
+      const a=placed[i],b=placed[j];
+      assert.ok(a.lx+a.w<=b.lx||b.lx+b.w<=a.lx||a.ly+a.h<=b.ly||b.ly+b.h<=a.ly,'labels never overlap');
+    }
+    assert.ok(placed.every(p=>p.lx>=0&&p.ly>=0&&p.lx+p.w<=600&&p.ly+p.h<=500),'labels stay on the stage');
+    assert.equal(placed[0].text,'a','the first candidate has priority');
+    win.renderGalaxyNodeCard(fresh,200,150,{left:0,top:0,right:900,bottom:700});
+    const card=doc.querySelector('#galaxy-node-card');
+    assert.equal(card.hidden,false);
+    assert.ok(card.textContent.includes('Lyndon')&&card.textContent.includes('新加入'));
+    assert.equal(card.querySelector('a')?.getAttribute('href'),fresh.href);
+    win.renderGalaxyNodeCard(preview,200,150,{left:0,top:0,right:900,bottom:700});
+    assert.equal(card.querySelector('a'),null);
+    win.closeGalaxyNodeCard();
+    assert.equal(card.hidden,true);
+  }finally{dom.window.close();}
+});
