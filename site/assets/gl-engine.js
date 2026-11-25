@@ -732,36 +732,45 @@
   uniform float uAlphaMul;
   out vec3 vCol;
   out float vAlpha;
-  out float vSoft;
+  out float vKind;
   void main() {
     vec4 clip = uViewProj * vec4(aPos, 1.0);
     gl_Position = clip;
-    float pSize = aSize * uDpr * clamp(32.0 / max(10.0, clip.w), 0.75, 2.4);
+    float pSize = aSize * uDpr * clamp(32.0 / max(10.0, clip.w), 0.78, 2.45);
     gl_PointSize = pSize;
     vCol = aCol;
     vAlpha = aAlpha * uAlphaMul;
-    vSoft = aSize > 18.0 ? 1.0 : 0.0; // Large sprites = volumetric nebula gas clouds!
+    // 0 = Lean verified jewel star, 1 = gentle silk nebula cloud, 2 = warm settled conjecture lantern star!
+    vKind = aSize > 18.0 ? 1.0 : (aSize >= 8.0 ? 2.0 : 0.0);
   }`;
 
   const STAR_FS = `#version 300 es
   precision highp float;
   in vec3 vCol;
   in float vAlpha;
-  in float vSoft;
+  in float vKind;
   out vec4 fragColor;
   void main() {
     vec2 d = gl_PointCoord - 0.5;
     float r = length(d) * 2.0;
     if (r > 1.0) discard;
-    if (vSoft > 0.5) {
-      // Soft volumetric astronomical nebula cloud puff
-      float cloud = pow(max(0.0, 1.0 - r * r), 2.2);
-      fragColor = vec4(vCol, cloud * vAlpha);
+    if (vKind > 0.5 && vKind < 1.5) {
+      // Ultra-gentle, velvety JWST silk nebula veil (soft pastel mist, zero harsh edges!)
+      float silk = pow(max(0.0, 1.0 - r * r), 2.15);
+      fragColor = vec4(vCol, silk * vAlpha);
+    } else if (vKind > 1.5) {
+      // Gentle warm Conjecture Lantern Star with delicate 4-point astronomical diffraction halo
+      float core = exp(-r * r * 11.0);
+      float glow = pow(max(0.0, 1.0 - r), 2.3) * 0.42;
+      float rayX = exp(-abs(d.y) * 26.0) * exp(-abs(d.x) * 4.8) * 0.46;
+      float rayY = exp(-abs(d.x) * 26.0) * exp(-abs(d.y) * 4.8) * 0.46;
+      float lum = clamp(core + glow + rayX + rayY, 0.0, 1.0);
+      fragColor = vec4(mix(vCol, vec3(1.0, 0.98, 0.92), core * 0.65), lum * vAlpha);
     } else {
-      // Razor-sharp astronomical diamond star core + soft lens halo
-      float core = exp(-r * r * 6.5);
-      float halo = exp(-r * r * 2.0) * 0.36;
-      fragColor = vec4(mix(vCol, vec3(1.0), core * 0.45), (core + halo) * vAlpha);
+      // Soft pearlescent Lean verified theorem star
+      float core = exp(-r * r * 6.8);
+      float halo = exp(-r * r * 2.1) * 0.34;
+      fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), core * 0.38), (core + halo) * vAlpha);
     }
   }`;
 
@@ -803,7 +812,7 @@
   uniform float uAlphaMul;
   out vec3 vCol;
   out float vAlpha;
-  out float vSoft;
+  out float vKind;
   void main() {
     float u = fract(aOrb.z + uTime * aOrb.w);
     float wy = -1.1 + u * 7.6; // gently rises from reflective ground abyss (-1.1) up to Akasha crown (+6.5)!
@@ -817,7 +826,7 @@
     float env = smoothstep(0.0, 0.16, u) * smoothstep(1.0, 0.78, u);
     vCol = aCol;
     vAlpha = aStyle.y * env * uAlphaMul;
-    vSoft = 0.0;
+    vKind = 0.0;
   }`;
 
   const QUAD_VS = `#version 300 es
@@ -991,9 +1000,14 @@
     campus.addBox( 2.58, 0.21, -0.82, 2.25, 0.04, 0.05, 2);
     campus.addBox( 2.58, 0.21, -0.08, 2.25, 0.04, 0.05, 2);
 
-    // South Bridge structural walkways accurately connecting Central Verification Deck -> Books & Studio
-    campus.addBox(-1.68, 0.08, 2.45, 0.36, 0.06, 4.45, 0,  0.524);
-    campus.addBox( 1.68, 0.08, 2.45, 0.36, 0.06, 4.45, 0, -0.524);
+    // South On-Demand Sliding Rheostat Busbar Rail (links review & studio support dock cleanly below main wings!)
+    campus.addBox(0.0, 0.08, 3.62, 8.6, 0.05, 0.14, 2);
+    campus.addBox(0.0, 0.12, 3.62, 8.4, 0.025, 0.04, 3);
+    campus.addBox(-3.35, 0.07, 4.46, 0.24, 0.05, 1.65, 0);
+    campus.addBox( 3.35, 0.07, 4.46, 0.24, 0.05, 1.65, 0);
+    // Subtle end-stop pylons on the rheostat rail
+    campus.addBox(-4.35, 0.12, 3.62, 0.22, 0.16, 0.28, 2);
+    campus.addBox( 4.35, 0.12, 3.62, 0.22, 0.16, 0.28, 2);
 
     // Sleek Brushed-Titanium Outer Orbital Station Structural Ring (unites all decks as one floating Space Station!)
     campus.addTorusRing(0, -0.04, 0.35, 8.95, 0.055, 64, 6, 0, 0, 2);
@@ -1002,6 +1016,12 @@
       campus.addBox(Math.cos(a) * 8.95, -0.04, 0.35 + Math.sin(a) * 8.95, 0.26, 0.14, 0.26, 2, -a);
     }
     g.campus = campus.build(gl, 20);
+
+    // Dynamic 3D Sliding Rheostat Wiper Contact (glides smoothly along z=3.62 rail toward active demand!)
+    const wiper = new MeshBuilder();
+    wiper.addBox(0, 0.14, 0, 0.56, 0.12, 0.34, 2);
+    wiper.addOctahedron(0, 0.28, 0, 0.16, 0.18, 0.16, 3);
+    g.wiper = wiper.build(gl, 18);
 
     // Pedestal Hex Plinth
     const plinth = new MeshBuilder();
@@ -1132,14 +1152,14 @@
         );
       }
     };
-    addCelestialCircle(1.25, 10.35,  0.04,  0.02, 96, [0.46, 0.84, 0.88], 0.24, 36);
-    addCelestialCircle(2.50, 10.95, -0.05, -0.03, 96, [0.56, 0.82, 0.96], 0.22, 36);
-    addCelestialCircle(3.75, 10.55,  0.03, -0.02, 96, [0.88, 0.80, 0.56], 0.26, 24);
-    // Twin delicate ascending 3D helical qi meridian streams sweeping from Ground -> Celestial Orbit below Akasha Eye
+    addCelestialCircle(1.25, 10.35,  0.04,  0.02, 128, [0.56, 0.86, 0.90], 0.14, 24);
+    addCelestialCircle(2.50, 10.95, -0.05, -0.03, 128, [0.68, 0.86, 0.96], 0.13, 24);
+    addCelestialCircle(3.75, 10.55,  0.03, -0.02, 128, [0.92, 0.84, 0.66], 0.16, 18);
+    // Twin ultra-gentle ascending 3D helical silk ribbons sweeping from Ground -> Celestial Orbit below Akasha Eye
     for (let strand = 0; strand < 2; strand++) {
       const hSegs = 80;
       const offset = strand * Math.PI;
-      const hCol = strand === 0 ? [0.52, 0.86, 0.88] : [0.86, 0.78, 0.54];
+      const hCol = strand === 0 ? [0.56, 0.88, 0.90] : [0.92, 0.83, 0.64];
       for (let i = 0; i < hSegs; i++) {
         const u0 = i / hSegs, u1 = (i + 1) / hSegs;
         const a0 = -2.25 + u0 * 4.5 + offset * 0.18;
@@ -1148,7 +1168,7 @@
         const r1 = 10.9 - u1 * 0.50 + Math.sin(u1 * Math.PI * 2) * 0.30;
         const y0 = 0.40 + u0 * 3.65;
         const y1 = 0.40 + u1 * 3.65;
-        const env = Math.sin(u0 * Math.PI) * 0.24;
+        const env = Math.sin(u0 * Math.PI) * 0.14;
         ringVerts.push(
           Math.sin(a0) * r0, y0, -Math.cos(a0) * r0 - 0.55, hCol[0], hCol[1], hCol[2], env,
           Math.sin(a1) * r1, y1, -Math.cos(a1) * r1 - 0.55, hCol[0], hCol[1], hCol[2], env
@@ -1363,10 +1383,11 @@
       return mapStarToCelestialRing(nx, ny, nz, cid, this.clusterCenters);
     }
 
-    // Upload real 1,160 Truth DAG stars, volumetric nebula cloud sprites & intra-galaxy 3D constellation lines
-    // arranged in a 3D Celestial Helical Ring (周天星阵) encircling the space between Ground and Akasha Eye!
-    syncTruthDag(stars, edges, clusters, nebPalette, recentByCluster, isLight) {
-      const key = `${stars?.length || 0}:${edges?.length || 0}:${recentByCluster?.size || 0}:${isLight ? 1 : 0}`;
+    // Upload real 1,160 Lean Truth DAG stars, gentle 5-layer silk nebula clouds, gossamer filaments,
+    // AND warm settled Conjecture Lantern Stars — ONE unified, gentle celestial cosmos!
+    syncTruthDag(stars, edges, clusters, nebPalette, recentByCluster, isLight, settledConjectures = []) {
+      const conjKey = settledConjectures ? settledConjectures.length : 0;
+      const key = `${stars?.length || 0}:${edges?.length || 0}:${recentByCluster?.size || 0}:${conjKey}:${isLight ? 1 : 0}`;
       if (key === this.starHash) return;
       this.starHash = key;
 
@@ -1381,21 +1402,21 @@
       const nebData = [];
       const edgeData = [];
 
-      // 1. Deep-space ambient starfield dome (rich astronomical backdrop!)
+      // 1. Deep-space ambient starfield dome (quiet, serene astronomical backdrop)
       let seed = 7331;
       const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      for (let i = 0; i < 380; i++) {
+      for (let i = 0; i < 360; i++) {
         const theta = rand() * Math.PI * 2;
         const elev = -0.02 + rand() * 0.78;
         const rad = 36 + rand() * 24;
         const x = Math.cos(theta) * Math.cos(elev) * rad;
         const y = Math.sin(elev) * rad + 1.0;
         const z = Math.sin(theta) * Math.cos(elev) * rad - 8.0;
-        const tone = isLight ? [0.22, 0.34, 0.42] : (i % 7 === 0 ? [0.95, 0.88, 0.72] : [0.74, 0.86, 0.98]);
-        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.4 + rand() * 1.9, isLight ? 0.22 : (0.18 + rand() * 0.40));
+        const tone = isLight ? [0.24, 0.36, 0.44] : (i % 6 === 0 ? [0.96, 0.89, 0.76] : [0.76, 0.88, 0.98]);
+        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.8, isLight ? 0.20 : (0.16 + rand() * 0.36));
       }
 
-      // 2. Real Truth DAG stars projected into the 3D Celestial Helical Ring wrapping Ground <-> Akasha Eye!
+      // 2. Real Lean Verified Truth DAG stars on the 3D Celestial Helical Ring
       const worldPts = [];
       if (stars && stars.length) {
         for (let i = 0; i < stars.length; i++) {
@@ -1406,14 +1427,15 @@
           const col = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
           const deg = s[5] || 1;
           const isOther = s[3] === 7;
-          const sz = isOther ? 2.2 : ((deg >= 7 ? 4.4 : 2.8) * (hasG ? 1.24 : 1.0));
-          const al = (isOther ? 0.34 : (hasG ? 0.88 : 0.54)) * (isLight ? 0.78 : 1.0);
+          const sz = isOther ? 2.1 : ((deg >= 7 ? 4.1 : 2.6) * (hasG ? 1.18 : 1.0));
+          const al = (isOther ? 0.30 : (hasG ? 0.78 : 0.46)) * (isLight ? 0.76 : 1.0);
           starData.push(wx, wy, wz, col[0] / 255, col[1] / 255, col[2] / 255, sz, al);
         }
       }
 
-      // 3. Soft Volumetric 3D Nebula Cloud Sprites behind every named galaxy on the Celestial Ring!
+      // 3. Gentle 5-Layer Silk Volumetric Nebula Clouds behind every named galaxy (soft JWST watercolor mist!)
       this.skyClusters = [];
+      const clusterPosById = new Map();
       if (clusters && clusters.length) {
         for (const cl of clusters) {
           if (cl.name === 'Other') continue;
@@ -1421,28 +1443,67 @@
           const col = (nebPalette && nebPalette[cl.id % nebPalette.length]) || [128, 198, 232];
           const hasG = Boolean(recentByCluster?.get(cl.id)?.count);
           this.skyClusters.push({ cl, x: cx3, y: cy3, z: cz3, col });
-          const baseSz = hasG ? 86.0 : 62.0;
-          const baseAl = isLight ? (hasG ? 0.08 : 0.04) : (hasG ? 0.21 : 0.11);
-          nebData.push(cx3, cy3, cz3, col[0] / 255, col[1] / 255, col[2] / 255, baseSz, baseAl);
-          nebData.push(cx3 - 0.9, cy3 + 0.35, cz3 - 0.5, col[0] / 255, col[1] / 255, col[2] / 255, baseSz * 0.70, baseAl * 0.62);
-          nebData.push(cx3 + 0.9, cy3 - 0.28, cz3 + 0.4, col[0] / 255, col[1] / 255, col[2] / 255, baseSz * 0.66, baseAl * 0.58);
+          clusterPosById.set(cl.id, [cx3, cy3, cz3]);
+          const rC = col[0] / 255, gC = col[1] / 255, bC = col[2] / 255;
+          // Blend a gentle warm pearl tint into outer veil so nebula feels luminous & organic, never harsh!
+          const wR = rC * 0.68 + 0.30, wG = gC * 0.72 + 0.26, wB = bC * 0.78 + 0.18;
+          const baseSz = hasG ? 128.0 : 98.0;
+          const baseAl = isLight ? (hasG ? 0.095 : 0.055) : (hasG ? 0.22 : 0.145);
+          nebData.push(cx3, cy3, cz3, rC, gC, bC, baseSz, baseAl);
+          nebData.push(cx3 - 1.15, cy3 + 0.38, cz3 - 0.55, wR, wG, wB, baseSz * 0.84, baseAl * 0.56);
+          nebData.push(cx3 + 1.15, cy3 - 0.30, cz3 + 0.45, rC, gC, bC, baseSz * 0.78, baseAl * 0.54);
+          nebData.push(cx3 - 0.45, cy3 - 0.42, cz3 + 0.55, wR, wG, wB, baseSz * 0.66, baseAl * 0.46);
+          nebData.push(cx3 + 0.55, cy3 + 0.48, cz3 - 0.40, 0.94, 0.86, 0.70, baseSz * 0.58, baseAl * (hasG ? 0.42 : 0.24));
         }
       }
 
-      // 4. Crisp 3D Intra-Galaxy Lean Theorem Constellation Edges (real 3D stereo parallax!)
+      // 3B. Gentle Warm Conjecture Lantern Stars (settled proved/refuted conjectures glowing softly inside their own galaxy!)
+      if (settledConjectures && settledConjectures.length && clusterPosById.size) {
+        const domainToCid = (rec) => {
+          const t = `${rec.area || ''} ${rec.title || ''} ${rec.enTitle || ''}`;
+          if (/量子|quantum|bloch|fibonacci|entangl|fidelity|unistochastic|qubit/i.test(t)) return 1;
+          if (/数论|robin|prime|zeckendorf|berstel|arith|integer/i.test(t)) return 2;
+          if (/组合|graph|petersen|clique|combinator|quorum|deletion|insertion/i.test(t)) return 0;
+          if (/分析|fourier|birkhoff|ergodic|limsup|diverg|heat|spectral|collision|analytic/i.test(t)) return 4;
+          if (/weil|代数|bmv|gram|algebra/i.test(t)) return 5;
+          if (/观察|observer|compact|locus/i.test(t)) return 6;
+          return 3; // ConceptDynamics
+        };
+        const perCid = new Map();
+        for (const rec of settledConjectures.slice(0, 28)) {
+          const cid = domainToCid(rec);
+          const center = clusterPosById.get(cid);
+          if (!center) continue;
+          const idx = perCid.get(cid) || 0;
+          perCid.set(cid, idx + 1);
+          const ang = idx * 2.39996 + cid * 0.9; // golden-angle gentle organic constellation spread!
+          const dist = 0.45 + Math.sqrt(idx + 1) * 0.42;
+          const lx = center[0] + Math.cos(ang) * dist;
+          const ly = center[1] + Math.sin(ang) * dist * 0.55 + 0.12;
+          const lz = center[2] + Math.sin(ang * 0.7) * 0.35;
+          const isRef = rec.verdict === 'refuted';
+          const lc = isLight
+            ? (isRef ? [0.76, 0.38, 0.14] : [0.72, 0.52, 0.16])
+            : (isRef ? [0.97, 0.74, 0.54] : [0.98, 0.88, 0.66]);
+          // Size 11.5..14.0 activates the gentle 4-point JWST Lantern Star shader mode!
+          starData.push(lx, ly, lz, lc[0], lc[1], lc[2], isRef ? 12.2 : 13.6, isLight ? 0.72 : 0.86);
+        }
+      }
+
+      // 4. Delicate Gossamer 3D Intra-Galaxy Lean Theorem Filaments (gentle & silky!)
       if (edges && edges.length && worldPts.length) {
         for (let i = 0; i < edges.length; i++) {
           const e = edges[i];
-          if (e[2] === 1) continue; // intra-galaxy constellations ONLY (zero cross-screen clutter!)
+          if (e[2] === 1) continue;
           const u = e[0], v = e[1];
           const pu = worldPts[u], pv = worldPts[v];
           if (!pu || !pv) continue;
           const cid = stars[u][3];
-          if (stars[v][3] !== cid) continue; // strictly intra-cluster edges — zero stray cross-galaxy stretch lines!
+          if (stars[v][3] !== cid) continue;
           if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 2.15) continue;
           const hasG = Boolean(recentByCluster?.get(cid)?.count);
           const col = (nebPalette && nebPalette[cid % nebPalette.length]) || [128, 198, 232];
-          const al = (hasG ? 0.28 : 0.14) * (isLight ? 0.85 : 1.0);
+          const al = (hasG ? 0.21 : 0.105) * (isLight ? 0.82 : 1.0);
           edgeData.push(
             pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al,
             pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al
@@ -1528,7 +1589,8 @@
     render(params) {
       const {
         t, themeIdx, entities, activeId, focusedId, bootAge, quiet,
-        stationAlpha = 1.0, galaxyAlpha = 1.0, sonarRadius = 0.0, sonarAlpha = 0.0
+        stationAlpha = 1.0, galaxyAlpha = 1.0, sonarRadius = 0.0, sonarAlpha = 0.0,
+        rheostatX = 0.0
       } = params;
       const gl = this.gl;
       const tAnim = quiet ? 4.2 : t;
@@ -1628,12 +1690,18 @@
         gl.drawArrays(gl.TRIANGLES, 0, this.geo.floor.count);
       }
 
-      // 1C. STRATUM 2 — SUSPENDED FLOATING ORBITAL SPACE STATION + AKASHA EYE (y = 0.0..4.6!)
+      // 1C. STRATUM 2 — SUSPENDED FLOATING ORBITAL SPACE STATION + AKASHA EYE (y = 0.0..6.95!)
       if (stationAlpha > 0.04 || galaxyAlpha > 0.04) {
         if (stationAlpha > 0.04) {
           M4.identity(this.modelMat);
           const campusAccent = isLight ? [0.16, 0.48, 0.48] : isBlueprint ? [0.56, 0.82, 1.0] : [0.46, 0.84, 0.94];
           this.drawMesh(this.geo.campus, this.modelMat, campusAccent, activeId === 'verification' ? 0.5 : 0.0, 0.3, themeIdx, tAnim, isLight ? 0.28 : 0.36, stationAlpha);
+          // Dynamic 3D Sliding Rheostat Wiper gliding along the south on-demand busbar rail!
+          if (this.geo.wiper) {
+            const wx = Math.max(-4.0, Math.min(4.0, rheostatX));
+            M4.compose(this.modelMat, wx, 0.0, 3.62, 0, 0, 0, 1, 1, 1);
+            this.drawMesh(this.geo.wiper, this.modelMat, [0.92, 0.80, 0.50], 0.85, 1.0, themeIdx, tAnim, 0.55, stationAlpha);
+          }
         }
 
         for (const e of entities) {

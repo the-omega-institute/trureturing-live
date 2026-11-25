@@ -67,25 +67,25 @@ const deptCodes = {
 };
 
 const deptRoles = {
-  direction: '监管之眼',
-  research: '定理攻关',
-  review: '对抗复核',
-  verification: 'Lean 桥梁',
-  books: '双语书稿',
-  publication: '短文·论文',
-  outreach: '对外合作',
-  studio: '工程表达'
+  direction: '全局监控',
+  research: '猜想攻关',
+  review: '按需红队',
+  verification: 'Lean 核枢',
+  books: '书籍理论',
+  publication: 'Mathesis',
+  outreach: '200+ 学者合作',
+  studio: '按需基建'
 };
 
 const hubMeta = {
-  direction: { tag: 'THE ARCHITECT · HUMAN', title: '方向策源' },
-  research: { tag: 'SECTOR 01 · THEORY', title: '课题攻坚台' },
-  review: { tag: 'SECTOR 01 · AUDIT', title: '独立复核台' },
-  verification: { tag: 'LEAN FORMAL BRIDGE', title: '形式验证桥梁' },
-  publication: { tag: 'OUTREACH ENGINE · PAPERS', title: '论文知识台' },
-  outreach: { tag: 'OUTREACH ENGINE · COLLAB', title: '对外合作台' },
-  books: { tag: 'SECTOR 03 · LIVING BOOKS', title: '双语书稿台' },
-  studio: { tag: 'SECTOR 04 · FOUNDRY', title: '工程与表达台' }
+  direction: { tag: 'THE ARCHITECT · HUMAN', title: '全局监控与方向策源' },
+  research: { tag: 'SEC.01 · CONJECTURE ENGINE', title: '解决猜想 · 数学攻关' },
+  books: { tag: 'SEC.01 · LIVING BOOKS', title: '书籍理论推进' },
+  verification: { tag: 'CORE 00 · LEAN BRIDGE', title: '形式化验证中枢' },
+  publication: { tag: 'SEC.02 · PAPER FACTORY & MATHESIS', title: '自动论文 · Mathesis 审稿平台' },
+  outreach: { tag: 'SEC.02 · 200+ SCHOLARS PIPELINE', title: '对外合作 · 200+ 学者联机' },
+  review: { tag: 'ON-DEMAND · RED TEAM', title: '按需对抗复核' },
+  studio: { tag: 'ON-DEMAND · FOUNDRY', title: '按需工程与表达底座' }
 };
 
 const deptColors = {
@@ -2646,7 +2646,7 @@ function isSettledMathRecord(a) {
   if (!['research', 'verification', 'books', 'publication'].includes(a.department)) return false;
   const text = `${a.label || ''} ${a.summary || ''}`;
   if (/^ci[:(]|^chore[:(]|^test\(omega\)|^build[:(]|^fix\(ci|【已废弃】|缓存|分片|钉版|workflow|action|read formalization requests/i.test(text)) return false;
-  return /prove|proof|formaliz|certif|characteriz|classif|obstruct|counterexample|disprov|refut|falsif|witness|construct|bound|sharp|constant|compact|descend|exact|conjecture|theorem|margin|diverge|entropy|fidelity|entanglement/i.test(text);
+  return /prove|proof|formaliz|certif|characteriz|classif|obstruct|counterexample|disprov|refut|falsif|witness|construct|bound|sharp|constant|compact|descend|exact|conjecture|theorem|margin|diverge|entropy|fidelity|entanglement|证明|猜想|反例|反驳|证伪|定理|形式化|构造|边界/i.test(text);
 }
 
 function conjectureRecords() {
@@ -2711,6 +2711,13 @@ function renderConjectures() {
   const countBadge = $('#conjectures-tab-count');
   const summaryEl = $('#conjecture-summary');
   const all = conjectureRecords();
+  state.settledConjectures = all;
+  const byCid = new Map();
+  for (const rec of all) {
+    const cid = matchGalaxyCidForText(`${rec.area || ''} ${rec.title || ''} ${rec.enTitle || ''}`);
+    byCid.set(cid, (byCid.get(cid) || 0) + 1);
+  }
+  state.conjecturesByCid = byCid;
   const provedCount = all.filter(r => r.verdict === 'proved').length;
   const refutedCount = all.filter(r => r.verdict === 'refuted').length;
   if (countBadge) countBadge.textContent = all.length ? String(all.length) : '';
@@ -2897,15 +2904,21 @@ async function refreshLive() {
 // Independent supervisory Akasha Eye (The Architect) poised above 4 spacious
 // sovereign department sectors connected through the central Lean Formal Bridge!
 // ============================================================================
+// Strictly causally co-located 3D Space Station Floorplan:
+// - Zenith: Akasha Eye (direction) perched high above all galaxies
+// - Center Core: Formal Verification Reactor (verification)
+// - Left Wing (SEC.01 理论生产翼): Conjecture Engine (research) + Living Books (books) adjacent!
+// - Right Wing (SEC.02 出版与合作翼): Paper Factory & Mathesis (publication) <-> 200+ Scholars Outreach (outreach)!
+// - South On-Demand Rheostat Dock: Red-Team Review (review) + Foundry Studio (studio) with sliding wiper & roaming workers!
 const holoWorld = {
   direction:    { x:  0.0,  y: 6.95, z: -3.50, r: 0.86, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [229, 192, 123] },
   verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [116, 224, 244] },
-  research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [94, 224, 206]  },
-  review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [156, 174, 232] },
-  publication:  { x:  5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.26, apex: false, eye: false, order: 4, hex: [125, 208, 245] },
-  outreach:     { x:  6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [216, 182, 134] },
-  books:        { x: -3.35, y: 0.0,  z:  5.35, r: 0.68, baseH: 1.18, apex: false, eye: false, order: 6, hex: [174, 184, 238] },
-  studio:       { x:  3.35, y: 0.0,  z:  5.35, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [148, 188, 224] }
+  research:     { x: -5.45, y: 0.0,  z: -2.75, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [94, 224, 206]  },
+  books:        { x: -5.85, y: 0.0,  z:  1.90, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [174, 184, 238] },
+  publication:  { x:  5.45, y: 0.0,  z: -2.75, r: 0.72, baseH: 1.26, apex: false, eye: false, order: 4, hex: [125, 208, 245] },
+  outreach:     { x:  5.85, y: 0.0,  z:  1.90, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 5, hex: [232, 188, 124] },
+  review:       { x: -3.35, y: 0.0,  z:  5.30, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 6, hex: [164, 178, 236], onDemand: true },
+  studio:       { x:  3.35, y: 0.0,  z:  5.30, r: 0.66, baseH: 1.14, apex: false, eye: false, order: 7, hex: [148, 194, 228], onDemand: true }
 };
 
 const LAYER_PRESETS = {
@@ -2928,6 +2941,9 @@ const holoCam = {
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
   sonarStart: -99999,
+  rheostatX: 0.0,
+  rheostatTargetId: 'verification',
+  workers: [],
   mouseNormX: 0.0,
   mouseNormY: 0.0,
   gazeX: -5.30,
@@ -3921,13 +3937,15 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.restore();
     }
 
+    const conjCount = state.conjecturesByCid?.get(cl.id) || 0;
     const baseLabelA = focusK > 0.05
       ? Math.min(1, growthDim(cl.id))
-      : (isHovered ? 1.0 : delta > 0 ? 0.92 : (state.layer === 'galaxy' ? 0.76 : 0.56));
+      : (isHovered ? 1.0 : (delta > 0 || conjCount > 0) ? 0.90 : (state.layer === 'galaxy' ? 0.76 : 0.56));
     ctx.globalAlpha = Math.max(0, Math.min(1, baseLabelA * Math.min(1, skyVis)));
+    const starMark = conjCount > 0 ? ' ✦' : '';
     const mainLabel = delta > 0
-      ? `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}  +${delta}`
-      : `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
+      ? `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}  +${delta}${starMark}`
+      : `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}${starMark}`;
     let subText = '';
     if (isHovered || isFeatured) {
       const evList = bucket?.events || [];
@@ -3935,7 +3953,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       const featured = evList[rotIdx] || bucket?.latest;
       const latestShort = featured ? shortModuleName(featured.module) : '';
       subText = isHovered
-        ? (latestShort ? `↗ ${latestShort} · 点击查看星系` : `${cl.en || cl.name.toUpperCase()} · 点击查看星系`)
+        ? (conjCount > 0
+            ? `✦ ${conjCount} 项猜想已解/反驳 · ${latestShort ? latestShort : '点击查看星系'}`
+            : (latestShort ? `↗ ${latestShort} · 点击查看星系` : `${cl.en || cl.name.toUpperCase()} · 点击查看星系`))
         : (latestShort ? `↗ ${latestShort.slice(0, 24)}${latestShort.length > 24 ? '…' : ''}` : '');
     }
 
@@ -4105,33 +4125,59 @@ const XP_TIER_GAP = { 3: 2600, 2: 1100, 1: 450, '-1': 900 };
 const XP_TTL = { 3: 60000, 2: 25000, 1: 15000, '-1': 15000 };
 const XP_FLIGHT_MS = { 3: 1500, 2: 1150, 1: 900, '-1': 800 };
 const XP_GOLD = [244, 197, 83];
+const XP_ICE = [138, 224, 250];
+const XP_AMBER = [246, 182, 92];
 const XP_RED = [251, 113, 133];
 const xpFlowTarget = {
   direction: 'research',
-  research: 'review',
-  review: 'verification',
+  research: 'verification',
+  books: 'verification',
   verification: 'publication',
   publication: 'outreach',
-  outreach: 'verification',
-  books: 'verification',
-  studio: 'books'
+  outreach: 'research',
+  review: 'verification',
+  studio: 'verification'
 };
 const xpFx = { queue: [], flights: [], bursts: [], mem: { lastLaunch: null, lastByTier: {}, lastByDept: {} }, painted: false };
 
-// Importance of a public event: 3 = a result landed (level up), 2 = a new
-// question or submission, 1 = routine checks and discussion, -1 = failed check,
-// 0 = no flight.
+function matchGalaxyCidForText(text) {
+  const t = String(text || '');
+  if (/量子|quantum|bloch|fibonacci|entangl|fidelity|unistochastic|qubit/i.test(t)) return 1;
+  if (/数论|robin|prime|zeckendorf|berstel|arith|integer/i.test(t)) return 2;
+  if (/组合|graph|petersen|clique|combinator|quorum|deletion|insertion/i.test(t)) return 0;
+  if (/分析|fourier|birkhoff|ergodic|limsup|diverg|heat|spectral|collision|analytic/i.test(t)) return 4;
+  if (/weil|代数|bmv|gram|algebra/i.test(t)) return 5;
+  if (/观察|observer|compact|locus/i.test(t)) return 6;
+  return 3;
+}
+
+// Importance of a public event: preserves Loning's exact tier contract (3 | 2 | 1 | 0 | -1)
+// while tagging 5 rich real-automation visual FX modes (rocket | paper | outreach | routine | fail)!
 function xpPlanFor(a) {
-  if (a.kind === 'contribution' && a.status === 'merged') return { tier: 3, label: '成果合入' };
-  if (a.kind === 'automation') {
-    if (a.status === 'failed') return { tier: -1, label: '检验未通过' };
-    if (a.status === 'cancelled') return { tier: 0, label: '' };
-    return { tier: 1, label: a.status === 'succeeded' ? '核验通过' : '核验' };
+  const text = `${a.label || ''} ${a.summary || ''}`;
+  if (a.kind === 'contribution' && a.status === 'merged') {
+    if (a.department === 'publication') return { tier: 3, fx: 'paper', label: '论文跃迁' };
+    if (a.department === 'outreach') return { tier: 3, fx: 'outreach', label: '200+ 学者同步' };
+    if (isSettledMathRecord(a)) {
+      const refuted = classifyConjectureVerdict(text) === 'refuted';
+      return { tier: 3, fx: 'rocket', label: refuted ? '猜想反驳' : '猜想证明', galaxyCid: matchGalaxyCidForText(text) };
+    }
+    return { tier: 3, fx: 'routine', label: '成果合入' };
   }
-  if (a.kind === 'task') return { tier: 2, label: '新课题' };
-  if (a.kind === 'contribution') return { tier: 2, label: '新提交' };
-  if (a.kind === 'discussion') return { tier: 1, label: '讨论' };
-  return { tier: 1, label: '动态' };
+  if (a.kind === 'task' && a.status === 'closed' && isSettledMathRecord(a)) {
+    const refuted = classifyConjectureVerdict(text) === 'refuted';
+    return { tier: 3, fx: 'rocket', label: refuted ? '猜想反驳' : '猜想解决', galaxyCid: matchGalaxyCidForText(text) };
+  }
+  if (a.kind === 'automation') {
+    if (a.status === 'failed') return { tier: -1, fx: 'fail', label: '检验未通过' };
+    if (a.status === 'cancelled') return { tier: 0, fx: 'none', label: '' };
+    if (a.department === 'outreach') return { tier: 1, fx: 'outreach', label: '学者联机' };
+    return { tier: 1, fx: 'routine', label: a.status === 'succeeded' ? '核验通过' : '核验' };
+  }
+  if (a.kind === 'task') return { tier: 2, fx: a.department === 'outreach' ? 'outreach' : 'routine', label: '新课题' };
+  if (a.kind === 'contribution') return { tier: 2, fx: a.department === 'publication' ? 'paper' : 'routine', label: '新提交' };
+  if (a.kind === 'discussion') return { tier: 1, fx: a.department === 'outreach' ? 'outreach' : 'routine', label: '讨论' };
+  return { tier: 1, fx: 'routine', label: '动态' };
 }
 
 const xpRank = q => (q.tier === 3 ? 3 : q.tier === 2 ? 2 : q.tier === 1 ? 1 : 0.5);
@@ -4171,10 +4217,23 @@ function nextXpLaunch(queue, now, mem, active) {
 
 function queueXpFlight(entry, now = performance.now()) {
   if (reduced || state.quiet || document.hidden || !entry.deptId) return;
-  xpFx.queue = enqueueXp(xpFx.queue, { key: entry.key, deptId: entry.deptId, tier: entry.tier, label: entry.xpLabel }, now);
+  xpFx.queue = enqueueXp(xpFx.queue, {
+    key: entry.key,
+    deptId: entry.deptId,
+    tier: entry.tier,
+    fx: entry.xpFx || 'routine',
+    galaxyCid: entry.galaxyCid ?? null,
+    label: entry.xpLabel
+  }, now);
 }
 
-const xpColor = item => (item.tier === 3 ? XP_GOLD : item.tier === -1 ? XP_RED : holoWorld[item.deptId]?.hex || [94, 237, 236]);
+const xpColor = item => (
+  item.fx === 'paper' ? XP_ICE
+  : item.fx === 'outreach' ? XP_AMBER
+  : item.tier === 3 ? XP_GOLD
+  : item.tier === -1 ? XP_RED
+  : holoWorld[item.deptId]?.hex || [94, 237, 236]
+);
 const xpOnScreen = r => r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
 
 function xpSourcePoint(key) {
@@ -4249,11 +4308,117 @@ function xpTextTop(deptId, base, now, bursts = xpFx.bursts) {
   return base - shift;
 }
 
+// Tier S (🚀 Rocket Launch -> Gentle Star-Cluster Ignition -> Auto-Paper Factory Handoff!)
+function launchConjectureRocket(item, originPt, now) {
+  const cid = item.galaxyCid != null ? item.galaxyCid : 0;
+  const gInfo = holoCam.projectedGalaxies.get(cid) || [...holoCam.projectedGalaxies.values()][0];
+  const skyTarget = gInfo
+    ? { x: gInfo.x, y: gInfo.y, r: 34 }
+    : { x: innerWidth * 0.36, y: innerHeight * 0.28, r: 34 };
+  const gCol = gInfo?.col || [142, 226, 236];
+  const warmGold = [248, 224, 158];
+
+  // 1. Silken ascending rocket stream from Formal Verification Core / Conjecture Engine straight into the unified Truth DAG galaxy!
+  xpFx.flights.push({
+    item: { deptId: item.deptId, tier: 3, fx: 'rocket', label: item.label },
+    from: originPt,
+    target: skyTarget,
+    fixedTarget: true,
+    start: now,
+    dur: 1180,
+    trail: [],
+    sparks: [],
+    onArrive: (pt, tArr) => {
+      // 2. Gentle warm supernova aurora blooming & lighting up a cluster of 14 soft starlets in that galaxy!
+      for (let k = 0; k < 3; k++) {
+        xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: k === 0 ? warmGold : gCol, start: tArr + k * 150, dur: 1250, maxR: 54 + k * 34, width: 2.2 - k * 0.5 });
+      }
+      xpFx.bursts.push({ kind: 'sparks', x: pt.x, y: pt.y, rgb: warmGold, start: tArr, dur: 1650, parts: xpParticles(24, 135, 65) });
+      // Soft awakening constellation starlets gently glowing across that patch of sky
+      for (let s = 0; s < 12; s++) {
+        const a = s * 2.39996;
+        const r = 14 + Math.sqrt(s + 1) * 14;
+        xpFx.bursts.push({ kind: 'starlet', x: pt.x + Math.cos(a) * r, y: pt.y + Math.sin(a) * r * 0.65, rgb: s % 3 === 0 ? warmGold : gCol, start: tArr + s * 45, dur: 2200, maxR: 5.5 + (s % 3) * 1.5 });
+      }
+      const gName = gInfo?.cl?.zh || gInfo?.cl?.name || '周天星域';
+      xpFx.bursts.push({
+        kind: 'text',
+        deptId: '__rocket__',
+        x: pt.x,
+        y: Math.max(96, pt.y - 26),
+        rgb: warmGold,
+        start: tArr,
+        dur: 2500,
+        text: `LEVEL UP · ${item.label || '猜想突破'}`,
+        sub: `点亮 ${gName} 星域 → 推入自动论文工厂`,
+        size: 21,
+        rise: 38,
+        pop: true
+      });
+      if (typeof sciFiAudio !== 'undefined') sciFiAudio.playLevelUp();
+
+      // 3. Natural handoff stream drifting rightward from Formal Core into Auto-Paper Factory / Mathesis!
+      const corePt = xpTargetPoint('verification') || originPt;
+      const paperPt = xpTargetPoint('publication');
+      if (paperPt) {
+        xpFx.flights.push({
+          item: { deptId: 'publication', tier: 2, fx: 'paper', label: '推入论文工厂' },
+          from: corePt,
+          target: paperPt,
+          start: tArr + 220,
+          dur: 880,
+          trail: [],
+          sparks: [],
+          onArrive: (pp, tP) => {
+            spawnHoloPulse('publication', 1.1);
+            spawnSpokeFlare('verification', 'publication');
+            flashXpCell('publication', 'is-xp-hit', 900);
+            xpFx.bursts.push({ kind: 'prism', x: pp.x, y: pp.y, rgb: XP_ICE, start: tP, dur: 900, maxR: 48, width: 2.0 });
+            const pTop = xpTextTop('publication', pp.y - 34, tP);
+            xpFx.bursts.push({ kind: 'text', deptId: 'publication', x: pp.x, y: pTop, rgb: XP_ICE, start: tP, dur: 1500, text: '→ 自动论文 · Mathesis', size: 13.5, rise: 28 });
+          }
+        });
+      }
+    }
+  });
+}
+
 function xpArrive(item, target, now) {
   const rgb = xpColor(item);
   const { x, y } = target;
   const top = xpTextTop(item.deptId, y - (target.r || 30) * 0.9, now);
   if (item.tier === 3) {
+    if (item.fx === 'rocket') {
+      // Tier S: Gentle Rocket Launch straight into the unified Truth DAG galaxy + Paper Factory handoff!
+      xpFx.bursts.push({ kind: 'ring', x, y, rgb: XP_GOLD, start: now, dur: 820, maxR: 52, width: 2.4 });
+      flashXpCell(item.deptId, 'is-level-up', 1800);
+      spawnHoloPulse(item.deptId, 1.3);
+      spawnHoloPulse('verification', 1.2);
+      const launchFrom = xpTargetPoint('verification') || target;
+      launchConjectureRocket(item, launchFrom, now);
+      return;
+    }
+    if (item.fx === 'paper') {
+      // Tier A: Ice-blue / silver prism shuttle into Mathesis Review & Preprint Platform!
+      for (let k = 0; k < 2; k++) xpFx.bursts.push({ kind: 'prism', x, y, rgb: XP_ICE, start: now + k * 140, dur: 980, maxR: 56 + k * 30, width: 2.4 - k * 0.6 });
+      xpFx.bursts.push({ kind: 'sparks', x, y, rgb: XP_ICE, start: now, dur: 1150, parts: xpParticles(26, 175, 110) });
+      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_ICE, start: now, dur: 2100, text: 'LEVEL UP · 论文跃迁', sub: '自动论文工厂 → Mathesis 审稿平台', size: 22, rise: 42, pop: true });
+      flashXpCell(item.deptId, 'is-level-up', 1600);
+      spawnHoloPulse(item.deptId, 1.2);
+      spawnSpokeFlare('publication', 'outreach');
+      if (typeof sciFiAudio !== 'undefined') sciFiAudio.playLevelUp();
+      return;
+    }
+    if (item.fx === 'outreach') {
+      // Tier B: Warm amber long-range collaboration sync with 200+ external scholars!
+      for (let k = 0; k < 2; k++) xpFx.bursts.push({ kind: 'ring', x, y, rgb: XP_AMBER, start: now + k * 150, dur: 940, maxR: 58 + k * 34, width: 2.4 - k * 0.6 });
+      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_AMBER, start: now, dur: 1950, text: 'OUTREACH SYNC', sub: 'Mathesis ⇄ 200+ 合作学者双向同步', size: 20, rise: 40, pop: true });
+      flashXpCell(item.deptId, 'is-level-up', 1400);
+      spawnHoloPulse(item.deptId, 1.15);
+      spawnSpokeFlare('outreach', 'research');
+      if (typeof sciFiAudio !== 'undefined') sciFiAudio.playGalaxy();
+      return;
+    }
     for (let k = 0; k < 3; k++) xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now + k * 140, dur: 950, maxR: 64 + k * 38, width: 3.2 - k * 0.7 });
     xpFx.bursts.push({ kind: 'sparks', x, y, rgb, start: now, dur: 1300, parts: xpParticles(36, 230, 160) });
     xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 2100, text: 'LEVEL UP', sub: `${department(item.deptId)?.label || ''} · ${item.label} +1`, size: 26, rise: 48, pop: true });
@@ -4262,7 +4427,7 @@ function xpArrive(item, target, now) {
     if (xpFlowTarget[item.deptId]) spawnSpokeFlare(item.deptId, xpFlowTarget[item.deptId]);
     if (typeof sciFiAudio !== 'undefined') sciFiAudio.playLevelUp();
   } else if (item.tier === 2) {
-    xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now, dur: 700, maxR: 40, width: 2.4 });
+    xpFx.bursts.push({ kind: item.fx === 'paper' ? 'prism' : 'ring', x, y, rgb, start: now, dur: 700, maxR: 40, width: 2.4 });
     xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now + 110, dur: 760, maxR: 62, width: 1.6 });
     xpFx.bursts.push({ kind: 'sparks', x, y, rgb, start: now, dur: 900, parts: xpParticles(16, 130, 60) });
     xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 1400, text: `+1 ${item.label}`, size: 15, rise: 36 });
@@ -4339,6 +4504,31 @@ function drawXpBurst(ctx, b, now, light) {
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.maxR * (1 - Math.pow(1 - p, 3)), 0, Math.PI * 2);
     ctx.stroke();
+  } else if (b.kind === 'prism') {
+    const rad = b.maxR * (1 - Math.pow(1 - p, 3));
+    ctx.strokeStyle = rgba(b.rgb, 0.88 * (1 - p));
+    ctx.lineWidth = b.width * (1 - p) + 0.6;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y - rad);
+    ctx.lineTo(b.x + rad * 1.15, b.y);
+    ctx.lineTo(b.x, b.y + rad);
+    ctx.lineTo(b.x - rad * 1.15, b.y);
+    ctx.closePath();
+    ctx.stroke();
+  } else if (b.kind === 'starlet') {
+    // Gentle 4-point awakening starlight blooming softly in the nebula after a rocket ignition!
+    const env = Math.sin(Math.min(1, p) * Math.PI);
+    const rad = b.maxR * (0.45 + 0.65 * Math.sin(Math.min(1, p * 1.4) * Math.PI * 0.5));
+    ctx.strokeStyle = rgba(b.rgb, 0.78 * env);
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.moveTo(b.x - rad * 1.6, b.y); ctx.lineTo(b.x + rad * 1.6, b.y);
+    ctx.moveTo(b.x, b.y - rad * 1.6); ctx.lineTo(b.x, b.y + rad * 1.6);
+    ctx.stroke();
+    ctx.fillStyle = rgba([255, 252, 240], 0.92 * env);
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, rad * 0.36, 0, Math.PI * 2);
+    ctx.fill();
   } else if (b.kind === 'sparks') {
     const t = age / 1000;
     ctx.fillStyle = rgba(b.rgb, 0.9 * (1 - p));
@@ -4405,18 +4595,27 @@ function stepXpFlights(now) {
   if (next >= 0) launchXpFlight(xpFx.queue.splice(next, 1)[0], now);
   const light = document.documentElement.dataset.theme === 'light';
   ctx.globalCompositeOperation = light ? 'source-over' : 'lighter';
-  xpFx.flights = xpFx.flights.filter(f => {
+  const prevFlights = xpFx.flights;
+  xpFx.flights = [];
+  for (const f of prevFlights) {
+    if (now < f.start) {
+      xpFx.flights.push(f);
+      continue;
+    }
     if (!f.fixedTarget) f.target = xpTargetPoint(f.item.deptId) || f.target;
     const p = Math.min(1, (now - f.start) / f.dur);
     const pos = xpBezier(f.from, f.target, p * p * (3 - 2 * p));
     f.trail.push(pos);
     if (f.trail.length > 22) f.trail.shift();
     drawXpComet(ctx, f, pos, now);
-    if (p < 1) return true;
-    if (typeof f.onArrive === 'function') f.onArrive(f.target, now);
-    else xpArrive(f.item, f.target, now);
-    return false;
-  });
+    if (p < 1) {
+      xpFx.flights.push(f);
+    } else if (typeof f.onArrive === 'function') {
+      f.onArrive(f.target, now);
+    } else {
+      xpArrive(f.item, f.target, now);
+    }
+  }
   xpFx.bursts = xpFx.bursts.filter(b => drawXpBurst(ctx, b, now, light));
   ctx.globalCompositeOperation = 'source-over';
   xpFx.painted = xpFx.flights.length > 0 || xpFx.bursts.length > 0;
@@ -4866,7 +5065,7 @@ function collectSciFiLogHistory() {
     const entry = activityLogEntry(a);
     if (!entry) continue;
     const plan = xpPlanFor(a);
-    scifiLog.history.set(key, { ...entry, key, at: a.at, t, tier: plan.tier, xpLabel: plan.label });
+    scifiLog.history.set(key, { ...entry, key, at: a.at, t, tier: plan.tier, xpFx: plan.fx || 'routine', galaxyCid: plan.galaxyCid ?? null, xpLabel: plan.label });
     added.add(key);
   }
   if (scifiLog.history.size > LOG_SCROLLBACK) {
@@ -5166,6 +5365,28 @@ function drawHolo3DFrame(dt = 0.016) {
     if (holoCam.nebulaRipples[i].age >= 1) holoCam.nebulaRipples.splice(i, 1);
   }
 
+  // Compute Sliding Rheostat On-Demand Wiper target (glides along z=3.62 rail toward active/busiest core department!)
+  const CORE_RHEOSTAT_DEPTS = ['research', 'books', 'verification', 'publication', 'outreach'];
+  let rTarget = 'verification';
+  if (activeId && CORE_RHEOSTAT_DEPTS.includes(activeId)) {
+    rTarget = activeId;
+  } else {
+    const busyCore = CORE_RHEOSTAT_DEPTS
+      .map(id => ({ id, run: countRunning(department(id)) || 0 }))
+      .filter(x => x.run > 0)
+      .sort((a, b) => b.run - a.run);
+    if (busyCore.length > 1 && !state.quiet && !reduced) {
+      rTarget = busyCore[Math.floor(t / 11) % busyCore.length].id;
+    } else if (busyCore.length) {
+      rTarget = busyCore[0].id;
+    } else if (!state.quiet && !reduced) {
+      rTarget = CORE_RHEOSTAT_DEPTS[Math.floor(t / 13) % CORE_RHEOSTAT_DEPTS.length];
+    }
+  }
+  holoCam.rheostatTargetId = rTarget;
+  const targetRx = Math.max(-3.85, Math.min(3.85, (holoWorld[rTarget]?.x || 0) * 0.70));
+  holoCam.rheostatX += (targetRx - holoCam.rheostatX) * Math.min(1, damp * 0.85);
+
   if (useGL) {
     // 1. REAL WEBGL2 3-STRATA GPU SCENE: Ground Abyss + Floating Space Station + Overhead 3D Truth DAG Cosmos!
     const themeIdx = isLight ? 2 : isBlueprint ? 1 : 0;
@@ -5177,7 +5398,8 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.gl.ensureSize(w, h, dpr);
     holoCam.gl.setCamera(holoCam.yaw, holoCam.pitch, holoCam.dist, holoCam.lookX, holoCam.lookY, holoCam.lookZ, holoCam.ndcShiftX);
     if (truthNebula.loaded) {
-      holoCam.gl.syncTruthDag(truthNebula.stars, truthNebula.edges, truthNebula.clusters, glNebPalette, truthGrowth.recentByCluster, isLight);
+      const settledConjs = state.settledConjectures || conjectureRecords();
+      holoCam.gl.syncTruthDag(truthNebula.stars, truthNebula.edges, truthNebula.clusters, glNebPalette, truthGrowth.recentByCluster, isLight, settledConjs);
     }
     const glEntities = departments().map(d => {
       const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1.2, order: 0, hex: [116, 224, 244] };
@@ -5209,7 +5431,8 @@ function drawHolo3DFrame(dt = 0.016) {
       stationAlpha: holoCam.stationAlpha,
       galaxyAlpha: holoCam.galaxyAlpha,
       sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
-      sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0
+      sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0,
+      rheostatX: holoCam.rheostatX
     });
     // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
     ctx.clearRect(0, 0, w, h);
@@ -5377,10 +5600,11 @@ function drawHolo3DFrame(dt = 0.016) {
   const titaniumRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [148, 188, 224];
   const hubX = 0.0, hubY = 0.22, hubZ = -0.45;
   const eyeCfg = holoWorld.direction;
-  const sec1Hot = activeId === 'research' || activeId === 'review';
+  const sec1Hot = activeId === 'research' || activeId === 'books';
   const sec2Hot = activeId === 'publication' || activeId === 'outreach';
-  const sec3Hot = activeId === 'books';
+  const sec3Hot = activeId === 'review';
   const sec4Hot = activeId === 'studio';
+  const onDemandHot = sec3Hot || sec4Hot;
   const bridgeHot = activeId === 'verification';
 
   // Smoothly track gaze toward active department
@@ -5461,7 +5685,7 @@ function drawHolo3DFrame(dt = 0.016) {
 
   drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, holoWorld.research.hex, sec1Hot);
   drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, holoWorld.publication.hex, sec2Hot);
-  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, holoWorld.books.hex, sec3Hot);
+  drawSectorTerrace(-3.35,  5.35, 1.68, 1.05, holoWorld.review.hex, sec3Hot);
   drawSectorTerrace( 3.35,  5.35, 1.68, 1.05, holoWorld.studio.hex, sec4Hot);
 
   // 4D. PRECISION CAD SUSPENDED LEAN BRIDGE DECK + TWIN TRUSS SPANS
@@ -5647,88 +5871,187 @@ function drawHolo3DFrame(dt = 0.016) {
   ctx.save();
   if (useGL && holoCam.stationAlpha < 0.99) ctx.globalAlpha = Math.max(0, holoCam.stationAlpha);
 
-  // 1. MULTI-DEPARTMENT ARCHITECTURAL CONDUITS (Precision hairline telemetry vectors, crisp on hover/active!)
+  // 1. CAUSALLY CO-LOCATED 3D SPACE STATION CONDUITS + SLIDING RHEOSTAT TAP BEAM + ROAMING MICRO-WORKERS
   const thHot = activeId === 'research' || activeId === 'verification';
-  const rvHot = activeId === 'review' || activeId === 'verification';
+  const bkHot = activeId === 'books' || activeId === 'verification';
+  const rbHot = activeId === 'research' || activeId === 'books';
   const pbHot = activeId === 'publication' || activeId === 'verification';
   const coHot = activeId === 'outreach' || activeId === 'verification';
-  const bkHot = activeId === 'books' || activeId === 'verification';
-  const rrHot = activeId === 'research' || activeId === 'review';
   const poHot = activeId === 'publication' || activeId === 'outreach';
-  const stBkHot = activeId === 'studio' || activeId === 'books';
-  const stOutHot = activeId === 'studio' || activeId === 'outreach' || activeId === 'publication';
-  const bkRevHot = activeId === 'books' || activeId === 'review' || activeId === 'research';
   const loopClosedHot = activeId === 'research' || activeId === 'publication' || activeId === 'outreach';
 
   const calmRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [142, 182, 218];
+  const mathesisRGB = poHot
+    ? [244, 206, 132]
+    : (isLight ? [168, 112, 36] : isBlueprint ? [176, 224, 255] : [224, 188, 126]);
+  const rheostatRGB = onDemandHot
+    ? (activeId === 'review' ? holoWorld.review.hex : holoWorld.studio.hex)
+    : (isLight ? [146, 108, 42] : [228, 194, 126]);
 
-  // A. LEFT LEAN BRIDGE SPAN
+  // A. LEFT WING (SEC.01 // 理论生产翼: 猜想攻关 + 书籍推进 ⇄ 形式化核枢)
   drawConduit3D(
-    [[-4.45, 0.06, -2.40], [-3.20, 0.14, -0.68], [-1.35, 0.22, -0.55]],
+    [[-4.55, 0.06, -2.45], [-3.10, 0.16, -0.68], [-1.35, 0.22, -0.55]],
     thHot ? holoWorld.research.hex : calmRGB,
-    { lw: thHot ? 1.55 : 0.95, alpha: thHot ? 0.78 : 0.26, particles: thHot ? 2 : 1, speed: 0.34, bidir: true, chevrons: thHot }
+    { lw: thHot ? 1.6 : 0.95, alpha: thHot ? 0.80 : 0.28, particles: thHot ? 2 : 1, speed: 0.34, bidir: true, chevrons: thHot }
   );
   drawConduit3D(
-    [[-5.10, 0.06, 1.45], [-3.20, 0.14, -0.20], [-1.35, 0.22, -0.32]],
-    rvHot ? holoWorld.review.hex : calmRGB,
-    { lw: rvHot ? 1.4 : 0.8, alpha: rvHot ? 0.72 : 0.16, particles: rvHot ? 1 : 0, speed: 0.32, chevrons: rvHot }
-  );
-
-  // B. RIGHT LEAN BRIDGE SPAN
-  drawConduit3D(
-    [[1.35, 0.22, -0.55], [3.20, 0.14, -0.68], [4.45, 0.06, -2.40]],
-    pbHot ? holoWorld.publication.hex : calmRGB,
-    { lw: pbHot ? 1.55 : 0.95, alpha: pbHot ? 0.78 : 0.26, particles: pbHot ? 2 : 1, speed: 0.34, bidir: true, chevrons: pbHot }
-  );
-  drawConduit3D(
-    [[5.10, 0.06, 1.45], [3.20, 0.14, -0.20], [1.35, 0.22, -0.32]],
-    coHot ? holoWorld.outreach.hex : calmRGB,
-    { lw: coHot ? 1.4 : 0.8, alpha: coHot ? 0.72 : 0.16, particles: coHot ? 1 : 0, speed: 0.32, chevrons: coHot }
-  );
-
-  // C. SOUTH-LEFT LEAN BRIDGE SPAN
-  drawConduit3D(
-    [[-2.75, 0.06, 4.45], [-1.45, 0.14, 2.25], [-0.45, 0.22, 0.78]],
+    [[-5.05, 0.06, 1.55], [-3.10, 0.16, -0.22], [-1.35, 0.22, -0.32]],
     bkHot ? holoWorld.books.hex : calmRGB,
-    { lw: bkHot ? 1.4 : 0.8, alpha: bkHot ? 0.72 : 0.16, particles: bkHot ? 1 : 0, speed: 0.32, bidir: true, chevrons: bkHot }
+    { lw: bkHot ? 1.5 : 0.85, alpha: bkHot ? 0.76 : 0.22, particles: bkHot ? 2 : 1, speed: 0.30, bidir: true, chevrons: bkHot }
+  );
+  // Intra-Left-Wing Theory Co-Production Channel (解决猜想 ⇄ 书籍理论推进)
+  drawConduit3D(
+    [[-5.45, 0.06, -2.00], [-5.70, 0.06, -0.45], [-5.85, 0.06, 1.15]],
+    rbHot ? holoWorld.books.hex : calmRGB,
+    { lw: rbHot ? 1.55 : 0.95, alpha: rbHot ? 0.78 : 0.26, particles: rbHot ? 2 : 1, speed: 0.32, bidir: true, chevrons: rbHot }
   );
 
-  // D. SOVEREIGN INTRA-WING LOOPS
+  // B. RIGHT WING (SEC.02 // 自动论文 · Mathesis 审稿/Preprint ⇄ 200+ 学者对外合作)
   drawConduit3D(
-    [[-5.40, 0.06, -2.05], [-5.75, 0.06, -0.45], [-5.95, 0.06, 1.15]],
-    rrHot ? holoWorld.review.hex : calmRGB,
-    { lw: rrHot ? 1.4 : 0.8, alpha: rrHot ? 0.72 : 0.18, particles: rrHot ? 1 : 0, speed: 0.34, bidir: true, chevrons: rrHot }
+    [[1.35, 0.22, -0.55], [3.10, 0.16, -0.68], [4.55, 0.06, -2.45]],
+    pbHot ? holoWorld.publication.hex : calmRGB,
+    { lw: pbHot ? 1.6 : 0.95, alpha: pbHot ? 0.80 : 0.28, particles: pbHot ? 2 : 1, speed: 0.34, bidir: true, chevrons: pbHot }
   );
   drawConduit3D(
-    [[5.40, 0.06, -2.05], [5.75, 0.06, -0.45], [5.95, 0.06, 1.15]],
-    poHot ? holoWorld.outreach.hex : calmRGB,
-    { lw: poHot ? 1.4 : 0.8, alpha: poHot ? 0.72 : 0.18, particles: poHot ? 1 : 0, speed: 0.34, bidir: true, chevrons: poHot }
+    [[5.05, 0.06, 1.55], [3.10, 0.16, -0.22], [1.35, 0.22, -0.32]],
+    coHot ? holoWorld.outreach.hex : calmRGB,
+    { lw: coHot ? 1.45 : 0.82, alpha: coHot ? 0.74 : 0.19, particles: coHot ? 1 : 0, speed: 0.32, bidir: true, chevrons: coHot }
   );
-
-  // E. INDEPENDENT BOOK & ENGINEERING PLATFORM ROUTES
+  // Prominent Bidirectional Mathesis Review/Preprint <-> 200+ External Scholars Channel!
   drawConduit3D(
-    [[1.65, 0.06, 5.35], [0.0, 0.06, 5.48], [-1.65, 0.06, 5.35]],
-    stBkHot ? holoWorld.studio.hex : calmRGB,
-    { lw: stBkHot ? 1.4 : 0.8, alpha: stBkHot ? 0.72 : 0.16, particles: stBkHot ? 1 : 0, speed: 0.32, chevrons: stBkHot }
-  );
-  drawConduit3D(
-    [[4.25, 0.06, 4.55], [5.35, 0.06, 3.65], [5.85, 0.06, 2.85]],
-    stOutHot ? holoWorld.studio.hex : calmRGB,
-    { lw: stOutHot ? 1.4 : 0.8, alpha: stOutHot ? 0.72 : 0.15, particles: stOutHot ? 1 : 0, speed: 0.32, chevrons: stOutHot }
-  );
-  drawConduit3D(
-    [[-4.25, 0.06, 4.55], [-5.35, 0.06, 3.65], [-5.85, 0.06, 2.85]],
-    bkRevHot ? holoWorld.books.hex : calmRGB,
-    { lw: bkRevHot ? 1.4 : 0.8, alpha: bkRevHot ? 0.72 : 0.15, particles: bkRevHot ? 1 : 0, speed: 0.32, bidir: true, chevrons: bkRevHot }
+    [[5.45, 0.06, -2.00], [5.74, 0.08, -0.45], [5.85, 0.06, 1.15]],
+    mathesisRGB,
+    { lw: poHot ? 1.90 : 1.28, alpha: poHot ? 0.88 : 0.52, particles: 2, speed: 0.36, bidir: true, chevrons: true }
   );
 
-  // F. NORTH RETURN ARC (only softly visible when hovered/active — zero noisy dashed line at rest!)
-  if (loopClosedHot) {
-    drawConduit3D(
-      [[4.35, 0.12, -3.55], [2.40, 0.22, -4.35], [0.0, 0.24, -4.55], [-2.40, 0.22, -4.35], [-4.35, 0.12, -3.55]],
-      hubRGB,
-      { lw: 1.0, alpha: 0.36, dashed: true, particles: 1, speed: 0.24, chevrons: true }
-    );
+  // C. SCHOLAR FEEDBACK RETURN ARC (200+ 学者反馈 ⇢ 新猜想攻关 — closes the 24/7 academic loop!)
+  drawConduit3D(
+    [[4.55, 0.14, -3.45], [2.40, 0.24, -4.35], [0.0, 0.26, -4.55], [-2.40, 0.24, -4.35], [-4.55, 0.14, -3.45]],
+    loopClosedHot ? mathesisRGB : calmRGB,
+    { lw: loopClosedHot ? 1.15 : 0.80, alpha: loopClosedHot ? 0.44 : 0.15, dashed: true, particles: loopClosedHot ? 1 : 0, speed: 0.22, chevrons: loopClosedHot }
+  );
+
+  // D. SOUTH ON-DEMAND SLIDING RHEOSTAT BUSBAR & DYNAMIC WIPER TAP BEAM (滑动电阻式按需调用!)
+  const rwx = Math.max(-3.85, Math.min(3.85, holoCam.rheostatX));
+  const rwTarget = holoWorld[holoCam.rheostatTargetId] || holoWorld.verification;
+  // Supply feed stubs from Red-Team Review & Foundry Studio docks into the z=3.62 sliding rail
+  drawConduit3D(
+    [[-3.35, 0.08, 4.65], [-3.35, 0.11, 3.62], [rwx, 0.14, 3.62]],
+    sec3Hot ? holoWorld.review.hex : rheostatRGB,
+    { lw: sec3Hot ? 1.45 : 0.90, alpha: sec3Hot ? 0.72 : 0.26, particles: sec3Hot ? 1 : 0, speed: 0.36, chevrons: false }
+  );
+  drawConduit3D(
+    [[3.35, 0.08, 4.65], [3.35, 0.11, 3.62], [rwx, 0.14, 3.62]],
+    sec4Hot ? holoWorld.studio.hex : rheostatRGB,
+    { lw: sec4Hot ? 1.45 : 0.90, alpha: sec4Hot ? 0.72 : 0.26, particles: sec4Hot ? 1 : 0, speed: 0.36, chevrons: false }
+  );
+  // Dynamic arched dashed on-demand tap beam from live wiper contact -> actively served core department!
+  const midX = (rwx + rwTarget.x) * 0.5;
+  const midZ = (3.62 + rwTarget.z) * 0.5;
+  drawConduit3D(
+    [[rwx, 0.28, 3.62], [midX, 0.58, midZ], [rwTarget.x, (rwTarget.y || 0) + 0.26, rwTarget.z]],
+    rheostatRGB,
+    { lw: onDemandHot ? 1.55 : 1.05, alpha: onDemandHot ? 0.76 : 0.40, dashed: true, particles: 1, speed: 0.42, chevrons: onDemandHot }
+  );
+  const wiperPt = project(rwx, 0.28, 3.62);
+  if (wiperPt) {
+    ctx.save();
+    ctx.fillStyle = rgba(rheostatRGB, isLight ? 0.78 : 0.92);
+    ctx.beginPath();
+    ctx.arc(wiperPt.x, wiperPt.y, 2.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = rgba(rheostatRGB, 0.35);
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(wiperPt.x, wiperPt.y, 6.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // E. 14 AUTONOMOUS ROAMING GEOMETRIC MICRO-WORKERS (散落按需 Worker: 哪里有活往哪里汇集!)
+  if (!holoCam.workers.length) {
+    const seeds = ['research', 'verification', 'books', 'publication', 'outreach'];
+    for (let i = 0; i < 14; i++) {
+      const role = i % 2 === 0 ? 'review' : 'studio';
+      const tgt = seeds[i % seeds.length];
+      const c0 = holoWorld[tgt];
+      const ang = (i / 14) * Math.PI * 2;
+      holoCam.workers.push({
+        role,
+        targetId: tgt,
+        x: c0.x + Math.cos(ang) * 1.15,
+        y: (c0.y || 0) + 0.85 + (i % 3) * 0.22,
+        z: c0.z + Math.sin(ang) * 1.15,
+        vx: 0,
+        vz: 0,
+        orbitR: 0.96 + (i % 4) * 0.14,
+        orbitY: 0.72 + (i % 3) * 0.26,
+        orbitSpd: (i % 2 === 0 ? 1 : -1) * (0.48 + (i % 5) * 0.09),
+        phase: ang,
+        nextSwitch: 4.5 + (i * 1.37) % 9.0
+      });
+    }
+  }
+  const activeRunPool = CORE_RHEOSTAT_DEPTS.filter(id => (countRunning(department(id)) || 0) > 0);
+  const demandPool = activeRunPool.length ? activeRunPool : CORE_RHEOSTAT_DEPTS;
+  const wFollow = 1 - Math.exp(-Math.max(0.008, stepDt) * 1.9);
+  for (let i = 0; i < holoCam.workers.length; i++) {
+    const wk = holoCam.workers[i];
+    if (!state.quiet && !reduced) {
+      // First 4 workers rush immediately to user's hovered/selected core dept; others patrol live demand!
+      if (i < 4 && activeId && CORE_RHEOSTAT_DEPTS.includes(activeId)) {
+        wk.targetId = activeId;
+      } else if (t >= wk.nextSwitch) {
+        wk.nextSwitch = t + 7.0 + ((i * 2.3) % 7.5);
+        wk.targetId = demandPool[(Math.floor(t) + i) % demandPool.length];
+      }
+      const tc = holoWorld[wk.targetId] || holoWorld.verification;
+      const orbAng = wk.phase + t * wk.orbitSpd;
+      const goalX = tc.x + Math.cos(orbAng) * wk.orbitR;
+      const goalY = (tc.y || 0) + wk.orbitY + Math.sin(t * 1.4 + wk.phase) * 0.10;
+      const goalZ = tc.z + Math.sin(orbAng) * wk.orbitR;
+      const prevX = wk.x, prevZ = wk.z;
+      wk.x += (goalX - wk.x) * wFollow;
+      wk.y += (goalY - wk.y) * wFollow;
+      wk.z += (goalZ - wk.z) * wFollow;
+      wk.vx = (wk.x - prevX) / Math.max(0.008, stepDt);
+      wk.vz = (wk.z - prevZ) / Math.max(0.008, stepDt);
+    }
+    const wp = project(wk.x, wk.y, wk.z);
+    if (!wp) continue;
+    const wCol = wk.role === 'review'
+      ? (isLight ? [98, 92, 178] : [184, 198, 250])
+      : (isLight ? [26, 114, 156] : [142, 218, 248]);
+    const speed = Math.hypot(wk.vx, wk.vz);
+    if (speed > 1.1) {
+      const tailP = project(wk.x - wk.vx * 0.14, wk.y, wk.z - wk.vz * 0.14);
+      if (tailP) {
+        ctx.strokeStyle = rgba(wCol, isLight ? 0.36 : 0.38);
+        ctx.lineWidth = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(tailP.x, tailP.y);
+        ctx.lineTo(wp.x, wp.y);
+        ctx.stroke();
+      }
+    }
+    const rD = Math.max(2.6, Math.min(4.2, wp.s * 0.062));
+    ctx.strokeStyle = rgba(wCol, isLight ? 0.34 : 0.36);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(wp.x, wp.y, rD * 1.65, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = rgba(wCol, isLight ? 0.84 : 0.90);
+    ctx.beginPath();
+    ctx.moveTo(wp.x, wp.y - rD);
+    ctx.lineTo(wp.x + rD * 0.9, wp.y);
+    ctx.lineTo(wp.x, wp.y + rD);
+    ctx.lineTo(wp.x - rD * 0.9, wp.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = rgba(isLight ? wCol : [245, 252, 255], 0.68);
+    ctx.beginPath();
+    ctx.arc(wp.x, wp.y, rD * 0.42, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // 3. Restrained live telemetry flares
@@ -6224,13 +6547,14 @@ function drawHolo3DFrame(dt = 0.016) {
     item.cell._proj = null;
   }
 
-  // Minimalist KPR wing designations placed cleanly clear of the crystal monolith spires
-  drawHoloText(-5.95, 0.10, -5.20, 'SEC.01 // 理论与复核部', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.6);
-  drawHoloText( 5.95, 0.10, -5.20, 'SEC.02 // 论文与对外合作', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
-  if (thHot || rvHot) drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
-  if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
-  if (bkHot)          drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [79, 70, 229] : [188, 198, 242], true, 8.8);
-  if (stBkHot)        drawHoloText( 0.0,  0.08,  5.68, '出版模板 ◂ 工程底座', isLight ? [3, 105, 161] : [162, 212, 242], true, 8.8);
+  // Minimalist KPR wing designations placed cleanly ABOVE the rear crystal monolith spires (zero mesh overlap!)
+  drawHoloText(-5.55, 2.26, -2.75, 'SEC.01 // 理论生产翼（猜想 · 书稿）', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.6);
+  drawHoloText( 5.55, 2.38, -2.75, 'SEC.02 // 论文 · Mathesis · 200+ 学者', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
+  drawHoloText( 0.0,  0.10,  4.18, 'ON-DEMAND // 滑动按需调度轨（红队 · 基建 · 14 Worker）', isLight ? [120, 88, 32] : [214, 186, 128], onDemandHot, 8.1);
+  drawHoloText( 8.05, 0.18, -0.25, 'Mathesis ⇄ 200+ 学者', isLight ? [154, 102, 28] : [236, 200, 134], poHot, 8.4);
+  if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, '理论生产 ⇄ Lean 核枢', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
+  if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, 'Lean 核枢 ⇄ 自动论文', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
+  if (onDemandHot)    drawHoloText( rwx,  0.12,  4.78, `按需接入 → ${department(holoCam.rheostatTargetId)?.label || '核心部门'}`, isLight ? [146, 98, 24] : [244, 212, 146], true, 8.5);
 }
 
 function startHoloLoop() {
