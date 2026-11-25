@@ -23,6 +23,15 @@ const state = {
   verdictFilter: 'all',
   conjectures: [],
   conjecturesBusy: false,
+  outreachStats: {
+    collaborating_scholars: 223,
+    replied_scholars: 485,
+    contacted_scholars: 1049,
+    joint_papers: 32,
+    active_collaborations: 191,
+    positive_scholars: 316,
+    short_notes: 212
+  },
   limit: 9,
   topic: null,
   cells: new Map(),
@@ -73,7 +82,7 @@ const deptRoles = {
   verification: 'Lean 核枢',
   books: '书籍理论',
   publication: 'Mathesis',
-  outreach: '200+ 学者合作',
+  outreach: '223 合作学者',
   studio: '工具支路'
 };
 
@@ -83,7 +92,7 @@ const hubMeta = {
   books: { tag: 'SEC.01 · LIVING BOOKS', title: '书籍理论推进' },
   verification: { tag: 'CORE 00 · LEAN BRIDGE', title: '形式化验证中枢' },
   publication: { tag: 'SEC.02 · PAPER FACTORY & MATHESIS', title: '自动论文 · Mathesis 审稿平台' },
-  outreach: { tag: 'SEC.02 · 200+ SCHOLARS PIPELINE', title: '对外合作 · 200+ 学者联机' },
+  outreach: { tag: 'SEC.02 · 223 COLLABORATING SCHOLARS', title: '对外合作 · 223 位学者联机' },
   review: { tag: 'BRANCH A · ON-DEMAND RED-TEAM', title: '独立评审 · 红队支路' },
   studio: { tag: 'BRANCH B · ON-DEMAND FOUNDRY', title: '工具与表达 · 基建支路' }
 };
@@ -2782,6 +2791,30 @@ async function refreshConjectures() {
   }
 }
 
+function outreachScholarCount() {
+  return Number(state.outreachStats?.collaborating_scholars) || 223;
+}
+
+async function refreshOutreachStats() {
+  try {
+    const response = await fetch(new URL('data/outreach-stats.json', document.baseURI), {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data?.schema === 'trureturing.outreach-stats.v1' && Number(data.collaborating_scholars) > 0) {
+      state.outreachStats = { ...state.outreachStats, ...data };
+      deptRoles.outreach = `${data.collaborating_scholars} 合作学者`;
+      hubMeta.outreach = {
+        tag: `SEC.02 · ${data.collaborating_scholars} COLLABORATING SCHOLARS`,
+        title: `对外合作 · ${data.collaborating_scholars} 位学者联机（${data.replied_scholars || 485} 回信）`
+      };
+      if (view()) renderHive();
+    }
+  } catch {}
+}
+
 function renderLive() {
   preserveFocus(() => {
     renderHealth();
@@ -2932,7 +2965,7 @@ const holoWorld = {
 const LAYER_PRESETS = {
   mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵' },
   station: { pitch:  0.42, dist: 19.6, lookY: 0.45, lookZ:  0.20, stationAlpha: 1.00, galaxyAlpha: 0.24, minPitch:  0.22, maxPitch: 0.84, tag: 'STATION · 轨道空间站' },
-  galaxy:  { pitch:  0.14, dist: 27.6, lookY: 3.25, lookZ: -0.35, stationAlpha: 0.16, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.55, tag: 'GALAXY · 周天星海' }
+  galaxy:  { pitch:  0.28, dist: 21.4, lookY: 2.85, lookZ: -0.75, stationAlpha: 0.10, galaxyAlpha: 1.32, minPitch: -0.25, maxPitch: 0.65, tag: 'GALAXY · 周天星海' }
 };
 
 const holoCam = {
@@ -2948,6 +2981,7 @@ const holoCam = {
   ndcShiftX: 0.0,
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
+  galaxyBoost: 0.0,
   galaxyZoomScale: 1.0,
   galaxyZoomCooldown: 0,
   sonarStart: -99999,
@@ -2977,8 +3011,113 @@ const holoCam = {
   nebulaRipples: [],
   projectedTowers: new Map(),
   projectedGalaxies: new Map(),
-  hoveredGalaxy: null
+  projectedLanterns: [],
+  hoveredGalaxy: null,
+  hoveredLantern: null,
+  harpTrail: [],
+  lastHarpKey: null
 };
+
+// ============================================================================
+// OPENING CINEMA (Zenith Dive + Blueprint Scan Morph + Real Layered DAG Burst),
+// GENESIS TIME-SCRUB MACHINE & AUTO-DIRECTOR CINEMA CRUISE
+// ============================================================================
+const INTRO_DURATION_MS = 2850;
+const introCinema = {
+  active: !reduced && !/jsdom/i.test(navigator.userAgent || ''),
+  startMs: 0,
+  progress: reduced || /jsdom/i.test(navigator.userAgent || '') ? 1.0 : 0.0
+};
+
+function startIntroCinema(now = performance.now()) {
+  if (state.quiet || reduced || /jsdom/i.test(navigator.userAgent || '')) {
+    skipIntroCinema();
+    return;
+  }
+  stopCinemaDirector();
+  exitGalaxyMainView(now);
+  introCinema.active = true;
+  introCinema.startMs = now;
+  introCinema.progress = 0.0;
+  holoCam.yaw = -0.34;
+  holoCam.pitch = 0.50;
+  holoCam.dist = 16.0;
+  holoCam.lookX = 0.0;
+  holoCam.lookY = 5.3;
+  holoCam.lookZ = -1.6;
+  const pill = $('#intro-cinema-pill');
+  if (pill) pill.hidden = false;
+  sciFiAudio.playGenesisIntro();
+}
+
+function skipIntroCinema() {
+  if (!introCinema.active && introCinema.progress >= 1.0) return;
+  introCinema.active = false;
+  introCinema.progress = 1.0;
+  const pill = $('#intro-cinema-pill');
+  if (pill) pill.hidden = true;
+}
+
+const genesisScrub = {
+  open: false,
+  playing: false,
+  value: 1.0 // 0..1 normalized DAG evolution timeline
+};
+
+function updateGenesisScrubUI() {
+  const bar = $('#genesis-scrub-bar');
+  const btn = $('#genesis-scrub-btn');
+  const playBtn = $('#genesis-play-btn');
+  const slider = $('#genesis-slider');
+  const meta = $('#genesis-meta');
+  if (bar) bar.hidden = !genesisScrub.open || Boolean(state.focused);
+  if (btn) btn.setAttribute('aria-pressed', String(genesisScrub.open));
+  if (playBtn) {
+    playBtn.textContent = genesisScrub.playing ? '❚❚' : '▶';
+    playBtn.setAttribute('aria-pressed', String(genesisScrub.playing));
+  }
+  const pct = Math.round(genesisScrub.value * 100);
+  if (slider && Math.abs(Number(slider.value) - pct) >= 0.5) slider.value = String(pct);
+  if (meta) {
+    const totalTh = truthNebula.clusters.reduce((sum, c) => sum + (c.count || 0), 0) || 18367;
+    const estTh = Math.round(totalTh * Math.pow(genesisScrub.value, 1.15));
+    const settledAll = state.settledConjectures || [];
+    const activeConjs = genesisScrub.value >= 0.99
+      ? settledAll.length
+      : Math.round(settledAll.length * Math.max(0, (genesisScrub.value - 0.30) / 0.70));
+    meta.textContent = `DAG 演化 · ${pct}% · ~${estTh.toLocaleString()} 定理 · ✦ ${activeConjs} 猜想`;
+  }
+}
+
+const CINEMA_SHOTS = [
+  { name: '天顶俯瞰', yaw: -0.22, pitch: 0.34, dist: 24.5, lookX:  0.0, lookY: 3.10, lookZ: -0.45, stationAlpha: 1.0, galaxyAlpha: 1.08 },
+  { name: '左翼理论生产', yaw:  0.34, pitch: 0.38, dist: 16.8, lookX: -3.2, lookY: 0.85, lookZ: -0.40, stationAlpha: 1.0, galaxyAlpha: 0.55 },
+  { name: 'Lean 核枢低机位', yaw: -0.10, pitch: 0.14, dist: 15.2, lookX:  0.0, lookY: 1.45, lookZ: -0.45, stationAlpha: 1.0, galaxyAlpha: 1.12 },
+  { name: 'Mathesis 与 223 学者信标', yaw: -0.36, pitch: 0.34, dist: 17.6, lookX:  3.5, lookY: 1.05, lookZ:  0.10, stationAlpha: 1.0, galaxyAlpha: 0.72 },
+  { name: '周天星海全景滑翔', yaw:  0.20, pitch: 0.12, dist: 27.2, lookX:  0.0, lookY: 3.45, lookZ: -0.35, stationAlpha: 0.55, galaxyAlpha: 1.24 }
+];
+
+const cinemaDirector = {
+  active: false,
+  startMs: 0
+};
+
+function startCinemaDirector(now = performance.now()) {
+  if (state.quiet || reduced) return;
+  skipIntroCinema();
+  cinemaDirector.active = true;
+  cinemaDirector.startMs = now;
+  $('#cinema-director-btn')?.setAttribute('aria-pressed', 'true');
+  const hint = $('#hive-hover-hint');
+  if (hint) hint.textContent = '◎ 导演自动巡航中 · 拖拽、滚轮或点击任意处立即归还控制权';
+}
+
+function stopCinemaDirector() {
+  if (!cinemaDirector.active) return;
+  cinemaDirector.active = false;
+  $('#cinema-director-btn')?.setAttribute('aria-pressed', 'false');
+  updateHoverHint(state.hovered || state.selected);
+}
 
 // ============================================================================
 // REAL EXPANDING 3D TRUTH DAG COSMIC NEBULA (sourced from trureturing-pages!)
@@ -3521,13 +3660,21 @@ function galaxyGatherPlanFor(cid, frame, fovY, aspect) {
   return plan;
 }
 
-// Eases every galaxy's gather transform toward the plan (or back to rest) and hands it to the GPU.
-function stepGalaxyGather(plan, k, swell = null) {
+// Eases every galaxy's gather transform toward the plan (or expanded galaxy observatory / rest) and hands it to the GPU.
+function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
   const gl = holoCam.gl;
   if (!gl || !truthNebula.loaded) return;
   if (!holoCam.gather) holoCam.gather = new Map();
   const entries = [];
-  for (const [cid, t] of galaxyGatherTargets(plan, truthNebula.clusters, swell)) {
+  for (const [cid, baseTarget] of galaxyGatherTargets(plan, truthNebula.clusters, swell)) {
+    let t = baseTarget;
+    if (expandGalaxies && !plan && !swell) {
+      const cl = truthNebula.clusters.find(c => c.id === cid);
+      const frame = cl && cl.name !== 'Other' ? galaxyWorldFrame(cid) : null;
+      if (frame) {
+        t = { pivot: frame.center, offset: [0, 0, 0], scale: 1.44, stretch: [1.18, 1.65, 1.18], alpha: 1.0 };
+      }
+    }
     let cur = holoCam.gather.get(cid);
     if (!cur) {
       cur = { pivot: t.pivot.slice(), offset: [0, 0, 0], scale: 1, stretch: [1, 1, 1], alpha: 1 };
@@ -3723,7 +3870,85 @@ function syncGalaxyMainView(active) {
 const GALAXY_NODE_PICK_PX = 16;
 const TRUTH_SOURCE_BLOB = 'https://github.com/the-omega-institute/trureturing/blob';
 const NODE_ROLE_ZH = { hub: '枢纽定理', interface: '接口定理', bridge: '桥接定理', foundation: '基础定理', internal: '内部定理', 'specialized-leaf': '专门叶定理' };
-const galaxyDetail = { status: 'idle', data: null, picks: [], hoverKey: null, selectedKey: null, selectedNode: null, bounds: null };
+const galaxyDetail = { status: 'idle', data: null, picks: [], hoverKey: null, selectedKey: null, selectedNode: null, bounds: null, tracePath: null };
+
+// Pure BFS Proof Path Tracer on real Truth DAG edges + details prereqs:
+// - endIdx == null: traces backward from startIdx to lowest-layer foundation/axiom roots (up to maxHops)
+// - endIdx != null: shortest path between theorem A (startIdx) and theorem B (endIdx)
+function traceDagPath(startIdx, endIdx, edges, details) {
+  if (!Number.isInteger(startIdx) || startIdx < 0) return null;
+  const prereqAdj = new Map();
+  const undirAdj = new Map();
+  const addPrereq = (u, v) => {
+    if (!Number.isInteger(u) || !Number.isInteger(v) || u === v) return;
+    if (!prereqAdj.has(v)) prereqAdj.set(v, new Set());
+    prereqAdj.get(v).add(u);
+    if (!undirAdj.has(u)) undirAdj.set(u, new Set());
+    if (!undirAdj.has(v)) undirAdj.set(v, new Set());
+    undirAdj.get(u).add(v);
+    undirAdj.get(v).add(u);
+  };
+  for (const e of edges || []) {
+    if (e && Number.isInteger(e[0]) && Number.isInteger(e[1])) addPrereq(e[0], e[1]);
+  }
+  const starRows = details?.stars || [];
+  for (let i = 0; i < starRows.length; i++) {
+    const row = starRows[i];
+    if (Array.isArray(row?.[8])) {
+      for (const u of row[8]) addPrereq(u, i);
+    }
+    if (Array.isArray(row?.[9])) {
+      for (const v of row[9]) addPrereq(i, v);
+    }
+  }
+
+  if (Number.isInteger(endIdx) && endIdx >= 0 && endIdx !== startIdx) {
+    // Shortest path between two theorems (A <-> B)
+    const q = [startIdx];
+    const prev = new Map([[startIdx, null]]);
+    while (q.length) {
+      const cur = q.shift();
+      if (cur === endIdx) break;
+      for (const nb of undirAdj.get(cur) || []) {
+        if (!prev.has(nb)) {
+          prev.set(nb, cur);
+          q.push(nb);
+        }
+      }
+    }
+    if (!prev.has(endIdx)) return { mode: 'pair', startIdx, endIdx, nodes: [startIdx, endIdx], edges: [] };
+    const nodes = [];
+    for (let cur = endIdx; cur != null; cur = prev.get(cur)) nodes.push(cur);
+    nodes.reverse();
+    const pathEdges = [];
+    for (let i = 0; i < nodes.length - 1; i++) pathEdges.push([nodes[i], nodes[i + 1]]);
+    return { mode: 'pair', startIdx, endIdx, nodes, edges: pathEdges };
+  }
+
+  // Backward trace to earliest foundation / axiom roots (bounded BFS collecting clean proof tree)
+  const visited = new Set([startIdx]);
+  const pathEdges = [];
+  let frontier = [startIdx];
+  for (let depth = 0; depth < 6 && frontier.length && pathEdges.length < 18; depth++) {
+    const next = [];
+    for (const v of frontier) {
+      const pre = [...(prereqAdj.get(v) || [])];
+      // Prefer lower-layer prerequisites first so chain descends cleanly toward Layer 0 axioms!
+      pre.sort((a, b) => (starRows[a]?.[4] ?? 99) - (starRows[b]?.[4] ?? 99));
+      for (const u of pre.slice(0, 3)) {
+        pathEdges.push([u, v]);
+        if (!visited.has(u)) {
+          visited.add(u);
+          next.push(u);
+        }
+        if (pathEdges.length >= 18) break;
+      }
+      if (pathEdges.length >= 18) break;
+    }
+    frontier = next;
+  }
+  return { mode: 'axioms', startIdx, endIdx: null, nodes: [...visited], edges: pathEdges };
+}
 
 function galaxyNodeKey(pick) {
   return pick.kind === 'star' ? `s${pick.idx}` : `n${pick.module}`;
@@ -3820,16 +4045,63 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
   if (info.module) parts.push(element('p', info.module, 'gnc-module'));
   if (info.summary) parts.push(element('p', info.summary, 'gnc-summary'));
   if (info.meta?.length) parts.push(element('p', info.meta.join(' · '), 'gnc-meta'));
+  const actions = element('div', '', 'gnc-actions');
   if (info.href) {
-    const link = element('a', '查看 Lean 源码 ↗', 'gnc-link');
+    const link = element('a', info.linkLabel || '查看 Lean 源码 ↗', 'gnc-link');
     link.href = info.href;
     link.target = '_blank';
     link.rel = 'noopener';
-    parts.push(link);
+    actions.append(link);
   }
+  if (info.canTrace && Number.isInteger(info.starIdx)) {
+    const previewTrace = traceDagPath(info.starIdx, null, truthNebula.edges, galaxyDetail.data);
+    const hopCount = previewTrace?.edges?.length || 0;
+    if (hopCount > 0) {
+      const activeCount = galaxyDetail.tracePath?.edges?.length || hopCount;
+      const traceBtn = element('button', galaxyDetail.tracePath ? `✕ 收起公理光脉 (${activeCount})` : `⟡ 追溯公理根 (${hopCount} 条)`, 'gnc-trace-btn');
+      traceBtn.type = 'button';
+      traceBtn.setAttribute('aria-pressed', String(Boolean(galaxyDetail.tracePath)));
+      traceBtn.addEventListener('click', () => {
+        if (galaxyDetail.tracePath) {
+          galaxyDetail.tracePath = null;
+        } else {
+          galaxyDetail.tracePath = traceDagPath(info.starIdx, null, truthNebula.edges, galaxyDetail.data);
+          sciFiAudio.playNodeChord(4, 2, 2);
+        }
+        const curN = galaxyDetail.tracePath?.edges?.length || hopCount;
+        traceBtn.textContent = galaxyDetail.tracePath ? `✕ 收起公理光脉 (${curN})` : `⟡ 追溯公理根 (${hopCount} 条)`;
+        traceBtn.setAttribute('aria-pressed', String(Boolean(galaxyDetail.tracePath)));
+      });
+      actions.append(traceBtn);
+    }
+  }
+  if (actions.childNodes.length) parts.push(actions);
   card.replaceChildren(...parts);
   card.hidden = false;
   placeGalaxyNodeCard(bounds);
+}
+
+function openLanternConjectureCard(lantern) {
+  const rec = lantern?.rec;
+  if (!rec) return;
+  const isRef = rec.verdict === 'refuted';
+  const bounds = galaxyDetail.bounds || { left: 16, top: 116, right: window.innerWidth - 310, bottom: window.innerHeight - 80 };
+  const info = {
+    badge: isRef ? '✦ 猜想提灯 · 反驳 / 障碍' : '✦ 猜想提灯 · 已证明',
+    isNew: !isRef,
+    title: rec.title || rec.enTitle || '已归档猜想成果',
+    module: rec.enTitle && rec.enTitle !== rec.title ? rec.enTitle : '',
+    summary: rec.summary || '已通过 Lean 形式验证或反例证伪的永久归档成果。',
+    meta: [rec.area || '数学研究', rec.evidenceKind || 'Lean 归档', rec.settledAt ? relative(rec.settledAt) : ''].filter(Boolean),
+    href: rec.url || '',
+    linkLabel: '在内置浏览器阅读证明 ↗',
+    canTrace: false
+  };
+  renderGalaxyNodeCard(info, lantern.x, lantern.y, bounds);
+  sciFiAudio.playGalaxy();
+  if (!state.quiet && !reduced) {
+    xpFx.bursts.push({ kind: 'ring', x: lantern.x, y: lantern.y, rgb: isRef ? [246, 182, 118] : [248, 224, 158], start: performance.now(), dur: 820, maxR: 44, width: 2.0 });
+  }
 }
 
 // The card docks at the top left of the stage so the focused node, which the camera
@@ -3973,6 +4245,41 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
       }
     }
   }
+  // Flowing golden Proof Path Tracer light-vein overlay (追溯公理根 / 两星寻路)!
+  if (galaxyDetail.tracePath && galaxyDetail.tracePath.edges?.length) {
+    const tFlow = (now / 1000) * 0.72;
+    const goldVein = isLight ? [168, 108, 18] : [252, 214, 116];
+    for (let idx = 0; idx < galaxyDetail.tracePath.edges.length; idx++) {
+      const [u, v] = galaxyDetail.tracePath.edges[idx];
+      const ux = truthNebula.projX[u], uy = truthNebula.projY[u];
+      const vx = truthNebula.projX[v], vy = truthNebula.projY[v];
+      if (!Number.isFinite(ux) || !Number.isFinite(vx)) continue;
+      ctx.strokeStyle = rgba(goldVein, isLight ? 0.22 : 0.28);
+      ctx.lineWidth = 5.2;
+      ctx.beginPath();
+      ctx.moveTo(ux, uy);
+      ctx.lineTo(vx, vy);
+      ctx.stroke();
+      ctx.strokeStyle = rgba(goldVein, 0.92);
+      ctx.lineWidth = 1.9;
+      ctx.beginPath();
+      ctx.moveTo(ux, uy);
+      ctx.lineTo(vx, vy);
+      ctx.stroke();
+      // Travelling golden proof photon along each hop (axiom -> target!)
+      const f = (tFlow + idx * 0.19) % 1;
+      const px = ux + (vx - ux) * f;
+      const py = uy + (vy - uy) * f;
+      ctx.fillStyle = rgba([255, 250, 224], 0.96);
+      ctx.beginPath();
+      ctx.arc(px, py, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = rgba(goldVein, 0.92);
+      ctx.beginPath();
+      ctx.arc(ux, uy, 3.0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   const cardRect = galaxyDetail.selectedKey ? placeGalaxyNodeCard(galaxyDetail.bounds) : null;
   ctx.restore();
   const byKey = new Map(picks.map(p => [galaxyNodeKey(p), p]));
@@ -4076,6 +4383,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
 function closeGalaxyNodeCard() {
   galaxyDetail.selectedKey = null;
   galaxyDetail.selectedNode = null;
+  galaxyDetail.tracePath = null;
   holoCam.galaxyZoomScale = 1.0;
   const card = document.querySelector('#galaxy-node-card');
   if (card) card.hidden = true;
@@ -4097,19 +4405,31 @@ async function loadGalaxyDetails() {
 }
 
 // Opening a node during a growth close-up pins that galaxy so the card stays readable.
-function openGalaxyNode(node) {
+function openGalaxyNode(node, shiftKey = false) {
   const now = performance.now();
+  const prevStarIdx = galaxyDetail.selectedNode?.kind === 'star' ? galaxyDetail.selectedNode.idx : null;
   const manual = truthGrowth.manualFocus;
   if (!manual || manual.closing || manual.cid !== node.cid) {
     const cluster = truthNebula.clusters.find(c => c.id === node.cid);
     if (cluster) truthGrowth.manualFocus = { cid: node.cid, cluster, start: now - 1000, closing: false };
   }
+  if (shiftKey && prevStarIdx != null && node.kind === 'star' && node.idx !== prevStarIdx) {
+    // Shift+Click second star -> trace shortest proof path between Theorem A and Theorem B!
+    galaxyDetail.tracePath = traceDagPath(prevStarIdx, node.idx, truthNebula.edges, galaxyDetail.data);
+  } else {
+    galaxyDetail.tracePath = null;
+  }
   galaxyDetail.selectedKey = galaxyNodeKey(node);
   galaxyDetail.selectedNode = { kind: node.kind, idx: node.idx, module: node.module, cid: node.cid, nx: node.nx, ny: node.ny, nz: node.nz };
   holoCam.galaxyZoomScale = 1.0;
-  const bounds = galaxyDetail.bounds || { left: 12, top: 96, right: window.innerWidth - 12, bottom: window.innerHeight - 80 };
+  const bounds = galaxyDetail.bounds || { left: 12, top: 116, right: window.innerWidth - 12, bottom: window.innerHeight - 80 };
   const links = node.kind === 'star' ? nodeLinks(node.idx) : null;  // used only when the details lack full counts
-  renderGalaxyNodeCard(galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters, links), node.x, node.y, bounds);
+  const info = galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters, links);
+  info.canTrace = node.kind === 'star';
+  info.starIdx = node.idx;
+  renderGalaxyNodeCard(info, node.x, node.y, bounds);
+  const row = node.kind === 'star' ? galaxyDetail.data?.stars?.[node.idx] : null;
+  sciFiAudio.playNodeChord(row?.[6] ?? 1, row?.[7] ?? 1, row?.[4] ?? 4);
   updateGalaxyBackBar();
 }
 function galaxyWorldFrame(cid) {
@@ -4507,13 +4827,16 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
   }
 
-  // PASS 3: INTER-GALAXY PERIMETER ARCS — HIDDEN AT REST (ZERO LINE CLUTTER!), ILLUMINATE ONLY ON HOVER / CLOSE-UP!
-  if (webCid != null) {
+  // PASS 3: INTER-GALAXY PERIMETER ARCS — illuminate on hover/close-up, AND gently showcase the 9 major real bridges in dedicated 星系 mode!
+  const isPureGalaxyView = state.layer === 'galaxy' && holoCam.galaxyMainCid == null && focusK < 0.05;
+  if (webCid != null || isPureGalaxyView) {
     const ringRx = w * 0.35;
     const ringRy = h * 0.39;
-    const namedLinks = clusterLinks.filter(([u, v]) => {
+    const namedLinks = clusterLinks.filter(([u, v, count]) => {
       const cu = clProj.get(u)?.cl, cv = clProj.get(v)?.cl;
-      return cu && cv && cu.name !== 'Other' && cv.name !== 'Other' && (u === webCid || v === webCid);
+      if (!cu || !cv || cu.name === 'Other' || cv.name === 'Other') return false;
+      if (webCid != null) return u === webCid || v === webCid;
+      return (count || 0) >= 12;
     });
     for (let i = 0; i < namedLinks.length; i++) {
       const [fromId, toId, count] = namedLinks[i];
@@ -4524,8 +4847,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       let diff = angB - angA;
       if (diff > Math.PI) diff -= Math.PI * 2;
       if (diff < -Math.PI) diff += Math.PI * 2;
-      if (Math.abs(diff) > 2.55) continue;
-      const segs = 18;
+      if (Math.abs(diff) > 2.65) continue;
+      const segs = 20;
       const pts = [];
       const rBoost = 1.0 + Math.min(0.14, Math.abs(diff) * 0.06);
       for (let s = 0; s <= segs; s++) {
@@ -4533,20 +4856,59 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         const ang = angA + diff * u;
         const arch = Math.sin(u * Math.PI);
         pts.push([
-          (a.x * (1 - u) + b.x * u) * (1 - arch * 0.72) + (cx + Math.cos(ang) * ringRx * rBoost) * (arch * 0.72),
-          (a.y * (1 - u) + b.y * u) * (1 - arch * 0.72) + (cy + Math.sin(ang) * ringRy * rBoost) * (arch * 0.72)
+          (a.x * (1 - u) + b.x * u) * (1 - arch * 0.62) + (cx + Math.cos(ang) * ringRx * rBoost) * (arch * 0.62),
+          (a.y * (1 - u) + b.y * u) * (1 - arch * 0.62) + (cy + Math.sin(ang) * ringRy * rBoost) * (arch * 0.62)
         ]);
       }
       const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-      const alpha = (isLight ? 0.34 : 0.38) + strength * 0.20;
+      const baseA = webCid != null ? (isLight ? 0.36 : 0.42) : (isLight ? 0.24 : 0.26);
+      const alpha = baseA + strength * (webCid != null ? 0.22 : 0.16);
       const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
       grad.addColorStop(0, rgba(a.col, alpha));
       grad.addColorStop(1, rgba(b.col, alpha));
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 0.9 + strength * 0.55;
+      ctx.lineWidth = (webCid != null ? 1.0 : 0.85) + strength * 0.65;
       ctx.beginPath();
       pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
       ctx.stroke();
+      // Gentle traveling dependency light-mote along each real inter-galaxy arc in 星系 mode
+      if (!quiet && pts.length > 2) {
+        const f = (tEff * (0.14 + (i % 3) * 0.03) + i * 0.23) % 1;
+        const idxF = Math.min(pts.length - 1, Math.floor(f * (pts.length - 1)));
+        const mp = pts[idxF];
+        ctx.fillStyle = rgba([238, 248, 255], alpha * 1.45);
+        ctx.beginPath();
+        ctx.arc(mp[0], mp[1], 1.7 + strength * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // In dedicated 星系 Observatory mode, mark top hub theorem nodes in every galaxy with crisp optical micro-rings!
+  if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
+    const hubsPerCid = new Map();
+    for (let i = 0; i < (truthNebula.baseCount || n); i++) {
+      const cid = stars[i][3];
+      if (cid === 7) continue;
+      const deg = stars[i][5] || 0;
+      if (deg < 5) continue;
+      let arr = hubsPerCid.get(cid);
+      if (!arr) { arr = []; hubsPerCid.set(cid, arr); }
+      arr.push({ i, deg });
+    }
+    const boostVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
+    for (const [cid, arr] of hubsPerCid) {
+      arr.sort((a, b) => b.deg - a.deg);
+      const col = nebPalette[cid % nebPalette.length];
+      for (const hItem of arr.slice(0, 4)) {
+        const hx = projX[hItem.i], hy = projY[hItem.i];
+        if (!Number.isFinite(hx) || hx < 18 || hx > w - rightGutter - 16 || hy < 58 || hy > h - 68) continue;
+        ctx.strokeStyle = rgba(col, (isLight ? 0.48 : 0.62) * boostVis);
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.arc(hx, hy, 4.2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
 
@@ -4957,7 +5319,7 @@ function xpPlanFor(a) {
   const text = `${a.label || ''} ${a.summary || ''}`;
   if (a.kind === 'contribution' && a.status === 'merged') {
     if (a.department === 'publication') return { tier: 3, fx: 'paper', label: '论文跃迁' };
-    if (a.department === 'outreach') return { tier: 3, fx: 'outreach', label: '200+ 学者同步' };
+    if (a.department === 'outreach') return { tier: 3, fx: 'outreach', label: `${outreachScholarCount()} 位学者同步` };
     if (isSettledMathRecord(a)) {
       const refuted = classifyConjectureVerdict(text) === 'refuted';
       return { tier: 3, fx: 'rocket', label: refuted ? '猜想反驳' : '猜想证明', galaxyCid: matchGalaxyCidForText(text) };
@@ -5210,9 +5572,9 @@ function xpArrive(item, target, now) {
       return;
     }
     if (item.fx === 'outreach') {
-      // Tier B: Warm amber long-range collaboration sync with 200+ external scholars!
+      // Tier B: Warm amber long-range collaboration sync with verified external scholars!
       for (let k = 0; k < 2; k++) xpFx.bursts.push({ kind: 'ring', x, y, rgb: XP_AMBER, start: now + k * 150, dur: 940, maxR: 58 + k * 34, width: 2.4 - k * 0.6 });
-      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_AMBER, start: now, dur: 1950, text: 'OUTREACH SYNC', sub: 'Mathesis ⇄ 200+ 合作学者双向同步', size: 20, rise: 40, pop: true });
+      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_AMBER, start: now, dur: 1950, text: 'OUTREACH SYNC', sub: `Mathesis ⇄ ${outreachScholarCount()} 位合作学者双向同步`, size: 20, rise: 40, pop: true });
       flashXpCell(item.deptId, 'is-level-up', 1400);
       spawnHoloPulse(item.deptId, 1.15);
       spawnSpokeFlare('outreach', 'research');
@@ -5512,6 +5874,21 @@ const sciFiAudio = {
     this.unlocked = true;
     this.tone(659.25, 0.28, 0.036, 'sine', 0);
     this.tone(987.77, 0.32, 0.022, 'triangle', 0.045);
+  },
+  playNodeChord(prereqs = 1, dependents = 1, layer = 4) {
+    this.unlocked = true;
+    const scale = [293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99, 880.0];
+    const mid = scale[Math.max(1, Math.min(scale.length - 2, (layer || 3) % (scale.length - 2) + 1))];
+    if (prereqs > 0) this.tone(mid * 0.75, 0.34, 0.024, 'sine', 0);
+    this.tone(mid, 0.30, 0.034, 'triangle', 0.05);
+    if (dependents > 0) this.tone(mid * 1.5, 0.36, 0.022, 'sine', 0.11);
+    if (prereqs + dependents >= 6) this.tone(mid * 2.0, 0.40, 0.014, 'sine', 0.17);
+  },
+  playGenesisIntro() {
+    if (!this.unlocked) return;
+    [293.66, 392.0, 440.0, 587.33, 783.99].forEach((f, i) => {
+      this.tone(f, 0.55, 0.022, i % 2 === 0 ? 'sine' : 'triangle', i * 0.14);
+    });
   },
   playLevelUp() {
     if (!this.unlocked) return;
@@ -6147,8 +6524,67 @@ function drawHolo3DFrame(dt = 0.016) {
     const b = galaxyViewBasis(holoCam.yaw, holoCam.pitch);
     swellOffset = [0, 1, 2].map(i => ((b.right[i] * dx - b.up[i] * dy) / swellAt.s) * amount);
   }
-  if (useGL) stepGalaxyGather(gatherPlan, fly, swellFrame ? { cid: swell.cid, pivot: swellFrame.center, scale: swell.scale, lift: swell.lift, offset: swellOffset } : null);
-  if (galaxyFrame) {
+  const nowMs = performance.now();
+  if (useGL) stepGalaxyGather(
+    gatherPlan,
+    fly,
+    swellFrame ? { cid: swell.cid, pivot: swellFrame.center, scale: swell.scale, lift: swell.lift, offset: swellOffset } : null,
+    state.layer === 'galaxy' && !introCinema.active
+  );
+
+  // Step DAG Genesis Time-Scrub playback when open
+  if (genesisScrub.open && genesisScrub.playing && !state.quiet && !reduced) {
+    genesisScrub.value += stepDt * 0.088;
+    if (genesisScrub.value >= 1.0) {
+      genesisScrub.value = 1.0;
+      genesisScrub.playing = false;
+    }
+    updateGenesisScrubUI();
+  }
+
+  // Compute Opening Sequence (Zenith Dive + Blueprint-to-Crystal Holographic Wave + Layered DAG Genesis)
+  let genesisRadius = 99.0;
+  let introGenCut = 1.05;
+  if (introCinema.active && useGL && !galaxyFrame && !state.focused) {
+    if (!introCinema.startMs) introCinema.startMs = nowMs;
+    const elapsed = Math.max(0, nowMs - introCinema.startMs);
+    const u = Math.min(1, elapsed / INTRO_DURATION_MS);
+    introCinema.progress = u;
+    const eDive = 1 - Math.pow(1 - u, 3);
+    const waveU = Math.max(0, Math.min(1, (u - 0.14) / 0.72));
+    genesisRadius = waveU <= 0 ? 0.0 : waveU >= 1 ? 99.0 : (waveU * waveU * (3 - 2 * waveU)) * 26.0;
+    introGenCut = Math.min(1.05, (u / 0.78) * 1.05);
+    const metaEl = $('#realm-xp-meta');
+    if (metaEl && truthNebula.loaded) {
+      const totalTh = truthNebula.clusters.reduce((s, c) => s + (c.count || 0), 0) || 18367;
+      const curTh = Math.round(totalTh * Math.min(1, u * 1.12));
+      metaEl.textContent = `${curTh.toLocaleString()} 定理 · 创世展开 ${Math.round(u * 100)}%`;
+    }
+    const pill = $('#intro-cinema-pill');
+    if (pill) {
+      pill.hidden = false;
+      const sub = pill.querySelector('span');
+      if (sub) {
+        sub.textContent = u < 0.35
+          ? 'OMEGA OBSERVATORY // ① 周天星海 · 真值 DAG 创世绽放'
+          : u < 0.72
+            ? 'OMEGA OBSERVATORY // ② 全息蓝图扫描 · 轨道空间站实体化'
+            : 'OMEGA OBSERVATORY // ③ 实时自动化观测 · 准备就绪';
+      }
+    }
+    holoCam.lookX = 0.0;
+    holoCam.lookY = 5.30 + (preset.lookY - 5.30) * eDive;
+    holoCam.lookZ = -1.60 + (preset.lookZ - -1.60) * eDive;
+    holoCam.yaw = -0.34 + (holoCam.targetYaw - -0.34) * eDive;
+    holoCam.pitch = 0.50 + (preset.pitch - 0.50) * eDive;
+    holoCam.dist = 16.0 + (preset.dist - 16.0) * eDive;
+    holoCam.stationAlpha = Math.max(0.20, Math.min(1.0, (u - 0.08) / 0.45)) * preset.stationAlpha;
+    holoCam.galaxyAlpha = Math.min(1.22, 0.88 + 0.32 * (1 - eDive) + preset.galaxyAlpha * 0.22);
+    if (u >= 1.0) {
+      skipIntroCinema();
+      syncInstituteRealm();
+    }
+  } else if (galaxyFrame) {
     // Galaxy main view: fly to the galaxy (and the galaxies gathered around it) from the
     // station side; a selected node zooms in further. The station fades back.
     const restPose = galaxyCameraPose(galaxyFrame.center, galaxyFrame.radius, fovY);
@@ -6178,6 +6614,22 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.dist += (5.8 - holoCam.dist) * damp;
     holoCam.stationAlpha += (1.0 - holoCam.stationAlpha) * damp;
     holoCam.galaxyAlpha += (0.45 - holoCam.galaxyAlpha) * damp;
+  } else if (cinemaDirector.active && useGL && !state.quiet && !reduced) {
+    const SHOT_MS = 8200;
+    const elapsedC = Math.max(0, nowMs - cinemaDirector.startMs);
+    const shotIdx = Math.floor(elapsedC / SHOT_MS) % CINEMA_SHOTS.length;
+    const shotFrac = (elapsedC % SHOT_MS) / SHOT_MS;
+    const shot = CINEMA_SHOTS[shotIdx];
+    const cineDamp = 1 - Math.exp(-Math.max(0.008, stepDt) * 1.45);
+    const swayYaw = Math.sin(shotFrac * Math.PI * 2) * 0.085;
+    holoCam.lookX += (shot.lookX - holoCam.lookX) * cineDamp;
+    holoCam.lookY += (shot.lookY - holoCam.lookY) * cineDamp;
+    holoCam.lookZ += (shot.lookZ - holoCam.lookZ) * cineDamp;
+    holoCam.yaw += (shot.yaw + swayYaw - holoCam.yaw) * cineDamp;
+    holoCam.pitch += (shot.pitch - holoCam.pitch) * cineDamp;
+    holoCam.dist += (shot.dist - holoCam.dist) * cineDamp;
+    holoCam.stationAlpha += (shot.stationAlpha - holoCam.stationAlpha) * cineDamp;
+    holoCam.galaxyAlpha += (shot.galaxyAlpha - holoCam.galaxyAlpha) * cineDamp;
   } else {
     const idleDrift = (!holoCam.dragging && !state.quiet && !reduced) ? Math.sin(t * 0.20) * 0.032 : 0;
     const parallaxX = (!holoCam.dragging && !state.quiet && !reduced) ? holoCam.mouseNormX * 0.048 : 0;
@@ -6191,6 +6643,12 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.stationAlpha += (preset.stationAlpha - holoCam.stationAlpha) * damp;
     holoCam.galaxyAlpha += (preset.galaxyAlpha - holoCam.galaxyAlpha) * damp;
   }
+
+  const effectiveGenesisCut = (introCinema.active && useGL)
+    ? introGenCut
+    : (genesisScrub.open ? genesisScrub.value : 1.05);
+  const targetGalaxyBoost = (state.layer === 'galaxy' || Boolean(galaxyFrame)) ? 1.0 : 0.0;
+  holoCam.galaxyBoost += (targetGalaxyBoost - holoCam.galaxyBoost) * damp;
 
   // Age pulses & live streaking spoke comet flares
   for (let i = holoCam.pulses.length - 1; i >= 0; i--) {
@@ -6287,9 +6745,11 @@ function drawHolo3DFrame(dt = 0.016) {
         running: Boolean(countRunning(d))
       };
     });
-    const sonarAge = (performance.now() - holoCam.sonarStart) / 1000;
+    const sonarAge = (nowMs - holoCam.sonarStart) / 1000;
     const sonarActive = sonarAge >= 0 && sonarAge < 2.2;
     const sonarU = sonarActive ? sonarAge / 2.2 : 0;
+    const totalRunning = departments().reduce((acc, d) => acc + (countRunning(d) || 0), 0);
+    const ciLoad = Math.max(0.18, Math.min(1.0, (totalRunning + 2) / 14));
     holoCam.gl.render({
       t,
       themeIdx,
@@ -6300,10 +6760,15 @@ function drawHolo3DFrame(dt = 0.016) {
       quiet: state.quiet || reduced,
       stationAlpha: holoCam.stationAlpha,
       galaxyAlpha: holoCam.galaxyAlpha,
+      galaxyBoost: holoCam.galaxyBoost,
       sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
       sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0,
       rheostatRevX: holoCam.rheostatRevX,
-      rheostatStuX: holoCam.rheostatStuX
+      rheostatStuX: holoCam.rheostatStuX,
+      genesisRadius,
+      genesisCut: effectiveGenesisCut,
+      ciLoad,
+      scholarCount: outreachScholarCount()
     });
     // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
     ctx.clearRect(0, 0, w, h);
@@ -6333,6 +6798,90 @@ function drawHolo3DFrame(dt = 0.016) {
   // 1B. PURE BACKGROUND TRUTH DAG OUTER-RIM CRYSTALLIZATION & ASTRONOMICAL STAR-TRACKER LABELS
   drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint);
 
+  // 1C. INTERACTIVE CONJECTURE LANTERN STARS (sub-pixel hover reticle + click-to-read proof!)
+  holoCam.projectedLanterns = [];
+  if (useGL && holoCam.galaxyAlpha > 0.20) {
+    const rawLanterns = holoCam.gl.getLanternStars();
+    const maxSafeX = rightGutter > 0 ? w - rightGutter - 18 : w - 24;
+    for (let i = 0; i < rawLanterns.length; i++) {
+      const ls = rawLanterns[i];
+      if (ls.gen > effectiveGenesisCut + 0.02) continue;
+      const gp = holoCam.gl.applyGather([ls.wx, ls.wy, ls.wz], ls.cid);
+      const pt = holoCam.gl.project(gp[0], gp[1], gp[2]);
+      if (!pt || pt.x < 18 || pt.x > maxSafeX || pt.y < 52 || pt.y > h - 68) continue;
+      holoCam.projectedLanterns.push({ x: pt.x, y: pt.y, z: pt.z, cid: ls.cid, gen: ls.gen, rec: ls.rec });
+    }
+    if (holoCam.hoveredLantern) {
+      const hl = holoCam.projectedLanterns.find(l => (l.rec.url || l.rec.title) === (holoCam.hoveredLantern.rec.url || holoCam.hoveredLantern.rec.title));
+      if (hl) {
+        const isRef = hl.rec.verdict === 'refuted';
+        const lCol = isRef ? (isLight ? [184, 88, 28] : [248, 178, 114]) : (isLight ? [164, 112, 24] : [250, 224, 154]);
+        ctx.save();
+        ctx.strokeStyle = rgba(lCol, 0.90);
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        ctx.arc(hl.x, hl.y, 13, 0, Math.PI * 2);
+        ctx.stroke();
+        // 4 subtle optical cardinal ticks
+        for (let k = 0; k < 4; k++) {
+          const a = (k * Math.PI) / 2 + t * 0.45;
+          ctx.beginPath();
+          ctx.moveTo(hl.x + Math.cos(a) * 10, hl.y + Math.sin(a) * 10);
+          ctx.lineTo(hl.x + Math.cos(a) * 18, hl.y + Math.sin(a) * 18);
+          ctx.stroke();
+        }
+        const rawTitle = hl.rec.title || hl.rec.enTitle || '已归档猜想';
+        const shortT = rawTitle.length > 26 ? `${rawTitle.slice(0, 25)}…` : rawTitle;
+        const badge = `${isRef ? '✕ 反驳' : '✓ 已证明'} · ${shortT} · 点击读证明`;
+        ctx.font = '600 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+        const tw = ctx.measureText(badge).width + 18;
+        const bx = Math.max(24, Math.min(maxSafeX - tw, hl.x - tw * 0.5));
+        const by = hl.y > 108 ? hl.y - 34 : hl.y + 20;
+        ctx.fillStyle = isLight ? 'rgba(250, 247, 240, 0.94)' : 'rgba(6, 12, 22, 0.92)';
+        ctx.strokeStyle = rgba(lCol, 0.65);
+        ctx.lineWidth = 1.0;
+        ctx.fillRect(bx, by, tw, 22);
+        ctx.strokeRect(bx, by, tw, 22);
+        ctx.fillStyle = rgba(lCol, 0.98);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badge, bx + 9, by + 11.5);
+        ctx.restore();
+      }
+    }
+  }
+
+  // 1D. CONSTELLATION HARP SILK TRAIL (Shift + Glide across sky stars!)
+  if (holoCam.harpTrail.length) {
+    for (let i = holoCam.harpTrail.length - 1; i >= 0; i--) {
+      holoCam.harpTrail[i].age += stepDt * 0.85;
+      if (holoCam.harpTrail[i].age >= 1) holoCam.harpTrail.splice(i, 1);
+    }
+    if (holoCam.harpTrail.length >= 2) {
+      ctx.save();
+      if (!isLight) ctx.globalCompositeOperation = 'lighter';
+      for (let i = 1; i < holoCam.harpTrail.length; i++) {
+        const a = holoCam.harpTrail[i - 1];
+        const b = holoCam.harpTrail[i];
+        const fade = Math.max(0, 1 - Math.max(a.age, b.age));
+        const col = i % 2 === 0 ? [248, 224, 158] : [132, 224, 246];
+        ctx.strokeStyle = rgba(col, fade * (isLight ? 0.45 : 0.62));
+        ctx.lineWidth = 0.8 + fade * 1.6;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        if (fade > 0.25) {
+          ctx.fillStyle = rgba(col, fade * 0.85);
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 1.4 + fade * 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
   // KPR / Active Theory Peripheral Optical Viewfinder Frame (frames the open left-to-center 82% 3D viewport!)
   if (useGL) {
     const fx0 = 22;
@@ -6353,7 +6902,14 @@ function drawHolo3DFrame(dt = 0.016) {
     const azDeg = (holoCam.yaw * 180 / Math.PI).toFixed(1).padStart(5, ' ');
     const elVal = holoCam.pitch * 180 / Math.PI;
     const elDeg = (elVal >= 0 ? '+' : '') + elVal.toFixed(1);
-    const camReadout = `CAM // ${preset.tag} · AZ ${azDeg}°  EL ${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m`;
+    const modeTag = introCinema.active
+      ? ' · GENESIS SCAN'
+      : cinemaDirector.active
+        ? ` · ◎ CINEMA`
+        : genesisScrub.open
+          ? ` · 演化 ${Math.round(genesisScrub.value * 100)}%`
+          : '';
+    const camReadout = `CAM // ${preset.tag} · AZ ${azDeg}°  EL ${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m${modeTag}`;
     ctx.font = '500 8.5px "Geist Mono", ui-monospace, monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -7455,12 +8011,112 @@ function drawHolo3DFrame(dt = 0.016) {
     item.cell._proj = null;
   }
 
+  // Supreme Akasha Eye Precision Gaze Beam + Rotating 12-Tick Astrolabe Crown over tracked department!
+  if (useGL && holoCam.stationAlpha > 0.25) {
+    const gazeId = (activeId && activeId !== 'direction' && holoWorld[activeId]) ? activeId : 'verification';
+    const gazeY = (gazeTarget.y || 0) + towerHeight(gazeId) + 0.34;
+    const pEye = project(eyeCfg.x, eyeCfg.y - 0.14, eyeCfg.z);
+    const pCrown = project(holoCam.gazeX, gazeY, holoCam.gazeZ);
+    const gazeRGB = isLight ? [154, 102, 28] : isBlueprint ? [146, 218, 255] : [238, 206, 138];
+    if (pEye && pCrown) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, holoCam.stationAlpha)) * (activeId ? 0.82 : 0.46);
+      const beamGrad = ctx.createLinearGradient(pEye.x, pEye.y, pCrown.x, pCrown.y);
+      beamGrad.addColorStop(0, rgba(gazeRGB, 0.48));
+      beamGrad.addColorStop(0.5, rgba(gazeRGB, 0.16));
+      beamGrad.addColorStop(1, rgba(gazeRGB, 0.44));
+      ctx.strokeStyle = beamGrad;
+      ctx.lineWidth = activeId ? 1.05 : 0.8;
+      ctx.setLineDash([4, 6]);
+      ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * 18);
+      ctx.beginPath();
+      ctx.moveTo(pEye.x, pEye.y);
+      ctx.lineTo(pCrown.x, pCrown.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (!state.quiet && !reduced) {
+        const uBead = (t * 0.42) % 1;
+        const bx = pEye.x + (pCrown.x - pEye.x) * uBead;
+        const by = pEye.y + (pCrown.y - pEye.y) * uBead;
+        ctx.fillStyle = rgba(gazeRGB, 0.92 * Math.sin(uBead * Math.PI));
+        ctx.beginPath();
+        ctx.arc(bx, by, 2.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    // Delicate rotating 12-tick golden astrolabe ring hovering above tracked department spire
+    const astR = (gazeTarget.r || 0.72) * 0.92;
+    const astSpin = (state.quiet || reduced) ? 0.3 : t * 0.35;
+    draw3DRing(holoCam.gazeX, gazeY, holoCam.gazeZ, astR, astR, 36, rgba(gazeRGB, (activeId ? 0.42 : 0.22) * holoCam.stationAlpha), 0.9, [3, 4], astSpin);
+    ctx.save();
+    ctx.globalAlpha = (activeId ? 0.48 : 0.24) * holoCam.stationAlpha;
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2 + astSpin;
+      const rIn = astR * (k % 3 === 0 ? 0.80 : 0.88);
+      const rOut = astR * (k % 3 === 0 ? 1.12 : 1.04);
+      const p1 = project(holoCam.gazeX + Math.cos(a) * rIn, gazeY, holoCam.gazeZ + Math.sin(a) * rIn);
+      const p2 = project(holoCam.gazeX + Math.cos(a) * rOut, gazeY, holoCam.gazeZ + Math.sin(a) * rOut);
+      draw3DSeg(p1, p2, rgba(gazeRGB, 0.9), k % 3 === 0 ? 1.05 : 0.75);
+    }
+    ctx.restore();
+  }
+
+  // Verified Collaborating Scholars Deep-Space Radio Beacon Waves (05 学术交流 dish -> right horizon beacons!)
+  const scholarCount = outreachScholarCount();
+  if (useGL && holoCam.stationAlpha > 0.25) {
+    const dishPt = project(5.85, 1.38, 1.90);
+    const farPt = project(11.4, 2.95, 2.15);
+    const beaconRGB = isLight ? [168, 108, 28] : isBlueprint ? [150, 218, 255] : [244, 194, 108];
+    if (dishPt && farPt) {
+      const dx = farPt.x - dishPt.x;
+      const dy = farPt.y - dishPt.y;
+      const dirAng = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.globalAlpha = holoCam.stationAlpha * (coHot || poHot ? 0.85 : 0.50);
+      // 3 expanding soft amber radio signal arcs propagating outward toward the 223 scholar beacons
+      for (let k = 0; k < 3; k++) {
+        const u = ((state.quiet || reduced ? 0.45 : t * 0.26) + k / 3) % 1;
+        const rx = dishPt.x + dx * (0.08 + u * 0.78);
+        const ry = dishPt.y + dy * (0.08 + u * 0.78);
+        const rad = 10 + u * 34;
+        const al = Math.sin(u * Math.PI) * 0.58;
+        ctx.strokeStyle = rgba(beaconRGB, al);
+        ctx.lineWidth = 1.15 - u * 0.45;
+        ctx.beginPath();
+        ctx.arc(rx, ry, rad, dirAng - 0.52, dirAng + 0.52);
+        ctx.stroke();
+      }
+      // Subtle returning scholar feedback light pulse traveling back to the dish
+      if (!state.quiet && !reduced) {
+        const uRet = (t * 0.34 + 0.5) % 1;
+        const bx = farPt.x - dx * uRet;
+        const by = farPt.y - dy * uRet;
+        ctx.fillStyle = rgba([255, 232, 174], Math.sin(uRet * Math.PI) * 0.85);
+        ctx.beginPath();
+        ctx.arc(bx, by, 2.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   // Minimalist KPR wing & dual-branch designations placed cleanly in open negative space (zero card/spire overlap!)
+  const os = state.outreachStats || {};
   drawHoloText(-5.55, 2.26, -2.75, 'SEC.01 // 理论生产翼（猜想 · 书稿）', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.6);
-  drawHoloText( 5.55, 2.38, -2.75, 'SEC.02 // 论文 · Mathesis · 200+ 学者', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
+  drawHoloText( 5.55, 2.38, -2.75, `SEC.02 // 论文 · Mathesis · ${scholarCount} 合作学者`, isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
   drawHoloText(-1.55, 0.10,  4.68, 'BRANCH A // 独立评审滑轨', revBranchRGB, sec3Hot, 8.0);
   drawHoloText( 1.55, 0.10,  4.68, 'BRANCH B // 工具表达滑轨', stuBranchRGB, sec4Hot, 8.0);
-  drawHoloText( 8.05, 0.18, -0.25, 'Mathesis ⇄ 200+ 学者', isLight ? [154, 102, 28] : [236, 200, 134], poHot, 8.4);
+  drawHoloText( 8.05, 0.18, -0.25, `Mathesis ⇄ ${scholarCount} 合作学者`, isLight ? [154, 102, 28] : [236, 200, 134], poHot, 8.4);
+  if (activeId === 'outreach') {
+    drawHoloText(
+      8.05, 0.88, 1.90,
+      `✦ ${scholarCount} 合作 · ${os.replied_scholars || 485} 回信 · ${os.contacted_scholars || 1049} 联络 · ${os.joint_papers || 32} 联合论文`,
+      isLight ? [154, 102, 28] : [248, 212, 138],
+      true,
+      8.2
+    );
+  }
   if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, '理论生产 ⇄ Lean 核枢', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
   if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, 'Lean 核枢 ⇄ 自动论文', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
   if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, `评审支路接入 → ${department(holoCam.rheostatRevTargetId)?.label || '数学攻坚'}`, revBranchRGB, true, 8.5);
@@ -7471,6 +8127,7 @@ function startHoloLoop() {
   if (holoCam.raf || /jsdom/i.test(navigator.userAgent || '')) return;
   loadTruthNebula();
   triggerScanSweep();
+  if (introCinema.active) startIntroCinema(performance.now());
   let prev = performance.now();
   const tick = now => {
     const dt = (now - prev) / 1000;
@@ -7522,8 +8179,28 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     return best;
   };
 
+  const hitLanternAt = (clientX, clientY) => {
+    if (!holoCam.projectedLanterns.length || holoCam.galaxyAlpha < 0.25) return null;
+    const rect = boardEl.getBoundingClientRect();
+    const lx = clientX - rect.left;
+    const ly = clientY - rect.top;
+    let best = null;
+    let bestD = Infinity;
+    for (let i = 0; i < holoCam.projectedLanterns.length; i++) {
+      const l = holoCam.projectedLanterns[i];
+      const dist = Math.hypot(lx - l.x, ly - l.y);
+      if (dist < 18 && dist < bestD) {
+        best = l;
+        bestD = dist;
+      }
+    }
+    return best;
+  };
+
   boardEl.addEventListener('pointerdown', e => {
-    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card')) return;
+    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
+    skipIntroCinema();
+    stopCinemaDirector();
     holoCam.dragging = true;
     holoCam.dragMoved = false;
     holoCam.lastX = e.clientX;
@@ -7549,16 +8226,33 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       holoCam.targetPitch = Math.max(lp.minPitch, Math.min(lp.maxPitch, holoCam.targetPitch + dy * 0.0034));
       return;
     }
+    // Shift + Glide across the celestial sky strums the Constellation Harp with silk trails!
+    if (e.shiftKey && !state.focused && e.target === $('#holo-3d') && !state.quiet && !reduced) {
+      const rect = boardEl.getBoundingClientRect();
+      const lx = e.clientX - rect.left;
+      const ly = e.clientY - rect.top;
+      const last = holoCam.harpTrail[holoCam.harpTrail.length - 1];
+      if (!last || Math.hypot(lx - last.x, ly - last.y) > 16) {
+        holoCam.harpTrail.push({ x: lx, y: ly, age: 0 });
+        if (holoCam.harpTrail.length > 26) holoCam.harpTrail.shift();
+        const nowH = performance.now();
+        if (nowH - (Number(holoCam.lastHarpKey) || 0) > 105) {
+          holoCam.lastHarpKey = nowH;
+          sciFiAudio.playStarHarp(e.clientX / Math.max(1, window.innerWidth));
+        }
+      }
+    }
     if (!state.focused && e.target === $('#holo-3d') && galaxyDetail.picks.length) {
       const rect = boardEl.getBoundingClientRect();
       const node = pickGalaxyNode(galaxyDetail.picks, e.clientX - rect.left, e.clientY - rect.top);
       galaxyDetail.hoverKey = node ? galaxyNodeKey(node) : null;
+      holoCam.hoveredLantern = null;
       boardEl.style.cursor = node ? 'pointer' : 'grab';
       const hint = $('#hive-hover-hint');
       if (hint) {
         hint.textContent = node
-          ? `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · 点击查看详情`
-          : '悬停或点击节点查看详情 · 点击空白处或 Esc 返回全景';
+          ? `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · 点击聚焦（Shift+点击追踪两星最短证明路径）`
+          : '悬停或点击节点查看详情 · Shift+点击两节点连线 · 捏合/滚轮缩回全景';
       }
       return;
     }
@@ -7566,9 +8260,23 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       const hit = state.layer === 'galaxy' ? null : hitTowerAt(e.clientX, e.clientY);
       if (hit) {
         holoCam.hoveredGalaxy = null;
+        holoCam.hoveredLantern = null;
         boardEl.style.cursor = 'pointer';
         previewDepartment(hit);
       } else {
+        const lHit = hitLanternAt(e.clientX, e.clientY);
+        if (lHit) {
+          holoCam.hoveredLantern = lHit;
+          holoCam.hoveredGalaxy = null;
+          boardEl.style.cursor = 'pointer';
+          const hint = $('#hive-hover-hint');
+          if (hint) {
+            const vLabel = lHit.rec.verdict === 'refuted' ? '反驳' : '已证明';
+            hint.textContent = `✦ 猜想提灯（${vLabel}）· ${lHit.rec.title || lHit.rec.enTitle} · 点击阅读证明档案`;
+          }
+          return;
+        }
+        holoCam.hoveredLantern = null;
         const gHit = hitGalaxyAt(e.clientX, e.clientY);
         holoCam.hoveredGalaxy = gHit ? gHit.cl.id : null;
         boardEl.style.cursor = gHit ? 'pointer' : 'grab';
@@ -7591,10 +8299,10 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       const rect = boardEl.getBoundingClientRect();
       const node = pickGalaxyNode(galaxyDetail.picks, e.clientX - rect.left, e.clientY - rect.top);
       if (node) {
-        openGalaxyNode(node);
+        openGalaxyNode(node, Boolean(e.shiftKey));
         return;
       }
-      if (galaxyDetail.selectedKey) {
+      if (galaxyDetail.selectedKey || !$('#galaxy-node-card')?.hidden) {
         closeGalaxyNodeCard();
         return;
       }
@@ -7604,6 +8312,15 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       if (hit) {
         truthGrowth.manualFocus = null;
         selectDepartment(hit, true, true);
+        return;
+      }
+      const lHit = hitLanternAt(e.clientX, e.clientY);
+      if (lHit) {
+        openLanternConjectureCard(lHit);
+        return;
+      }
+      if (!$('#galaxy-node-card')?.hidden && !galaxyDetail.selectedKey) {
+        closeGalaxyNodeCard();
         return;
       }
       const gHit = hitGalaxyAt(e.clientX, e.clientY);
@@ -7637,7 +8354,9 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   });
 
   boardEl.addEventListener('dblclick', e => {
-    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card')) return;
+    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
+    skipIntroCinema();
+    stopCinemaDirector();
     holoCam.galaxyZoomScale = 1.0;
     const lp = LAYER_PRESETS[state.layer] || LAYER_PRESETS.mix;
     holoCam.targetYaw = 0.0;
@@ -7646,6 +8365,8 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   });
 
   const handleBoardZoom = (deltaY, ctrlKey, now = performance.now()) => {
+    skipIntroCinema();
+    stopCinemaDirector();
     const inGalaxy = Boolean(truthGrowth.manualFocus && !truthGrowth.manualFocus.closing);
     if (inGalaxy) {
       const res = stepGalaxyZoom(
@@ -7680,6 +8401,8 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   let safariGestureScale = 1;
   boardEl.addEventListener('gesturestart', e => {
     if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    skipIntroCinema();
+    stopCinemaDirector();
     e.preventDefault();
     safariGestureScale = e.scale || 1;
   }, { passive: false });
@@ -7699,6 +8422,45 @@ $('#galaxy-back-btn')?.addEventListener('click', () => {
 });
 $('#galaxy-home-btn')?.addEventListener('click', () => {
   exitGalaxyMainView(performance.now());
+});
+
+// Opening Cinema, Auto-Director Cruise & DAG Genesis Time-Scrub Controls
+$('#replay-intro-btn')?.addEventListener('click', () => startIntroCinema(performance.now()));
+$('#intro-skip-btn')?.addEventListener('click', () => {
+  skipIntroCinema();
+  syncInstituteRealm();
+});
+$('#cinema-director-btn')?.addEventListener('click', () => {
+  if (cinemaDirector.active) stopCinemaDirector();
+  else startCinemaDirector(performance.now());
+});
+$('#genesis-scrub-btn')?.addEventListener('click', () => {
+  genesisScrub.open = !genesisScrub.open;
+  if (genesisScrub.open) {
+    skipIntroCinema();
+    if (genesisScrub.value >= 0.98) genesisScrub.value = 0.08;
+    genesisScrub.playing = true;
+  } else {
+    genesisScrub.playing = false;
+    genesisScrub.value = 1.0;
+  }
+  updateGenesisScrubUI();
+});
+$('#genesis-play-btn')?.addEventListener('click', () => {
+  if (!genesisScrub.playing && genesisScrub.value >= 0.99) genesisScrub.value = 0.02;
+  genesisScrub.playing = !genesisScrub.playing;
+  updateGenesisScrubUI();
+});
+$('#genesis-slider')?.addEventListener('input', e => {
+  genesisScrub.playing = false;
+  genesisScrub.value = Math.max(0, Math.min(1, Number(e.target.value) / 100));
+  updateGenesisScrubUI();
+});
+$('#genesis-close-btn')?.addEventListener('click', () => {
+  genesisScrub.open = false;
+  genesisScrub.playing = false;
+  genesisScrub.value = 1.0;
+  updateGenesisScrubUI();
 });
 
 function applyLayer(layer) {
@@ -7741,12 +8503,18 @@ $('#human-sound-btn')?.addEventListener('click', () => {
   if (sciFiAudio.enabled) sciFiAudio.playStarHarp(0.6);
 });
 window.addEventListener('keydown', e => {
-  if (e.code !== 'Space' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   if (state.focused || state.mode !== 'organization') return;
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'button' || tag === 'a') return;
-  e.preventDefault();
-  triggerSonarSweep();
+  if (e.code === 'Space') {
+    e.preventDefault();
+    triggerSonarSweep();
+  } else if (e.code === 'KeyC') {
+    e.preventDefault();
+    if (cinemaDirector.active) stopCinemaDirector();
+    else startCinemaDirector(performance.now());
+  }
 });
 
 $('#hud-zen-toggle')?.addEventListener('click', e => {
@@ -8350,11 +9118,27 @@ document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
+    if (introCinema.active) {
+      skipIntroCinema();
+      syncInstituteRealm();
+      return;
+    }
+    if (cinemaDirector.active) {
+      stopCinemaDirector();
+      return;
+    }
+    if (genesisScrub.open) {
+      genesisScrub.open = false;
+      genesisScrub.playing = false;
+      genesisScrub.value = 1.0;
+      updateGenesisScrubUI();
+      return;
+    }
     if ($('#inline-browser') && !$('#inline-browser').hidden) {
       closeInlineBrowser();
       return;
     }
-    if (galaxyDetail.selectedKey) {
+    if (galaxyDetail.selectedKey || !$('#galaxy-node-card')?.hidden) {
       closeGalaxyNodeCard();
       return;
     }
@@ -8401,6 +9185,7 @@ try {
 updateControls();
 refreshSnapshot();
 refreshConjectures();
+refreshOutreachStats();
 refreshLive();
 setInterval(() => { if (!document.hidden) refreshSnapshot(); }, 60000);
 setInterval(() => { if (!document.hidden) refreshLive(); }, 15000);

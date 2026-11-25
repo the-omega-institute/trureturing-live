@@ -905,3 +905,43 @@ test('trackpad pinch and scroll zoom out step cleanly from DAG node to galaxy to
     assert.equal(doc.querySelector('#galaxy-back-bar').hidden,true,'hidden in panorama');
   }finally{dom.window.close();}
 });
+
+test('local showcase: DAG axiom path tracing, anonymized upstream outreach stats, and genesis scrub / cinema controls',async()=>{
+  const statsRaw=JSON.parse(await readFile(new URL('../site/data/outreach-stats.json',import.meta.url),'utf8'));
+  assert.equal(statsRaw.schema,'trureturing.outreach-stats.v1');
+  assert.equal(statsRaw.collaborating_scholars,223,'exact verified collaborating scholars from upstream outreach repo');
+  assert.equal(statsRaw.replied_scholars,485);
+  assert.equal(statsRaw.contacted_scholars,1049);
+  assert.equal(statsRaw.joint_papers,32);
+  assert.ok(!('emails' in statsRaw)&&!('scholars' in statsRaw),'zero PII exposed in public outreach-stats.json');
+
+  const {dom,win,doc}=await boot();try{
+    // 1. Backward axiom trace follows prerequisite edges down to roots
+    const details={stars:[
+      [null,'Axiom_0',null,null,0,null,0,1,[],[1]],
+      [null,'Lemma_1',null,null,1,null,1,1,[0],[2]],
+      [null,'Theorem_2',null,null,2,null,1,0,[1],[]]
+    ]};
+    const traceBack=win.traceDagPath(2,null,[[0,1],[1,2]],details);
+    assert.ok(traceBack&&traceBack.edges.length===2,'backward axiom trace walks 2->1->0');
+    assert.ok(traceBack.nodes.includes(0)&&traceBack.nodes.includes(2));
+
+    // 2. Two-star shortest path finds exact bridge
+    const tracePair=win.traceDagPath(0,2,[[0,1],[1,2],[2,3]],details);
+    assert.ok(tracePair&&tracePair.edges.length===2,'shortest path finds 0->1->2');
+
+    // 3. UI controls for genesis scrub, cinema director, and intro replay work cleanly
+    assert.ok(doc.querySelector('#cinema-director-btn'));
+    assert.ok(doc.querySelector('#replay-intro-btn'));
+    const scrubBar=doc.querySelector('#genesis-scrub-bar');
+    assert.equal(scrubBar.hidden,true,'genesis scrub bar starts hidden');
+    doc.querySelector('#genesis-scrub-btn').click();
+    assert.equal(scrubBar.hidden,false,'clicking 演化 opens genesis scrub bar');
+    const slider=doc.querySelector('#genesis-slider');
+    slider.value='50';
+    slider.dispatchEvent(new win.Event('input',{bubbles:true}));
+    assert.match(doc.querySelector('#genesis-meta').textContent,/50%/,'meta reflects 50% evolution');
+    doc.querySelector('#genesis-close-btn').click();
+    assert.equal(scrubBar.hidden,true,'close button hides genesis scrub bar');
+  }finally{dom.window.close();}
+});
