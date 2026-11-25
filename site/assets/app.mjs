@@ -3245,14 +3245,20 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   ctx.save();
   if (!isLight) ctx.globalCompositeOperation = 'lighter';
 
-  // PASS 1: Wide, airy Volumetric Cosmic Nebula Mist enveloping the 7 outer mathematical galaxies!
+  // PASS 1: Serene, atmospheric Volumetric Cosmic Nebula Mist enveloping the 7 outer mathematical galaxies!
+  const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
+  const clusterEmphasis = cid => {
+    if (focusK > 0.05) return cid === growthFocus?.cid ? 1.55 : 0.45;
+    if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.45 : 0.55;
+    return 1.0;
+  };
   for (const { cl, x: px, y: py, inv, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const weight = Math.min(1.42, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.48);
     const rad = Math.min(w, h) * 0.22 * weight * inv;
-    const pulse = 1.0 + (quiet ? 0 : 0.08 * Math.sin(tEff * 0.44 + cl.id * 1.1));
+    const pulse = 1.0 + (quiet ? 0 : 0.06 * Math.sin(tEff * 0.40 + cl.id * 1.1));
     const g = ctx.createRadialGradient(px, py, 6, px, py, rad * pulse);
-    const baseA = (isLight ? 0.052 : isBlueprint ? 0.082 : 0.098) * maskFor(cl.id, px, py) * growthDim(cl.id);
+    const baseA = (isLight ? 0.036 : isBlueprint ? 0.058 : 0.068) * maskFor(cl.id, px, py) * Math.min(1.4, clusterEmphasis(cl.id));
     g.addColorStop(0, rgba(col, baseA));
     g.addColorStop(0.52, rgba(col, baseA * 0.42));
     g.addColorStop(1, rgba(col, 0));
@@ -3262,30 +3268,29 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.fill();
   }
 
-  // PASS 2: Subtle Outer Cosmological Expansion Shockwaves (hugging the outer cosmos, clear of center!)
+  // PASS 2: Ultra-subtle single cosmological breath ring (calm deep-space horizon)
   const waveColor = isBlueprint ? [150, 215, 255] : isLight ? [15, 118, 110] : [0, 255, 168];
   const drawCosmicWave = (u, peakAlpha, lw) => {
-    if (u <= 0.58 || u >= 1.28) return;
+    if (u <= 0.62 || u >= 1.28) return;
     const rx = w * 0.45 * u;
     const ry = h * 0.45 * u;
-    const norm = (u - 0.58) / 0.70;
+    const norm = (u - 0.62) / 0.66;
     const fade = Math.sin(Math.min(1, norm) * Math.PI);
     ctx.strokeStyle = rgba(waveColor, fade * peakAlpha);
     ctx.lineWidth = lw;
-    ctx.setLineDash([6, 16]);
+    ctx.setLineDash([4, 18]);
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   };
-  drawCosmicWave(0.58 + (front0 / 1.30) * 0.70, isLight ? 0.09 : 0.13, 0.95);
-  drawCosmicWave(0.58 + (front1 / 1.30) * 0.70, isLight ? 0.06 : 0.09, 0.80);
+  drawCosmicWave(0.62 + (front0 / 1.30) * 0.66, isLight ? 0.035 : 0.048, 0.75);
   for (const rp of holoCam.nebulaRipples) {
-    drawCosmicWave(0.58 + rp.age * 0.70, isLight ? 0.12 : 0.22, 1.25);
+    drawCosmicWave(0.62 + rp.age * 0.66, isLight ? 0.07 : 0.12, 1.0);
   }
 
-  // PASS 3: PERIMETER-HUGGING CURVED INTER-GALAXY TRUTH DAG CONDUITS!
-  // Routes real cross-galaxy dependencies gracefully AROUND the outer cosmic ring — ZERO lines cut across the core!
+  // PASS 3: PERIMETER-HUGGING INTER-GALAXY TRUTH DAG CONDUITS
+  // Whisper-quiet hairlines at rest; illuminate with arrows & proof-packets when hovering or focusing a galaxy!
   const ringRx = w * 0.34;
   const ringRy = h * 0.385;
   const namedLinks = clusterLinks.filter(([u, v]) => {
@@ -3302,10 +3307,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     let diff = angB - angA;
     if (diff > Math.PI) diff -= Math.PI * 2;
     if (diff < -Math.PI) diff += Math.PI * 2;
-    // Skip far-opposite diagonals (> 145 deg) so every link sweeps cleanly along the outer perimeter!
     if (Math.abs(diff) > 2.55) continue;
 
-    // Sample 18 points smoothly along the outer elliptical cosmic arch (never entering core sanctuary!)
     const segs = 18;
     const pts = [];
     const rBoost = 1.0 + Math.min(0.14, Math.abs(diff) * 0.06) + (i % 3) * 0.025;
@@ -3318,9 +3321,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       pts.push([px, py]);
     }
 
+    const linkHot = focusCid != null && (fromId === focusCid || toId === focusCid);
     const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-    const lw = 0.85 + strength * 1.05;
-    const alpha = (isLight ? 0.24 : 0.26) + strength * (isLight ? 0.20 : 0.24);
+    const lw = linkHot ? (1.1 + strength * 0.9) : (0.55 + strength * 0.35);
+    const alpha = linkHot
+      ? ((isLight ? 0.38 : 0.42) + strength * 0.25)
+      : ((isLight ? 0.08 : 0.09) + strength * 0.06);
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
     grad.addColorStop(0, rgba(a.col, alpha));
     grad.addColorStop(1, rgba(b.col, alpha * 1.1));
@@ -3330,33 +3336,34 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
     ctx.stroke();
 
-    // Directional DAG chevron (▸) midway along the outer cosmic arc
-    const midIdx = Math.floor(segs * 0.52);
-    const p0 = pts[midIdx - 1], p1 = pts[midIdx];
-    const chAng = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
-    ctx.save();
-    ctx.translate(p1[0], p1[1]);
-    ctx.rotate(chAng);
-    ctx.strokeStyle = rgba(b.col, Math.min(0.90, alpha + 0.30));
-    ctx.lineWidth = Math.max(1.0, lw * 0.85);
-    ctx.beginPath();
-    ctx.moveTo(-3.8, -2.6); ctx.lineTo(2.8, 0); ctx.lineTo(-3.8, 2.6);
-    ctx.stroke();
-    ctx.restore();
+    // Show directional DAG chevrons & gliding proof-packets ONLY on highlighted galaxy links!
+    if (linkHot) {
+      const midIdx = Math.floor(segs * 0.52);
+      const p0 = pts[midIdx - 1], p1 = pts[midIdx];
+      const chAng = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+      ctx.save();
+      ctx.translate(p1[0], p1[1]);
+      ctx.rotate(chAng);
+      ctx.strokeStyle = rgba(b.col, Math.min(0.92, alpha + 0.30));
+      ctx.lineWidth = Math.max(1.0, lw * 0.85);
+      ctx.beginPath();
+      ctx.moveTo(-3.8, -2.6); ctx.lineTo(2.8, 0); ctx.lineTo(-3.8, 2.6);
+      ctx.stroke();
+      ctx.restore();
 
-    // Gliding proof-packet traveling in the TRUE DAG direction along the perimeter arc
-    if (!quiet) {
-      const pu = (tEff * (0.14 + strength * 0.07) + i * 0.21) % 1;
-      const fIdx = pu * segs;
-      const i0 = Math.min(segs - 1, Math.floor(fIdx));
-      const frac = fIdx - i0;
-      const px = pts[i0][0] + (pts[i0 + 1][0] - pts[i0][0]) * frac;
-      const py = pts[i0][1] + (pts[i0 + 1][1] - pts[i0][1]) * frac;
-      const fade = Math.sin(pu * Math.PI);
-      ctx.fillStyle = rgba(b.col, fade * (isLight ? 0.32 : 0.42));
-      ctx.beginPath(); ctx.arc(px, py, 3.2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = isLight ? rgba(b.col, fade * 0.86) : rgba([235, 255, 245], fade * 0.90);
-      ctx.beginPath(); ctx.arc(px, py, 1.35, 0, Math.PI * 2); ctx.fill();
+      if (!quiet) {
+        const pu = (tEff * (0.16 + strength * 0.08) + i * 0.21) % 1;
+        const fIdx = pu * segs;
+        const i0 = Math.min(segs - 1, Math.floor(fIdx));
+        const frac = fIdx - i0;
+        const px = pts[i0][0] + (pts[i0 + 1][0] - pts[i0][0]) * frac;
+        const py = pts[i0][1] + (pts[i0 + 1][1] - pts[i0][1]) * frac;
+        const fade = Math.sin(pu * Math.PI);
+        ctx.fillStyle = rgba(b.col, fade * (isLight ? 0.36 : 0.46));
+        ctx.beginPath(); ctx.arc(px, py, 3.0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = isLight ? rgba(b.col, fade * 0.88) : rgba([235, 255, 245], fade * 0.92);
+        ctx.beginPath(); ctx.arc(px, py, 1.35, 0, Math.PI * 2); ctx.fill();
+      }
     }
   }
 
@@ -3382,12 +3389,14 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     projLit[i] = lit;
   }
 
-  // PASS 5: AIRY BRANCHING INTRA-GALAXY DAG TREES (strictly masked outside core sanctuary!)
+  // PASS 5: SERENE INTRA-GALAXY DAG TREES (soft atmospheric depth at rest; crystal-sharp on hover/close-up!)
   for (let cid = 0; cid < clusters.length; cid++) {
     const col = nebPalette[cid % nebPalette.length];
-    const branchDim = growthDim(clusters[cid]?.id ?? cid);
-    ctx.strokeStyle = rgba(col, (isLight ? 0.24 : 0.26) * branchDim);
-    ctx.lineWidth = 0.72;
+    const clId = clusters[cid]?.id ?? cid;
+    const isSpot = focusCid != null && clId === focusCid;
+    const branchDim = clusterEmphasis(clId);
+    ctx.strokeStyle = rgba(col, (isSpot ? (isLight ? 0.36 : 0.40) : (isLight ? 0.11 : 0.13)) * Math.min(1.2, branchDim));
+    ctx.lineWidth = isSpot ? 0.92 : 0.55;
     ctx.beginPath();
     let countNormal = 0;
     for (let i = 0; i < edges.length; i++) {
@@ -3395,8 +3404,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      // Never draw stray DAG branches inside the central foreground core!
-      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.35) continue;
+      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.40) continue;
       if (Math.max(projLit[u], projLit[v]) > 0.52) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
@@ -3404,8 +3412,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
     if (countNormal) ctx.stroke();
 
-    ctx.strokeStyle = isLight ? rgba(col, 0.50 * branchDim) : rgba([205, 255, 235], 0.50 * branchDim);
-    ctx.lineWidth = 1.05;
+    ctx.strokeStyle = isLight
+      ? rgba(col, (isSpot ? 0.55 : 0.22) * Math.min(1.2, branchDim))
+      : rgba([205, 255, 235], (isSpot ? 0.56 : 0.22) * Math.min(1.2, branchDim));
+    ctx.lineWidth = isSpot ? 1.1 : 0.72;
     ctx.beginPath();
     let countHot = 0;
     for (let i = 0; i < edges.length; i++) {
@@ -3413,7 +3423,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.35) continue;
+      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.40) continue;
       if (Math.max(projLit[u], projLit[v]) <= 0.52) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
@@ -3422,31 +3432,33 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     if (countHot) ctx.stroke();
   }
 
-  // PASS 6: Render 1,160 Airy Real Truth DAG Stars (fine diamond stardust, 0 glare in core!)
+  // PASS 6: Render 1,160 Airy Real Truth DAG Stars (calm deep-space stardust; brightens cleanly on hover/focus!)
   for (let i = 0; i < n; i++) {
     const s = stars[i];
     const px = projX[i], py = projY[i];
     if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
     const mask = maskFor(s[3], px, py);
+    const isSpot = focusCid != null && s[3] === focusCid;
     const grow = focusK > 0 && s[3] === growthFocus.cid ? 1 + 0.55 * focusK : 1;
-    if (mask < 0.08) continue;
+    if (mask < 0.12) continue;
     const col = nebPalette[s[3] % nebPalette.length];
     const degW = s[5];
     const lit = projLit[i];
-    const aCore = ((isLight ? 0.36 : 0.38) + lit * (isLight ? 0.30 : 0.38) + (degW >= 7 ? 0.16 : 0)) * mask * growthDim(s[3]);
+    const depthScale = isSpot ? 1.0 : 0.56;
+    const aCore = ((isLight ? 0.34 : 0.36) + lit * 0.28 + (degW >= 7 ? 0.14 : 0)) * mask * depthScale * Math.min(1.2, clusterEmphasis(s[3]));
 
-    if (degW >= 7 || lit > 0.68) {
-      const rCore = ((degW >= 8 ? 1.55 : 1.05) + lit * 0.40) * grow;
-      ctx.fillStyle = rgba(col, Math.min(0.24, aCore * 0.32));
+    if (degW >= 7 || lit > 0.72) {
+      const rCore = ((degW >= 8 ? 1.40 : 0.95) + lit * 0.35) * grow;
+      ctx.fillStyle = rgba(col, Math.min(0.20, aCore * 0.30));
       ctx.beginPath();
-      ctx.arc(px, py, rCore * 2.2, 0, Math.PI * 2);
+      ctx.arc(px, py, rCore * 2.1, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = isLight ? rgba(col, Math.min(0.80, aCore)) : rgba([230, 255, 244], Math.min(0.88, aCore));
+      ctx.fillStyle = isLight ? rgba(col, Math.min(0.84, aCore)) : rgba([230, 255, 244], Math.min(0.90, aCore));
       ctx.beginPath();
       ctx.arc(px, py, rCore, 0, Math.PI * 2);
       ctx.fill();
-      if (degW >= 9 && !isLight && mask > 0.65) {
-        const sp = rCore * 3.8;
+      if (isSpot && degW >= 9 && !isLight && mask > 0.65) {
+        const sp = rCore * 3.6;
         ctx.strokeStyle = rgba(col, Math.min(0.46, aCore * 0.52));
         ctx.lineWidth = 0.65;
         ctx.beginPath();
@@ -3455,8 +3467,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         ctx.stroke();
       }
     } else {
-      const sz = (degW >= 5 ? 1.55 : 1.15) * grow;
-      ctx.fillStyle = rgba(col, Math.min(0.72, aCore));
+      const sz = (degW >= 5 ? 1.35 : 1.0) * grow;
+      ctx.fillStyle = rgba(col, Math.min(0.65, aCore));
       ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
     }
   }
@@ -3464,69 +3476,52 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   // PASS 6B: Live growth — newly frozen modules sprout from their parents and light up.
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
 
-  // PASS 7: 144 CONTINUOUSLY SPROUTING FRONTIER DAG BRANCHES (expanding outward into deep cosmos!)
+  // PASS 7: Subtle outward Frontier DAG twigs (quiet cosmic growth; full brilliance on hovered/focused galaxy!)
   for (let k = 0; k < truthNebula.frontier.length; k++) {
     const f = truthNebula.frontier[k];
     const pStar = stars[f.parentIdx];
     const u = quiet ? ((f.phase * 0.70 + 0.18) % 1) : ((tEff * f.speed + f.phase) % 1);
-    const dist = Math.pow(u, 0.82) * 0.55;
+    const dist = Math.pow(u, 0.82) * 0.52;
     const fx = pStar[0] / 1000 + f.vx * dist;
     const fy = pStar[1] / 1000 + f.vy * dist;
     const fz = pStar[2] / 1000 + f.vz * dist;
     const [px, py] = projectNeb(fx, fy, fz);
     if (px < -12 || px > w + 12 || py < -12 || py > h + 12) continue;
     const mask = maskFor(f.cid, px, py);
-    if (mask < 0.25) continue;
+    if (mask < 0.30) continue;
     const col = nebPalette[f.cid % nebPalette.length];
-    const fade = Math.sin(u * Math.PI) * mask * Math.min(1, growthDim(f.cid));
+    const isSpot = focusCid != null && f.cid === focusCid;
+    const fade = Math.sin(u * Math.PI) * mask * (isSpot ? 1.0 : 0.42);
 
     if (u < 0.78) {
-      const branchA = (1 - u / 0.78) * fade * (isLight ? 0.36 : 0.48);
+      const branchA = (1 - u / 0.78) * fade * (isLight ? 0.28 : 0.34);
       ctx.strokeStyle = rgba(col, branchA);
-      ctx.lineWidth = 0.85;
+      ctx.lineWidth = isSpot ? 0.85 : 0.55;
       ctx.beginPath();
       ctx.moveTo(projX[f.parentIdx], projY[f.parentIdx]);
       ctx.lineTo(px, py);
       ctx.stroke();
     }
-    ctx.fillStyle = rgba(col, fade * (isLight ? 0.22 : 0.32));
+    ctx.fillStyle = isLight ? rgba(col, fade * 0.65) : rgba([235, 255, 245], fade * 0.72);
     ctx.beginPath();
-    ctx.arc(px, py, f.size * 1.9, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = isLight ? rgba(col, fade * 0.80) : rgba([235, 255, 245], fade * 0.88);
-    ctx.beginPath();
-    ctx.arc(px, py, f.size * 0.82, 0, Math.PI * 2);
+    ctx.arc(px, py, f.size * 0.72, 0, Math.PI * 2);
     ctx.fill();
   }
 
   ctx.restore();
 
-  // PASS 8: CRISP ASTRONOMICAL TRUTH DAG GALAXY LABELS IN WIDE OPEN PERIMETER SKY!
+  // PASS 8: MINIMALIST ASTRONOMICAL GALAXY LABELS (whisper-quiet single line, zero leader-line clutter!)
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
-  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(2, 10, 5, 0.94)';
-
-  if (truthNebula.counts?.truth_nodes && focusK < 1) {
-    ctx.globalAlpha = 1 - focusK;
-    const hdr = `TRUTH DAG NEBULA // ${truthNebula.counts.truth_nodes.toLocaleString()} FROZEN THEOREMS · ${(truthNebula.counts.truth_edges || 0).toLocaleString()} DEPENDENCIES`;
-    ctx.font = '700 9px "Geist Mono", ui-monospace, monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = strokeHalo;
-    ctx.strokeText(hdr, w * 0.5, 62);
-    ctx.fillStyle = isLight ? 'rgba(15, 118, 110, 0.78)' : isBlueprint ? 'rgba(150, 215, 255, 0.72)' : 'rgba(0, 242, 152, 0.74)';
-    ctx.fillText(hdr, w * 0.5, 62);
-    ctx.globalAlpha = 1;
-  }
+  const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.92)' : 'rgba(2, 10, 5, 0.90)';
 
   holoCam.projectedGalaxies.clear();
   for (const { cl, x: px, y: py, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const isBottom = cl.center[1] < 0;
-    const lx = Math.max(308, Math.min(w - 308, px));
-    const ly = isBottom ? Math.min(h - 104, py + 38) : Math.max(84, py - 34);
-    if (lx < 276 || lx > w - 276) continue;
+    const lx = Math.max(324, Math.min(w - 324, px));
+    const ly = isBottom ? Math.min(h - 118, py + 26) : Math.max(76, py - 24);
+    if (lx < 292 || lx > w - 292) continue;
 
     holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
     const isHovered = holoCam.hoveredGalaxy === cl.id && focusK < 0.2;
@@ -3544,34 +3539,24 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.restore();
     }
 
-    ctx.strokeStyle = rgba(col, isHovered ? 0.88 : (isLight ? 0.52 : 0.44));
-    ctx.lineWidth = isHovered ? 1.25 : 0.85;
-    ctx.beginPath();
-    ctx.moveTo(lx, isBottom ? ly - 10 : ly + 10);
-    ctx.lineTo(px, py + (isBottom ? 10 : -10));
-    ctx.stroke();
-
-    ctx.fillStyle = rgba(col, isLight ? 0.90 : 0.88);
-    ctx.beginPath();
-    ctx.arc(lx, isBottom ? ly - 10 : ly + 10, isHovered ? 2.6 : 1.9, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.globalAlpha = Math.min(1, growthDim(cl.id));
+    ctx.globalAlpha = focusK > 0.05 ? Math.min(1, growthDim(cl.id)) : (isHovered ? 1.0 : 0.64);
     const mainLabel = `${cl.zh || cl.name} · ${(cl.count || 0).toLocaleString()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${isHovered ? '800 10px' : '700 9.5px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
-    ctx.lineWidth = 3.2;
+    ctx.font = `${isHovered ? '800 10px' : '600 9px'} "Geist Mono", -apple-system, "PingFang SC", sans-serif`;
+    ctx.lineWidth = 3.0;
     ctx.strokeStyle = strokeHalo;
     ctx.strokeText(mainLabel, lx, ly);
-    ctx.fillStyle = isLight ? rgba(col, 0.96) : rgba(col, isHovered ? 1.0 : 0.88);
+    ctx.fillStyle = isLight ? rgba(col, isHovered ? 1.0 : 0.86) : rgba(col, isHovered ? 1.0 : 0.82);
     ctx.fillText(mainLabel, lx, ly);
 
-    const subText = isHovered ? `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗` : (cl.en || cl.name.toUpperCase());
-    ctx.font = '600 7.6px "Geist Mono", ui-monospace, monospace';
-    ctx.strokeText(subText, lx, ly + (isBottom ? 11 : -11));
-    ctx.fillStyle = isLight ? rgba(col, isHovered ? 0.95 : 0.78) : rgba([215, 248, 232], isHovered ? 0.92 : 0.60);
-    ctx.fillText(subText, lx, ly + (isBottom ? 11 : -11));
+    if (isHovered) {
+      const subText = `${cl.en || cl.name.toUpperCase()} · 点击特写 ↗`;
+      ctx.font = '600 7.8px "Geist Mono", ui-monospace, monospace';
+      ctx.strokeText(subText, lx, ly + (isBottom ? 12 : -12));
+      ctx.fillStyle = isLight ? rgba(col, 0.95) : rgba([215, 248, 232], 0.92);
+      ctx.fillText(subText, lx, ly + (isBottom ? 12 : -12));
+    }
     ctx.globalAlpha = 1;
   }
   if (growthFocus && focusK > 0) {
@@ -4505,7 +4490,7 @@ function drawHolo3DFrame(dt = 0.016) {
       const px = col.u * w;
       // Gently attenuate in dead center so the 3D campus pops with crisp Matrix atmosphere on the flanks
       const centerDist = Math.abs(col.u - 0.5) * 2;
-      const zoneFade = 0.44 + centerDist * 0.62;
+      const zoneFade = 0.22 + centerDist * 0.62;
       const stepY = col.size + 4;
       const rows = Math.ceil(h / stepY) + col.len + 6;
       const headRow = Math.floor((tRain * col.speed + col.phase) % rows);
@@ -4517,10 +4502,10 @@ function drawHolo3DFrame(dt = 0.016) {
         const gIdx = Math.abs((col.seed + r * 7 + Math.floor(tRain * 1.4) * (k === 0 ? 3 : 0)) % matrixGlyphs.length);
         const ch = matrixGlyphs[gIdx];
         if (k === 0) {
-          ctx.fillStyle = `rgba(218, 255, 232, ${(0.34 * col.depth * zoneFade).toFixed(3)})`;
+          ctx.fillStyle = `rgba(218, 255, 232, ${(0.16 * col.depth * zoneFade).toFixed(3)})`;
         } else {
-          const decay = Math.pow(1 - k / col.len, 1.38);
-          ctx.fillStyle = `rgba(0, 238, 122, ${(0.19 * decay * col.depth * zoneFade).toFixed(3)})`;
+          const decay = Math.pow(1 - k / col.len, 1.45);
+          ctx.fillStyle = `rgba(0, 238, 122, ${(0.085 * decay * col.depth * zoneFade).toFixed(3)})`;
         }
         ctx.fillText(ch, px, py);
       }
@@ -4667,39 +4652,39 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.gazeX += (gazeTarget.x - holoCam.gazeX) * 0.09;
   holoCam.gazeZ += (gazeTarget.z - holoCam.gazeZ) * 0.09;
 
-  // 4A. Crisp Receding 3D Matrix Construct Floor Grid
+  // 4A. Quiet Receding 3D Matrix Construct Floor Grid (atmospheric depth, zero clutter)
   ctx.save();
-  for (let gx = -9; gx <= 9; gx += 1.5) {
-    const edgeFade = 1 - Math.abs(gx) / 11;
+  for (let gx = -8; gx <= 8; gx += 2.0) {
+    const edgeFade = 1 - Math.abs(gx) / 10;
     draw3DSeg(
-      project(gx, -0.04, -5.0),
-      project(gx, -0.04, 6.8),
-      rgba(matrixRGB, (isLight ? 0.07 : isBlueprint ? 0.11 : 0.095) * edgeFade),
-      0.8
+      project(gx, -0.04, -4.8),
+      project(gx, -0.04, 6.4),
+      rgba(matrixRGB, (isLight ? 0.042 : isBlueprint ? 0.055 : 0.046) * edgeFade),
+      0.7
     );
   }
-  for (let gz = -4.5; gz <= 6.5; gz += 1.5) {
-    const zFade = 1 - Math.abs(gz - 0.8) / 7.2;
+  for (let gz = -4.0; gz <= 6.0; gz += 2.0) {
+    const zFade = 1 - Math.abs(gz - 0.8) / 7.0;
     draw3DSeg(
-      project(-9.2, -0.04, gz),
-      project(9.2, -0.04, gz),
-      rgba(matrixRGB, (isLight ? 0.07 : isBlueprint ? 0.11 : 0.095) * Math.max(0.25, zFade)),
-      0.8
+      project(-8.6, -0.04, gz),
+      project(8.6, -0.04, gz),
+      rgba(matrixRGB, (isLight ? 0.042 : isBlueprint ? 0.055 : 0.046) * Math.max(0.25, zFade)),
+      0.7
     );
   }
   ctx.restore();
 
-  // 4B. Symmetric Bidirectional Oversight & Telemetry Field between ENTIRE 4-Sector Campus & Akasha Eye!
+  // 4B. Serene Symmetric Oversight Veil & Gentle Upward Telemetry into the Akasha Eye
   const eyeOrigin = project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
-  const rimL = project(-6.85, 0.05, -0.35);
-  const rimR = project( 6.85, 0.05, -0.35);
+  const rimL = project(-6.45, 0.05, -0.35);
+  const rimR = project( 6.45, 0.05, -0.35);
   const eyeBoost = activeId === 'direction' ? 1.55 : 1.0;
   if (eyeOrigin && rimL && rimR) {
     ctx.save();
     if (!isLight) ctx.globalCompositeOperation = 'lighter';
     const veil = ctx.createLinearGradient(eyeOrigin.x, eyeOrigin.y, eyeOrigin.x, Math.max(rimL.y, rimR.y));
-    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.11 : 0.14) * eyeBoost));
-    veil.addColorStop(0.50, rgba(tier1RGB, (isLight ? 0.032 : 0.036) * eyeBoost));
+    veil.addColorStop(0, rgba(tier1RGB, (isLight ? 0.075 : 0.095) * eyeBoost));
+    veil.addColorStop(0.48, rgba(tier1RGB, (isLight ? 0.020 : 0.024) * eyeBoost));
     veil.addColorStop(1, rgba(tier1RGB, 0));
     ctx.fillStyle = veil;
     ctx.beginPath();
@@ -4709,24 +4694,7 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.closePath();
     ctx.fill();
 
-    // Four symmetric oversight sightlines embracing both sovereign wings + bridge
-    const fieldAnchors = [
-      [-6.85, 0.05, -0.35, 0.16],
-      [-3.10, 0.05, -2.80, 0.10],
-      [ 3.10, 0.05, -2.80, 0.10],
-      [ 6.85, 0.05, -0.35, 0.16]
-    ];
-    ctx.lineWidth = 0.95;
-    ctx.setLineDash([4, 7]);
-    for (const [ax, ay, az, al] of fieldAnchors) {
-      const pA = project(ax, ay, az);
-      if (!pA) continue;
-      ctx.strokeStyle = rgba(tier1RGB, Math.min(0.65, (isLight ? al * 1.2 : al) * eyeBoost));
-      ctx.beginPath(); ctx.moveTo(eyeOrigin.x, eyeOrigin.y); ctx.lineTo(pA.x, pA.y); ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    // Continuous upward observation/feedback streams rising symmetrically from ALL 7 departments into the Eye!
+    // Gentle symmetric upward feedback sparks rising from all 7 departments into the Eye
     if (!state.quiet && !reduced) {
       const streamDepts = ['research', 'review', 'outreach', 'verification', 'publication', 'studio', 'books'];
       const sampleUp = (src, u) => {
@@ -4739,41 +4707,29 @@ function drawHolo3DFrame(dt = 0.016) {
       for (let i = 0; i < streamDepts.length; i++) {
         const src = holoWorld[streamDepts[i]];
         if (!src) continue;
-        const col = isBlueprint ? [150, 215, 255] : src.hex;
-        for (let wave = 0; wave < 2; wave++) {
-          const u = (t * 0.23 + i / streamDepts.length + wave * 0.5) % 1;
-          const uTail = Math.max(0, u - 0.11);
-          const ptHead = sampleUp(src, u);
-          const ptTail = sampleUp(src, uTail);
-          if (!ptHead || !ptTail) continue;
-          const fade = Math.sin(u * Math.PI) * Math.min(1.25, eyeBoost);
-          const stGrad = ctx.createLinearGradient(ptTail.x, ptTail.y, ptHead.x, ptHead.y);
-          stGrad.addColorStop(0, rgba(col, 0));
-          stGrad.addColorStop(0.55, rgba(col, fade * (isLight ? 0.40 : 0.48)));
-          stGrad.addColorStop(1, rgba(isLight ? tier1RGB : [255, 245, 210], fade * (isLight ? 0.70 : 0.85)));
-          ctx.strokeStyle = stGrad;
-          ctx.lineWidth = isLight ? 1.45 : 1.35;
-          ctx.beginPath(); ctx.moveTo(ptTail.x, ptTail.y); ctx.lineTo(ptHead.x, ptHead.y); ctx.stroke();
-          ctx.fillStyle = rgba(isLight ? tier1RGB : [255, 248, 224], fade * 0.88);
-          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 1.7, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = rgba(col, fade * 0.34);
-          ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 3.8, 0, Math.PI * 2); ctx.fill();
-        }
+        const col = isBlueprint ? [150, 215, 255] : tier1RGB;
+        const u = (t * 0.19 + i / streamDepts.length) % 1;
+        const uTail = Math.max(0, u - 0.08);
+        const ptHead = sampleUp(src, u);
+        const ptTail = sampleUp(src, uTail);
+        if (!ptHead || !ptTail) continue;
+        const fade = Math.sin(u * Math.PI) * Math.min(1.15, eyeBoost) * 0.62;
+        const stGrad = ctx.createLinearGradient(ptTail.x, ptTail.y, ptHead.x, ptHead.y);
+        stGrad.addColorStop(0, rgba(col, 0));
+        stGrad.addColorStop(1, rgba(isLight ? tier1RGB : [255, 245, 210], fade * 0.72));
+        ctx.strokeStyle = stGrad;
+        ctx.lineWidth = 1.0;
+        ctx.beginPath(); ctx.moveTo(ptTail.x, ptTail.y); ctx.lineTo(ptHead.x, ptHead.y); ctx.stroke();
+        ctx.fillStyle = rgba(isLight ? tier1RGB : [255, 248, 224], fade * 0.85);
+        ctx.beginPath(); ctx.arc(ptHead.x, ptHead.y, 1.35, 0, Math.PI * 2); ctx.fill();
       }
-      // Subtle downward golden supervisory pulse wave descending symmetrically over the entire campus
-      const dw = (t * 0.26) % 1;
-      const wy = eyeCfg.y - 0.30 - dw * (eyeCfg.y - 0.36);
-      const wz = eyeCfg.z + dw * (hubZ - eyeCfg.z);
-      const wrx = 0.65 + dw * 5.85;
-      const wrz = 0.30 + dw * 3.10;
-      draw3DRing(0, wy, wz, wrx, wrz, 48, rgba(tier1RGB, Math.sin(dw * Math.PI) * (isLight ? 0.26 : 0.24) * eyeBoost), 1.1, [5, 7]);
     }
     ctx.restore();
   }
 
-  // 4C. FOUR SOVEREIGN ARCHITECTURAL WING TERRACES (Clear Departmental Architecture!)
+  // 4C. FOUR CLEAN SOVEREIGN ARCHITECTURAL WING TERRACES (Minimalist hairlines at rest, crisp glow when active)
   const drawSectorTerrace = (sx, sz, hx, hz, rgb, isHot = false) => {
-    const ch = 0.38; // architectural chamfered corners
+    const ch = 0.36;
     const poly = [
       [sx - hx + ch, sz - hz], [sx + hx - ch, sz - hz],
       [sx + hx, sz - hz + ch], [sx + hx, sz + hz - ch],
@@ -4786,29 +4742,13 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.beginPath();
     pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.closePath();
-    ctx.fillStyle = isLight ? 'rgba(249, 247, 240, 0.78)' : rgba(rgb, isHot ? 0.095 : 0.048);
+    ctx.fillStyle = isLight
+      ? (isHot ? 'rgba(255, 253, 247, 0.76)' : 'rgba(249, 247, 240, 0.44)')
+      : rgba(rgb, isHot ? 0.075 : 0.024);
     ctx.fill();
-    ctx.strokeStyle = rgba(rgb, isLight ? (isHot ? 0.65 : 0.38) : (isHot ? 0.78 : 0.36));
-    ctx.lineWidth = isHot ? 1.8 : 1.25;
+    ctx.strokeStyle = rgba(rgb, isLight ? (isHot ? 0.62 : 0.22) : (isHot ? 0.70 : 0.19));
+    ctx.lineWidth = isHot ? 1.55 : 0.95;
     ctx.stroke();
-
-    // Crisp illuminated architectural corner brackets on all 4 corners
-    const bLen = 0.55;
-    const corners = [
-      [[sx - hx, sz - hz + bLen], [sx - hx, sz - hz + ch], [sx - hx + ch, sz - hz], [sx - hx + bLen, sz - hz]],
-      [[sx + hx - bLen, sz - hz], [sx + hx - ch, sz - hz], [sx + hx, sz - hz + ch], [sx + hx, sz - hz + bLen]],
-      [[sx + hx, sz + hz - bLen], [sx + hx, sz + hz - ch], [sx + hx - ch, sz + hz], [sx + hx - bLen, sz + hz]],
-      [[sx - hx + bLen, sz + hz], [sx - hx + ch, sz + hz], [sx - hx, sz + hz - ch], [sx - hx, sz + hz - bLen]]
-    ];
-    ctx.strokeStyle = rgba(rgb, isLight ? 0.80 : 0.92);
-    ctx.lineWidth = 2.0;
-    for (const br of corners) {
-      const bp = br.map(([bx, bz]) => project(bx, 0.025, bz));
-      if (bp.some(p => !p)) continue;
-      ctx.beginPath();
-      bp.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.stroke();
-    }
     ctx.restore();
   };
 
@@ -5024,79 +4964,74 @@ function drawHolo3DFrame(dt = 0.016) {
   const bkRevHot = activeId === 'books' || activeId === 'review' || activeId === 'research';
   const loopClosedHot = activeId === 'research' || activeId === 'publication' || activeId === 'outreach';
 
+  // Calm unified resting tint for inactive routes; signature neon only on active/hovered routes!
+  const calmRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [64, 210, 155];
+
   // A. LEFT LEAN BRIDGE SPAN: Sector 01 (数学攻坚 / 独立评审) ⇄ Central Lean Bridge (形式验证)
   drawConduit3D(
     [[-4.45, 0.06, -2.40], [-3.20, 0.14, -0.68], [-1.35, 0.22, -0.55]],
-    isBlueprint ? [150, 215, 255] : [29, 255, 130],
-    { lw: thHot ? 3.0 : 2.1, alpha: thHot ? 0.96 : 0.76, particles: 4, speed: 0.44, bidir: true }
+    thHot ? (isBlueprint ? [150, 215, 255] : [29, 255, 130]) : calmRGB,
+    { lw: thHot ? 2.6 : 1.35, alpha: thHot ? 0.92 : 0.36, particles: thHot ? 3 : 1, speed: 0.42, bidir: true, chevrons: thHot }
   );
   drawConduit3D(
     [[-5.10, 0.06, 1.45], [-3.20, 0.14, -0.20], [-1.35, 0.22, -0.32]],
-    isBlueprint ? [150, 215, 255] : [184, 148, 255],
-    { lw: rvHot ? 2.5 : 1.5, alpha: rvHot ? 0.92 : 0.50, particles: rvHot ? 3 : 1, speed: 0.40 }
+    rvHot ? (isBlueprint ? [150, 215, 255] : [184, 148, 255]) : calmRGB,
+    { lw: rvHot ? 2.3 : 1.0, alpha: rvHot ? 0.88 : 0.22, particles: rvHot ? 2 : 0, speed: 0.38, chevrons: rvHot }
   );
 
-  // B. RIGHT LEAN BRIDGE SPAN — THE OUTREACH ENGINE LOOP:
-  //    trureturing (Lean) ▸ 论文与知识 ⇄ 对外合作 ⇄ 论文 ▸ 写回形式化 (Lean)!
-  // Upper lane: Lean 桥梁 ▸ 论文与知识 (verified results -> short notes, DOIs, Mathesis papers)
+  // B. RIGHT LEAN BRIDGE SPAN — THE OUTREACH ENGINE LOOP
   drawConduit3D(
     [[1.35, 0.22, -0.55], [3.20, 0.14, -0.68], [4.45, 0.06, -2.40]],
-    isBlueprint ? [150, 215, 255] : [61, 242, 180],
-    { lw: pbHot ? 3.0 : 2.1, alpha: pbHot ? 0.96 : 0.78, particles: 4, speed: 0.44, bidir: true }
+    pbHot ? (isBlueprint ? [150, 215, 255] : [61, 242, 180]) : calmRGB,
+    { lw: pbHot ? 2.6 : 1.35, alpha: pbHot ? 0.92 : 0.36, particles: pbHot ? 3 : 1, speed: 0.42, bidir: true, chevrons: pbHot }
   );
-  // Lower lane: 学术交流 (对外合作) ▸ Lean 桥梁 (write-back formalization requests!)
   drawConduit3D(
     [[5.10, 0.06, 1.45], [3.20, 0.14, -0.20], [1.35, 0.22, -0.32]],
-    isBlueprint ? [150, 215, 255] : [245, 161, 86],
-    { lw: coHot ? 3.0 : 2.1, alpha: coHot ? 0.96 : 0.76, particles: 4, speed: 0.42 }
+    coHot ? (isBlueprint ? [150, 215, 255] : [245, 161, 86]) : calmRGB,
+    { lw: coHot ? 2.5 : 1.05, alpha: coHot ? 0.90 : 0.24, particles: coHot ? 2 : 0, speed: 0.40, chevrons: coHot }
   );
 
   // C. SOUTH-LEFT LEAN BRIDGE SPAN: Sector 03 (独立理论书写部) ⇄ Central Lean Bridge
   drawConduit3D(
     [[-2.75, 0.06, 4.45], [-1.45, 0.14, 2.25], [-0.45, 0.22, 0.78]],
-    isBlueprint ? [150, 215, 255] : [217, 150, 245],
-    { lw: bkHot ? 2.8 : 2.0, alpha: bkHot ? 0.96 : 0.72, particles: 3, speed: 0.40, bidir: true }
+    bkHot ? (isBlueprint ? [150, 215, 255] : [217, 150, 245]) : calmRGB,
+    { lw: bkHot ? 2.4 : 1.05, alpha: bkHot ? 0.90 : 0.24, particles: bkHot ? 2 : 0, speed: 0.38, bidir: true, chevrons: bkHot }
   );
 
-  // D. SOVEREIGN INTRA-WING LOOPS!
-  // Sector 01 internal vertical loop: 数学攻坚 ⇄ 独立评审
+  // D. SOVEREIGN INTRA-WING LOOPS
   drawConduit3D(
     [[-5.40, 0.06, -2.05], [-5.75, 0.06, -0.45], [-5.95, 0.06, 1.15]],
-    isBlueprint ? [150, 215, 255] : [184, 148, 255],
-    { lw: rrHot ? 2.8 : 1.9, alpha: rrHot ? 0.96 : 0.68, particles: 2, speed: 0.44, bidir: true }
+    rrHot ? (isBlueprint ? [150, 215, 255] : [184, 148, 255]) : calmRGB,
+    { lw: rrHot ? 2.3 : 1.0, alpha: rrHot ? 0.88 : 0.24, particles: rrHot ? 2 : 0, speed: 0.42, bidir: true, chevrons: rrHot }
   );
-  // Sector 02 (OUTREACH ENGINE) internal bidirectional loop: 短文·论文 ⇄ 对外合作 ⇄ 合作论文!
   drawConduit3D(
     [[5.40, 0.06, -2.05], [5.75, 0.06, -0.45], [5.95, 0.06, 1.15]],
-    isBlueprint ? [150, 215, 255] : [245, 161, 86],
-    { lw: poHot ? 3.0 : 2.2, alpha: poHot ? 0.98 : 0.78, particles: 3, speed: 0.44, bidir: true }
+    poHot ? (isBlueprint ? [150, 215, 255] : [245, 161, 86]) : calmRGB,
+    { lw: poHot ? 2.4 : 1.05, alpha: poHot ? 0.90 : 0.26, particles: poHot ? 2 : 0, speed: 0.42, bidir: true, chevrons: poHot }
   );
 
-  // E. INDEPENDENT BOOK & ENGINEERING PLATFORM ROUTES!
-  // Sector 04 (工具与表达) ▸ Sector 03 (理论书写): 书稿模板 · mdbook 在线书库!
+  // E. INDEPENDENT BOOK & ENGINEERING PLATFORM ROUTES
   drawConduit3D(
     [[1.65, 0.06, 5.35], [0.0, 0.06, 5.48], [-1.65, 0.06, 5.35]],
-    isBlueprint ? [150, 215, 255] : [108, 214, 255],
-    { lw: stBkHot ? 2.6 : 1.8, alpha: stBkHot ? 0.94 : 0.62, particles: 2, speed: 0.36 }
+    stBkHot ? (isBlueprint ? [150, 215, 255] : [108, 214, 255]) : calmRGB,
+    { lw: stBkHot ? 2.3 : 1.0, alpha: stBkHot ? 0.88 : 0.22, particles: stBkHot ? 2 : 0, speed: 0.36, chevrons: stBkHot }
   );
-  // Sector 04 (工具与表达) ▸ Sector 02 (Outreach Engine): 可视化 · 影像 · 公开展示!
   drawConduit3D(
     [[4.25, 0.06, 4.55], [5.35, 0.06, 3.65], [5.85, 0.06, 2.85]],
-    isBlueprint ? [150, 215, 255] : [108, 214, 255],
-    { lw: stOutHot ? 2.6 : 1.8, alpha: stOutHot ? 0.94 : 0.60, particles: 2, speed: 0.38 }
+    stOutHot ? (isBlueprint ? [150, 215, 255] : [108, 214, 255]) : calmRGB,
+    { lw: stOutHot ? 2.3 : 1.0, alpha: stOutHot ? 0.88 : 0.20, particles: stOutHot ? 2 : 0, speed: 0.38, chevrons: stOutHot }
   );
-  // Sector 03 (理论书写) ⇄ Sector 01 (独立评审 / 数学攻坚): 书稿论证复核与草稿同步!
   drawConduit3D(
     [[-4.25, 0.06, 4.55], [-5.35, 0.06, 3.65], [-5.85, 0.06, 2.85]],
-    isBlueprint ? [150, 215, 255] : [217, 150, 245],
-    { lw: bkRevHot ? 2.6 : 1.7, alpha: bkRevHot ? 0.92 : 0.56, particles: 2, speed: 0.36, bidir: true }
+    bkRevHot ? (isBlueprint ? [150, 215, 255] : [217, 150, 245]) : calmRGB,
+    { lw: bkRevHot ? 2.3 : 1.0, alpha: bkRevHot ? 0.88 : 0.20, particles: bkRevHot ? 2 : 0, speed: 0.36, bidir: true, chevrons: bkRevHot }
   );
 
-  // F. NORTH AUTONOMOUS INSTITUTE RETURN ARC (Outreach Engine replies & open conjectures ↺ Theory Wing!)
+  // F. NORTH AUTONOMOUS INSTITUTE RETURN ARC (subtle dashed skyline, lights up on hover!)
   drawConduit3D(
     [[4.35, 0.12, -3.55], [2.40, 0.22, -4.35], [0.0, 0.24, -4.55], [-2.40, 0.22, -4.35], [-4.35, 0.12, -3.55]],
-    isBlueprint ? [150, 215, 255] : [0, 240, 145],
-    { lw: loopClosedHot ? 2.4 : 1.4, alpha: loopClosedHot ? 0.86 : 0.44, dashed: true, particles: 3, speed: 0.26, chevrons: true }
+    loopClosedHot ? (isBlueprint ? [150, 215, 255] : [0, 240, 145]) : calmRGB,
+    { lw: loopClosedHot ? 1.8 : 0.9, alpha: loopClosedHot ? 0.58 : 0.15, dashed: true, particles: loopClosedHot ? 2 : 0, speed: 0.26, chevrons: loopClosedHot }
   );
 
   // 3. CINEMATIC STREAKING TACTICAL COMET FLARES synced to live Intel Stream!
@@ -5600,14 +5535,13 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   }
 
-  // Whisper-clean unboxed architectural sector designations & bridge labels
-  drawHoloText(-4.95, 0.06, -4.55, 'SEC.01 // 理论与复核部', isLight ? [4, 104, 74] : [80, 255, 165], sec1Hot, 9);
-  drawHoloText( 4.95, 0.06, -4.55, 'OUTREACH // 论文与合作', isLight ? [154, 52, 18] : [255, 210, 155], sec2Hot, 9);
-  drawHoloText( 0.0,  0.26, -4.75, '↺ 24/7 AI 自主闭环工作流', isLight ? [15, 118, 110] : [135, 255, 198], loopClosedHot, 9);
-  drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [4, 120, 87] : [125, 255, 210], thHot || rvHot, 9);
-  drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [180, 83, 9] : [255, 214, 165], pbHot || coHot, 9);
-  drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [232, 198, 255], bkHot, 9);
-  drawHoloText( 0.0,  0.08,  5.68, '出版模板 ◂ 工程底座', isLight ? [3, 105, 161] : [155, 232, 255], stBkHot, 9);
+  // Minimalist wing designations at rest; conduit captions reveal progressively ONLY on active focus!
+  drawHoloText(-5.45, 0.55, -4.65, '01 理论与复核部', isLight ? [4, 104, 74] : [80, 255, 165], sec1Hot, 9);
+  drawHoloText( 5.45, 0.55, -4.65, '02 论文与对外合作', isLight ? [154, 52, 18] : [255, 210, 155], sec2Hot, 9);
+  if (thHot || rvHot) drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [4, 104, 74] : [125, 255, 210], true, 9);
+  if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [154, 52, 18] : [255, 214, 165], true, 9);
+  if (bkHot)          drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [109, 40, 217] : [232, 198, 255], true, 9);
+  if (stBkHot)        drawHoloText( 0.0,  0.08,  5.68, '出版模板 ◂ 工程底座', isLight ? [3, 105, 161] : [155, 232, 255], true, 9);
 }
 
 function startHoloLoop() {
