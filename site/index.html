@@ -8,9 +8,9 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v39">
-  <script defer src="assets/gl-engine.js?v=hive-v39"></script>
-  <script type="module" src="assets/app.mjs?v=hive-v39"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v40">
+  <script defer src="assets/gl-engine.js?v=hive-v40"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v40"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -76,21 +76,21 @@
         <!-- Subtle Cinema Telemetry Corner Readout -->
         <div class="fui-corner-telemetry" aria-hidden="true">
           <span class="fui-coord visually-hidden" id="board-clock">MATRIX CONSTRUCT // 24·7 INSTITUTE GRID</span>
-          <span class="fui-orbit-hint" id="hive-hover-hint">地面 · 空中空间站 · 星空三层全景 · 拖拽微调（双击复位） · 点击部门进舱内</span>
+          <span class="fui-orbit-hint" id="hive-hover-hint">周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频</span>
         </div>
 
-        <!-- Playful Human Observer Resonance & Interactive Pulse Dock (KPR Tactical HUD) -->
-        <div class="human-console" id="human-console" role="region" aria-label="人类观测者互动台">
-          <div class="human-rank-pill" id="human-rank-pill" title="探索部门、点击星系、发射共振脉冲累积探索 XP，触发 LEVEL UP">
-            <span class="human-lv" id="human-lv">LV.01</span>
-            <span class="human-rank-name" id="human-rank-name">观测员</span>
-            <span class="human-xp-track" aria-hidden="true"><i id="human-xp-fill" style="width: 8%"></i></span>
-            <span class="human-xp-meta" id="human-xp-meta">0/60</span>
+        <!-- Authentic Automated Cultivation Realm Progress + Tactile Sonar Sweep Console -->
+        <div class="human-console" id="human-console" role="region" aria-label="全院自动境界与灵识扫频台">
+          <div class="human-rank-pill" id="realm-pill" title="由全院 24/7 自动化 Lean 形式验证与冻结定理总数实时驱动，仅真实科研突破自动进阶">
+            <span class="human-lv" id="realm-stage">境·IV</span>
+            <span class="human-rank-name" id="realm-name">化神</span>
+            <span class="human-xp-track" aria-hidden="true"><i id="realm-xp-fill" style="width: 67%"></i></span>
+            <span class="human-xp-meta" id="realm-xp-meta">同步中</span>
           </div>
-          <button type="button" class="human-pulse-btn" id="human-pulse-btn" title="向当前聚焦部门发射量子共振脉冲（快捷键 Space），连击 5 次触发全院超频">
-            <i aria-hidden="true">⚡</i><span>共振脉冲</span><kbd>Space</kbd>
+          <button type="button" class="human-pulse-btn" id="sonar-pulse-btn" title="发射灵识扫频光波（快捷键 Space）巡检当前活跃部门与周天星环">
+            <i aria-hidden="true">✦</i><span>灵识扫频</span><kbd>Space</kbd>
           </button>
-          <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" title="开启或静音科幻交互微音效">
+          <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" title="开启或静音科幻晶体微音效">
             <span id="human-sound-icon" aria-hidden="true">♪</span>
           </button>
         </div>

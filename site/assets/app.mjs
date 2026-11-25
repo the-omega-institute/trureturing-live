@@ -578,6 +578,7 @@ function renderHealth() {
   if (dagEl && truthNebula?.counts?.truth_nodes) {
     dagEl.textContent = truthNebula.counts.truth_nodes.toLocaleString();
   }
+  if (typeof syncInstituteRealm === 'function') syncInstituteRealm();
   if (!current) return;
   const late = isStale();
   const connection = $('#connection');
@@ -2060,10 +2061,6 @@ function selectDepartment(id, manual = true, openLens = true) {
   if (manual) {
     state.follow = false;
     if (typeof sciFiAudio !== 'undefined') sciFiAudio.playDept(id);
-    if (typeof humanPlay !== 'undefined' && !humanPlay.seenDepts.has(id)) {
-      humanPlay.seenDepts.add(id);
-      awardHumanXp(15, { point: xpTargetPoint(id) || undefined });
-    }
   }
   if (manual && openLens && state.mode === 'organization') {
     const changed = state.focused !== id;
@@ -2764,7 +2761,7 @@ async function refreshLive() {
 // sovereign department sectors connected through the central Lean Formal Bridge!
 // ============================================================================
 const holoWorld = {
-  direction:    { x:  0.0,  y: 3.65, z: -3.75, r: 0.72, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [229, 192, 123] },
+  direction:    { x:  0.0,  y: 4.10, z: -3.75, r: 0.76, baseH: 0.90, apex: true,  eye: true,  order: 0, hex: [229, 192, 123] },
   verification: { x:  0.0,  y: 0.22, z: -0.45, r: 0.84, baseH: 1.44, apex: false, eye: false, order: 1, hex: [116, 224, 244] },
   research:     { x: -5.30, y: 0.0,  z: -2.95, r: 0.72, baseH: 1.28, apex: false, eye: false, order: 2, hex: [94, 224, 206]  },
   review:       { x: -6.05, y: 0.0,  z:  1.95, r: 0.68, baseH: 1.20, apex: false, eye: false, order: 3, hex: [156, 174, 232] },
@@ -2775,24 +2772,25 @@ const holoWorld = {
 };
 
 const LAYER_PRESETS = {
-  mix:     { pitch:  0.25, dist: 25.2, lookY: 2.55, lookZ:  -0.50, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 三层全景' },
-  station: { pitch:  0.42, dist: 19.8, lookY: 0.45, lookZ:   0.20, stationAlpha: 1.00, galaxyAlpha: 0.22, minPitch:  0.22, maxPitch: 0.84, tag: 'STATION · 轨道空间站' },
-  galaxy:  { pitch: -0.04, dist: 27.2, lookY: 6.70, lookZ: -14.20, stationAlpha: 0.14, galaxyAlpha: 1.28, minPitch: -0.35, maxPitch: 0.40, tag: 'GALAXY · 3D 真值星系' }
+  mix:     { pitch:  0.25, dist: 25.4, lookY: 2.05, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵' },
+  station: { pitch:  0.42, dist: 19.6, lookY: 0.45, lookZ:  0.20, stationAlpha: 1.00, galaxyAlpha: 0.24, minPitch:  0.22, maxPitch: 0.84, tag: 'STATION · 轨道空间站' },
+  galaxy:  { pitch:  0.14, dist: 27.6, lookY: 3.25, lookZ: -0.35, stationAlpha: 0.16, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.55, tag: 'GALAXY · 周天星海' }
 };
 
 const holoCam = {
   yaw: 0.0,
   pitch: 0.25,
-  dist: 25.2,
+  dist: 25.4,
   targetYaw: 0.0,
   targetPitch: 0.25,
-  targetDist: 25.2,
+  targetDist: 25.4,
   lookX: 0.0,
-  lookY: 2.55,
-  lookZ: -0.50,
+  lookY: 2.05,
+  lookZ: -0.35,
   ndcShiftX: 0.0,
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
+  sonarStart: -99999,
   mouseNormX: 0.0,
   mouseNormY: 0.0,
   gazeX: -5.30,
@@ -3257,7 +3255,7 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
   for (const star of truthGrowth.grown) {
     const age = now - star.born;
     if (age < 0) continue;
-    const [px, py] = project(star.x / 1000, star.y / 1000, star.z / 1000);
+    const [px, py] = project(star.x / 1000, star.y / 1000, star.z / 1000, star.cid);
     const mask = Math.max(0.25, coreClear(px, py));
     const col = palette[star.cid % palette.length];
     const d = dim(star.cid);
@@ -3390,8 +3388,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   const camZ = 2.65;
 
   const projectBase = useGLSky
-    ? (nx, ny, nz) => {
-        const [wx, wy, wz] = holoCam.gl.mapSkyPoint(nx, ny, nz);
+    ? (nx, ny, nz, cid = null) => {
+        const [wx, wy, wz] = holoCam.gl.mapSkyPoint(nx, ny, nz, cid);
         const p = holoCam.gl.project(wx, wy, wz);
         if (!p) return [-9999, -9999, 999, 0];
         return [p.x, p.y, p.z, Math.min(1.65, 22.0 / Math.max(8, p.z))];
@@ -3426,13 +3424,13 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   if (focusK > 0) {
     const c = growthFocus.cluster.center;
     const rim = (growthFocus.cluster.radius || 200) / 1000;
-    [focusTx, focusTy] = projectBase(c[0] / 1000, c[1] / 1000, c[2] / 1000);
-    const [edgeX, edgeY] = projectBase(c[0] / 1000 + rim, c[1] / 1000, c[2] / 1000);
+    [focusTx, focusTy] = projectBase(c[0] / 1000, c[1] / 1000, c[2] / 1000, growthFocus.cid);
+    const [edgeX, edgeY] = projectBase(c[0] / 1000 + rim, c[1] / 1000, c[2] / 1000, growthFocus.cid);
     lensR = Math.max(105, Math.min(Math.min(w, h) * 0.25, Math.hypot(edgeX - focusTx, edgeY - focusTy) * 1.75));
   }
   const projectNeb = focusK > 0
-    ? (nx, ny, nz) => {
-        const p = projectBase(nx, ny, nz);
+    ? (nx, ny, nz, cid = null) => {
+        const p = projectBase(nx, ny, nz, cid);
         const [x, y, m] = growthLensWarp(p[0], p[1], focusTx, focusTy, lensR, lensD);
         return [x, y, p[2], p[3] * Math.min(1.8, m)];
       }
@@ -3462,7 +3460,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   // Pre-project all mathematical galaxy centroids
   const clProj = new Map();
   for (const cl of clusters) {
-    const [px, py, pz, inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000);
+    const [px, py, pz, inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000, cl.id);
     clProj.set(cl.id, { cl, x: px, y: py, z: pz, inv, col: nebPalette[cl.id % nebPalette.length] });
   }
 
@@ -3493,7 +3491,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         nz = cz3 + (nz - cz3) * swell;
       }
     }
-    const [px, py, pz] = projectNeb(nx, ny, nz);
+    const [px, py, pz] = projectNeb(nx, ny, nz, s[3]);
     projX[i] = px;
     projY[i] = py;
     projZ[i] = pz;
@@ -3670,8 +3668,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules!)
   for (let k = 0; k < truthGrowth.recentSprouts.length; k++) {
     const sp = truthGrowth.recentSprouts[k];
-    const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000);
-    const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000);
+    const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000, sp.cid);
+    const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000, sp.cid);
     if (pxEnd < -24 || pxEnd > w + 24 || pyEnd < -24 || pyEnd > h + 24) continue;
     const mask = maskFor(sp.cid, pxEnd, pyEnd);
     if (mask < 0.22) continue;
@@ -3764,11 +3762,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const bucket = recentBucket(cl.id);
     const delta = bucket?.count || 0;
     const isFeatured = delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2;
+    const isUpperCrown = cl.id === 0 || cl.id === 2 || cl.id === 6;
     const lx = useGLSky
       ? Math.max(minLabelX, Math.min(maxLabelX, px))
       : Math.max(isFeatured ? 380 : 336, Math.min(w - (isFeatured ? 380 : 336), px));
     const ly = useGLSky
-      ? Math.max(76, Math.min(h - 92, py + (isBottom ? 22 : -22)))
+      ? Math.max(76, Math.min(h - 92, py + (isUpperCrown ? -22 : 22)))
       : (isBottom ? Math.min(h - 114, py + 26) : Math.max(82, py - (isMidUpper ? 36 : 24)));
     if (!useGLSky && (lx < 292 || lx > w - 292)) continue;
 
@@ -4287,18 +4286,20 @@ function stepXpFlights(now) {
 }
 
 // ============================================================================
-// HUMAN OBSERVER PLAYFUL INTERACTION ENGINE (Explorer XP · Combo Pulse · Synth)
-// Ties tactile human exploration straight into Loning's LEVEL UP celebration engine!
+// AUTHENTIC AUTOMATED CULTIVATION REALM ENGINE + TACTILE SONAR & CELESTIAL HARP
+// Real LEVEL UP / realm ascension is driven EXCLUSIVELY by real automated Lean
+// theorem freezes & merged contributions — NEVER by human click-farming!
+// Human interactivity provides musical crystal chimes, celestial star-ring strums,
+// 3D floor sonar sweeps, and live war-room tracking comets.
 // ============================================================================
-const HUMAN_XP_KEY = 'trureturing-live.observer-xp.v1';
 const HUMAN_SOUND_KEY = 'trureturing-live.sound.v1';
-const HUMAN_RANKS = [
-  { lv: 1, min: 0,   name: '观测员' },
-  { lv: 2, min: 60,  name: '领航员' },
-  { lv: 3, min: 150, name: '星海测绘师' },
-  { lv: 4, min: 280, name: '形式架构师' },
-  { lv: 5, min: 460, name: '量子共鸣者' },
-  { lv: 6, min: 700, name: '欧米茄执政官' }
+const INSTITUTE_REALMS = [
+  { idx: 1, roman: 'I',   min: 0,     max: 5000,  name: '初凝' },
+  { idx: 2, roman: 'II',  min: 5000,  max: 10000, name: '筑基' },
+  { idx: 3, roman: 'III', min: 10000, max: 15000, name: '结丹' },
+  { idx: 4, roman: 'IV',  min: 15000, max: 20000, name: '化神' },
+  { idx: 5, roman: 'V',   min: 20000, max: 30000, name: '渡劫' },
+  { idx: 6, roman: 'VI',  min: 30000, max: null,  name: '大乘' }
 ];
 const DEPT_NOTES = {
   direction: 587.33,
@@ -4351,12 +4352,20 @@ const sciFiAudio = {
     this.tone(f, 0.22, 0.045, 'triangle', 0);
     this.tone(f * 1.5, 0.18, 0.022, 'sine', 0.03);
   },
-  playPulse(combo = 1) {
+  playSonar() {
     this.unlocked = true;
-    const scale = [523.25, 587.33, 622.25, 698.46, 783.99, 932.33];
-    const base = scale[Math.min(scale.length - 1, Math.max(0, combo - 1))];
-    this.tone(base, 0.18, 0.050, 'triangle', 0);
-    this.tone(base * 2, 0.14, 0.024, 'sine', 0.025);
+    // Serene crystalline Xianxia pentatonic harmonic swell
+    [293.66, 440.0, 587.33, 659.25, 880.0].forEach((f, i) => {
+      this.tone(f, 0.38, 0.028, i % 2 === 0 ? 'sine' : 'triangle', i * 0.055);
+    });
+  },
+  playStarHarp(normX = 0.5) {
+    this.unlocked = true;
+    const harp = [392.0, 440.0, 523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+    const idx = Math.max(0, Math.min(harp.length - 1, Math.floor(normX * harp.length)));
+    const f = harp[idx];
+    this.tone(f, 0.34, 0.036, 'sine', 0);
+    this.tone(f * 1.5, 0.28, 0.018, 'triangle', 0.04);
   },
   playLayer(layer) {
     this.unlocked = true;
@@ -4377,268 +4386,144 @@ const sciFiAudio = {
   }
 };
 
-function humanRankFor(xp) {
-  let cur = HUMAN_RANKS[0];
-  let next = HUMAN_RANKS[1] || null;
-  for (let i = 0; i < HUMAN_RANKS.length; i++) {
-    if (xp >= HUMAN_RANKS[i].min) {
-      cur = HUMAN_RANKS[i];
-      next = HUMAN_RANKS[i + 1] || null;
-    }
-  }
-  return { cur, next };
-}
-
-const humanPlay = {
-  xp: 0,
-  combo: 0,
-  lastPulseAt: 0,
-  seenDepts: new Set(),
-  seenGalaxies: new Set(),
-  seenLayers: new Set(['mix']),
-  galaxySweepDone: false
-};
-
 try {
   const savedSound = localStorage.getItem(HUMAN_SOUND_KEY);
   if (savedSound === 'off') sciFiAudio.enabled = false;
-  const savedXp = Number(localStorage.getItem(HUMAN_XP_KEY));
-  if (Number.isFinite(savedXp) && savedXp > 0) humanPlay.xp = Math.min(9999, Math.round(savedXp));
 } catch {}
 
-function renderHumanConsole(leveledUp = false) {
-  const { cur, next } = humanRankFor(humanPlay.xp);
-  const lvEl = $('#human-lv');
-  const nameEl = $('#human-rank-name');
-  const fillEl = $('#human-xp-fill');
-  const metaEl = $('#human-xp-meta');
-  const pill = $('#human-rank-pill');
+function realmForTheorems(count) {
+  let cur = INSTITUTE_REALMS[0];
+  for (const r of INSTITUTE_REALMS) {
+    if (count >= r.min) cur = r;
+  }
+  return cur;
+}
+
+const instituteRealm = {
+  lastCount: null,
+  lastIdx: null
+};
+
+function renderSoundToggle() {
   const soundBtn = $('#human-sound-btn');
   const soundIcon = $('#human-sound-icon');
-  if (lvEl) lvEl.textContent = `LV.${String(cur.lv).padStart(2, '0')}`;
-  if (nameEl) nameEl.textContent = cur.name;
-  const pct = next
-    ? Math.max(6, Math.min(100, ((humanPlay.xp - cur.min) / Math.max(1, next.min - cur.min)) * 100))
-    : 100;
-  if (fillEl) fillEl.style.width = `${pct.toFixed(1)}%`;
-  if (metaEl) metaEl.textContent = next ? `${humanPlay.xp}/${next.min}` : `${humanPlay.xp} MAX`;
   if (soundBtn) soundBtn.setAttribute('aria-pressed', String(sciFiAudio.enabled));
   if (soundIcon) soundIcon.textContent = sciFiAudio.enabled ? '♪' : '✕';
-  if (leveledUp && pill) {
-    pill.classList.remove('is-level-flash');
-    void pill.offsetWidth;
-    pill.classList.add('is-level-flash');
-    setTimeout(() => pill.classList.remove('is-level-flash'), 1600);
-  }
 }
 
-function awardHumanXp(delta, opts = {}) {
-  if (!delta || delta <= 0) return;
-  const before = humanRankFor(humanPlay.xp).cur.lv;
-  humanPlay.xp = Math.min(9999, humanPlay.xp + delta);
-  const afterInfo = humanRankFor(humanPlay.xp);
-  const leveledUp = afterInfo.cur.lv > before;
-  try { localStorage.setItem(HUMAN_XP_KEY, String(humanPlay.xp)); } catch {}
-  renderHumanConsole(leveledUp);
+// Updates ONLY from real automated Truth DAG theorem count & real live observations!
+function syncInstituteRealm(overrideTotal = null) {
+  renderSoundToggle();
+  const baseNodes = Number(truthNebula?.counts?.truth_nodes) || 0;
+  const total = overrideTotal != null ? overrideTotal : baseNodes;
+  if (total <= 0) return;
+  const r = realmForTheorems(total);
+  const stageEl = $('#realm-stage');
+  const nameEl = $('#realm-name');
+  const fillEl = $('#realm-xp-fill');
+  const metaEl = $('#realm-xp-meta');
+  const pill = $('#realm-pill');
+  if (stageEl) stageEl.textContent = `境·${r.roman}`;
+  if (nameEl) nameEl.textContent = r.name;
+  const pct = r.max
+    ? Math.max(4, Math.min(100, ((total - r.min) / Math.max(1, r.max - r.min)) * 100))
+    : 100;
+  if (fillEl) fillEl.style.width = `${pct.toFixed(1)}%`;
+  const growthTag = (truthGrowth.totalRecent || 0) > 0 ? ` · +${truthGrowth.totalRecent}` : '';
+  if (metaEl) metaEl.textContent = r.max ? `${total.toLocaleString()}/${r.max.toLocaleString()}${growthTag}` : `${total.toLocaleString()} 定理`;
 
-  if (leveledUp && !state.quiet && !reduced) {
-    const now = performance.now();
-    const anchor = opts.point || { x: Math.min(innerWidth * 0.42, 620), y: innerHeight * 0.42 };
-    for (let k = 0; k < 3; k++) {
-      xpFx.bursts.push({ kind: 'ring', x: anchor.x, y: anchor.y, rgb: XP_GOLD, start: now + k * 120, dur: 980, maxR: 72 + k * 42, width: 3.0 - k * 0.65 });
+  // Authentic automated breakthrough: fires LEVEL UP ONLY when real observed count genuinely crosses a realm!
+  const crossedRealm = instituteRealm.lastIdx != null && r.idx > instituteRealm.lastIdx;
+  instituteRealm.lastCount = total;
+  instituteRealm.lastIdx = r.idx;
+  if (crossedRealm) {
+    if (pill) {
+      pill.classList.remove('is-level-flash');
+      void pill.offsetWidth;
+      pill.classList.add('is-level-flash');
+      setTimeout(() => pill.classList.remove('is-level-flash'), 1800);
     }
-    xpFx.bursts.push({ kind: 'sparks', x: anchor.x, y: anchor.y, rgb: XP_GOLD, start: now, dur: 1400, parts: xpParticles(42, 240, 150) });
-    const lvTop = xpTextTop('__human__', anchor.y - 26, now);
-    xpFx.bursts.push({
-      kind: 'text',
-      deptId: '__human__',
-      x: anchor.x,
-      y: lvTop,
-      rgb: XP_GOLD,
-      start: now,
-      dur: 2300,
-      text: `LEVEL UP · LV.${String(afterInfo.cur.lv).padStart(2, '0')}`,
-      sub: `观测者晋升 · ${afterInfo.cur.name}`,
-      size: 25,
-      rise: 50,
-      pop: true
-    });
-    sciFiAudio.playLevelUp();
-  }
-}
-
-function triggerQuantumOverdrive(now) {
-  const order = ['direction', 'research', 'review', 'verification', 'publication', 'outreach', 'books', 'studio'];
-  const center = xpTargetPoint('verification') || { x: innerWidth * 0.42, y: innerHeight * 0.56 };
-  order.forEach((deptId, idx) => {
-    const delay = idx * 85;
-    setTimeout(() => {
-      spawnHoloPulse(deptId, 1.35);
-      if (xpFlowTarget[deptId]) spawnSpokeFlare(deptId, xpFlowTarget[deptId]);
-      flashXpCell(deptId, 'is-level-up', 1200);
-      const pt = xpTargetPoint(deptId);
-      if (pt && !state.quiet && !reduced) {
-        const tHit = performance.now();
-        xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: XP_GOLD, start: tHit, dur: 820, maxR: 58, width: 2.6 });
-        xpFx.bursts.push({ kind: 'sparks', x: pt.x, y: pt.y, rgb: holoWorld[deptId]?.hex || XP_GOLD, start: tHit, dur: 960, parts: xpParticles(18, 160, 90) });
+    if (!state.quiet && !reduced) {
+      const now = performance.now();
+      const center = xpTargetPoint('verification') || { x: innerWidth * 0.42, y: innerHeight * 0.48 };
+      for (let k = 0; k < 3; k++) {
+        xpFx.bursts.push({ kind: 'ring', x: center.x, y: center.y, rgb: XP_GOLD, start: now + k * 140, dur: 1050, maxR: 84 + k * 46, width: 3.2 - k * 0.7 });
       }
-    }, delay);
-  });
-  if (!state.quiet && !reduced) {
-    for (let k = 0; k < 3; k++) {
-      xpFx.bursts.push({ kind: 'ring', x: center.x, y: center.y, rgb: XP_GOLD, start: now + k * 140, dur: 1100, maxR: 110 + k * 56, width: 3.2 - k * 0.7 });
+      xpFx.bursts.push({ kind: 'sparks', x: center.x, y: center.y, rgb: XP_GOLD, start: now, dur: 1500, parts: xpParticles(42, 240, 160) });
+      xpFx.bursts.push({
+        kind: 'text',
+        deptId: '__realm__',
+        x: center.x,
+        y: center.y - 40,
+        rgb: XP_GOLD,
+        start: now,
+        dur: 2500,
+        text: `LEVEL UP · 境·${r.roman} ${r.name}`,
+        sub: `自动验证突破 ${r.min.toLocaleString()} 定理`,
+        size: 25,
+        rise: 52,
+        pop: true
+      });
+      sciFiAudio.playLevelUp();
     }
-    const odTop = xpTextTop('__human__', center.y - 36, now);
-    xpFx.bursts.push({
-      kind: 'text',
-      deptId: '__human__',
-      x: center.x,
-      y: odTop,
-      rgb: XP_GOLD,
-      start: now,
-      dur: 2400,
-      text: 'QUANTUM OVERDRIVE',
-      sub: '全院八部门量子共振超频 · +40 XP',
-      size: 24,
-      rise: 54,
-      pop: true
-    });
   }
-  sciFiAudio.playLevelUp();
-  awardHumanXp(40, { point: center });
 }
 
-function triggerHumanPulse(sourceEl = $('#human-pulse-btn')) {
+// Purely tactile & musical 3D Sonar Sweep (✦ 灵识扫频 — ZERO fake XP, ZERO fake LEVEL UP!)
+function triggerSonarSweep() {
   const now = performance.now();
-  humanPlay.combo = (now - humanPlay.lastPulseAt <= 3200) ? humanPlay.combo + 1 : 1;
-  humanPlay.lastPulseAt = now;
+  holoCam.sonarStart = now;
+  sciFiAudio.playSonar();
 
-  const btn = $('#human-pulse-btn');
+  const btn = $('#sonar-pulse-btn');
   if (btn) {
     btn.classList.remove('is-firing');
     void btn.offsetWidth;
     btn.classList.add('is-firing');
-    setTimeout(() => btn.classList.remove('is-firing'), 180);
+    setTimeout(() => btn.classList.remove('is-firing'), 240);
   }
 
-  // 5-hit rapid combo triggers full-station Quantum Overdrive stadium wave!
-  if (humanPlay.combo >= 5) {
-    humanPlay.combo = 0;
-    triggerQuantumOverdrive(now);
-    return;
-  }
-
-  sciFiAudio.playPulse(humanPlay.combo);
-  const srcBox = sourceEl?.getBoundingClientRect();
-  const from = (srcBox && srcBox.width > 0)
-    ? { x: srcBox.left + srcBox.width * 0.5, y: srcBox.top + srcBox.height * 0.5 }
-    : { x: 160, y: innerHeight - 86 };
-
-  // In Galaxy mode, shoot a resonance beam straight to a glowing 3D galaxy!
-  if (state.layer === 'galaxy' && holoCam.projectedGalaxies.size) {
-    const gals = [...holoCam.projectedGalaxies.values()];
-    const pick = gals[(humanPlay.combo + Math.floor(now / 900)) % gals.length];
-    const target = { x: pick.x, y: pick.y, r: 34 };
-    const col = humanPlay.combo >= 3 ? XP_GOLD : pick.col;
-    if (!state.quiet && !reduced) {
-      xpFx.flights.push({
-        item: { deptId: 'verification', tier: humanPlay.combo >= 3 ? 3 : 2, label: '星域共鸣' },
-        from,
-        target,
-        fixedTarget: true,
-        start: now,
-        dur: 680,
-        trail: [],
-        sparks: [],
-        onArrive: (pt, tArr) => {
-          xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: col, start: tArr, dur: 820, maxR: 56, width: 2.4 });
-          xpFx.bursts.push({ kind: 'sparks', x: pt.x, y: pt.y, rgb: col, start: tArr, dur: 900, parts: xpParticles(20, 150, 70) });
-          xpFx.bursts.push({
-            kind: 'text',
-            deptId: `gal:${pick.cl.id}`,
-            x: pt.x,
-            y: pt.y - 24,
-            rgb: col,
-            start: tArr,
-            dur: 1450,
-            text: humanPlay.combo > 1 ? `x${humanPlay.combo} 共振 · ${pick.cl.zh || pick.cl.name}` : `+10 共振 · ${pick.cl.zh || pick.cl.name}`,
-            size: 14,
-            rise: 32
-          });
-        }
-      });
-    }
-    awardHumanXp(10, { point: target });
-    return;
-  }
-
-  const deptId = state.hovered || state.selected || 'verification';
-  const target = xpTargetPoint(deptId) || { x: innerWidth * 0.42, y: innerHeight * 0.56, r: 34 };
-  const combo = humanPlay.combo;
-  const col = combo >= 3 ? XP_GOLD : (holoWorld[deptId]?.hex || [112, 232, 248]);
-  if (!state.quiet && !reduced) {
-    xpFx.flights.push({
-      item: { deptId, tier: combo >= 3 ? 3 : 2, label: '共振' },
-      from,
-      target,
-      start: now,
-      dur: 620,
-      trail: [],
-      sparks: [],
-      onArrive: (pt, tArr) => {
-        spawnHoloPulse(deptId, 0.95 + combo * 0.14);
-        if (xpFlowTarget[deptId]) spawnSpokeFlare(deptId, xpFlowTarget[deptId]);
-        flashXpCell(deptId, combo >= 3 ? 'is-level-up' : 'is-xp-hit', 850);
-        xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: col, start: tArr, dur: 740, maxR: 46 + combo * 8, width: 2.4 });
-        xpFx.bursts.push({ kind: 'sparks', x: pt.x, y: pt.y, rgb: col, start: tArr, dur: 880, parts: xpParticles(14 + combo * 4, 145, 75) });
-        const top = xpTextTop(deptId, pt.y - (pt.r || 30) * 0.85, tArr);
-        xpFx.bursts.push({
-          kind: 'text',
-          deptId,
-          x: pt.x,
-          y: top,
-          rgb: col,
-          start: tArr,
-          dur: 1350,
-          text: combo >= 2 ? `x${combo} COMBO · +${10 + combo * 2} XP` : '+10 量子共振',
-          sub: combo === 4 ? '再击一次触发全院超频！' : '',
-          size: combo >= 3 ? 17 : 14,
-          rise: 36,
-          pop: combo >= 3
-        });
+  // Cascade a calm golden-cyan inspection ripple across genuinely active departments & Akasha Eye
+  const list = departments();
+  const activeDepts = list.filter(d => countRunning(d) > 0 || d.id === 'verification' || d.id === 'direction');
+  activeDepts.forEach((d, idx) => {
+    setTimeout(() => {
+      spawnHoloPulse(d.id, 1.05);
+      if (xpFlowTarget[d.id] && countRunning(d) > 0) spawnSpokeFlare(d.id, xpFlowTarget[d.id]);
+      const pt = xpTargetPoint(d.id);
+      if (pt && !state.quiet && !reduced) {
+        const tHit = performance.now();
+        const col = holoWorld[d.id]?.hex || XP_GOLD;
+        xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: col, start: tHit, dur: 760, maxR: 44, width: 2.0 });
       }
-    });
-  } else {
-    spawnHoloPulse(deptId, 1.0);
-  }
-  awardHumanXp(10 + (combo >= 2 ? combo * 2 : 0), { point: target });
+    }, idx * 95);
+  });
 }
 
-function triggerSpaceMeteor(x, y) {
+// Celestial Star-Harp Strum (clicking open space in the swirling DAG ring — purely musical & serene!)
+function triggerSkyStrum(x, y) {
   const now = performance.now();
-  sciFiAudio.playGalaxy();
+  sciFiAudio.playStarHarp(x / Math.max(1, innerWidth));
   if (!state.quiet && !reduced) {
     const col = [148, 224, 248];
-    xpFx.bursts.push({ kind: 'ring', x, y, rgb: col, start: now, dur: 860, maxR: 48, width: 1.8 });
-    xpFx.bursts.push({ kind: 'ring', x, y, rgb: XP_GOLD, start: now + 90, dur: 920, maxR: 72, width: 1.1 });
-    xpFx.bursts.push({ kind: 'sparks', x, y, rgb: col, start: now, dur: 880, parts: xpParticles(12, 110, 40) });
+    xpFx.bursts.push({ kind: 'ring', x, y, rgb: col, start: now, dur: 920, maxR: 52, width: 1.6 });
+    xpFx.bursts.push({ kind: 'ring', x, y, rgb: XP_GOLD, start: now + 90, dur: 980, maxR: 78, width: 1.0 });
+    xpFx.bursts.push({ kind: 'sparks', x, y, rgb: col, start: now, dur: 860, parts: xpParticles(10, 95, 35) });
     xpFx.flights.push({
-      item: { deptId: 'direction', tier: 1, label: '星尘' },
-      from: { x: x - 140 + (Math.random() - 0.5) * 60, y: Math.max(40, y - 120) },
-      target: { x: x + 68, y: y + 36, r: 16 },
+      item: { deptId: 'direction', tier: 1, label: '' },
+      from: { x: x - 130 + (Math.random() - 0.5) * 60, y: Math.max(40, y - 105) },
+      target: { x: x + 64, y: y + 32, r: 16 },
       fixedTarget: true,
       start: now,
-      dur: 520,
+      dur: 540,
       trail: [],
       sparks: [],
-      onArrive: (pt, tArr) => {
-        xpFx.bursts.push({ kind: 'text', deptId: '__sky__', x, y: y - 18, rgb: col, start: tArr, dur: 1050, text: '+5 捕获星尘', size: 12, rise: 24 });
-      }
+      onArrive: () => {}
     });
   }
-  awardHumanXp(5, { point: { x, y } });
 }
 
+// Clicking any real war-room log row fires a tracking comet to its 3D department (NO fake XP!)
 function launchLogClickComet(rowEl, entry) {
   if (!entry?.deptId) return;
   sciFiAudio.playDept(entry.deptId);
@@ -4649,11 +4534,11 @@ function launchLogClickComet(rowEl, entry) {
   if (target && !state.quiet && !reduced) {
     const col = holoWorld[entry.deptId]?.hex || [112, 224, 242];
     xpFx.flights.push({
-      item: { deptId: entry.deptId, tier: 2, label: '信号追踪' },
+      item: { deptId: entry.deptId, tier: 2, label: '信号定位' },
       from,
       target,
       start: now,
-      dur: 740,
+      dur: 720,
       trail: [],
       sparks: [],
       onArrive: (pt, tArr) => {
@@ -4661,14 +4546,13 @@ function launchLogClickComet(rowEl, entry) {
         flashXpCell(entry.deptId, 'is-xp-hit', 700);
         xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: col, start: tArr, dur: 640, maxR: 42, width: 2.0 });
         const top = xpTextTop(entry.deptId, pt.y - (pt.r || 30) * 0.85, tArr);
-        xpFx.bursts.push({ kind: 'text', deptId: entry.deptId, x: pt.x, y: top, rgb: col, start: tArr, dur: 1150, text: `+5 追踪 · ${entry.tag || 'LIVE'}`, size: 13, rise: 28 });
+        xpFx.bursts.push({ kind: 'text', deptId: entry.deptId, x: pt.x, y: top, rgb: col, start: tArr, dur: 1100, text: `⌖ ${entry.tag || 'LIVE'}`, size: 12.5, rise: 24 });
       }
     });
   }
-  awardHumanXp(5, { point: target || from });
 }
 
-renderHumanConsole(false);
+renderSoundToggle();
 
 // ============================================================================
 // HIGH-DENSITY SCI-FI WAR-ROOM INTEL STREAM (#scifi-log-stream)
@@ -5174,6 +5058,9 @@ function drawHolo3DFrame(dt = 0.016) {
         running: Boolean(countRunning(d))
       };
     });
+    const sonarAge = (performance.now() - holoCam.sonarStart) / 1000;
+    const sonarActive = sonarAge >= 0 && sonarAge < 2.2;
+    const sonarU = sonarActive ? sonarAge / 2.2 : 0;
     holoCam.gl.render({
       t,
       themeIdx,
@@ -5183,7 +5070,9 @@ function drawHolo3DFrame(dt = 0.016) {
       bootAge: holoCam.bootAge,
       quiet: state.quiet || reduced,
       stationAlpha: holoCam.stationAlpha,
-      galaxyAlpha: holoCam.galaxyAlpha
+      galaxyAlpha: holoCam.galaxyAlpha,
+      sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
+      sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0
     });
     // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
     ctx.clearRect(0, 0, w, h);
@@ -6330,31 +6219,16 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
           truthGrowth.manualFocus.closeStart = now;
         } else {
           truthGrowth.manualFocus = { cid: gHit.cl.id, cluster: gHit.cl, start: now, closing: false };
-          if (!humanPlay.seenGalaxies.has(gHit.cl.id)) {
-            humanPlay.seenGalaxies.add(gHit.cl.id);
-            const countSeen = humanPlay.seenGalaxies.size;
-            const totalNamed = Math.max(1, truthNebula.clusters.filter(c => c.name !== 'Other').length);
-            const pt = { x: gHit.x, y: gHit.y };
-            if (!state.quiet && !reduced) {
-              xpFx.bursts.push({ kind: 'ring', x: pt.x, y: pt.y, rgb: gHit.col, start: now, dur: 820, maxR: 54, width: 2.2 });
-              xpFx.bursts.push({ kind: 'text', deptId: `gal:${gHit.cl.id}`, x: pt.x, y: pt.y - 26, rgb: gHit.col, start: now, dur: 1550, text: `+25 星域测绘 (${countSeen}/${totalNamed})`, size: 14, rise: 32 });
-            }
-            awardHumanXp(25, { point: pt });
-            if (countSeen >= totalNamed && !humanPlay.galaxySweepDone) {
-              humanPlay.galaxySweepDone = true;
-              if (!state.quiet && !reduced) {
-                xpFx.bursts.push({ kind: 'text', deptId: '__galaxies__', x: pt.x, y: pt.y - 62, rgb: XP_GOLD, start: now + 260, dur: 2400, text: '★ 全星海测绘完成', sub: '已探索全部数学星系 · +80 XP', size: 22, rise: 46, pop: true });
-              }
-              awardHumanXp(80, { point: pt });
-            }
+          if (!state.quiet && !reduced) {
+            xpFx.bursts.push({ kind: 'ring', x: gHit.x, y: gHit.y, rgb: gHit.col, start: now, dur: 760, maxR: 48, width: 1.8 });
           }
         }
       } else if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
         truthGrowth.manualFocus.closing = true;
         truthGrowth.manualFocus.closeStart = performance.now();
-      } else if (state.layer === 'galaxy' || (state.layer === 'mix' && e.clientY < window.innerHeight * 0.44)) {
-        // Clicking open cosmic sky launches a shooting star & gravitational ripple!
-        triggerSpaceMeteor(e.clientX, e.clientY);
+      } else if (state.layer === 'galaxy' || (state.layer === 'mix' && e.clientY < window.innerHeight * 0.56)) {
+        // Clicking open starlight strums the celestial harp with a calm ripple & meteor (zero fake XP!)
+        triggerSkyStrum(e.clientX, e.clientY);
       }
     }
   });
@@ -6401,18 +6275,12 @@ function applyLayer(layer) {
   const hint = $('#hive-hover-hint');
   if (hint) {
     hint.textContent = next === 'galaxy'
-      ? '3D 真值星系穹顶 · 点击空域召唤流星 · 点击星系测绘放大'
+      ? '周天星海环绕阿卡西之眼 · 点击星海拨弦 · 点击星系查看真实增长'
       : next === 'station'
-        ? '悬浮轨道空间站 · 按 Space 发射共振脉冲 · 点击部门飞入舱内'
-        : '地面 · 空中空间站 · 星空三层全景 · 按 Space 发射共振脉冲（5 连击超频）';
+        ? '悬浮轨道空间站 · 按 Space 灵识扫频 · 点击部门飞入舱内'
+        : '周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频';
   }
-  if (changed) {
-    sciFiAudio.playLayer(next);
-    if (!humanPlay.seenLayers.has(next)) {
-      humanPlay.seenLayers.add(next);
-      awardHumanXp(20);
-    }
-  }
+  if (changed) sciFiAudio.playLayer(next);
 }
 
 for (const layerBtn of document.querySelectorAll('[data-layer]')) {
@@ -6420,12 +6288,12 @@ for (const layerBtn of document.querySelectorAll('[data-layer]')) {
 }
 if ($('#research-room')) $('#research-room').dataset.layer = state.layer;
 
-$('#human-pulse-btn')?.addEventListener('click', e => triggerHumanPulse(e.currentTarget));
+$('#sonar-pulse-btn')?.addEventListener('click', () => triggerSonarSweep());
 $('#human-sound-btn')?.addEventListener('click', () => {
   sciFiAudio.enabled = !sciFiAudio.enabled;
   try { localStorage.setItem(HUMAN_SOUND_KEY, sciFiAudio.enabled ? 'on' : 'off'); } catch {}
-  renderHumanConsole(false);
-  if (sciFiAudio.enabled) sciFiAudio.playPulse(2);
+  renderSoundToggle();
+  if (sciFiAudio.enabled) sciFiAudio.playStarHarp(0.6);
 });
 window.addEventListener('keydown', e => {
   if (e.code !== 'Space' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -6433,7 +6301,7 @@ window.addEventListener('keydown', e => {
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'button' || tag === 'a') return;
   e.preventDefault();
-  triggerHumanPulse($('#human-pulse-btn'));
+  triggerSonarSweep();
 });
 
 $('#hud-zen-toggle')?.addEventListener('click', e => {
