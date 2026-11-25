@@ -467,6 +467,50 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   pointer-events: none !important;
 }
 
+.galaxy-back-bar {
+  position: fixed;
+  left: 22px;
+  top: 82px;
+  z-index: 38;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+.galaxy-back-bar[hidden] { display: none; }
+.galaxy-back-btn,
+.galaxy-home-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 2px;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  border: 1px solid color-mix(in srgb, var(--accent) 44%, var(--border));
+  background: color-mix(in srgb, var(--surface-solid) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.12s ease;
+}
+.galaxy-home-btn {
+  border-style: dashed;
+  color: var(--ink-2);
+}
+.galaxy-back-btn:hover,
+.galaxy-home-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-solid));
+}
+.galaxy-back-btn:active,
+.galaxy-home-btn:active {
+  transform: scale(0.96);
+}
+
 .galaxy-node-card {
   position: absolute;
   z-index: 14;
