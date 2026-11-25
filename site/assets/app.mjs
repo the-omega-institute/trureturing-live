@@ -2827,15 +2827,39 @@ function initTruthNebulaData(data) {
   truthNebula.projZ = new Float32Array(n);
   truthNebula.projLit = new Float32Array(n);
 
-  // Build 144 continuously sprouting Frontier DAG Branches anchored to outer-rim stars of each galaxy!
-  const clusterCenterById = new Map(truthNebula.clusters.map(c => [c.id, c.center]));
-  const rimIndices = [];
+  // Precompute real innermost anchor stars per galaxy so subterranean foundation root trunks graft directly into each DAG cluster!
+  const byCluster = new Map();
   for (let i = 0; i < n; i++) {
-    if (data.stars[i][4] >= 48) rimIndices.push(i);
+    const cid = data.stars[i][3];
+    if (!byCluster.has(cid)) byCluster.set(cid, []);
+    byCluster.get(cid).push(i);
   }
-  const pool = rimIndices.length ? rimIndices : Array.from({ length: n }, (_, i) => i);
-  let seed = 9187;
-  const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  truthNebula.innerAnchors = new Map();
+  for (const cl of truthNebula.clusters) {
+    if (cl.name === 'Other') continue;
+    const list = (byCluster.get(cl.id) || []).slice().sort((ia, ib) => {
+      const sa = data.stars[ia], sb = data.stars[ib];
+      return Math.hypot(sa[0], sa[1]) - Math.hypot(sb[0], sb[1]);
+    });
+    // Pick 3 well-separated inner-facing stars from the closest 28%
+    const innerCount = Math.max(3, Math.floor(list.length * 0.28));
+    const picked = [];
+    if (list.length >= 3) {
+      picked.push(list[0], list[Math.floor(innerCount * 0.45)], list[Math.min(list.length - 1, Math.floor(innerCount * 0.9))]);
+    } else {
+      picked.push(...list);
+    }
+    truthNebula.innerAnchors.set(cl.id, picked);
+  }
+  const otherId = truthNebula.clusters.find(c => c.name === 'Other')?.id ?? 7;
+  truthNebula.foundationWeight = new Map();
+  for (const [u, v, count] of truthNebula.clusterLinks) {
+    if (u === otherId && v !== otherId) {
+      truthNebula.foundationWeight.set(v, (truthNebula.foundationWeight.get(v) || 0) + (count || 0));
+    } else if (v === otherId && u !== otherId) {
+      truthNebula.foundationWeight.set(u, (truthNebula.foundationWeight.get(u) || 0) + (count || 0));
+    }
+  }
   truthNebula.frontier = [];
   truthNebula.loaded = true;
   rebuildRecentTruthGrowth();
@@ -3266,8 +3290,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
 
   const cx = w * 0.5;
   const cy = h * 0.50;
-  const scaleX = w * 0.425;
-  const scaleY = h * 0.455;
+  // Pull the Truth DAG halo cohesively inward around the institute so galaxies feel unified rather than stranded at screen corners
+  const scaleX = w * 0.392;
+  const scaleY = h * 0.422;
   const camZ = 2.65;
 
   const projectBase = (nx, ny, nz) => {
@@ -3317,39 +3342,62 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     : projectBase;
   const growthDim = cid => (focusK <= 0 ? 1 : cid === growthFocus.cid ? 1 + 0.45 * focusK : 1 - 0.62 * focusK);
 
-  // STRICT CORE SANCTUARY MASK: keeps the central foreground architecture (Akasha Eye,
-  // 4-sector campus & Central Lean Bridge) 100% clear & unobstructed while letting the
-  // vast outer Truth DAG cosmic ring shine brightly all around!
+  // SOFT SUBTERRANEAN DEPTH VEIL: dims the deep floor gently beneath the foreground 3D campus
+  // without punching an empty hole, so the Truth DAG reads as one continuous foundational substrate!
   const coreClear = (px, py) => {
-    const dx = (px - w * 0.5) / (w * 0.235);
-    const dy = (py - h * 0.49) / (h * 0.255);
+    const dx = (px - w * 0.5) / (w * 0.22);
+    const dy = (py - h * 0.50) / (h * 0.24);
     const d = Math.hypot(dx, dy);
-    if (d <= 0.72) return 0.05;
-    if (d >= 1.18) return 1.0;
-    const u = (d - 0.72) / 0.46;
-    return 0.05 + 0.95 * (u * u * (3 - 2 * u));
+    if (d <= 0.54) return 0.24;
+    if (d >= 1.08) return 1.0;
+    const u = (d - 0.54) / 0.54;
+    return 0.24 + 0.76 * (u * u * (3 - 2 * u));
   };
   // During a close-up the growing galaxy may come forward over the sanctuary; the campus still draws on top.
-  const maskFor = (cid, px, py) => (focusK > 0 && cid === growthFocus.cid ? Math.max(coreClear(px, py), 0.75 * focusK) : coreClear(px, py));
+  const maskFor = (cid, px, py) => (focusK > 0 && cid === growthFocus.cid ? Math.max(coreClear(px, py), 0.78 * focusK) : coreClear(px, py));
 
-  // Pre-project all named mathematical galaxy centroids around the outer cosmic perimeter!
+  // Pre-project all mathematical galaxy centroids
   const clProj = new Map();
   for (const cl of clusters) {
     const [px, py, pz, inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000);
     clProj.set(cl.id, { cl, x: px, y: py, z: pz, inv, col: nebPalette[cl.id % nebPalette.length] });
   }
 
-  ctx.save();
-  if (!isLight) ctx.globalCompositeOperation = 'lighter';
-
-  // PASS 1: Organic Gestating Nebula Mist + Slow Concentric Outward Expansion Halos on Growing Galaxies!
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
   const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
     if (focusK > 0.05) return cid === growthFocus?.cid ? 1.55 : 0.40;
     if (holoCam.hoveredGalaxy != null) return cid === holoCam.hoveredGalaxy ? 1.45 : 0.50;
-    return recentBucket(cid)?.count ? 1.28 : 0.72;
+    return recentBucket(cid)?.count ? 1.28 : 0.78;
   };
+
+  // PASS 0: Project all 1,160 real frozen Truth DAG stars first so subterranean rootlets can graft directly onto real inner stars!
+  for (let i = 0; i < n; i++) {
+    const s = stars[i];
+    const hasGrowth = Boolean(recentBucket(s[3])?.count);
+    let nx = s[0] / 1000, ny = s[1] / 1000, nz = s[2] / 1000;
+    if (hasGrowth && !quiet) {
+      const cl = clProj.get(s[3])?.cl;
+      if (cl && cl.name !== 'Other') {
+        const gen = s[4] / 100;
+        const swell = 1.0 + gen * 0.055 * (0.5 + 0.5 * Math.sin(tEff * 0.46 + s[3] * 1.1));
+        const cx3 = cl.center[0] / 1000, cy3 = cl.center[1] / 1000, cz3 = cl.center[2] / 1000;
+        nx = cx3 + (nx - cx3) * swell;
+        ny = cy3 + (ny - cy3) * swell;
+        nz = cz3 + (nz - cz3) * swell;
+      }
+    }
+    const [px, py, pz] = projectNeb(nx, ny, nz);
+    projX[i] = px;
+    projY[i] = py;
+    projZ[i] = pz;
+    projLit[i] = 0;
+  }
+
+  ctx.save();
+  if (!isLight) ctx.globalCompositeOperation = 'lighter';
+
+  // PASS 1: Organic Gestating Nebula Mist + Outward-Facing Crescent Expansion Wavefronts on Growing Galaxies!
   for (const { cl, x: px, y: py, inv, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const delta = recentBucket(cl.id)?.count || 0;
@@ -3357,9 +3405,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const weight = Math.min(1.42, 0.78 + Math.sqrt((cl.count || 500) / 1600) * 0.48);
     // Slow organic breathing expansion on actively growing galaxies (zero harsh flicker!)
     const swell = (hasGrowth && !quiet) ? (1.0 + 0.075 * Math.sin(tEff * 0.52 + cl.id * 1.3)) : 1.0;
-    const rad = Math.min(w, h) * (hasGrowth ? 0.24 : 0.16) * weight * inv * swell;
+    const rad = Math.min(w, h) * (hasGrowth ? 0.23 : 0.16) * weight * inv * swell;
     const g = ctx.createRadialGradient(px, py, 6, px, py, rad);
-    const baseA = (isLight ? (hasGrowth ? 0.064 : 0.020) : (hasGrowth ? 0.108 : 0.034)) * maskFor(cl.id, px, py) * Math.min(1.35, clusterEmphasis(cl.id));
+    const baseA = (isLight ? (hasGrowth ? 0.064 : 0.022) : (hasGrowth ? 0.105 : 0.036)) * maskFor(cl.id, px, py) * Math.min(1.35, clusterEmphasis(cl.id));
     g.addColorStop(0, rgba(col, baseA));
     g.addColorStop(0.50, rgba(col, baseA * 0.46));
     g.addColorStop(1, rgba(col, 0));
@@ -3369,13 +3417,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.fill();
 
     // Silky, ultra-slow OUTWARD-FACING crescent wavefronts ("外围孕育扩张波纹") ONLY around growing galaxies!
-    // Faces strictly away from the campus center so the outer rim visibly expands without encroaching inward.
     if (hasGrowth && !quiet && focusK < 0.4) {
       const outAng = Math.atan2(py - cy, px - cx);
       const ringCount = delta >= 8 ? 3 : 1;
       for (let rIdx = 0; rIdx < ringCount; rIdx++) {
         const u = (tEff * 0.082 + cl.id * 0.23 + rIdx / ringCount) % 1;
-        const rRing = (24 + u * Math.min(w, h) * (delta >= 8 ? 0.165 : 0.105)) * inv;
+        const rRing = (24 + u * Math.min(w, h) * (delta >= 8 ? 0.16 : 0.10)) * inv;
         const env = Math.sin(u * Math.PI);
         const alphaRing = env * env * (isLight ? 0.28 : 0.36) * maskFor(cl.id, px, py);
         if (alphaRing > 0.008) {
@@ -3406,11 +3453,11 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   if (!quiet) {
     for (let layer = 0; layer < 2; layer++) {
       const uOuter = (tEff * 0.048 + layer * 0.50) % 1;
-      const radScale = 0.84 + uOuter * 0.36;
+      const radScale = 0.84 + uOuter * 0.34;
       const env = Math.sin(uOuter * Math.PI);
-      const rx = w * 0.44 * radScale;
-      const ry = h * 0.44 * radScale;
-      const outerA = env * env * (isLight ? 0.11 : 0.15);
+      const rx = w * 0.415 * radScale;
+      const ry = h * 0.415 * radScale;
+      const outerA = env * env * (isLight ? 0.11 : 0.14);
       if (outerA > 0.006) {
         ctx.strokeStyle = rgba(waveColor, outerA);
         ctx.lineWidth = 1.15 - uOuter * 0.45;
@@ -3427,14 +3474,115 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.strokeStyle = rgba(waveColor, fade * (isLight ? 0.08 : 0.13));
     ctx.lineWidth = 1.0;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, w * 0.45 * u, h * 0.45 * u, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, w * 0.42 * u, h * 0.42 * u, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  // PASS 3: PERIMETER-HUGGING INTER-GALAXY TRUTH DAG CONDUITS
-  // Ultra-calm architectural arcs at rest; illuminate with arrows ONLY on hovered/focused galaxy!
-  const ringRx = w * 0.34;
-  const ringRy = h * 0.385;
+  // PASS 3A: SUBTERRANEAN FOUNDATIONAL ROOT LATTICE (底层公理根系脉络)
+  // Connects the central Lean Verification Foundation Nexus directly to ALL 7 mathematical galaxies
+  // using real `Foundations` dependency counts (328, 315, 176, 143, 121, 88, 77), grafting via braided rootlets into real inner stars!
+  const [rootX, rootY] = projectNeb(0, -0.04, -0.14);
+  const rootColor = isBlueprint ? [125, 205, 255] : isLight ? [16, 124, 114] : [0, 232, 168];
+
+  // Quiet subterranean axiom lattice rings directly under the central Lean Verification Core
+  if (focusK < 0.55) {
+    const ringFade = 1 - focusK * 1.4;
+    for (const [rBase, rAlpha] of [[52, 0.14], [108, 0.09], [174, 0.055]]) {
+      ctx.strokeStyle = rgba(rootColor, rAlpha * (isLight ? 0.95 : 1.0) * ringFade);
+      ctx.lineWidth = 0.75;
+      ctx.beginPath();
+      ctx.ellipse(rootX, rootY, rBase * 1.28, rBase * 0.82, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  for (const { cl, x: gx, y: gy, col } of clProj.values()) {
+    if (cl.name === 'Other') continue;
+    const fWeight = truthNebula.foundationWeight?.get(cl.id) || 60;
+    const fStrength = Math.min(1.0, Math.log1p(fWeight) / Math.log1p(340));
+    const delta = recentBucket(cl.id)?.count || 0;
+    const hasGrowth = delta > 0;
+    const isHot = focusCid != null && cl.id === focusCid;
+    const dimFactor = focusCid != null && !isHot ? 0.38 : 1.0;
+
+    // Gentle deterministic curved subterranean trunk from central Foundation Nexus -> galaxy core
+    const dx = gx - rootX, dy = gy - rootY;
+    const bendSign = (cl.id % 2 === 0 ? 1 : -1);
+    const bendMag = 0.13 + (cl.id % 3) * 0.03;
+    const ctrlX = (rootX + gx) * 0.5 - dy * bendMag * bendSign;
+    const ctrlY = (rootY + gy) * 0.5 + dx * bendMag * bendSign;
+
+    const baseAlpha = isHot
+      ? (isLight ? 0.44 : 0.52)
+      : (isLight ? 0.16 : 0.17) + fStrength * (isLight ? 0.12 : 0.14) + (hasGrowth ? 0.06 : 0);
+    const trunkAlpha = baseAlpha * dimFactor;
+    const trunkGrad = ctx.createLinearGradient(rootX, rootY, gx, gy);
+    trunkGrad.addColorStop(0, rgba(rootColor, trunkAlpha * 0.42));
+    trunkGrad.addColorStop(0.45, rgba(col, trunkAlpha * 0.88));
+    trunkGrad.addColorStop(1, rgba(col, trunkAlpha * 1.12));
+
+    ctx.strokeStyle = trunkGrad;
+    ctx.lineWidth = isHot ? (1.45 + fStrength * 0.85) : (0.85 + fStrength * 0.78);
+    ctx.beginPath();
+    ctx.moveTo(rootX, rootY);
+    ctx.quadraticCurveTo(ctrlX, ctrlY, gx, gy);
+    ctx.stroke();
+
+    // Braided subterranean tributary rootlets branching from 56% along the trunk directly into real inner stars of this galaxy!
+    const anchors = truthNebula.innerAnchors?.get(cl.id) || [];
+    const splitT = 0.56, invST = 1 - splitT;
+    const splitX = invST * invST * rootX + 2 * invST * splitT * ctrlX + splitT * splitT * gx;
+    const splitY = invST * invST * rootY + 2 * invST * splitT * ctrlY + splitT * splitT * gy;
+    if (anchors.length) {
+      ctx.strokeStyle = rgba(col, trunkAlpha * 0.62);
+      ctx.lineWidth = isHot ? 0.95 : 0.62;
+      ctx.beginPath();
+      for (const sIdx of anchors) {
+        const sx = projX[sIdx], sy = projY[sIdx];
+        const rmx = (splitX + sx) * 0.5 + (gx - sx) * 0.18;
+        const rmy = (splitY + sy) * 0.5 + (gy - sy) * 0.18;
+        ctx.moveTo(splitX, splitY);
+        ctx.quadraticCurveTo(rmx, rmy, sx, sy);
+      }
+      ctx.stroke();
+    }
+
+    // Calm slow-motion outward nutrient pulse flowing from central Verification Foundation -> actively growing galaxy (~11.5s cycle)
+    if (hasGrowth && !quiet && focusK < 0.45) {
+      const u = (tEff * 0.086 + cl.id * 0.29) % 1;
+      const tailLen = 0.18;
+      const uStart = Math.max(0, u - tailLen);
+      const env = Math.sin(u * Math.PI);
+      if (env > 0.04) {
+        const steps = 8;
+        ctx.strokeStyle = rgba(isLight ? col : [215, 255, 240], env * (isLight ? 0.55 : 0.68) * dimFactor);
+        ctx.lineWidth = 1.65;
+        ctx.beginPath();
+        let headX = rootX, headY = rootY;
+        for (let s = 0; s <= steps; s++) {
+          const f = uStart + (u - uStart) * (s / steps);
+          const invF = 1 - f;
+          const qx = invF * invF * rootX + 2 * invF * f * ctrlX + f * f * gx;
+          const qy = invF * invF * rootY + 2 * invF * f * ctrlY + f * f * gy;
+          if (s === 0) ctx.moveTo(qx, qy);
+          else ctx.lineTo(qx, qy);
+          headX = qx;
+          headY = qy;
+        }
+        ctx.stroke();
+        const pg = ctx.createRadialGradient(headX, headY, 0.5, headX, headY, 6.2);
+        pg.addColorStop(0, rgba(isLight ? col : [242, 255, 248], env * 0.80 * dimFactor));
+        pg.addColorStop(1, rgba(col, 0));
+        ctx.fillStyle = pg;
+        ctx.beginPath();
+        ctx.arc(headX, headY, 6.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // PASS 3B: ALL REAL INTER-GALAXY SUBTERRANEAN DEPENDENCY CHORDS (including cross-diameter bridges like Weil ↔ Quantum!)
+  // Woven through the inner substrate rather than pushed out to invisible border rims!
   const namedLinks = clusterLinks.filter(([u, v]) => {
     const cu = clProj.get(u)?.cl, cv = clProj.get(v)?.cl;
     return cu && cv && cu.name !== 'Other' && cv.name !== 'Other';
@@ -3444,80 +3592,58 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const a = clProj.get(fromId);
     const b = clProj.get(toId);
     if (!a || !b) continue;
-    const angA = Math.atan2((a.y - cy) / ringRy, (a.x - cx) / ringRx);
-    const angB = Math.atan2((b.y - cy) / ringRy, (b.x - cx) / ringRx);
-    let diff = angB - angA;
-    if (diff > Math.PI) diff -= Math.PI * 2;
-    if (diff < -Math.PI) diff += Math.PI * 2;
-    if (Math.abs(diff) > 2.55) continue;
 
-    const segs = 18;
-    const pts = [];
-    const rBoost = 1.0 + Math.min(0.14, Math.abs(diff) * 0.06) + (i % 3) * 0.025;
-    for (let s = 0; s <= segs; s++) {
-      const u = s / segs;
-      const ang = angA + diff * u;
-      const arch = Math.sin(u * Math.PI);
-      const px = (a.x * (1 - u) + b.x * u) * (1 - arch * 0.72) + (cx + Math.cos(ang) * ringRx * rBoost) * (arch * 0.72);
-      const py = (a.y * (1 - u) + b.y * u) * (1 - arch * 0.72) + (cy + Math.sin(ang) * ringRy * rBoost) * (arch * 0.72);
-      pts.push([px, py]);
-    }
+    const midX = (a.x + b.x) * 0.5;
+    const midY = (a.y + b.y) * 0.5;
+    const distAB = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const isLongBridge = distAB > Math.min(w, h) * 0.52;
+    // Pull chords softly inward toward the subterranean substrate so galaxies visibly interlock underneath the campus!
+    const pull = isLongBridge ? 0.52 : 0.30;
+    const sep = ((i % 2 === 0 ? 1 : -1) * (0.04 + (i % 3) * 0.028)) * distAB;
+    const perpX = -(b.y - a.y) / distAB;
+    const perpY =  (b.x - a.x) / distAB;
+    const qx = midX * (1 - pull) + rootX * pull + perpX * sep;
+    const qy = midY * (1 - pull) + rootY * pull + perpY * sep;
 
     const linkHot = focusCid != null && (fromId === focusCid || toId === focusCid);
+    const linkDim = focusCid != null && !linkHot ? 0.32 : 1.0;
     const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-    const lw = linkHot ? (1.1 + strength * 0.85) : 0.55;
+    const lw = linkHot ? (1.25 + strength * 0.90) : (0.65 + strength * 0.55);
     const alpha = linkHot
-      ? ((isLight ? 0.38 : 0.44) + strength * 0.24)
-      : (isLight ? 0.075 : 0.085);
+      ? ((isLight ? 0.42 : 0.48) + strength * 0.24)
+      : ((isLight ? 0.13 : 0.14) + strength * (isLight ? 0.12 : 0.14)) * linkDim;
+
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
     grad.addColorStop(0, rgba(a.col, alpha));
-    grad.addColorStop(1, rgba(b.col, alpha * 1.1));
+    grad.addColorStop(0.5, rgba(rootColor, alpha * 0.85));
+    grad.addColorStop(1, rgba(b.col, alpha * 1.08));
     ctx.strokeStyle = grad;
     ctx.lineWidth = lw;
     ctx.beginPath();
-    pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(qx, qy, b.x, b.y);
     ctx.stroke();
 
     if (linkHot) {
-      const midIdx = Math.floor(segs * 0.52);
-      const p0 = pts[midIdx - 1], p1 = pts[midIdx];
-      const chAng = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+      // Directional dependency chevron at midpoint of the curved chord
+      const uMid = 0.52, invM = 1 - uMid;
+      const mx0 = invM * invM * a.x + 2 * invM * uMid * qx + uMid * uMid * b.x;
+      const my0 = invM * invM * a.y + 2 * invM * uMid * qy + uMid * uMid * b.y;
+      const tx = 2 * invM * (qx - a.x) + 2 * uMid * (b.x - qx);
+      const ty = 2 * invM * (qy - a.y) + 2 * uMid * (b.y - qy);
       ctx.save();
-      ctx.translate(p1[0], p1[1]);
-      ctx.rotate(chAng);
-      ctx.strokeStyle = rgba(b.col, Math.min(0.92, alpha + 0.30));
+      ctx.translate(mx0, my0);
+      ctx.rotate(Math.atan2(ty, tx));
+      ctx.strokeStyle = rgba(b.col, Math.min(0.94, alpha + 0.30));
       ctx.lineWidth = Math.max(1.0, lw * 0.85);
       ctx.beginPath();
-      ctx.moveTo(-3.8, -2.6); ctx.lineTo(2.8, 0); ctx.lineTo(-3.8, 2.6);
+      ctx.moveTo(-4.0, -2.8); ctx.lineTo(3.0, 0); ctx.lineTo(-4.0, 2.8);
       ctx.stroke();
       ctx.restore();
     }
   }
 
-  // PASS 4: Project all 1,160 real frozen Truth DAG stars with imperceptibly gentle outward expansion on growing galaxies
-  for (let i = 0; i < n; i++) {
-    const s = stars[i];
-    const hasGrowth = Boolean(recentBucket(s[3])?.count);
-    let nx = s[0] / 1000, ny = s[1] / 1000, nz = s[2] / 1000;
-    if (hasGrowth && !quiet) {
-      const cl = clProj.get(s[3])?.cl;
-      if (cl && cl.name !== 'Other') {
-        const gen = s[4] / 100;
-        const swell = 1.0 + gen * 0.055 * (0.5 + 0.5 * Math.sin(tEff * 0.46 + s[3] * 1.1));
-        const cx3 = cl.center[0] / 1000, cy3 = cl.center[1] / 1000, cz3 = cl.center[2] / 1000;
-        nx = cx3 + (nx - cx3) * swell;
-        ny = cy3 + (ny - cy3) * swell;
-        nz = cz3 + (nz - cz3) * swell;
-      }
-    }
-    const [px, py, pz] = projectNeb(nx, ny, nz);
-    projX[i] = px;
-    projY[i] = py;
-    projZ[i] = pz;
-    projLit[i] = 0;
-  }
-
-  // PASS 5: CALM FROZEN INTRA-GALAXY DAG TREES (matte background; brightens ONLY on growing/hovered/focused galaxy!)
+  // PASS 5A: FROZEN INTRA-GALAXY DAG TREES (richly legible theorem skeletons inside every galaxy!)
   for (let cid = 0; cid < clusters.length; cid++) {
     const col = nebPalette[cid % nebPalette.length];
     const clId = clusters[cid]?.id ?? cid;
@@ -3525,12 +3651,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const hasGrowth = Boolean(recentBucket(clId)?.count);
     const branchDim = clusterEmphasis(clId);
     const alpha = isSpot
-      ? (isLight ? 0.34 : 0.38)
+      ? (isLight ? 0.36 : 0.40)
       : hasGrowth
-        ? (isLight ? 0.16 : 0.18)
-        : (isLight ? 0.08 : 0.09);
+        ? (isLight ? 0.20 : 0.22)
+        : (isLight ? 0.12 : 0.13);
     ctx.strokeStyle = rgba(col, alpha * Math.min(1.2, branchDim));
-    ctx.lineWidth = isSpot ? 0.90 : hasGrowth ? 0.65 : 0.48;
+    ctx.lineWidth = isSpot ? 0.92 : hasGrowth ? 0.70 : 0.54;
     ctx.beginPath();
     let countNormal = 0;
     for (let i = 0; i < edges.length; i++) {
@@ -3538,12 +3664,35 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (e[2] === 1) continue;
       const u = e[0], v = e[1];
       if (stars[u][3] !== cid) continue;
-      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.42) continue;
+      if (maskFor(cid, (projX[u] + projX[v]) * 0.5, (projY[u] + projY[v]) * 0.5) < 0.20) continue;
       ctx.moveTo(projX[u], projY[u]);
       ctx.lineTo(projX[v], projY[v]);
       countNormal++;
     }
     if (countNormal) ctx.stroke();
+  }
+
+  // PASS 5B: ALL 105 REAL CROSS-CLUSTER THEOREM-TO-THEOREM DAG EDGES (e[2] === 1)!
+  // Gossamer curved subterranean filaments physically stitching real Lean theorems across galaxies & the axiom belt!
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    if (e[2] !== 1) continue;
+    const u = e[0], v = e[1];
+    const cu = stars[u][3], cv = stars[v][3];
+    const isHot = focusCid != null && (cu === focusCid || cv === focusCid);
+    const ux = projX[u], uy = projY[u], vx = projX[v], vy = projY[v];
+    const cmx = (ux + vx) * 0.5 * 0.74 + rootX * 0.26;
+    const cmy = (uy + vy) * 0.5 * 0.74 + rootY * 0.26;
+    const col = nebPalette[cu % nebPalette.length];
+    const alpha = isHot
+      ? (isLight ? 0.32 : 0.36)
+      : (isLight ? 0.082 : 0.095) * (focusCid != null ? 0.35 : 1.0);
+    ctx.strokeStyle = rgba(col, alpha);
+    ctx.lineWidth = isHot ? 0.85 : 0.50;
+    ctx.beginPath();
+    ctx.moveTo(ux, uy);
+    ctx.quadraticCurveTo(cmx, cmy, vx, vy);
+    ctx.stroke();
   }
 
   // PASS 6: Render 1,160 Still Frozen Truth DAG Stars (calm, zero strobe fatigue!)
@@ -3721,12 +3870,13 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   for (const { cl, x: px, y: py, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
     const isBottom = cl.center[1] < 0;
+    const isMidUpper = !isBottom && cl.center[1] < 760;
     const bucket = recentBucket(cl.id);
     const delta = bucket?.count || 0;
     const isFeatured = delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2;
     const padX = isFeatured ? 386 : 340;
     const lx = Math.max(padX, Math.min(w - padX, px));
-    const ly = isBottom ? Math.min(h - 114, py + 28) : Math.max(82, py - 24);
+    const ly = isBottom ? Math.min(h - 114, py + 28) : Math.max(82, py - (isMidUpper ? 40 : 24));
     if (lx < 292 || lx > w - 292) continue;
 
     holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
