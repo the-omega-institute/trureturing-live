@@ -8,9 +8,9 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=hive-v38">
-  <script defer src="assets/gl-engine.js?v=hive-v38"></script>
-  <script type="module" src="assets/app.mjs?v=hive-v38"></script>
+  <link rel="stylesheet" href="assets/app.css?v=hive-v39">
+  <script defer src="assets/gl-engine.js?v=hive-v39"></script>
+  <script type="module" src="assets/app.mjs?v=hive-v39"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute">进入 3D 全息指挥大屏</a>
@@ -32,6 +32,11 @@
       </div>
 
       <div class="fui-top-right">
+        <div class="layer-switcher" role="group" aria-label="空间图层">
+          <button type="button" data-layer="galaxy" aria-pressed="false" title="仰望 3D 真值星系穹顶">星系</button>
+          <button type="button" data-layer="station" aria-pressed="false" title="聚焦悬浮轨道空间站与八大部门">空间站</button>
+          <button type="button" data-layer="mix" aria-pressed="true" title="地面 · 空中空间站 · 星空三层全景">混合</button>
+        </div>
         <div class="style-switcher" role="group" aria-label="空间渲染风格">
           <button type="button" data-look="holo" aria-pressed="true" title="The Matrix 矩阵空间"><i class="swatch-holo"></i><span>矩阵</span></button>
           <button type="button" data-look="blueprint" aria-pressed="false" title="3D 工程蓝图"><i class="swatch-blueprint"></i><span>蓝图</span></button>
@@ -42,7 +47,7 @@
           <button type="button" data-mode="journey" aria-pressed="false">接力轨迹</button>
         </div>
         <button class="follow-button" id="follow-live" type="button" aria-pressed="true"><i></i><span>跟随</span></button>
-        <button class="hud-icon-btn" id="hud-zen-toggle" type="button" aria-pressed="false" title="隐藏两侧面板，纯享 3D 空间">纯净</button>
+        <button class="hud-icon-btn" id="hud-zen-toggle" type="button" aria-pressed="false" title="隐藏右侧面板，纯享 3D 空间">纯净</button>
         <button class="hud-icon-btn" id="motion-toggle" type="button" aria-pressed="false" title="暂停旋转 / 静看">静看</button>
         <button class="hud-icon-btn fullscreen-button" id="expand-room" type="button" aria-pressed="false" aria-label="进入全屏" title="全屏显示">
           <svg class="fs-enter" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
@@ -71,7 +76,23 @@
         <!-- Subtle Cinema Telemetry Corner Readout -->
         <div class="fui-corner-telemetry" aria-hidden="true">
           <span class="fui-coord visually-hidden" id="board-clock">MATRIX CONSTRUCT // 24·7 INSTITUTE GRID</span>
-          <span class="fui-orbit-hint" id="hive-hover-hint">微调视角（双击复位） · 点击部门进舱内 · 点击亮起的星系看实时增长</span>
+          <span class="fui-orbit-hint" id="hive-hover-hint">地面 · 空中空间站 · 星空三层全景 · 拖拽微调（双击复位） · 点击部门进舱内</span>
+        </div>
+
+        <!-- Playful Human Observer Resonance & Interactive Pulse Dock (KPR Tactical HUD) -->
+        <div class="human-console" id="human-console" role="region" aria-label="人类观测者互动台">
+          <div class="human-rank-pill" id="human-rank-pill" title="探索部门、点击星系、发射共振脉冲累积探索 XP，触发 LEVEL UP">
+            <span class="human-lv" id="human-lv">LV.01</span>
+            <span class="human-rank-name" id="human-rank-name">观测员</span>
+            <span class="human-xp-track" aria-hidden="true"><i id="human-xp-fill" style="width: 8%"></i></span>
+            <span class="human-xp-meta" id="human-xp-meta">0/60</span>
+          </div>
+          <button type="button" class="human-pulse-btn" id="human-pulse-btn" title="向当前聚焦部门发射量子共振脉冲（快捷键 Space），连击 5 次触发全院超频">
+            <i aria-hidden="true">⚡</i><span>共振脉冲</span><kbd>Space</kbd>
+          </button>
+          <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" title="开启或静音科幻交互微音效">
+            <span id="human-sound-icon" aria-hidden="true">♪</span>
+          </button>
         </div>
 
         <!-- Zoomed 3D Holographic Interior Chamber Overlay -->

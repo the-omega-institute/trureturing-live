@@ -491,3 +491,26 @@ test('a growing galaxy is magnified locally while the rest of the sky stays put'
     assert.ok(centre[2]>near[2],'and is magnified the most');
   }finally{dom.window.close();}
 });
+
+test('spatial layers and human resonance pulses advance explorer rank and trigger level up',async()=>{
+  const {dom,win}=await boot();try{
+    const doc=win.document;
+    const room=doc.querySelector('#research-room');
+    assert.equal(room.dataset.layer,'mix','starts in the 3-strata mix panorama');
+    doc.querySelector('[data-layer="galaxy"]').click();
+    assert.equal(room.dataset.layer,'galaxy','switches cleanly to galaxy observatory layer');
+    assert.equal(doc.querySelector('[data-layer="galaxy"]').getAttribute('aria-pressed'),'true');
+    doc.querySelector('[data-layer="station"]').click();
+    assert.equal(room.dataset.layer,'station','switches cleanly to orbital space station layer');
+    assert.equal(doc.querySelector('#human-lv').textContent,'LV.01','two layer discoveries earn 40 XP');
+
+    const pulseBtn=doc.querySelector('#human-pulse-btn');
+    for(let i=0;i<5;i++)pulseBtn.click();
+    assert.notEqual(doc.querySelector('#human-lv').textContent,'LV.01','rapid 5x resonance overdrive levels up the observer rank');
+    assert.ok(doc.querySelector('#human-rank-name').textContent.length>0);
+
+    const soundBtn=doc.querySelector('#human-sound-btn');
+    soundBtn.click();
+    assert.equal(soundBtn.getAttribute('aria-pressed'),'false','sound toggle mutes cleanly');
+  }finally{dom.window.close();}
+});
