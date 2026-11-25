@@ -2768,11 +2768,16 @@ const holoWorld = {
 
 const holoCam = {
   yaw: 0.0,
-  pitch: 0.68,
-  dist: 19.6,
+  pitch: 0.52,
+  dist: 23.6,
   targetYaw: 0.0,
-  targetPitch: 0.66,
-  targetDist: 18.8,
+  targetPitch: 0.50,
+  targetDist: 23.2,
+  lookX: 0.0,
+  lookY: 0.58,
+  lookZ: 0.35,
+  mouseNormX: 0.0,
+  mouseNormY: 0.0,
   gazeX: -5.30,
   gazeZ: -2.95,
   dragging: false,
@@ -2782,6 +2787,8 @@ const holoCam = {
   time: 0,
   bootAge: 0,
   raf: 0,
+  gl: null,
+  glFailed: false,
   stars: [],
   sparks: [],
   matrixCols: [],
@@ -4635,12 +4642,47 @@ function drawHolo3DFrame(dt = 0.016) {
   }
   const t = holoCam.time;
 
-  // Subtle disciplined camera micro-parallax (NO chaotic wild rotation!)
-  const idleDrift = (!holoCam.dragging && !state.quiet && !reduced) ? Math.sin(t * 0.22) * 0.042 : 0;
-  const ease = holoCam.bootAge < 1.2 ? 0.11 : 0.085;
-  holoCam.yaw += (holoCam.targetYaw + idleDrift - holoCam.yaw) * ease;
-  holoCam.pitch += (holoCam.targetPitch - holoCam.pitch) * ease;
-  holoCam.dist += (holoCam.targetDist - holoCam.dist) * ease;
+  const isLight = document.documentElement.dataset.theme === 'light';
+  const isBlueprint = document.documentElement.dataset.look === 'blueprint';
+  const isHolo = !isLight && !isBlueprint;
+
+  // Lazy-init real WebGL2 PBR Spatial Engine (gracefully falls back to 2D canvas in jsdom/legacy)
+  if (!holoCam.gl && !holoCam.glFailed && typeof window !== 'undefined' && window.TrureGL && !/jsdom/i.test(navigator.userAgent || '')) {
+    const glCanvas = $('#holo-gl');
+    if (glCanvas) {
+      try {
+        holoCam.gl = new window.TrureGL(glCanvas);
+      } catch {
+        holoCam.glFailed = true;
+      }
+    }
+  }
+  const useGL = Boolean(holoCam.gl);
+  const activeId = state.hovered || state.selected;
+
+  // Smooth damped 3D camera choreography (Igloo / NASA Eyes fly-in + Active Theory cursor parallax!)
+  const damp = 1 - Math.exp(-Math.max(0.008, stepDt) * 5.4);
+  if (useGL && state.focused && holoWorld[state.focused]) {
+    const fc = holoWorld[state.focused];
+    const flyY = (fc.y || 0) + (fc.eye ? 0.0 : 0.85);
+    const flyYaw = (!state.quiet && !reduced) ? Math.sin(t * 0.24) * 0.55 : 0.25;
+    holoCam.lookX += (fc.x - holoCam.lookX) * damp;
+    holoCam.lookY += (flyY - holoCam.lookY) * damp;
+    holoCam.lookZ += (fc.z - holoCam.lookZ) * damp;
+    holoCam.yaw += (flyYaw - holoCam.yaw) * damp;
+    holoCam.pitch += (0.28 - holoCam.pitch) * damp;
+    holoCam.dist += (5.8 - holoCam.dist) * damp;
+  } else {
+    const idleDrift = (!holoCam.dragging && !state.quiet && !reduced) ? Math.sin(t * 0.20) * 0.036 : 0;
+    const parallaxX = (!holoCam.dragging && !state.quiet && !reduced) ? holoCam.mouseNormX * 0.052 : 0;
+    const parallaxY = (!holoCam.dragging && !state.quiet && !reduced) ? holoCam.mouseNormY * 0.024 : 0;
+    holoCam.lookX += (0.0 - holoCam.lookX) * damp;
+    holoCam.lookY += (0.58 - holoCam.lookY) * damp;
+    holoCam.lookZ += (0.35 - holoCam.lookZ) * damp;
+    holoCam.yaw += (holoCam.targetYaw + idleDrift + parallaxX - holoCam.yaw) * damp;
+    holoCam.pitch += (Math.max(0.32, Math.min(0.84, holoCam.targetPitch + parallaxY)) - holoCam.pitch) * damp;
+    holoCam.dist += (holoCam.targetDist - holoCam.dist) * damp;
+  }
 
   // Age pulses & live streaking spoke comet flares
   for (let i = holoCam.pulses.length - 1; i >= 0; i--) {
@@ -4656,47 +4698,104 @@ function drawHolo3DFrame(dt = 0.016) {
     if (holoCam.nebulaRipples[i].age >= 1) holoCam.nebulaRipples.splice(i, 1);
   }
 
-  const isLight = document.documentElement.dataset.theme === 'light';
-  const isBlueprint = document.documentElement.dataset.look === 'blueprint';
-  const isHolo = !isLight && !isBlueprint;
-
-  // 1. Background Atmosphere (Deep Orbital Obsidian Space / Blueprint / Architectural Maquette)
-  const bg = ctx.createRadialGradient(w * 0.5, h * 0.34, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
-  if (isLight) {
-    bg.addColorStop(0, '#f7f4ec');
-    bg.addColorStop(0.6, '#eeeae0');
-    bg.addColorStop(1, '#dfd9cc');
-  } else if (isBlueprint) {
-    bg.addColorStop(0, '#102644');
-    bg.addColorStop(0.55, '#0a182d');
-    bg.addColorStop(1, '#061020');
+  if (useGL) {
+    // 1. REAL WEBGL2 GPU SCENE: PBR Shaded Monoliths + Hard-Edge Creases + Reflective Floor + Volumetric Pillars + Selective Bloom!
+    const themeIdx = isLight ? 2 : isBlueprint ? 1 : 0;
+    const glNebPalette = isBlueprint
+      ? [[120,210,255],[148,228,255],[108,182,255],[176,198,255],[126,222,248],[136,192,255],[214,236,255],[112,198,246]]
+      : isLight
+        ? [[16,118,110],[20,108,148],[148,96,36],[96,78,160],[22,120,106],[46,100,166],[142,102,42],[44,110,118]]
+        : [[112,218,216],[116,212,242],[214,194,148],[162,178,232],[110,210,196],[144,194,242],[206,194,158],[128,188,216]];
+    holoCam.gl.ensureSize(w, h, dpr);
+    holoCam.gl.setCamera(holoCam.yaw, holoCam.pitch, holoCam.dist, holoCam.lookX, holoCam.lookY, holoCam.lookZ);
+    if (truthNebula.loaded) {
+      holoCam.gl.syncStars(truthNebula.stars, glNebPalette, truthGrowth.recentByCluster, isLight);
+    }
+    const glEntities = departments().map(d => {
+      const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1.2, order: 0, hex: [116, 224, 244] };
+      return {
+        id: d.id,
+        x: cfg.x,
+        y: cfg.y || 0,
+        z: cfg.z,
+        r: cfg.r,
+        eye: Boolean(cfg.eye),
+        order: cfg.order,
+        hEntity: towerHeight(d.id),
+        rgb: isBlueprint ? [150, 215, 255] : cfg.hex,
+        isSel: d.id === activeId,
+        running: Boolean(countRunning(d))
+      };
+    });
+    holoCam.gl.render({
+      t,
+      themeIdx,
+      entities: glEntities,
+      activeId,
+      focusedId: state.focused,
+      bootAge: holoCam.bootAge,
+      quiet: state.quiet || reduced
+    });
+    // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
+    ctx.clearRect(0, 0, w, h);
+    if (state.focused) return;
   } else {
-    bg.addColorStop(0, '#0a1220');
-    bg.addColorStop(0.45, '#050912');
-    bg.addColorStop(1, '#020408');
-  }
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
-
-  initHoloParticles();
-
-  // Subtle deep-space upper atmospheric scatter (NO cliché green Matrix rain!)
-  if (isHolo) {
-    const aura = ctx.createRadialGradient(w * 0.5, h * 0.14, 10, w * 0.5, h * 0.32, w * 0.44);
-    aura.addColorStop(0, 'rgba(103, 185, 232, 0.055)');
-    aura.addColorStop(0.55, 'rgba(56, 112, 168, 0.020)');
-    aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = aura;
+    // 2D Canvas Fallback Atmosphere (jsdom tests / software fallback)
+    const bg = ctx.createRadialGradient(w * 0.5, h * 0.34, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
+    if (isLight) {
+      bg.addColorStop(0, '#f7f4ec');
+      bg.addColorStop(0.6, '#eeeae0');
+      bg.addColorStop(1, '#dfd9cc');
+    } else if (isBlueprint) {
+      bg.addColorStop(0, '#102644');
+      bg.addColorStop(0.55, '#0a182d');
+      bg.addColorStop(1, '#061020');
+    } else {
+      bg.addColorStop(0, '#0a1220');
+      bg.addColorStop(0.45, '#050912');
+      bg.addColorStop(1, '#020408');
+    }
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
   }
 
-  // 1B. LIVING EXPANDING 3D TRUTH DAG COSMIC NEBULA (real 18,367-node trureturing Truth DAG!)
+  initHoloParticles();
+
+  // 1B. PURE BACKGROUND TRUTH DAG OUTER-RIM CRYSTALLIZATION & ASTRONOMICAL STAR-TRACKER LABELS
   drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint);
 
-  // Symmetrical Hero Framing across the expanded center Matrix campus!
+  // KPR / Active Theory Peripheral Optical Viewfinder Frame (razor-thin corner ticks + live camera telemetry!)
+  if (useGL) {
+    const zen = $('#research-room')?.classList.contains('is-hud-zen');
+    const fx0 = (w >= 1120 && !zen) ? 260 : 28;
+    const fx1 = (w >= 1120 && !zen) ? w - 276 : w - 28;
+    const fy0 = 66, fy1 = h - 72;
+    const tick = 12;
+    const vfCol = isLight ? [60, 74, 88] : [156, 198, 228];
+    ctx.save();
+    ctx.strokeStyle = rgba(vfCol, isLight ? 0.26 : 0.22);
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.moveTo(fx0, fy0 + tick); ctx.lineTo(fx0, fy0); ctx.lineTo(fx0 + tick, fy0);
+    ctx.moveTo(fx1 - tick, fy0); ctx.lineTo(fx1, fy0); ctx.lineTo(fx1, fy0 + tick);
+    ctx.moveTo(fx0, fy1 - tick); ctx.lineTo(fx0, fy1); ctx.lineTo(fx0 + tick, fy1);
+    ctx.moveTo(fx1 - tick, fy1); ctx.lineTo(fx1, fy1); ctx.lineTo(fx1, fy1 - tick);
+    ctx.stroke();
+    // Live camera azimuth / elevation / dolly readout (Active Theory / NASA Eyes optical HUD!)
+    const azDeg = (holoCam.yaw * 180 / Math.PI).toFixed(1).padStart(5, ' ');
+    const elDeg = (holoCam.pitch * 180 / Math.PI).toFixed(1);
+    const camReadout = `CAM // AZ ${azDeg}°  EL +${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m`;
+    ctx.font = '500 8.5px "Geist Mono", ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = rgba(vfCol, isLight ? 0.56 : 0.44);
+    ctx.fillText(camReadout, w * 0.5, fy0 + 2);
+    ctx.restore();
+  }
+
+  // Exact shared 3D -> 2D projection (sub-pixel locked to WebGL2 camera when active!)
   const cx = w * 0.5;
   const cy = state.focused ? h * 0.52 : h * 0.535;
-  // Portrait boards are width-limited: keep the whole campus inside the frame.
   const fov = Math.min(Math.min(w, h) * (w > 1360 ? 1.08 : w > 980 ? 0.98 : 0.92), w * 0.84);
   const cosY = Math.cos(holoCam.yaw);
   const sinY = Math.sin(holoCam.yaw);
@@ -4705,18 +4804,20 @@ function drawHolo3DFrame(dt = 0.016) {
   const lookY = 0.55;
   const lookZ = 0.45;
 
-  const project = (wx, wy, wz) => {
-    const x0 = wx;
-    const y0 = wy - lookY;
-    const z0 = wz - lookZ;
-    const x1 = x0 * cosY - z0 * sinY;
-    const z1 = x0 * sinY + z0 * cosY;
-    const y2 = y0 * cosP - z1 * sinP;
-    const z2 = y0 * sinP + z1 * cosP + holoCam.dist;
-    if (z2 < 0.8) return null;
-    const s = fov / z2;
-    return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s };
-  };
+  const project = useGL
+    ? (wx, wy, wz) => holoCam.gl.project(wx, wy, wz)
+    : (wx, wy, wz) => {
+        const x0 = wx;
+        const y0 = wy - lookY;
+        const z0 = wz - lookZ;
+        const x1 = x0 * cosY - z0 * sinY;
+        const z1 = x0 * sinY + z0 * cosY;
+        const y2 = y0 * cosP - z1 * sinP;
+        const z2 = y0 * sinP + z1 * cosP + holoCam.dist;
+        if (z2 < 0.8) return null;
+        const s = fov / z2;
+        return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s };
+      };
 
   const draw3DRing = (rx, ry, rz, radX, radZ, segs, stroke, lw = 1, dash = null, rot = 0) => {
     ctx.save();
@@ -4796,13 +4897,19 @@ function drawHolo3DFrame(dt = 0.016) {
   const titaniumRGB = isLight ? [100, 116, 139] : isBlueprint ? [150, 215, 255] : [148, 188, 224];
   const hubX = 0.0, hubY = 0.22, hubZ = -0.45;
   const eyeCfg = holoWorld.direction;
-  const activeId = state.hovered || state.selected;
+  const sec1Hot = activeId === 'research' || activeId === 'review';
+  const sec2Hot = activeId === 'publication' || activeId === 'outreach';
+  const sec3Hot = activeId === 'books';
+  const sec4Hot = activeId === 'studio';
+  const bridgeHot = activeId === 'verification';
 
-  // Smoothly track the Akasha Eye's living gaze toward the active AI department below!
+  // Smoothly track gaze toward active department
   const gazeTarget = (activeId && activeId !== 'direction' && holoWorld[activeId]) ? holoWorld[activeId] : holoWorld.verification;
   holoCam.gazeX += (gazeTarget.x - holoCam.gazeX) * 0.09;
   holoCam.gazeZ += (gazeTarget.z - holoCam.gazeZ) * 0.09;
 
+  // 4A..4D. 2D Fallback Campus Geometry (ONLY rendered when WebGL2 is unavailable!)
+  if (!useGL) {
   // 4A. Quiet Receding 3D Orbital CAD Floor Grid (crisp hairline architectural depth)
   ctx.save();
   for (let gx = -8; gx <= 8; gx += 2.0) {
@@ -4871,12 +4978,6 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.stroke();
     ctx.restore();
   };
-
-  const sec1Hot = activeId === 'research' || activeId === 'review';
-  const sec2Hot = activeId === 'publication' || activeId === 'outreach';
-  const sec3Hot = activeId === 'books';
-  const sec4Hot = activeId === 'studio';
-  const bridgeHot = activeId === 'verification';
 
   drawSectorTerrace(-5.65, -0.50, 1.96, 3.72, holoWorld.research.hex, sec1Hot);
   drawSectorTerrace( 5.65, -0.50, 1.96, 3.72, holoWorld.publication.hex, sec2Hot);
@@ -4955,6 +5056,7 @@ function drawHolo3DFrame(dt = 0.016) {
     const bu = holoCam.bootAge / 1.0;
     draw3DRing(hubX, 0.04, hubZ, 0.8 + bu * 5.8, 0.6 + bu * 4.2, 64, rgba(hubRGB, (1 - bu) * 0.38), 1.1);
   }
+  } // end if (!useGL) fallback campus geometry
 
   // ==========================================================================
   // 5. CLOSED-LOOP WORKFLOW CONDUITS + AKASHA EYE SUPERVISORY GUIDANCE BEAM
@@ -5534,9 +5636,8 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.projectedTowers.clear();
 
   for (const { d, cfg } of sorted) {
-    const rawBoot = Math.max(0, Math.min(1, (holoCam.bootAge - cfg.order * 0.065) / 0.42));
+    const rawBoot = Math.max(0, Math.min(1, (holoCam.bootAge - cfg.order * 0.03) / 0.32));
     const bootK = 1 - Math.pow(1 - rawBoot, 3);
-    if (bootK <= 0.02) continue;
 
     const hEntity = towerHeight(d.id);
     const yBase = cfg.y || 0;
@@ -5546,47 +5647,49 @@ function drawHolo3DFrame(dt = 0.016) {
     const pulseObj = holoCam.pulses.find(p => p.id === d.id);
     const pulseBoost = pulseObj ? (1 - pulseObj.age) : 0;
 
-    // Subtle ground ambient shadow/reflection (restrained, zero loud neon puddle!)
-    if (!cfg.eye) {
-      const gPt = project(cfg.x, yBase + 0.02, cfg.z);
-      if (gPt) {
-        const gRad = cfg.r * gPt.s * (isSel ? 1.45 : running ? 1.15 : 0.92) * bootK;
-        const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
-        glow.addColorStop(0, rgba(rgb, isLight ? 0.10 : (isSel ? 0.18 : running ? 0.10 : 0.05) + pulseBoost * 0.08));
-        glow.addColorStop(1, rgba(rgb, 0));
-        ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.48, 0, 0, Math.PI * 2); ctx.fill();
+    if (!useGL && bootK > 0.02) {
+      // 2D Fallback ambient reflection & vector sculptures (WebGL2 renders real PBR shaded monoliths!)
+      if (!cfg.eye) {
+        const gPt = project(cfg.x, yBase + 0.02, cfg.z);
+        if (gPt) {
+          const gRad = cfg.r * gPt.s * (isSel ? 1.45 : running ? 1.15 : 0.92) * bootK;
+          const glow = ctx.createRadialGradient(gPt.x, gPt.y, 2, gPt.x, gPt.y, Math.max(8, gRad));
+          glow.addColorStop(0, rgba(rgb, isLight ? 0.10 : (isSel ? 0.18 : running ? 0.10 : 0.05) + pulseBoost * 0.08));
+          glow.addColorStop(1, rgba(rgb, 0));
+          ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.ellipse(gPt.x, gPt.y, gRad, gRad * 0.48, 0, 0, Math.PI * 2); ctx.fill();
+        }
       }
+
+      if (isSel && !isLight && !cfg.eye) {
+        const topBeam = project(cfg.x, yBase + hEntity + 0.9, cfg.z);
+        const botBeam = project(cfg.x, yBase, cfg.z);
+        if (topBeam && botBeam) {
+          ctx.save();
+          const bgGrad = ctx.createLinearGradient(botBeam.x, botBeam.y, topBeam.x, topBeam.y);
+          bgGrad.addColorStop(0, rgba(rgb, 0.12));
+          bgGrad.addColorStop(0.65, rgba(rgb, 0.03));
+          bgGrad.addColorStop(1, rgba(rgb, 0));
+          ctx.strokeStyle = bgGrad;
+          ctx.lineWidth = Math.max(10, cfg.r * botBeam.s * 0.42);
+          ctx.beginPath(); ctx.moveTo(botBeam.x, botBeam.y); ctx.lineTo(topBeam.x, topBeam.y); ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      drawBiomimetic(d.id, cfg, hEntity, yBase, rgb, isSel, running, bootK, pulseBoost);
     }
 
-    if (isSel && !isLight && !cfg.eye) {
-      const topBeam = project(cfg.x, yBase + hEntity + 0.9, cfg.z);
-      const botBeam = project(cfg.x, yBase, cfg.z);
-      if (topBeam && botBeam) {
-        ctx.save();
-        const bgGrad = ctx.createLinearGradient(botBeam.x, botBeam.y, topBeam.x, topBeam.y);
-        bgGrad.addColorStop(0, rgba(rgb, 0.12));
-        bgGrad.addColorStop(0.65, rgba(rgb, 0.03));
-        bgGrad.addColorStop(1, rgba(rgb, 0));
-        ctx.strokeStyle = bgGrad;
-        ctx.lineWidth = Math.max(10, cfg.r * botBeam.s * 0.42);
-        ctx.beginPath(); ctx.moveTo(botBeam.x, botBeam.y); ctx.lineTo(topBeam.x, topBeam.y); ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    drawBiomimetic(d.id, cfg, hEntity, yBase, rgb, isSel, running, bootK, pulseBoost);
-
-    // Anchor sleek mission card cleanly above Akasha Eye or below each closed-loop sculpture!
+    // Anchor KPR chamfered mission tag cleanly above floating Architect monolith or below each grounded monolith!
     const anchorPt = cfg.apex
-      ? project(cfg.x, yBase + 0.72, cfg.z)
-      : project(cfg.x, yBase - 0.06, cfg.z + cfg.r * (d.id === 'verification' ? 0.94 : 0.74));
-    const bodyCenter = project(cfg.x, yBase + (cfg.eye ? 0.0 : hEntity * 0.5), cfg.z);
+      ? project(cfg.x, yBase + 1.05, cfg.z)
+      : project(cfg.x, yBase - 0.06, cfg.z + cfg.r * (d.id === 'verification' ? 1.05 : 0.85));
+    const bodyCenter = project(cfg.x, yBase + (cfg.eye ? 0.0 : hEntity * 0.55), cfg.z);
     if (anchorPt && bodyCenter) {
-      holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(46, cfg.r * bodyCenter.s * 1.45) });
+      holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(48, cfg.r * bodyCenter.s * 1.48) });
       const cell = state.cells.get(d.id);
       if (cell) {
-        const depthScale = Math.max(0.84, Math.min(1.04, 14.5 / anchorPt.z));
+        const depthScale = Math.max(0.84, Math.min(1.04, 16.5 / anchorPt.z));
         cell._proj = { x: anchorPt.x, y: anchorPt.y, z: anchorPt.z, depthScale, apex: Boolean(cfg.apex), isSel };
       }
     }
@@ -5622,11 +5725,12 @@ function drawHolo3DFrame(dt = 0.016) {
       }
     }
   }
+  const isZenHud = $('#research-room')?.classList.contains('is-hud-zen');
   for (const item of placedCards) {
-    const minX = w >= 1120 ? 290 + item.hw : item.hw + 8;
-    const maxX = w >= 1120 ? w - 290 - item.hw : w - item.hw - 8;
+    const minX = (w >= 1120 && !isZenHud) ? 274 + item.hw : item.hw + 14;
+    const maxX = (w >= 1120 && !isZenHud) ? w - 274 - item.hw : w - item.hw - 14;
     const clampedX = Math.max(minX, Math.min(maxX, item.x));
-    const clampedCy = Math.max(76 + item.hh, Math.min(h - 94 - item.hh, item.cy));
+    const clampedCy = Math.max(82 + item.hh, Math.min(h - 94 - item.hh, item.cy));
     const topY = item.apex ? clampedCy + item.bh * 0.5 : clampedCy - item.bh * 0.5;
     item.cell.button.style.left = `${clampedX.toFixed(1)}px`;
     item.cell.button.style.top = `${topY.toFixed(1)}px`;
@@ -5637,9 +5741,9 @@ function drawHolo3DFrame(dt = 0.016) {
     item.cell._proj = null;
   }
 
-  // Minimalist wing designations at rest; conduit captions reveal progressively ONLY on active focus!
-  drawHoloText(-5.45, 0.55, -4.65, '01 理论与复核部', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.8);
-  drawHoloText( 5.45, 0.55, -4.65, '02 论文与对外合作', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.8);
+  // Minimalist KPR wing designations placed cleanly clear of the crystal monolith spires
+  drawHoloText(-5.95, 0.10, -5.20, 'SEC.01 // 理论与复核部', isLight ? [51, 65, 85] : [168, 198, 224], sec1Hot, 8.6);
+  drawHoloText( 5.95, 0.10, -5.20, 'SEC.02 // 论文与对外合作', isLight ? [51, 65, 85] : [168, 198, 224], sec2Hot, 8.6);
   if (thHot || rvHot) drawHoloText(-2.58, 0.26, -1.16, '理论 ⇄ Lean 桥梁', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
   if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, '论文·合作 ⇄ 写回形式化', isLight ? [15, 118, 110] : [148, 224, 238], true, 8.8);
   if (bkHot)          drawHoloText(-1.92, 0.14,  2.85, '写书 ⇄ 验证请求', isLight ? [79, 70, 229] : [188, 198, 242], true, 8.8);
@@ -5711,15 +5815,20 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   });
 
   window.addEventListener('pointermove', e => {
+    // Active Theory / Igloo subtle living cursor parallax
+    if (window.innerWidth > 0 && window.innerHeight > 0) {
+      holoCam.mouseNormX = (e.clientX / window.innerWidth - 0.5) * 2;
+      holoCam.mouseNormY = (e.clientY / window.innerHeight - 0.5) * 2;
+    }
     if (holoCam.dragging) {
       const dx = e.clientX - holoCam.lastX;
       const dy = e.clientY - holoCam.lastY;
       if (Math.abs(dx) + Math.abs(dy) > 3) holoCam.dragMoved = true;
       holoCam.lastX = e.clientX;
       holoCam.lastY = e.clientY;
-      // Disciplined elevated architectural camera bounds — NEVER flattens into an overlapping cross-section!
-      holoCam.targetYaw = Math.max(-0.26, Math.min(0.26, holoCam.targetYaw + dx * 0.0038));
-      holoCam.targetPitch = Math.max(0.56, Math.min(0.82, holoCam.targetPitch + dy * 0.0032));
+      // Smooth orbital drag around the 3D monolith plaza (wider dramatic arc with real WebGL Z-buffer!)
+      holoCam.targetYaw = Math.max(-0.55, Math.min(0.55, holoCam.targetYaw - dx * 0.0042));
+      holoCam.targetPitch = Math.max(0.36, Math.min(0.84, holoCam.targetPitch + dy * 0.0034));
       return;
     }
     if (!state.focused && e.target === $('#holo-3d')) {
@@ -5779,16 +5888,25 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   boardEl.addEventListener('dblclick', e => {
     if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel')) return;
     holoCam.targetYaw = 0.0;
-    holoCam.targetPitch = 0.66;
-    holoCam.targetDist = 18.8;
+    holoCam.targetPitch = 0.50;
+    holoCam.targetDist = 23.2;
   });
 
   boardEl.addEventListener('wheel', e => {
     if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall')) return;
     e.preventDefault();
-    holoCam.targetDist = Math.max(15.5, Math.min(20.5, holoCam.targetDist + e.deltaY * 0.005));
+    // Smooth Igloo-style 3D scroll dolly into/out of the monolith plaza
+    holoCam.targetDist = Math.max(12.0, Math.min(27.5, holoCam.targetDist + e.deltaY * 0.010));
   }, { passive: false });
 }
+
+$('#hud-zen-toggle')?.addEventListener('click', e => {
+  const room = $('#research-room');
+  if (!room) return;
+  const zen = room.classList.toggle('is-hud-zen');
+  e.currentTarget.setAttribute('aria-pressed', String(zen));
+  e.currentTarget.textContent = zen ? '展开' : '纯净';
+});
 
 function applyLook(look) {
   const docEl = document.documentElement;
