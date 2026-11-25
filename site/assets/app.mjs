@@ -2948,6 +2948,8 @@ const holoCam = {
   ndcShiftX: 0.0,
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
+  galaxyZoomScale: 1.0,
+  galaxyZoomCooldown: 0,
   sonarStart: -99999,
   rheostatRevX: -2.4,
   rheostatRevTargetId: 'research',
@@ -3649,9 +3651,57 @@ function growthSwellFocus(now) {
   return amount > 0.001 ? { cid: auto.cid, scale: growthSwellScale(now - auto.start), lift: 1 + (GROWTH_SWELL_LIFT - 1) * amount } : null;
 }
 
+// Trackpad pinch / scroll zoom while inside Galaxy Main View or a focused DAG node:
+// smoothly scales camera distance and steps back one level (node -> galaxy -> panorama)
+// once pulled past GALAXY_ZOOM_EXIT, with a brief inertia cooldown so one flick never skips two levels!
+const GALAXY_ZOOM_MIN = 0.58;
+const GALAXY_ZOOM_EXIT = 1.32;
+const GALAXY_ZOOM_COOLDOWN_MS = 560;
+
+function stepGalaxyZoom(zoom, deltaY, ctrlKey, now) {
+  const scale = Number.isFinite(zoom?.scale) ? zoom.scale : 1.0;
+  const cooldownUntil = Number.isFinite(zoom?.cooldownUntil) ? zoom.cooldownUntil : 0;
+  if (!Number.isFinite(deltaY) || deltaY === 0) return { scale, cooldownUntil, action: 'none' };
+  if (deltaY > 0 && now < cooldownUntil) return { scale, cooldownUntil, action: 'cooldown' };
+  const raw = ctrlKey ? deltaY * 0.016 : deltaY * 0.0024;
+  const step = Math.max(-0.18, Math.min(0.18, raw));
+  const next = Math.max(GALAXY_ZOOM_MIN, scale + step);
+  if (deltaY > 0 && next >= GALAXY_ZOOM_EXIT) {
+    return { scale: 1.0, cooldownUntil: now + GALAXY_ZOOM_COOLDOWN_MS, action: 'step-out' };
+  }
+  return { scale: Math.min(GALAXY_ZOOM_EXIT, next), cooldownUntil, action: 'zoom' };
+}
+
+function updateGalaxyBackBar() {
+  const bar = document.querySelector('#galaxy-back-bar');
+  const backBtn = document.querySelector('#galaxy-back-btn');
+  const homeBtn = document.querySelector('#galaxy-home-btn');
+  if (!bar || !backBtn) return;
+  const inGalaxy = Boolean(truthGrowth.manualFocus && !truthGrowth.manualFocus.closing);
+  bar.hidden = !inGalaxy;
+  if (!inGalaxy) return;
+  const inNode = Boolean(galaxyDetail.selectedKey || galaxyDetail.selectedNode);
+  backBtn.textContent = inNode ? '← 返回星系' : '← 返回全景';
+  if (homeBtn) homeBtn.hidden = !inNode;
+}
+
+function exitGalaxyMainView(now = performance.now()) {
+  closeGalaxyNodeCard();
+  holoCam.galaxyZoomScale = 1.0;
+  if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
+    truthGrowth.manualFocus.closing = true;
+    truthGrowth.manualFocus.closeStart = now;
+  }
+  const lp = LAYER_PRESETS[state.layer] || LAYER_PRESETS.mix;
+  holoCam.targetDist = lp.dist;
+  updateGalaxyBackBar();
+  updateHoverHint(state.hovered || state.selected);
+}
+
 // World-space centre and framing radius (85th percentile of its stars) of a galaxy.
 function syncGalaxyMainView(active) {
   const room = document.querySelector('#research-room');
+  updateGalaxyBackBar();
   if (!room || room.classList.contains('is-galaxy-main') === Boolean(active)) return;
   room.classList.toggle('is-galaxy-main', Boolean(active));
   if (active) {
@@ -3659,8 +3709,10 @@ function syncGalaxyMainView(active) {
   } else {
     galaxyDetail.picks = [];
     galaxyDetail.hoverKey = null;
+    holoCam.galaxyZoomScale = 1.0;
     closeGalaxyNodeCard();
   }
+  updateGalaxyBackBar();
 }
 
 // ---- Galaxy nodes -------------------------------------------------------------
@@ -3804,7 +3856,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     ? Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4))
     : Math.max(0, Math.min(1, ((swellNow - 1) / (GROWTH_SWELL - 1)) * 1.25));
   const right = w - rightGutter - 14;
-  galaxyDetail.bounds = { left: 16, top: 104, right, bottom: h - 70 };
+  galaxyDetail.bounds = { left: 16, top: 116, right, bottom: h - 70 };
   if (alpha < 0.05) {
     galaxyDetail.picks = [];
     return;
@@ -4010,9 +4062,9 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
       const counts = sel.kind === 'star' && Number.isInteger(row?.[6])
         ? `── 依赖 ${row[6]} · ┄ 被依赖 ${row[7] || 0}（图中 ${conn.prereqs.length + conn.dependents.length} 条）`
         : sel.kind === 'star' ? `图中相连 ${conn.other.length}` : '新加入节点';
-      return `◎ 已聚焦节点 · ${counts} · 点击相连节点继续 · 点空白或 Esc 退回星系`;
+      return `◎ 已聚焦节点 · ${counts} · 双指捏合/滚轮缩小、点空白或 Esc 退回星系`;
     })()
-    : `◆ 新加入 ${freshHere}${details ? ' · ○ 枢纽定理' : ''}${plan?.neighbors.length ? ` · 聚集 ${plan.neighbors.length} 个相关星系` : ''} · 点击节点聚焦`;
+    : `◆ 新加入 ${freshHere}${details ? ' · ○ 枢纽定理' : ''}${plan?.neighbors.length ? ` · 聚集 ${plan.neighbors.length} 个相关星系` : ''} · 点击节点聚焦 · 捏合/滚轮缩回全景`;
   ctx.lineWidth = 3.2;
   ctx.strokeStyle = halo;
   ctx.strokeText(legend, w * 0.5, 98);
@@ -4024,8 +4076,10 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
 function closeGalaxyNodeCard() {
   galaxyDetail.selectedKey = null;
   galaxyDetail.selectedNode = null;
+  holoCam.galaxyZoomScale = 1.0;
   const card = document.querySelector('#galaxy-node-card');
   if (card) card.hidden = true;
+  updateGalaxyBackBar();
 }
 
 async function loadGalaxyDetails() {
@@ -4052,9 +4106,11 @@ function openGalaxyNode(node) {
   }
   galaxyDetail.selectedKey = galaxyNodeKey(node);
   galaxyDetail.selectedNode = { kind: node.kind, idx: node.idx, module: node.module, cid: node.cid, nx: node.nx, ny: node.ny, nz: node.nz };
+  holoCam.galaxyZoomScale = 1.0;
   const bounds = galaxyDetail.bounds || { left: 12, top: 96, right: window.innerWidth - 12, bottom: window.innerHeight - 80 };
   const links = node.kind === 'star' ? nodeLinks(node.idx) : null;  // used only when the details lack full counts
   renderGalaxyNodeCard(galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters, links), node.x, node.y, bounds);
+  updateGalaxyBackBar();
 }
 function galaxyWorldFrame(cid) {
   const gl = holoCam.gl;
@@ -6107,7 +6163,7 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.lookZ += (pose.lookZ - holoCam.lookZ) * fly;
     holoCam.yaw += (pose.yaw - holoCam.yaw) * fly;
     holoCam.pitch += (pose.pitch - holoCam.pitch) * fly;
-    holoCam.dist += (pose.dist - holoCam.dist) * fly;
+    holoCam.dist += (pose.dist * holoCam.galaxyZoomScale - holoCam.dist) * fly;
     holoCam.stationAlpha += ((gatherPlan?.neighbors.length ? 0.05 : 0.12) - holoCam.stationAlpha) * fly;
     holoCam.galaxyAlpha += (1.3 - holoCam.galaxyAlpha) * fly;
   } else if (useGL && state.focused && holoWorld[state.focused]) {
@@ -7555,18 +7611,18 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
         const now = performance.now();
         sciFiAudio.playGalaxy();
         if (truthGrowth.manualFocus && truthGrowth.manualFocus.cid === gHit.cl.id && !truthGrowth.manualFocus.closing) {
-          truthGrowth.manualFocus.closing = true;
-          truthGrowth.manualFocus.closeStart = now;
+          exitGalaxyMainView(now);
         } else {
           closeGalaxyNodeCard();
+          holoCam.galaxyZoomScale = 1.0;
           truthGrowth.manualFocus = { cid: gHit.cl.id, cluster: gHit.cl, start: now, closing: false };
+          updateGalaxyBackBar();
           if (!state.quiet && !reduced) {
             xpFx.bursts.push({ kind: 'ring', x: gHit.x, y: gHit.y, rgb: gHit.col, start: now, dur: 760, maxR: 48, width: 1.8 });
           }
         }
       } else if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
-        truthGrowth.manualFocus.closing = true;
-        truthGrowth.manualFocus.closeStart = performance.now();
+        exitGalaxyMainView(performance.now());
       } else if (state.layer === 'galaxy' || (state.layer === 'mix' && e.clientY < window.innerHeight * 0.56)) {
         // Clicking open starlight strums the celestial harp with a calm ripple & meteor (zero fake XP!)
         triggerSkyStrum(e.clientX, e.clientY);
@@ -7581,20 +7637,69 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   });
 
   boardEl.addEventListener('dblclick', e => {
-    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel')) return;
+    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card')) return;
+    holoCam.galaxyZoomScale = 1.0;
     const lp = LAYER_PRESETS[state.layer] || LAYER_PRESETS.mix;
     holoCam.targetYaw = 0.0;
     holoCam.targetPitch = lp.pitch;
     holoCam.targetDist = lp.dist;
   });
 
+  const handleBoardZoom = (deltaY, ctrlKey, now = performance.now()) => {
+    const inGalaxy = Boolean(truthGrowth.manualFocus && !truthGrowth.manualFocus.closing);
+    if (inGalaxy) {
+      const res = stepGalaxyZoom(
+        { scale: holoCam.galaxyZoomScale, cooldownUntil: holoCam.galaxyZoomCooldown },
+        deltaY,
+        ctrlKey,
+        now
+      );
+      holoCam.galaxyZoomScale = res.scale;
+      holoCam.galaxyZoomCooldown = res.cooldownUntil;
+      if (res.action === 'step-out') {
+        if (galaxyDetail.selectedKey || galaxyDetail.selectedNode) {
+          closeGalaxyNodeCard();
+        } else {
+          exitGalaxyMainView(now);
+        }
+      }
+      return;
+    }
+    const sens = ctrlKey ? 0.055 : 0.010;
+    holoCam.targetDist = Math.max(11.5, Math.min(31.5, holoCam.targetDist + deltaY * sens));
+  };
+
   boardEl.addEventListener('wheel', e => {
-    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall')) return;
+    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    if (!e.ctrlKey && e.target.closest('.galaxy-node-card')) return;
     e.preventDefault();
-    // Smooth Igloo-style 3D scroll dolly into/out of the Space Station & 3D Galaxy Vault
-    holoCam.targetDist = Math.max(11.5, Math.min(31.5, holoCam.targetDist + e.deltaY * 0.010));
+    handleBoardZoom(e.deltaY, Boolean(e.ctrlKey), performance.now());
+  }, { passive: false });
+
+  // Safari macOS native trackpad pinch support (gesturestart / gesturechange)
+  let safariGestureScale = 1;
+  boardEl.addEventListener('gesturestart', e => {
+    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    e.preventDefault();
+    safariGestureScale = e.scale || 1;
+  }, { passive: false });
+  boardEl.addEventListener('gesturechange', e => {
+    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    e.preventDefault();
+    const cur = e.scale || 1;
+    const ds = safariGestureScale - cur;
+    safariGestureScale = cur;
+    handleBoardZoom(ds * 55, true, performance.now());
   }, { passive: false });
 }
+
+$('#galaxy-back-btn')?.addEventListener('click', () => {
+  if (galaxyDetail.selectedKey || galaxyDetail.selectedNode) closeGalaxyNodeCard();
+  else exitGalaxyMainView(performance.now());
+});
+$('#galaxy-home-btn')?.addEventListener('click', () => {
+  exitGalaxyMainView(performance.now());
+});
 
 function applyLayer(layer) {
   const next = LAYER_PRESETS[layer] ? layer : 'mix';
@@ -7610,8 +7715,7 @@ function applyLayer(layer) {
   holoCam.targetPitch = preset.pitch;
   holoCam.targetDist = preset.dist;
   if (next === 'station' && truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
-    truthGrowth.manualFocus.closing = true;
-    truthGrowth.manualFocus.closeStart = performance.now();
+    exitGalaxyMainView(performance.now());
   }
   const hint = $('#hive-hover-hint');
   if (hint) {
@@ -8257,8 +8361,7 @@ document.addEventListener('keydown', event => {
     if ($('#telemetry-dock')?.classList.contains('is-open')) closeDockDrawer();
     if (state.focused) closeDepartmentLens();
     if (truthGrowth.manualFocus && !truthGrowth.manualFocus.closing) {
-      truthGrowth.manualFocus.closing = true;
-      truthGrowth.manualFocus.closeStart = performance.now();
+      exitGalaxyMainView(performance.now());
     }
   }
 });

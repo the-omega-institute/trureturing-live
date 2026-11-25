@@ -873,3 +873,35 @@ test('links open in the built-in browser, GitHub pages render inside it',async()
     assert.ok(doc.querySelector('#telemetry-dock').classList.contains('is-open'));
   }finally{dom.window.close();}
 });
+
+test('trackpad pinch and scroll zoom out step cleanly from DAG node to galaxy to panorama with inertia cooldown',async()=>{
+  const {dom,win,doc}=await boot();try{
+    // 1. Zooming in smoothly brings camera closer down to min bound
+    let z={scale:1.0,cooldownUntil:0};
+    z=win.stepGalaxyZoom(z,-15,true,1000);
+    assert.equal(z.action,'zoom');
+    assert.ok(z.scale<1.0,'pinch-apart zooms closer inside galaxy/node view');
+
+    // 2. Trackpad pinch-out (ctrlKey=true, deltaY>0) smoothly pulls back, then triggers step-out past threshold
+    z={scale:1.0,cooldownUntil:0};
+    const r1=win.stepGalaxyZoom(z,10,true,2000);
+    assert.equal(r1.action,'zoom');
+    assert.ok(r1.scale>1.0&&r1.scale<1.32,'initial pinch pulls camera back with live visual feedback');
+    const r2=win.stepGalaxyZoom(r1,14,true,2040);
+    assert.equal(r2.action,'step-out','continued pinch-out steps back one level');
+    assert.equal(r2.scale,1.0,'zoom scale resets cleanly after stepping out');
+
+    // 3. Residual macOS trackpad inertia within cooldown is swallowed so one gesture never skips two levels
+    const rInertia=win.stepGalaxyZoom(r2,16,true,2120);
+    assert.equal(rInertia.action,'cooldown','inertia inside cooldown does not double-exit');
+
+    // 4. After cooldown expires, two-finger scroll zoom-out (ctrlKey=false) also steps out cleanly
+    let s=win.stepGalaxyZoom(r2,80,false,2700);
+    assert.equal(s.action,'zoom');
+    s=win.stepGalaxyZoom(s,90,false,2740);
+    assert.equal(s.action,'step-out','two-finger scroll-out steps back after cooldown');
+
+    // 5. Floating back bar exposes explicit 1-click escape buttons when in galaxy/node view
+    assert.equal(doc.querySelector('#galaxy-back-bar').hidden,true,'hidden in panorama');
+  }finally{dom.window.close();}
+});
