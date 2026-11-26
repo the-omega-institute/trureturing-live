@@ -1,6 +1,8 @@
 const $ = selector => document.querySelector(selector);
 const i18n = () => (typeof window !== 'undefined' ? window.TrureI18n : null);
 const curLang = () => i18n()?.getLang?.() || 'zh';
+const isEn = () => curLang() === 'en';
+const L = (zh, en) => (isEn() ? en : zh);
 const tr = (key, fallback, vars = null) => {
   const api = i18n();
   if (api) return api.t(key, vars, fallback);
@@ -9,11 +11,19 @@ const tr = (key, fallback, vars = null) => {
 };
 const langDeptLabel = (dOrId, fallback = '') => {
   const id = typeof dOrId === 'string' ? dOrId : dOrId?.id;
-  const fb = fallback || (typeof dOrId === 'object' ? dOrId?.label : id) || '';
+  const deptObj = typeof dOrId === 'object' && dOrId ? dOrId : (id ? department(id) : null);
+  const fb = deptObj?.label || fallback || (id ? methodByDepartment[id]?.[0] : '') || id || '';
   return i18n() && id ? i18n().deptLabel(id, fb) : fb;
 };
 const langDeptRole = (id, fallback = '') => (i18n() ? i18n().deptRole(id, { n: outreachScholarCount() }, fallback) : fallback);
+const langDeptResp = (dOrId, fallback = '') => {
+  const id = typeof dOrId === 'string' ? dOrId : dOrId?.id;
+  const deptObj = typeof dOrId === 'object' && dOrId ? dOrId : (id ? department(id) : null);
+  const fb = deptObj?.responsibility || fallback || '';
+  return i18n() && id ? i18n().deptResp(id, fb) : fb;
+};
 const langGalaxyName = cl => (i18n() ? i18n().galaxyName(cl) : (cl?.zh || cl?.name || ''));
+const langExecLabel = exec => (isEn() ? tr(`exec_${exec}`, execution[exec] || 'Research') : (execution[exec] || '共同研究'));
 const ns = 'http://www.w3.org/2000/svg';
 const liveURL = 'https://trureturing-live-reader.vercel.app/api/live';
 const cacheKey = 'trureturing-live.hive.content.v7';
@@ -102,14 +112,14 @@ const deptRoles = {
 };
 
 const hubMeta = {
-  direction: { tag: 'THE ARCHITECT · HUMAN', title: '全局监控与方向策源' },
-  research: { tag: 'SEC.01 · CONJECTURE ENGINE', title: '解决猜想 · 数学攻关' },
-  books: { tag: 'SEC.01 · LIVING BOOKS', title: '书籍理论推进' },
-  verification: { tag: 'CORE 00 · LEAN BRIDGE', title: '形式化验证中枢' },
-  publication: { tag: 'SEC.02 · PAPER FACTORY & MATHESIS', title: '自动论文 · Mathesis 审稿平台' },
-  outreach: { tag: 'SEC.02 · 223 COLLABORATING SCHOLARS', title: '对外合作 · 223 位学者联机' },
-  review: { tag: 'BRANCH A · ON-DEMAND RED-TEAM', title: '独立评审 · 红队支路' },
-  studio: { tag: 'BRANCH B · ON-DEMAND FOUNDRY', title: '工具与表达 · 基建支路' }
+  direction: { tag: 'THE ARCHITECT · HUMAN', title: '全局监控与方向策源', titleEn: 'Direction & Oversight' },
+  research: { tag: 'SEC.01 · CONJECTURE ENGINE', title: '解决猜想 · 数学攻关', titleEn: 'Conjecture Engine · Math Research' },
+  books: { tag: 'SEC.01 · LIVING BOOKS', title: '书籍理论推进', titleEn: 'Living Bilingual Monographs' },
+  verification: { tag: 'CORE 00 · LEAN BRIDGE', title: '形式化验证中枢', titleEn: 'Lean 4 Formal Verification Core' },
+  publication: { tag: 'SEC.02 · PAPER FACTORY & MATHESIS', title: '自动论文 · Mathesis 审稿平台', titleEn: 'Auto-Paper Factory · Mathesis' },
+  outreach: { tag: 'SEC.02 · 223 COLLABORATING SCHOLARS', title: '对外合作 · 223 位学者联机', titleEn: 'Scholar Outreach · 223 Collaborating' },
+  review: { tag: 'BRANCH A · ON-DEMAND RED-TEAM', title: '独立评审 · 红队支路', titleEn: 'Independent Review · Red-Team Rail' },
+  studio: { tag: 'BRANCH B · ON-DEMAND FOUNDRY', title: '工具与表达 · 基建支路', titleEn: 'Tools & Studio · Foundry Rail' }
 };
 
 const deptColors = {
@@ -141,6 +151,91 @@ const methodByDepartment = {
   studio: ['工具与表达', '研究基础设施需求', '出版模板、可视化与观测']
 };
 
+const methodByDepartmentEn = {
+  direction: ['Direction', 'Research intent, bounds & review', 'Steer 24/7 research & Lean core'],
+  research: ['Math Research', 'Open problems & returned obstructions', 'New proofs ▸ Lean Verification Core'],
+  review: ['Indep. Review', 'Cross-model audit & boundary checks', 'Revision notes & verifiable claims'],
+  verification: ['Verification Core', 'Proof requests from research, books & papers', 'Frozen Lean theorems back to all decks'],
+  books: ['Monographs', 'Frozen theorems & chapter drafts', 'Bilingual books + new Lean requests'],
+  publication: ['Papers & Wiki', 'Verified results & open submissions', 'Short notes / DOI + Mathesis archive'],
+  outreach: ['Scholar Outreach', 'Verified notes & scholar dialogue', 'Replies + new requests & open questions'],
+  studio: ['Tools & Studio', 'Research infrastructure & UI needs', 'Build pipelines, books & live observatory']
+};
+
+const SOURCE_LABEL_EN = {
+  '检验研究提交': 'Verify Research PR',
+  '检查与构建书稿': 'Build & Check Monograph',
+  '出版在线书库': 'Publish Online Books',
+  '更新公开研究页面': 'Update Research Site',
+  '发布研究知识': 'Publish Research Knowledge',
+  '协调学术交流与传播': 'Coordinate Scholar Outreach',
+  '准备研究传播材料': 'Prepare Outreach Materials',
+  '形式化研究': 'Formalized Research',
+  '公开数学研究': 'Open Math Research',
+  '理论书写': 'Monograph Writing',
+  '独立评审': 'Independent Review',
+  '论文与知识': 'Papers & Knowledge',
+  '学术交流与合作': 'Scholar Outreach',
+  '工具与表达': 'Tools & Studio',
+  '研究有了新的进展': 'New research update'
+};
+
+const AREA_ZH_TO_EN = {
+  '量子信息': 'Quantum Info',
+  '分析与结构': 'Analysis',
+  '数论': 'Number Theory',
+  '代数与结构': 'Algebra',
+  '组合数学': 'Combinatorics',
+  '组合与几何': 'Combinatorics',
+  '理论书写': 'Monographs',
+  '数学研究': 'Math Research'
+};
+
+const EVIDENCE_ZH_TO_EN = {
+  'Lean 归档': 'Lean Archive',
+  '书稿 PR': 'Monograph PR',
+  '已发表': 'Published',
+  '已结案课题': 'Closed Thread',
+  'Lean 已合入': 'Lean Merged'
+};
+
+const REPO_META_EN = {
+  'trureturing': { label: 'Formalized Research', desc: 'Open math problems, Lean 4 proofs & review' },
+  'trureturing-books': { label: 'Monograph Writing', desc: 'From verified theorems to living bilingual chapters' },
+  'mathesis': { label: 'Papers & Notes', desc: 'An open mathematical research platform for papers, conjectures, deep review, and independently verified Lean contributions.' },
+  'trureturing-books-template': { label: 'Book Templates', desc: 'Publication templates, workflows & build pipelines' },
+  'trureturing-experiments': { label: 'Experiments', desc: 'Computational experiments, datasets & reports' },
+  'trureturing-film': { label: 'Research Film', desc: 'Visual research essays, animations & media workflows' },
+  'trureturing-intuition': { label: 'Intuition & Problems', desc: 'Heuristic sketches, problem framing & exploration' },
+  'trureturing-lean-eval': { label: 'Lean Eval', desc: 'Attributed LeanEval formalizations and immutable submission sources' },
+  'trureturing-live': { label: 'Live Observatory', desc: 'Live public research observatory: cross-repository GitHub Actions, questions and deliveries for trureturing.' },
+  'trureturing-live-template': { label: 'Live Template', desc: 'Reusable Rust event harness for live AI organizations. GitHub CI and explicit runtime adapters; no UI.' },
+  'trureturing-mdbook': { label: 'Blueprint Reader', desc: 'mdBook site for the trureturing Blueprint projected at build time from trureturing.' },
+  'trureturing-outreach-engine': { label: 'Outreach Engine', desc: 'Public scholar outreach coordinator and workflows' },
+  'trureturing-pages': { label: 'Knowledge Atlas', desc: 'Published mathematical knowledge Atlas & Truth DAG' },
+  'trureturing-requests': { label: 'Problem Intake', desc: 'Public mathematical problems & formalization requests' },
+  'trureturing-source-theories': { label: 'Source Theories', desc: 'Reference theories and research source material' },
+  'trureturing-tools': { label: 'Verification Tools', desc: 'Checkers, linters & verification tooling releases' },
+  'trureturing-visualize': { label: 'Visual Explainers', desc: 'Interactive mathematical explainers & diagrams' }
+};
+
+function translateSourceLabel(raw) {
+  const s = String(raw || '').trim();
+  if (!isEn()) return s || '研究有了新的进展';
+  if (!s) return 'New research update';
+  if (SOURCE_LABEL_EN[s]) return SOURCE_LABEL_EN[s];
+  if (/[\u4e00-\u9fff]/.test(s)) {
+    if (/书稿|书库/.test(s)) return 'Monograph Pipeline';
+    if (/检验|验证|核验/.test(s)) return 'Lean Verification';
+    if (/评审|复核/.test(s)) return 'Independent Review';
+    if (/论文|知识|页面|发布/.test(s)) return 'Knowledge Publishing';
+    if (/交流|传播|学者/.test(s)) return 'Scholar Outreach';
+    if (/工具|模板|可视化/.test(s)) return 'Tools & Infrastructure';
+    return 'Research Update';
+  }
+  return s;
+}
+
 const glyphPaths = {
   direction: ['M12 3v18M3 12h18', 'm7 7 5-4 5 4M7 17l5 4 5-4'],
   research: ['M17 4H6l7 8-7 8h11'],
@@ -155,11 +250,11 @@ const glyphPaths = {
 const timestamp = value => Date.parse(value);
 const relative = value => {
   const n = Math.max(0, (Date.now() - timestamp(value)) / 1000);
-  if (!Number.isFinite(n)) return '近期';
-  if (n < 60) return '刚刚';
-  if (n < 3600) return `${Math.floor(n / 60)} 分钟前`;
-  if (n < 86400) return `${Math.floor(n / 3600)} 小时前`;
-  return `${Math.floor(n / 86400)} 天前`;
+  if (!Number.isFinite(n)) return L('近期', 'recent');
+  if (n < 60) return L('刚刚', 'just now');
+  if (n < 3600) return isEn() ? `${Math.floor(n / 60)}m ago` : `${Math.floor(n / 60)} 分钟前`;
+  if (n < 86400) return isEn() ? `${Math.floor(n / 3600)}h ago` : `${Math.floor(n / 3600)} 小时前`;
+  return isEn() ? `${Math.floor(n / 86400)}d ago` : `${Math.floor(n / 86400)} 天前`;
 };
 
 const element = (tag, text = '', className = '') => {
@@ -197,7 +292,7 @@ const eventKey = a => `${a.id}/${a.status}/${a.at}`;
 const isStale = () => !view() || Date.now() - timestamp(view().observed_at) > 180000;
 const fresh = a => Boolean(a.fresh && !isStale());
 const active = a => fresh(a) && ['working', 'waiting'].includes(a.status) && ['automation', 'session'].includes(a.kind);
-const sourceLabel = a => view()?.sources.find(s => s.id === a.source)?.label || '研究有了新的进展';
+const sourceLabel = a => translateSourceLabel(view()?.sources.find(s => s.id === a.source)?.label);
 
 const technical = /\b(?:audit|reg audit|registration audit|cache|runner|workflow|roster|stratalint|lint|heartbeat|registration|worktree|bootstrap|toolchain|CI|template|oracle broker|Codex CLI|memory envelope)\b|Skills\*\*|four-slot|compilation|protected judge|trusted judge|judge reuse|current dev|tools preview|Adopt tested tools|编译判官|禁止流水账|流水线|缓存|工具接入|审计|登记|加载器|合并规则/i;
 
@@ -215,6 +310,12 @@ const cleanTitle = text => String(text || '')
 
 function humanTitle(value) {
   const text = cleanTitle(value);
+  if (isEn()) {
+    if (!text) return 'Advancing proof from open problem';
+    if (SOURCE_LABEL_EN[text]) return SOURCE_LABEL_EN[text];
+    if (/用蓝色标记无公理的 Lean 定理/.test(text)) return 'Book template: highlight axiom-free Lean theorems in blue';
+    return text;
+  }
   const patterns = [
     [/qubit-qutrit product-anchor|arbitrary MUB pairs/i, '任意 MUB 对上的量子比特–三态乘积锚点凸性'],
     [/cyclic band.*positive Fej[eé]r|Fej[eé]r weights/i, '正 Fejér 权重下的循环带上界证明'],
@@ -295,28 +396,30 @@ function humanTitle(value) {
 }
 
 function copyFor(a) {
-  const copies = state.snapshot?.editorial?.questions || {};
-  const direct = copies[editorialKey(a.task)];
-  if (direct) return { ...direct, canonical: key(a.task), hasEditorial: true };
-  const refs = (a.references || []).filter(ref => ref.repository === a.task?.repository);
-  const match = refs.find(ref => copies[editorialKey(ref)]);
-  if (match) return { ...copies[editorialKey(match)], canonical: key(match), hasEditorial: true };
+  if (!isEn()) {
+    const copies = state.snapshot?.editorial?.questions || {};
+    const direct = copies[editorialKey(a.task)];
+    if (direct) return { ...direct, canonical: key(a.task), hasEditorial: true };
+    const refs = (a.references || []).filter(ref => ref.repository === a.task?.repository);
+    const match = refs.find(ref => copies[editorialKey(ref)]);
+    if (match) return { ...copies[editorialKey(match)], canonical: key(match), hasEditorial: true };
+  }
   const book = a.department === 'books';
   const title = humanTitle(a.label);
   const text = String(a.label || '');
   const area = book
-    ? '理论书写'
-    : /prime|arith|原根|素数|exponent/i.test(text) ? '数论'
-    : /quantum|Kraus|qubit|量子|纠缠/i.test(text) ? '量子信息'
-    : /graph|matroid|ternary|Steiner|Latin|Hardin|图|三元|cube/i.test(text) ? '组合与几何'
-    : /spectr|fourier|compact|harmonic|occupation|频谱|紧致/i.test(text) ? '分析与结构'
-    : '数学研究';
+    ? L('理论书写', 'Monographs')
+    : /prime|arith|原根|素数|exponent/i.test(text) ? L('数论', 'Number Theory')
+    : /quantum|Kraus|qubit|量子|纠缠/i.test(text) ? L('量子信息', 'Quantum Info')
+    : /graph|matroid|ternary|Steiner|Latin|Hardin|图|三元|cube/i.test(text) ? L('组合与几何', 'Combinatorics')
+    : /spectr|fourier|compact|harmonic|occupation|频谱|紧致/i.test(text) ? L('分析与结构', 'Analysis')
+    : L('数学研究', 'Math Research');
   return {
     title,
     area,
     question: book
-      ? '将验证通过的新论证沉淀为可读的双语章节。'
-      : '围绕这个问题探索新的构造、证明与可检验边界。',
+      ? L('将验证通过的新论证沉淀为可读的双语章节。', 'Distilling verified proofs into structured bilingual monograph chapters.')
+      : L('围绕这个问题探索新的构造、证明与可检验边界。', 'Exploring new constructions, formal proofs, and verifiable boundaries.'),
     canonical: key(a.task),
     hasEditorial: false
   };
@@ -330,6 +433,17 @@ function findLinkedTaskActivity(ref) {
 
 function phase(a) {
   if (a.kind === 'automation') {
+    if (isEn()) {
+      return ({
+        working: fresh(a) ? 'Running' : 'Recently ran',
+        waiting: fresh(a) ? 'Queued' : 'Recently queued',
+        succeeded: 'Passed',
+        failed: 'Needs fix',
+        cancelled: 'Ended',
+        closed: 'Ended',
+        unknown: 'Awaiting update'
+      })[a.status] || 'Recent CI run';
+    }
     return ({
       working: fresh(a) ? '正在执行' : '稍早正在执行',
       waiting: fresh(a) ? '等待执行' : '稍早等待执行',
@@ -341,6 +455,17 @@ function phase(a) {
     })[a.status] || '最近的执行进展';
   }
   if (a.kind === 'session') {
+    if (isEn()) {
+      return ({
+        working: fresh(a) ? 'In progress' : 'Awaiting update',
+        waiting: 'Queued next',
+        succeeded: 'Round complete',
+        failed: 'Retrying',
+        cancelled: 'Session ended',
+        ready: 'Ready',
+        unknown: 'Awaiting update'
+      })[a.status] || 'Research session';
+    }
     return ({
       working: fresh(a) ? '正在推进' : '等待新的进展',
       waiting: '等待下一步',
@@ -351,13 +476,13 @@ function phase(a) {
       unknown: '等待新的进展'
     })[a.status] || '研究会话';
   }
-  if (a.status === 'merged') return a.department === 'books' ? '已汇入书稿' : '新论证已汇入';
-  if (a.status === 'closed') return '这一段探索已结束';
-  if (a.status === 'claimed') return '已接下这项工作';
-  if (a.kind === 'review') return '继续复核论证';
-  if (a.kind === 'discussion') return '交换思路';
-  if (a.kind === 'task') return '问题已经提出';
-  return a.department === 'books' ? '正在完善书稿' : '正在推进论证';
+  if (a.status === 'merged') return a.department === 'books' ? L('已汇入书稿', 'Merged to book') : L('新论证已汇入', 'Proof merged');
+  if (a.status === 'closed') return L('这一段探索已结束', 'Thread concluded');
+  if (a.status === 'claimed') return L('已接下这项工作', 'Claimed');
+  if (a.kind === 'review') return L('继续复核论证', 'Under review');
+  if (a.kind === 'discussion') return L('交换思路', 'Discussion');
+  if (a.kind === 'task') return L('问题已经提出', 'Problem opened');
+  return a.department === 'books' ? L('正在完善书稿', 'Refining chapter') : L('正在推进论证', 'Advancing proof');
 }
 
 function messageFor(a) {
@@ -370,33 +495,51 @@ function progress(a) {
     return {
       title: sourceLabel(a),
       summary: a.department === 'outreach'
-        ? '协调交流工作，让研究走向更广的讨论。'
+        ? L('协调交流工作，让研究走向更广的讨论。', 'Coordinating scholar dialogue and syncing verified notes.')
         : a.department === 'books'
-          ? '把书稿中的新内容，接到持续构建与出版的流程。'
+          ? L('把书稿中的新内容，接到持续构建与出版的流程。', 'Building and checking updated monograph chapters continuously.')
           : a.department === 'publication'
-            ? '让已有的研究，出现在可以阅读与继续探索的地方。'
-            : '研究提交正在经过项目已有的共同检验。'
+            ? L('让已有的研究，出现在可以阅读与继续探索的地方。', 'Publishing verified findings to the public knowledge archive.')
+            : L('研究提交正在经过项目已有的共同检验。', 'Running formal verification checks against the shared Lean codebase.')
     };
   }
   const message = messageFor(a);
   const text = message?.text || '';
   if (a.kind === 'review' || message?.kind === 'review_comment') {
-    return { title: '提出了论证的复核意见', summary: '回到问题、条件与结论之间，检查还有哪些细节需要补充。' };
+    return {
+      title: L('提出了论证的复核意见', 'Submitted review feedback'),
+      summary: L('回到问题、条件与结论之间，检查还有哪些细节需要补充。', 'Auditing hypotheses, intermediate lemmas, and boundary cases.')
+    };
   }
   if (/^(?:本轮)?认领|^I(?: am|'m) taking|^Claimed\b/i.test(text)) {
-    return { title: '接下了这条研究线索', summary: '沿着已有问题，开始推进下一部分论证。' };
+    return {
+      title: L('接下了这条研究线索', 'Claimed research thread'),
+      summary: L('沿着已有问题，开始推进下一部分论证。', 'Taking ownership of the next proof step along this problem line.')
+    };
   }
   if (/sharp.*(?:relative|bound)|Refine.*(?:count|discrepancy)|更紧|锐.*估计/i.test(text)) {
-    return { title: '提议把估计再推进一步', summary: '从已有结论出发，尝试更精确的控制与更清楚的边界。' };
+    return {
+      title: L('提议把估计再推进一步', 'Proposed sharper bound'),
+      summary: L('从已有结论出发，尝试更精确的控制与更清楚的边界。', 'Tightening estimates and sharpening boundary constants from existing results.')
+    };
   }
   if (/counterexample|反例|boundary|边界/i.test(text)) {
-    return { title: '继续考察边界与反例', summary: '从具体情形出发，寻找需要补充的条件。' };
+    return {
+      title: L('继续考察边界与反例', 'Checking boundaries & counterexamples'),
+      summary: L('从具体情形出发，寻找需要补充的条件。', 'Testing concrete edge cases to pinpoint necessary conditions or obstructions.')
+    };
   }
   if (/independent.*review|review.*passes|独立.*评审|评审.*意见/i.test(text)) {
-    return { title: '更新了独立复核的讨论', summary: '围绕已有论证，继续交换检查与修订的意见。' };
+    return {
+      title: L('更新了独立复核的讨论', 'Updated independent review notes'),
+      summary: L('围绕已有论证，继续交换检查与修订的意见。', 'Exchanging cross-model verification notes and revision feedback.')
+    };
   }
   if (a.kind === 'discussion') {
-    return { title: a.department === 'books' ? '继续讨论这一部分书稿' : '补充了新的研究进展', summary: copyFor(a).title };
+    return {
+      title: a.department === 'books' ? L('继续讨论这一部分书稿', 'Discussing monograph chapter') : L('补充了新的研究进展', 'Added research update'),
+      summary: copyFor(a).title
+    };
   }
   return { title: copyFor(a).title, summary: copyFor(a).question };
 }
@@ -427,7 +570,7 @@ function humanTaskSubtitle(a) {
 function actorLabel(actor) {
   return actor?.kind === 'agent' && actor.tool
     ? `${actor.tool} · ${actor.label || actor.id}`
-    : actor?.label || actor?.id || '公开账号';
+    : actor?.label || actor?.id || L('公开账号', 'Public Account');
 }
 
 function seatMonogram(actor) {
@@ -574,16 +717,16 @@ function queueStats(d) {
 }
 
 function departmentState(d) {
-  if (d.execution === 'human') return '问题从这里出发';
+  if (d.execution === 'human') return L('问题从这里出发', 'Problems start here');
   const count = countRunning(d);
-  if (count === null) return '等待新的进展';
+  if (count === null) return L('等待新的进展', 'Awaiting updates');
   const queue = queueStats(d);
-  if (count && queue.waiting) return `${count} 项执行 · ${queue.label} 待接力`;
-  if (count) return `${count} 项工作正在执行`;
-  if (queue.waiting) return `${queue.label} 项待接力`;
+  if (count && queue.waiting) return isEn() ? `${count} active · ${queue.label} queued` : `${count} 项执行 · ${queue.label} 待接力`;
+  if (count) return isEn() ? `${count} active` : `${count} 项工作正在执行`;
+  if (queue.waiting) return isEn() ? `${queue.label} queued` : `${queue.label} 项待接力`;
   const waiting = d.activities.filter(a => active(a) && a.status === 'waiting').length;
-  if (waiting) return `${waiting} 项工作等待接力`;
-  return d.activities.length ? '新的想法持续汇入' : '等待下一段探索';
+  if (waiting) return isEn() ? `${waiting} awaiting relay` : `${waiting} 项工作等待接力`;
+  return d.activities.length ? L('新的想法持续汇入', 'New ideas flowing in') : L('等待下一段探索', 'Awaiting next thread');
 }
 
 function handoffSummary() {
@@ -610,31 +753,34 @@ function renderHealth() {
   const late = isStale();
   const connection = $('#connection');
   connection.classList.toggle('delayed', late);
-  const isZh = curLang() === 'zh';
+  const en = isEn();
   connection.lastElementChild.textContent = late
-    ? (isZh ? '等待新的现场更新' : tr('connecting', 'Connecting'))
-    : (isZh ? `${relative(current.observed_at)}更新` : tr('health_connected', 'Live Now'));
+    ? (en ? tr('connecting', 'Connecting') : '等待新的现场更新')
+    : (en ? `Updated ${relative(current.observed_at)}` : `${relative(current.observed_at)}更新`);
   $('#connection-note').hidden = !late;
-  $('#connection-note').textContent = '更新稍慢。你仍然可以浏览已有架构、历史进展与公开讨论。';
+  $('#connection-note').textContent = L(
+    '更新稍慢。你仍然可以浏览已有架构、历史进展与公开讨论。',
+    'Live updates are slightly delayed. You can still explore the 3D observatory, archives, and discussions.'
+  );
 
   const growthEl = $('#log-ops-growth');
   if (growthEl) {
     const n = truthGrowth.totalRecent || 0;
     growthEl.textContent = n > 0
-      ? (isZh ? `+${n} 模块` : curLang() === 'ja' ? `+${n} モジュール` : `+${n} mods`)
-      : (isZh ? '静默监测' : 'Standby');
+      ? (en ? `+${n} mods` : `+${n} 模块`)
+      : (en ? 'Standby' : '静默监测');
     growthEl.classList.toggle('is-ok', n > 0);
     growthEl.classList.toggle('is-warn', false);
   }
   const ciEl = $('#log-ops-ci');
   if (ciEl) {
     const runningAuto = (current.departments || []).reduce((sum, d) => sum + (late ? 0 : (d.running_automations || 0)), 0);
-    ciEl.textContent = late ? '—' : (isZh ? `${runningAuto} 活跃` : curLang() === 'ja' ? `${runningAuto} 稼働` : `${runningAuto} live`);
+    ciEl.textContent = late ? '—' : (en ? `${runningAuto} live` : `${runningAuto} 活跃`);
   }
 }
 
 function isGenericAutomationTitle(title) {
-  return /^(?:检验研究提交|检查与构建书稿|出版在线书库|更新公开研究页面|发布研究知识|协调学术交流与传播|准备研究传播材料)$/.test(String(title || '').trim());
+  return /^(?:检验研究提交|检查与构建书稿|出版在线书库|更新公开研究页面|发布研究知识|协调学术交流与传播|准备研究传播材料|Verify Research PR|Build & Check Monograph|Publish Online Books|Update Research Site|Publish Research Knowledge|Coordinate Scholar Outreach|Prepare Outreach Materials)$/.test(String(title || '').trim());
 }
 
 function cleanWorkTitle(a, d) {
@@ -669,12 +815,12 @@ function departmentMissions(d) {
     if (rDept) {
       for (const a of rDept.activities) {
         if (['task', 'contribution'].includes(a.kind) && !technical.test(a.label)) {
-          push(`牵引：${copyFor(a).title}`);
+          push(L(`牵引：${copyFor(a).title}`, `Guide: ${copyFor(a).title}`));
           if (missions.length >= 3) break;
         }
       }
     }
-    if (!missions.length) push('提出前沿问题 · 设定约束与方向把关');
+    if (!missions.length) push(L('提出前沿问题 · 设定约束与方向把关', 'Set open problems · frame constraints & guide direction'));
     return missions;
   }
 
@@ -682,27 +828,29 @@ function departmentMissions(d) {
     const sorted = [...d.activities].sort((a, b) => Number(active(b)) - Number(active(a)) || timestamp(b.at) - timestamp(a.at));
     for (const a of sorted) {
       if (a.kind === 'task' && !technical.test(a.label)) {
-        push(`请求：${copyFor(a).title}`);
+        push(L(`请求：${copyFor(a).title}`, `Request: ${copyFor(a).title}`));
       } else if (a.kind === 'automation' && a.task) {
         const linked = findLinkedTaskActivity(a.task);
-        if (linked && !technical.test(linked.label)) push(`核验：${copyFor(linked).title}`);
+        if (linked && !technical.test(linked.label)) push(L(`核验：${copyFor(linked).title}`, `Verify: ${copyFor(linked).title}`));
       }
       if (missions.length >= 4) break;
     }
-    if (!missions.length) push('Lean 4 内核核验与定理账本固化');
+    if (!missions.length) push(L('Lean 4 内核核验与定理账本固化', 'Lean 4 kernel verification & theorem ledger freeze'));
     return missions;
   }
 
   if (d.id === 'review') {
     for (const a of d.activities) {
       const t = cleanWorkTitle(a, d);
-      if (!isGenericAutomationTitle(t)) push(`复核：${t}`);
+      if (!isGenericAutomationTitle(t)) push(L(`复核：${t}`, `Review: ${t}`));
       if (missions.length >= 3) break;
     }
     if (!missions.length) {
       const rDept = department('research');
       const latest = rDept?.activities.find(a => a.kind === 'contribution' && !technical.test(a.label));
-      push(latest ? `待审边界：${copyFor(latest).title}` : '独立跨模型边界复核就绪');
+      push(latest
+        ? L(`待审边界：${copyFor(latest).title}`, `Audit boundary: ${copyFor(latest).title}`)
+        : L('独立跨模型边界复核就绪', 'Independent cross-model audit ready'));
     }
     return missions;
   }
@@ -715,7 +863,7 @@ function departmentMissions(d) {
       push(copyFor(a).title);
       if (missions.length >= 4) break;
     }
-    if (!missions.length) push('双语理论章节整理与书面证明回流');
+    if (!missions.length) push(L('双语理论章节整理与书面证明回流', 'Bilingual monograph chapters & formal proof distillation'));
     return missions;
   }
 
@@ -729,20 +877,20 @@ function departmentMissions(d) {
       if (missions.length >= 3) break;
     }
     for (const p of (state.snapshot?.publications || []).slice(0, 2)) {
-      const copy = state.snapshot?.editorial?.papers?.[p.id];
-      push(`预印本：${copy?.title || humanTitle(p.title)}`);
+      const copy = isEn() ? null : state.snapshot?.editorial?.papers?.[p.id];
+      push(L(`预印本：${copy?.title || humanTitle(p.title)}`, `Preprint: ${p.title || humanTitle(p.title)}`));
       if (missions.length >= 4) break;
     }
-    if (!missions.length) push('短文 DOI 发布与 Mathesis 公开目录');
+    if (!missions.length) push(L('短文 DOI 发布与 Mathesis 公开目录', 'Short notes, DOIs & Mathesis public catalog'));
     return missions;
   }
 
   if (d.id === 'outreach') {
     for (const p of (state.snapshot?.publications || []).slice(0, 2)) {
-      const copy = state.snapshot?.editorial?.papers?.[p.id];
-      push(`学者协作：${copy?.title || humanTitle(p.title)}`);
+      const copy = isEn() ? null : state.snapshot?.editorial?.papers?.[p.id];
+      push(L(`学者协作：${copy?.title || humanTitle(p.title)}`, `Collab: ${p.title || humanTitle(p.title)}`));
     }
-    push('向题源作者同步已验证定理并回收请求');
+    push(L('向题源作者同步已验证定理并回收请求', 'Sync verified theorems with authors & intake new requests'));
     return missions.slice(0, 3);
   }
 
@@ -755,7 +903,7 @@ function departmentMissions(d) {
       if (!isGenericAutomationTitle(t)) push(t);
       if (missions.length >= 4) break;
     }
-    if (!missions.length) push('出版模板、交互可视化与大屏观测');
+    if (!missions.length) push(L('出版模板、交互可视化与大屏观测', 'Book templates, visual explainers & live observatory'));
     return missions;
   }
 
@@ -767,7 +915,7 @@ function departmentMissions(d) {
     push(copyFor(a).title);
     if (missions.length >= 4) break;
   }
-  if (!missions.length) push('持续探索新证明、反例与边界构造');
+  if (!missions.length) push(L('持续探索新证明、反例与边界构造', 'Exploring proofs, counterexamples & sharp bounds'));
   return missions;
 }
 
@@ -780,8 +928,9 @@ function renderTicker() {
   const d = department(item.department);
   const title = cleanWorkTitle(item, d || { id: item.department });
   state.tickerTarget = item;
-  $('#ticker-text').textContent = `${d?.label || '研究院'} · ${phase(item)}：${title}`;
-  $('#ticker-time').textContent = `${relative(item.at)} · 查看 →`;
+  const dName = langDeptLabel(d || item.department, L('研究院', 'Institute'));
+  $('#ticker-text').textContent = isEn() ? `${dName} · ${phase(item)}: ${title}` : `${dName} · ${phase(item)}：${title}`;
+  $('#ticker-time').textContent = `${relative(item.at)} · ${L('查看 →', 'View →')}`;
 }
 
 function renderMetrics() {
@@ -796,13 +945,12 @@ function renderMetrics() {
     el.append(element('strong', String(n)), document.createTextNode(label));
     return el;
   };
-  const isZh = curLang() === 'zh';
-  const isJa = curLang() === 'ja';
-  items.push(metric(list.length, isZh ? '个部门，持续相连' : isJa ? '部門連動' : ' depts'));
-  items.push(metric(isStale() ? '—' : running, isZh ? '项自动化正在运转' : isJa ? '件稼働中' : ' CI live', 'metric-active'));
-  if (sessions) items.push(metric(isStale() ? '—' : sessions, isZh ? '个研究会话正在推进' : isJa ? '研究進行中' : ' sessions', 'metric-active'));
-  if (handoffsCount) items.push(metric(handoffsCount, isZh ? '条跨部门引用接力' : isJa ? '件の連携' : ' relays'));
-  items.push(element('span', isZh ? '24/7 AI 自治闭环与人的方向指引' : isJa ? '24/7 AI自律ループと人間の指針' : '24/7 Human + AI Loop', 'metric-end'));
+  const en = isEn();
+  items.push(metric(list.length, en ? ' depts' : '个部门，持续相连'));
+  items.push(metric(isStale() ? '—' : running, en ? ' CI live' : '项自动化正在运转', 'metric-active'));
+  if (sessions) items.push(metric(isStale() ? '—' : sessions, en ? ' sessions' : '个研究会话正在推进', 'metric-active'));
+  if (handoffsCount) items.push(metric(handoffsCount, en ? ' relays' : '条跨部门引用接力'));
+  items.push(element('span', en ? '24/7 Human + AI Loop' : '24/7 AI 自治闭环与人的方向指引', 'metric-end'));
   $('#institute-metrics').replaceChildren(...items);
   const n = state.snapshot?.repositories?.length;
   $('#institute-scope').textContent = n ? `${n} REPOS · LIVE STREAM` : '';
@@ -836,16 +984,16 @@ function renderMetrics() {
     const run = countRunning(d);
     const q = queueStats(d);
     if (run) {
-      badge.textContent = isZh ? `${run} 运行中` : isJa ? `${run} 稼働` : `${run} live`;
+      badge.textContent = en ? `${run} live` : `${run} 运行中`;
       badge.classList.add('is-hot');
     } else if (q.waiting) {
-      badge.textContent = isZh ? `${q.label} 待接力` : isJa ? `${q.label} 待機` : `${q.label} queue`;
+      badge.textContent = en ? `${q.label} queue` : `${q.label} 待接力`;
       badge.classList.remove('is-hot');
     } else if (d.activities.length) {
-      badge.textContent = isZh ? `${d.activities.length} 动态` : isJa ? `${d.activities.length} 件` : `${d.activities.length}`;
+      badge.textContent = en ? `${d.activities.length}` : `${d.activities.length} 动态`;
       badge.classList.remove('is-hot');
     } else {
-      badge.textContent = isZh ? '就绪' : isJa ? '待機' : 'ready';
+      badge.textContent = en ? 'ready' : '就绪';
       badge.classList.remove('is-hot');
     }
   }
@@ -941,18 +1089,23 @@ function updateHoverHint(id) {
   if (!hint) return;
   const d = department(id);
   if (!d) {
-    hint.textContent = '点击任意部门六边形，放大进入该部门内部工作图';
+    hint.textContent = L('点击任意部门六边形，放大进入该部门内部工作图', 'Click any department deck to zoom into its internal workflow');
     return;
   }
   const routes = view()?.routes || [];
-  const out = routes.filter(r => r.from === id).map(r => department(r.to)?.label).filter(Boolean);
-  const inc = routes.filter(r => r.to === id).map(r => department(r.from)?.label).filter(Boolean);
+  const out = routes.filter(r => r.from === id).map(r => langDeptLabel(department(r.to))).filter(Boolean);
+  const inc = routes.filter(r => r.to === id).map(r => langDeptLabel(department(r.from))).filter(Boolean);
   const parts = [];
-  if (inc.length) parts.push(`承接：${inc.join(' / ')}`);
-  if (out.length) parts.push(`交棒：${out.join(' / ')}`);
+  if (inc.length) parts.push(isEn() ? `From: ${inc.join(' / ')}` : `承接：${inc.join(' / ')}`);
+  if (out.length) parts.push(isEn() ? `To: ${out.join(' / ')}` : `交棒：${out.join(' / ')}`);
+  const dLabel = langDeptLabel(d);
   hint.textContent = parts.length
-    ? `${d.label} · ${parts.join(' → ')}（点击进部门舱 · 点击外围星系看特写）`
-    : `${d.label} · 点击进部门舱 · 点击外围星系看特写`;
+    ? (isEn()
+        ? `${dLabel} · ${parts.join(' → ')} (Click to enter deck · Click outer galaxy to inspect)`
+        : `${dLabel} · ${parts.join(' → ')}（点击进部门舱 · 点击外围星系看特写）`)
+    : (isEn()
+        ? `${dLabel} · Click to enter deck · Click outer galaxy to inspect`
+        : `${dLabel} · 点击进部门舱 · 点击外围星系看特写`);
 }
 
 function renderCellSeats(d, container) {
@@ -991,10 +1144,11 @@ function renderHive() {
     cell.title.textContent = langDeptLabel(d);
     const roleTagEl = cell.button.querySelector('.cell-role-tag');
     if (roleTagEl) roleTagEl.textContent = langDeptRole(d.id, deptRoles[d.id] || '');
+    if (cell.mode) cell.mode.textContent = d.execution === 'human' ? 'HUMAN LOOP' : langExecLabel(d.execution);
     cell.status.textContent = missions[mIdx] || departmentState(d);
     renderCellSeats(d, cell.seats);
     cell.button.setAttribute('aria-pressed', String(d.id === state.selected));
-    cell.button.setAttribute('aria-label', `${langDeptLabel(d)}。${d.responsibility}。${missions[0] || departmentState(d)}`);
+    cell.button.setAttribute('aria-label', `${langDeptLabel(d)}. ${langDeptResp(d)}. ${missions[0] || departmentState(d)}`);
     const running = countRunning(d);
     const q = queueStats(d);
     cell.button.classList.toggle('is-running', Boolean(running));
@@ -1002,7 +1156,7 @@ function renderHive() {
       if (d.execution === 'human') {
         cell.landmark.classList.remove('is-visible', 'is-live', 'is-human');
       } else if (d.id === 'verification' && running) {
-        cell.landmarkCap.textContent = `${running} 核验`;
+        cell.landmarkCap.textContent = isEn() ? `${running} CI` : `${running} 核验`;
         cell.landmark.classList.add('is-visible', 'is-live');
         cell.landmark.classList.remove('is-human');
       } else if (running) {
@@ -1208,7 +1362,7 @@ function renderRoutes() {
   archGroup.append(
     tier1,
     svgText(42, 36, 'TIER 01 // HUMAN IN THE LOOP', 'arch-tier-tag is-human'),
-    svgText(958, 36, '问题策源 · 方向把关', 'arch-tier-sub')
+    svgText(958, 36, L('问题策源 · 方向把关', 'Problem Framing · Direction'), 'arch-tier-sub')
   );
   archGroup.lastChild.setAttribute('text-anchor', 'end');
   drawTierCorners(archGroup, 22, 12, 956, 182, 'arch-corner is-human');
@@ -1230,7 +1384,7 @@ function renderRoutes() {
     tier2,
     loopDot,
     svgText(56, 238, 'TIER 02 // 24·7 AI AUTONOMOUS CORE', 'arch-loop-tag'),
-    svgText(958, 238, 'AI 全天候自动攻关 ⇄ 独立复核 ▸ Lean CI 闭环', 'arch-tier-sub')
+    svgText(958, 238, L('AI 全天候自动攻关 ⇄ 独立复核 ▸ Lean CI 闭环', '24/7 Proof Search ⇄ Indep. Review ▸ Lean CI Loop'), 'arch-tier-sub')
   );
   archGroup.lastChild.setAttribute('text-anchor', 'end');
   drawTierCorners(archGroup, 22, 210, 956, 274, 'arch-corner is-loop');
@@ -1269,7 +1423,7 @@ function renderRoutes() {
   archGroup.append(
     tier3,
     svgText(42, 526, 'TIER 03 // KNOWLEDGE DELIVERY & PLATFORM', 'arch-tier-tag'),
-    svgText(958, 526, '书稿出版 · 论文与知识地图 · 学术交流 · 工程底座', 'arch-tier-sub')
+    svgText(958, 526, L('书稿出版 · 论文与知识地图 · 学术交流 · 工程底座', 'Monographs · Papers & Atlas · Scholar Outreach · Infra'), 'arch-tier-sub')
   );
   archGroup.lastChild.setAttribute('text-anchor', 'end');
   drawTierCorners(archGroup, 22, 500, 956, 226, 'arch-corner');
@@ -1449,10 +1603,10 @@ function renderAgentRoster(d) {
   const container = $('#department-agents');
   if (!container) return;
   const roster = departmentRoster(d);
-  $('#department-agent-count').textContent = roster.length ? `${roster.length} 个公开席位` : '';
+  $('#department-agent-count').textContent = roster.length ? (isEn() ? `${roster.length} public seats` : `${roster.length} 个公开席位`) : '';
   container.replaceChildren();
   if (!roster.length) {
-    container.append(element('p', '这个部门暂时没有可公开归属的工作席位。', 'loading'));
+    container.append(element('p', L('这个部门暂时没有可公开归属的工作席位。', 'No publicly attributed seats in this department yet.'), 'loading'));
     return;
   }
   for (const actor of roster) {
@@ -1464,11 +1618,11 @@ function renderAgentRoster(d) {
     const identity = element('div', '', 'agent-identity');
     identity.append(
       person(actor),
-      element('span', actor.kind === 'agent' ? '明确标注的 agent' : '公开账号', 'agent-kind')
+      element('span', actor.kind === 'agent' ? L('明确标注的 agent', 'Attributed Agent') : L('公开账号', 'Public Account'), 'agent-kind')
     );
     head.append(
       identity,
-      element('span', running.length ? `${running.length} 项正在执行` : tasks.length ? '最近参与' : '已登记', 'agent-state' + (running.length ? ' is-running' : ''))
+      element('span', running.length ? (isEn() ? `${running.length} active` : `${running.length} 项正在执行`) : tasks.length ? L('最近参与', 'Recent') : L('已登记', 'Registered'), 'agent-state' + (running.length ? ' is-running' : ''))
     );
     card.append(head);
 
@@ -1485,7 +1639,7 @@ function renderAgentRoster(d) {
       if (latest.task) row.addEventListener('click', () => selectTopic(latest));
       taskList.append(row);
     } else {
-      taskList.append(element('p', '待命 · 等待新信号', 'agent-empty'));
+      taskList.append(element('p', L('待命 · 等待新信号', 'Standby · Awaiting signal'), 'agent-empty'));
     }
     card.append(taskList);
     container.append(card);
@@ -1541,21 +1695,20 @@ function renderDepartment() {
   const d = department(state.selected) || departments().find(x => x.id === 'research') || departments()[0];
   if (!d) return;
   state.selected = d.id;
-  const execKey = `exec_${d.execution}`;
-  $('#department-mode').textContent = curLang() === 'zh' ? (execution[d.execution] || '共同研究') : tr(execKey, execution[d.execution] || 'Research');
+  $('#department-mode').textContent = langExecLabel(d.execution);
   $('#department-mode').dataset.execution = d.execution;
   $('#department-title').textContent = langDeptLabel(d);
-  $('#department-responsibility').textContent = d.responsibility;
+  $('#department-responsibility').textContent = langDeptResp(d);
   $('#department-state').textContent = isStale()
-    ? (curLang() === 'zh' ? '稍早的研究现场' : 'Earlier Snapshot')
-    : d.running_automations ? (curLang() === 'zh' ? `${d.running_automations} 项自动引擎运行中` : curLang() === 'ja' ? `${d.running_automations} 件のCI稼働中` : `${d.running_automations} CI running`)
-    : d.running_sessions ? (curLang() === 'zh' ? `${d.running_sessions} 个研究会话推进中` : `${d.running_sessions} sessions`)
+    ? L('稍早的研究现场', 'Earlier Snapshot')
+    : d.running_automations ? (isEn() ? `${d.running_automations} CI running` : `${d.running_automations} 项自动引擎运行中`)
+    : d.running_sessions ? (isEn() ? `${d.running_sessions} sessions` : `${d.running_sessions} 个研究会话推进中`)
     : '24/7';
 
   const people = d.participants || [];
   $('#department-people').replaceChildren(
-    element('span', people.length ? `${people.length} 个公开参与席位` : '人类指引与把关', 'people-label'),
-    element('span', d.activities.length ? `${d.observed_activities || d.activities.length} 条近期记录` : '等待公开动态', 'people-summary')
+    element('span', people.length ? (isEn() ? `${people.length} public seats` : `${people.length} 个公开参与席位`) : L('人类指引与把关', 'Human Direction'), 'people-label'),
+    element('span', d.activities.length ? (isEn() ? `${d.observed_activities || d.activities.length} recent events` : `${d.observed_activities || d.activities.length} 条近期记录`) : L('等待公开动态', 'Awaiting public updates'), 'people-summary')
   );
 
   renderAgentRoster(d);
@@ -1563,12 +1716,19 @@ function renderDepartment() {
   const work = primaryWork(d);
   const container = $('#department-work');
   container.replaceChildren();
-  $('#department-work-count').textContent = countRunning(d) ? `${countRunning(d)} 项执行中` : '';
-  $('#department-work-title').textContent = d.execution === 'human' ? '研究如何继续' : '这里正在发生';
+  $('#department-work-count').textContent = countRunning(d) ? (isEn() ? `${countRunning(d)} active` : `${countRunning(d)} 项执行中`) : '';
+  $('#department-work-title').textContent = d.execution === 'human' ? L('研究如何继续', 'How Research Continues') : L('这里正在发生', 'Happening Now');
 
   if (d.execution === 'human') {
-    container.append(element('p', '人提出值得研究的问题，判断哪些方向值得继续；AI 会话与 Lean CI 在下方闭环中 24/7 持续推进。', 'loading'));
-    const button = element('button', '放大进入数学攻坚部门图 →', 'text-button');
+    container.append(element(
+      'p',
+      L(
+        '人提出值得研究的问题，判断哪些方向值得继续；AI 会话与 Lean CI 在下方闭环中 24/7 持续推进。',
+        'Humans pose open mathematical questions and steer direction; autonomous AI sessions and Lean CI carry proofs forward 24/7 below.'
+      ),
+      'loading'
+    ));
+    const button = element('button', L('放大进入数学攻坚部门图 →', 'Zoom into Math Research Deck →'), 'text-button');
     button.type = 'button';
     button.addEventListener('click', () => selectDepartment('research', true, true));
     container.append(button);
@@ -1589,17 +1749,17 @@ function renderDepartment() {
     const bottom = element('div', '', 'work-bottom');
     const linked = a.kind === 'automation' ? findLinkedTaskActivity(a.task) : null;
     const areaTag = linked
-      ? `${copyFor(linked).area} · 形式核验`
+      ? `${copyFor(linked).area} · ${L('形式核验', 'Formal Verification')}`
       : a.kind === 'automation'
-        ? (d.id === 'books' ? '书稿构建' : d.id === 'outreach' ? '学术协作' : d.id === 'publication' ? '知识发布' : '形式核验')
+        ? (d.id === 'books' ? L('书稿构建', 'Monograph Build') : d.id === 'outreach' ? L('学术协作', 'Scholar Collab') : d.id === 'publication' ? L('知识发布', 'Knowledge Publish') : L('形式核验', 'Formal Verification'))
         : d.id === 'publication'
-          ? 'Mathesis / 知识'
+          ? L('Mathesis / 知识', 'Mathesis / Papers')
           : d.id === 'studio'
-            ? '工具与表达'
+            ? L('工具与表达', 'Tools & Studio')
             : copyFor(a).area;
     bottom.append(
       element('span', areaTag),
-      element('span', task ? '追踪接力 ↗' : '查看 ↗', 'work-arrow')
+      element('span', task ? L('追踪接力 ↗', 'Trace Relay ↗') : L('查看 ↗', 'View ↗'), 'work-arrow')
     );
     card.append(bottom);
     if (task) card.addEventListener('click', () => selectTopic(a));
@@ -1610,8 +1770,8 @@ function renderDepartment() {
     container.append(element(
       'p',
       d.id === 'review'
-        ? '新的复核意见会在这里汇入。也可以沿着课题，继续阅读公开讨论。'
-        : '新的进展会在这里汇入。先沿着已有的研究线索继续探索。',
+        ? L('新的复核意见会在这里汇入。也可以沿着课题，继续阅读公开讨论。', 'New review notes flow in here. You can also trace open discussions via active threads.')
+        : L('新的进展会在这里汇入。先沿着已有的研究线索继续探索。', 'Fresh updates flow in here. Explore existing research threads below.'),
       'loading'
     ));
   }
@@ -1624,11 +1784,11 @@ function renderDepartment() {
   const links = $('#department-connections');
   links.replaceChildren();
   if (related.size) {
-    links.append(element('span', '接力的上下游部门', 'people-label'));
+    links.append(element('span', tr('panel_relay_links', '接力的上下游部门'), 'people-label'));
     for (const id of related) {
       const target = department(id);
       if (!target) continue;
-      const button = element('button', `${target.label} ↗`, 'connection-chip');
+      const button = element('button', `${langDeptLabel(target)} ↗`, 'connection-chip');
       button.type = 'button';
       button.dataset.focusKey = `connection:${id}`;
       button.addEventListener('click', () => selectDepartment(id, true, false));
@@ -1703,13 +1863,16 @@ function updateLensSpotlight(d, actor, idx = 1) {
   if (!spot) return;
   spot.replaceChildren();
   if (!actor) {
-    spot.append(element('span', '悬浮通道高亮研究光束 · 点击右侧线索追踪全院接力 · 点击左右门户直达上下游'));
+    spot.append(element('span', L(
+      '悬浮通道高亮研究光束 · 点击右侧线索追踪全院接力 · 点击左右门户直达上下游',
+      'Hover a channel to highlight energy beams · Click a thread to trace relays · Click portals to jump decks'
+    )));
     return;
   }
   const tasks = actorTasks(d, actor);
-  spot.append(element('strong', `通道 ${String(idx).padStart(2, '0')}：`));
+  spot.append(element('strong', isEn() ? `Channel ${String(idx).padStart(2, '0')}: ` : `通道 ${String(idx).padStart(2, '0')}：`));
   if (!tasks.length) {
-    spot.append(element('span', '当前待命中，等待新的研究任务。'));
+    spot.append(element('span', L('当前待命中，等待新的研究任务。', 'Standing by for the next research task.')));
     return;
   }
   for (const a of tasks.slice(0, 3)) {
@@ -1762,23 +1925,25 @@ function renderDepartmentLens(d) {
       pill.type = 'button';
       pill.setAttribute('role', 'tab');
       pill.setAttribute('aria-selected', String(dept.id === d.id));
-      pill.append(element('i', '', 'lens-switch-dot'), document.createTextNode(dept.label));
+      pill.append(element('i', '', 'lens-switch-dot'), document.createTextNode(langDeptLabel(dept)));
       pill.addEventListener('click', () => selectDepartment(dept.id, true, true));
       switcher.append(pill);
     }
   }
 
   // 2. Compact header strip + inline KPIs
-  $('#lens-title').textContent = d.label;
-  $('#lens-responsibility').textContent = d.responsibility;
+  $('#lens-title').textContent = langDeptLabel(d);
+  $('#lens-responsibility').textContent = langDeptResp(d);
   const execPill = $('#lens-exec-pill');
   if (execPill) {
-    execPill.textContent = execution[d.execution] || '共同研究';
+    execPill.textContent = langExecLabel(d.execution);
     execPill.dataset.execution = d.execution;
   }
-  $('#lens-freshness').textContent = view()?.observed_at ? `${relative(view().observed_at)}更新` : '';
+  $('#lens-freshness').textContent = view()?.observed_at
+    ? (isEn() ? `Updated ${relative(view().observed_at)}` : `${relative(view().observed_at)}更新`)
+    : '';
 
-  const method = methodByDepartment[d.id] || [d.label, '公开工作', '交给下一个部门'];
+  const method = (isEn() ? methodByDepartmentEn[d.id] : methodByDepartment[d.id]) || [langDeptLabel(d), L('公开工作', 'Open research'), L('交给下一个部门', 'Hand off downstream')];
   $('#lens-input').textContent = method[1];
   $('#lens-output').textContent = method[2];
 
@@ -1789,21 +1954,28 @@ function renderDepartmentLens(d) {
     return item;
   };
   $('#lens-metrics').replaceChildren(
-    metric(isStale() ? '—' : stats.running, '正在执行', !isStale() && stats.running ? 'is-running' : ''),
-    metric(stats.label, '可见待接力', stats.waiting ? 'is-queued' : ''),
-    metric(d.observed_activities || stats.recent, '近期推进')
+    metric(isStale() ? '—' : stats.running, L('正在执行', 'Running'), !isStale() && stats.running ? 'is-running' : ''),
+    metric(stats.label, L('可见待接力', 'Queued'), stats.waiting ? 'is-queued' : ''),
+    metric(d.observed_activities || stats.recent, L('近期推进', 'Recent'))
   );
 
   // 3. Central Department Medallion Hub (#lens-hub)
   const hubEl = $('#lens-hub');
-  const meta = hubMeta[d.id] || { tag: 'DEPARTMENT', title: d.label };
+  const meta = hubMeta[d.id] || { tag: 'DEPARTMENT', title: langDeptLabel(d), titleEn: langDeptLabel(d) };
   const runCount = countRunning(d);
   if (hubEl) {
     hubEl.classList.toggle('is-running', Boolean(runCount));
     hubEl.replaceChildren(
       element('span', meta.tag, 'map-hub-code'),
-      element('strong', meta.title, 'map-hub-title'),
-      element('span', runCount ? `${runCount} 项运行中` : d.execution === 'human' ? '方向起点' : stats.waiting ? `${stats.label} 待接力` : '24/7 待命', 'map-hub-stat')
+      element('strong', isEn() ? (meta.titleEn || langDeptLabel(d)) : meta.title, 'map-hub-title'),
+      element(
+        'span',
+        runCount ? (isEn() ? `${runCount} active` : `${runCount} 项运行中`)
+          : d.execution === 'human' ? L('方向起点', 'Origin')
+          : stats.waiting ? (isEn() ? `${stats.label} queued` : `${stats.label} 待接力`)
+          : L('24/7 待命', '24/7 Ready'),
+        'map-hub-stat'
+      )
     );
   }
 
@@ -1865,11 +2037,11 @@ function renderDepartmentLens(d) {
 
     // Subtle spatial column headers
     svg.append(
-      svgText(76, 24, 'IN // 上游输入', 'zoom-zone-label'),
-      svgText(310, 24, 'STREAMS // 并行通道', 'zoom-zone-label'),
-      svgText(590, 24, 'CORE // 部门枢纽', 'zoom-zone-label'),
-      svgText(872, 24, 'ACTIVE // 流转线索', 'zoom-zone-label'),
-      svgText(1122, 24, 'OUT // 下游交棒', 'zoom-zone-label')
+      svgText(76, 24, L('IN // 上游输入', 'IN // UPSTREAM'), 'zoom-zone-label'),
+      svgText(310, 24, L('STREAMS // 并行通道', 'STREAMS // CHANNELS'), 'zoom-zone-label'),
+      svgText(590, 24, L('CORE // 部门枢纽', 'CORE // DECK HUB'), 'zoom-zone-label'),
+      svgText(872, 24, L('ACTIVE // 流转线索', 'ACTIVE // THREADS'), 'zoom-zone-label'),
+      svgText(1122, 24, L('OUT // 下游交棒', 'OUT // DOWNSTREAM'), 'zoom-zone-label')
     );
 
     const drawBeam = (x1, y1, x2, y2, cls, extra = {}) => {
@@ -1956,9 +2128,9 @@ function renderDepartmentLens(d) {
       btn.style.setProperty('--px', `${(px / 12).toFixed(2)}%`);
       btn.style.setProperty('--py', `${(py / 5.8).toFixed(2)}%`);
       btn.append(
-        element('span', dir === 'in' ? '← 上游' : '下游 →', 'map-portal-dir'),
-        element('strong', target.label),
-        element('span', count ? `${count} 接力` : '点击直达', 'map-portal-count')
+        element('span', dir === 'in' ? L('← 上游', '← Upstream') : L('下游 →', 'Downstream →'), 'map-portal-dir'),
+        element('strong', langDeptLabel(target)),
+        element('span', count ? (isEn() ? `${count} relays` : `${count} 接力`) : L('点击直达', 'Jump to deck'), 'map-portal-count')
       );
       btn.addEventListener('click', () => selectDepartment(targetId, true, true));
       container.append(btn);
@@ -1981,11 +2153,15 @@ function renderDepartmentLens(d) {
 
     const head = element('div', '', 'lens-agent-head');
     const code = String(idx + 1).padStart(2, '0');
-    const chLabel = element('span', `通道 ${code}`, 'lens-channel-label');
+    const chLabel = element('span', isEn() ? `Channel ${code}` : `通道 ${code}`, 'lens-channel-label');
     const stEl = element('span', '', 'lens-agent-status' + (running.length ? ' is-running' : ''));
     stEl.append(
       element('i'),
-      document.createTextNode(running.length ? `${running.length} 项执行中` : tasks.length ? `${relative(tasks[0].at)}活跃` : '待命中')
+      document.createTextNode(
+        running.length ? (isEn() ? `${running.length} running` : `${running.length} 项执行中`)
+          : tasks.length ? (isEn() ? `Active ${relative(tasks[0].at)}` : `${relative(tasks[0].at)}活跃`)
+          : L('待命中', 'Standby')
+      )
     );
     const hiddenId = element('span', actorLabel(actor), 'visually-hidden');
     head.append(chLabel, stEl, hiddenId);
@@ -2019,7 +2195,7 @@ function renderDepartmentLens(d) {
         lane.append(row);
       }
     } else {
-      lane.append(element('p', '通道就绪 · 等待新任务', 'lens-empty-seat'));
+      lane.append(element('p', L('通道就绪 · 等待新任务', 'Channel ready · awaiting tasks'), 'lens-empty-seat'));
     }
     card.append(lane);
 
@@ -2050,8 +2226,8 @@ function renderDepartmentLens(d) {
     seatContainer.append(element(
       'div',
       d.execution === 'human'
-        ? '人类研究指引区：提出新的数学问题与战略方向，驱动下方 AI 部门 24/7 自治接力。'
-        : '当前采样窗口内暂无活跃推进，新的研究任务出现后会实时点亮这里。',
+        ? L('人类研究指引区：提出新的数学问题与战略方向，驱动下方 AI 部门 24/7 自治接力。', 'Human Direction Deck: frames open problems and constraints guiding the 24/7 autonomous AI loop below.')
+        : L('当前采样窗口内暂无活跃推进，新的研究任务出现后会实时点亮这里。', 'No active sessions in the current window; new tasks light up this deck live as they arrive.'),
       'lens-empty-map'
     ));
   } else {
@@ -2078,8 +2254,8 @@ function renderDepartmentLens(d) {
       top.append(element('span', t.tag), element('span', t.status));
       const foot = element('div', '', 'map-topic-foot');
       foot.append(
-        element('span', t.running ? '正在运转' : '持续流转'),
-        element('span', hasTask ? '跟随接力 →' : '查看动态 ↗')
+        element('span', t.running ? L('正在运转', 'Running') : L('持续流转', 'Flowing')),
+        element('span', hasTask ? L('跟随接力 →', 'Trace Relay →') : L('查看动态 ↗', 'View Event ↗'))
       );
       node.append(top, element('strong', t.title), foot);
       if (hasTask) node.addEventListener('click', () => selectTopic(t.activity));
@@ -2209,8 +2385,8 @@ function renderJourney() {
     const running = items.filter(active).length;
     button.append(
       element('span', String(i + 1).padStart(2, '0')),
-      element('strong', d.label),
-      element('p', running ? `${running} 项相关工作正在执行` : phase(items[0]))
+      element('strong', langDeptLabel(d)),
+      element('p', running ? (isEn() ? `${running} related runs active` : `${running} 项相关工作正在执行`) : phase(items[0]))
     );
     button.addEventListener('click', () => {
       setMode('organization');
@@ -2262,22 +2438,22 @@ function renderJourney() {
     time.dateTime = a.at;
     const mentions = messageFor(a)?.mentions || [];
     const byline = a.actor?.label
-      ? `${a.actor.label}${mentions.length ? ' → ' + mentions.slice(0, 2).map(name => '@' + name).join('、') : ''}`
+      ? `${a.actor.label}${mentions.length ? ' → ' + mentions.slice(0, 2).map(name => '@' + name).join(isEn() ? ', ' : '、') : ''}`
       : '';
     item.append(
       time,
       element('strong', a.kind === 'automation' ? phase(a) : update.title),
       element('p', byline, 'journey-byline'),
       element('p', a.kind === 'automation' ? update.title : update.summary),
-      external('阅读这一段进展 ↗', a.url)
+      external(L('阅读这一段进展 ↗', 'Read update ↗'), a.url)
     );
     events.append(item);
   }
-  if (!story.length) events.append(element('p', '问题已经提出，下一段探索会在这里继续。', 'loading'));
+  if (!story.length) events.append(element('p', L('问题已经提出，下一段探索会在这里继续。', 'Problem opened; the next exploration step will appear here.'), 'loading'));
 
-  links.append(external('阅读公开研究原线索 ↗', topic.url, 'text-link'));
+  links.append(external(L('阅读公开研究原线索 ↗', 'Open source thread ↗'), topic.url, 'text-link'));
   if (related.some(a => a.department === 'books')) {
-    links.append(external('走进相关的理论书库 ↗', 'https://books.trureturing.org/', 'text-link'));
+    links.append(external(L('走进相关的理论书库 ↗', 'Open monograph library ↗'), 'https://books.trureturing.org/', 'text-link'));
   }
 }
 
@@ -2310,7 +2486,7 @@ function renderActivity() {
     const top = element('div', '', 'activity-card-top');
     const timeEl = element('time', relative(a.at));
     timeEl.dateTime = a.at;
-    top.append(element('span', d?.label || '研究现场', 'activity-role'), timeEl);
+    top.append(element('span', langDeptLabel(d || a.department, L('研究现场', 'Live Deck')), 'activity-role'), timeEl);
     const update = progress(a);
     const headline = a.kind === 'automation'
       ? (findLinkedTaskActivity(a.task) ? `${phase(a)} · ${copyFor(findLinkedTaskActivity(a.task)).title}` : `${phase(a)} · ${update.title}`)
@@ -2328,8 +2504,10 @@ function renderActivity() {
     });
     container.append(card);
   }
-  if (!unique.length) container.append(element('p', '下一段探索，正在继续。', 'loading'));
-  $('#activity-note').textContent = state.arrivals.length ? `${state.arrivals.length} 段新进展汇入` : '真实发生的下一步';
+  if (!unique.length) container.append(element('p', L('下一段探索，正在继续。', 'Next exploration step underway.'), 'loading'));
+  $('#activity-note').textContent = state.arrivals.length
+    ? (isEn() ? `${state.arrivals.length} new updates` : `${state.arrivals.length} 段新进展汇入`)
+    : L('真实发生的下一步', 'Live research signals');
 }
 
 function renderLiveOps() {
@@ -2357,8 +2535,12 @@ function renderLiveFeed() {
     const deptId = inferDepartmentForMessage(m);
     const taskRef = { repository: m.repository, number: m.number };
     const linked = findLinkedTaskActivity(taskRef);
-    const title = linked ? copyFor(linked).title : (deptId === 'books' ? '理论书稿章节讨论' : '研究论证推进讨论');
-    const fallback = deptId === 'books' ? '围绕书稿推导与章节结构交换修订意见。' : '围绕当前课题补充新的构造、边界检验与证明思路。';
+    const title = linked
+      ? copyFor(linked).title
+      : (deptId === 'books' ? L('理论书稿章节讨论', 'Monograph chapter discussion') : L('研究论证推进讨论', 'Mathematical proof discussion'));
+    const fallback = deptId === 'books'
+      ? L('围绕书稿推导与章节结构交换修订意见。', 'Exchanging chapter derivations and structural edits.')
+      : L('围绕当前课题补充新的构造、边界检验与证明思路。', 'Contributing new constructions, boundary checks, and proof steps.');
     entries.push({
       category: 'discussion',
       at: m.updated_at,
@@ -2379,7 +2561,7 @@ function renderLiveFeed() {
     entries.push({
       category: cat,
       at: a.at,
-      actor: a.actor?.label || execution[department(a.department)?.execution] || 'Actions',
+      actor: a.actor?.label || langExecLabel(department(a.department)?.execution) || 'Actions',
       mentions: [],
       deptId: a.department,
       title: `${phase(a)} · ${actorTaskTitle(a, department(a.department) || { id: a.department })}`,
@@ -2394,11 +2576,11 @@ function renderLiveFeed() {
     if (state.feedFilter === 'all') return e.category !== 'automation';
     return e.category === state.feedFilter;
   });
-  if (meta) meta.textContent = `${filtered.length} 条动态`;
+  if (meta) meta.textContent = isEn() ? `${filtered.length} events` : `${filtered.length} 条动态`;
   container.replaceChildren();
 
   if (!filtered.length) {
-    container.append(element('p', '当前筛选下暂无新的公开动态。', 'loading'));
+    container.append(element('p', L('当前筛选下暂无新的公开动态。', 'No public updates match the current filter.'), 'loading'));
     return;
   }
 
@@ -2409,7 +2591,7 @@ function renderLiveFeed() {
     const who = element('div', '', 'feed-who');
     const dot = element('i', '', 'feed-dept-dot');
     dot.style.background = deptColors[entry.deptId] || 'var(--accent)';
-    who.append(dot, element('span', d?.label || entry.deptId, 'feed-dept-tag'));
+    who.append(dot, element('span', langDeptLabel(d || entry.deptId), 'feed-dept-tag'));
     head.append(who, element('time', relative(entry.at), 'feed-time'));
 
     row.append(head, element('div', entry.title, 'feed-title'));
@@ -2418,7 +2600,7 @@ function renderLiveFeed() {
     const foot = element('div', '', 'feed-footer');
     const actions = element('div', '', 'feed-actions');
     if (entry.linkedActivity) {
-      const followBtn = element('button', '跟随接力 →');
+      const followBtn = element('button', L('跟随接力 →', 'Trace Relay →'));
       followBtn.type = 'button';
       followBtn.addEventListener('click', () => {
         selectTopic(entry.linkedActivity);
@@ -2426,8 +2608,8 @@ function renderLiveFeed() {
       });
       actions.append(followBtn);
     }
-    if (entry.url) actions.append(external('查看来源 ↗', entry.url));
-    foot.append(element('span', d?.responsibility?.slice(0, 24) ? '' : ''), actions);
+    if (entry.url) actions.append(external(L('查看来源 ↗', 'Source ↗'), entry.url));
+    foot.append(element('span', ''), actions);
     row.append(foot);
     container.append(row);
   }
@@ -2448,8 +2630,10 @@ function renderCheckerRuns() {
   const passedCount = runs.filter(a => a.status === 'succeeded').length;
   if (summary) {
     summary.textContent = isStale()
-      ? '等待刷新'
-      : `${workingCount} 运行中${waitingCount ? ` · ${waitingCount} 排队` : ''} · ${passedCount} 通过`;
+      ? L('等待刷新', 'Awaiting refresh')
+      : isEn()
+        ? `${workingCount} live${waitingCount ? ` · ${waitingCount} queued` : ''} · ${passedCount} passed`
+        : `${workingCount} 运行中${waitingCount ? ` · ${waitingCount} 排队` : ''} · ${passedCount} 通过`;
   }
 
   // Visual checker light matrix (48 compact status cells)
@@ -2459,24 +2643,24 @@ function renderCheckerRuns() {
       const st = fresh(a) ? a.status : (a.status === 'working' || a.status === 'waiting' ? 'unknown' : a.status);
       const cell = external('', a.url || '#', `checker-light is-${st}`);
       const d = department(a.department);
-      cell.title = `${d?.label || a.department} · ${sourceLabel(a)} · ${phase(a)} (${relative(a.at)})`;
+      cell.title = `${langDeptLabel(d || a.department)} · ${sourceLabel(a)} · ${phase(a)} (${relative(a.at)})`;
       lights.append(cell);
     }
   }
 
   container.replaceChildren();
   if (!runs.length) {
-    container.append(element('p', '暂无观察到的自动检验记录。', 'loading'));
+    container.append(element('p', L('暂无观察到的自动检验记录。', 'No automated verification runs observed yet.'), 'loading'));
     return;
   }
 
   const badgeLabel = a => {
-    if (a.status === 'working') return fresh(a) ? '运行中' : '稍早运行';
-    if (a.status === 'waiting') return fresh(a) ? '排队中' : '稍早等待';
-    if (a.status === 'succeeded') return '通过';
-    if (a.status === 'failed') return '待修';
-    if (a.status === 'cancelled') return '已取消';
-    return '已结束';
+    if (a.status === 'working') return fresh(a) ? L('运行中', 'Live') : L('稍早运行', 'Recent');
+    if (a.status === 'waiting') return fresh(a) ? L('排队中', 'Queued') : L('稍早等待', 'Queued');
+    if (a.status === 'succeeded') return L('通过', 'Pass');
+    if (a.status === 'failed') return L('待修', 'Fix');
+    if (a.status === 'cancelled') return L('已取消', 'Cancel');
+    return L('已结束', 'Done');
   };
 
   for (const a of runs.slice(0, 5)) {
@@ -2487,8 +2671,8 @@ function renderCheckerRuns() {
     const badge = element('span', badgeLabel(a), `checker-badge is-${st}`);
     const main = element('span', '', 'checker-main');
     main.append(
-      element('strong', `${d?.label || a.department} · ${sourceLabel(a)}`),
-      element('small', linked ? copyFor(linked).title : '全天候自动检验与构建')
+      element('strong', `${langDeptLabel(d || a.department)} · ${sourceLabel(a)}`),
+      element('small', linked ? copyFor(linked).title : L('全天候自动检验与构建', '24/7 automated Lean check & build'))
     );
     row.append(
       badge,
@@ -2507,24 +2691,24 @@ function renderRelayBridges() {
 
   const bridges = handoffSummary();
   const total = bridges.reduce((n, b) => n + b.count, 0);
-  if (summary) summary.textContent = total ? `共 ${total} 条跨部门接力` : '部门间流转';
+  if (summary) summary.textContent = total ? (isEn() ? `${total} cross-dept relays` : `共 ${total} 条跨部门接力`) : L('部门间流转', 'Cross-deck flow');
   container.replaceChildren();
 
   if (!bridges.length) {
-    container.append(element('p', '当不同部门的任务互相衔接时，接力流量会在这里展示。', 'loading'));
+    container.append(element('p', L('当不同部门的任务互相衔接时，接力流量会在这里展示。', 'Cross-department citation handoffs will appear here.'), 'loading'));
     return;
   }
 
   const maxCount = bridges[0].count || 1;
   for (const b of bridges.slice(0, 5)) {
-    const fromLabel = department(b.from)?.label || b.from;
-    const toLabel = department(b.to)?.label || b.to;
+    const fromLabel = langDeptLabel(department(b.from) || b.from);
+    const toLabel = langDeptLabel(department(b.to) || b.to);
     const row = element('button', '', 'bridge-row');
     row.type = 'button';
     const top = element('div', '', 'bridge-top');
     const lbl = element('span', '', 'bridge-label');
     lbl.append(document.createTextNode(fromLabel), element('em', '→'), document.createTextNode(toLabel));
-    top.append(lbl, element('span', `${b.count} 条`, 'bridge-count'));
+    top.append(lbl, element('span', isEn() ? `${b.count}` : `${b.count} 条`, 'bridge-count'));
     const track = element('div', '', 'bridge-bar-track');
     const fill = element('div', '', 'bridge-bar-fill');
     fill.style.width = `${Math.max(8, Math.round((b.count / maxCount) * 100))}%`;
@@ -2547,7 +2731,7 @@ function renderQuestions() {
     const a = topic.activity;
     const card = element('article', '', 'question-card');
     const top = element('div', '', 'question-card-top');
-    top.append(element('span', topic.book ? '理论书写' : topic.copy.area), element('span', phase(a), 'phase'));
+    top.append(element('span', topic.book ? L('理论书写', 'Monographs') : topic.copy.area), element('span', phase(a), 'phase'));
     const title = element('button', topic.copy.title, 'question-title');
     title.type = 'button';
     title.title = cleanTitle(a.label);
@@ -2560,13 +2744,13 @@ function renderQuestions() {
     if (topic.copy.hasEditorial) card.append(element('p', topic.copy.question));
     const bottom = element('div', '', 'question-card-bottom');
     bottom.append(
-      element('span', `${relative(a.at)}有新进展`),
-      element('span', '跟随接力 ↗')
+      element('span', isEn() ? `Updated ${relative(a.at)}` : `${relative(a.at)}有新进展`),
+      element('span', L('跟随接力 ↗', 'Trace Relay ↗'))
     );
     card.append(bottom);
     container.append(card);
   }
-  if (!topics.length) container.append(element('p', '新的研究线索正在汇入。', 'loading'));
+  if (!topics.length) container.append(element('p', L('新的研究线索正在汇入。', 'New research threads are arriving.'), 'loading'));
   $('#more-questions').hidden = topics.length <= state.limit;
 }
 
@@ -2588,7 +2772,7 @@ function renderBooks() {
 
 function renderPapers() {
   const publications = state.snapshot?.publications || [];
-  const copies = state.snapshot?.editorial?.papers || {};
+  const copies = isEn() ? {} : (state.snapshot?.editorial?.papers || {});
   const container = $('#paper-cards');
   container.replaceChildren();
   for (const paper of publications.slice(0, 6)) {
@@ -2609,7 +2793,7 @@ function renderPapers() {
     const title = external(copy?.title || paper.title, paper.url, 'paper-title');
     title.title = paper.title;
     content.append(
-      element('span', /preprint/i.test(paper.status || '') ? '预印本' : '研究论文', 'paper-type'),
+      element('span', /preprint/i.test(paper.status || '') ? L('预印本', 'Preprint') : L('研究论文', 'Research Paper'), 'paper-type'),
       title,
       element('p', copy?.summary || paper.summary || '', 'paper-summary'),
       element('div', paper.authors || '', 'paper-authors')
@@ -2620,8 +2804,8 @@ function renderPapers() {
   if (!publications.length) {
     const empty = element('div', '', 'paper-empty');
     empty.append(
-      element('p', '研究正在长成可以阅读、讨论与继续推进的论文。'),
-      external('阅读公开研究 ↗', 'https://www.trureturing.org/research', 'text-link')
+      element('p', L('研究正在长成可以阅读、讨论与继续推进的论文。', 'Verified theorems are being compiled into readable preprints and papers.')),
+      external(L('阅读公开研究 ↗', 'Browse Public Research ↗'), 'https://www.trureturing.org/research', 'text-link')
     );
     container.append(empty);
   }
@@ -2632,19 +2816,20 @@ function renderRepos() {
   const countEl = $('#repo-matrix-count');
   if (!container) return;
   const repos = state.snapshot?.repositories || [];
-  if (countEl) countEl.textContent = repos.length ? `${repos.length} 个公开研究空间` : '';
+  if (countEl) countEl.textContent = repos.length ? (isEn() ? `${repos.length} public repositories` : `${repos.length} 个公开研究空间`) : '';
   container.replaceChildren();
   if (!repos.length) {
-    container.append(element('p', '正在同步公开研究仓库列表…', 'loading'));
+    container.append(element('p', L('正在同步公开研究仓库列表…', 'Syncing public repository index…'), 'loading'));
     return;
   }
   const owner = state.snapshot?.owner || 'the-omega-institute';
   for (const repo of repos) {
+    const enMeta = isEn() ? REPO_META_EN[repo.name] : null;
     const tile = external('', `https://github.com/${owner}/${repo.name}`, 'repo-tile');
     const head = element('div', '', 'repo-tile-head');
-    head.append(element('strong', repo.label || repo.name));
+    head.append(element('strong', enMeta?.label || (isEn() ? repo.name : (repo.label || repo.name))));
     if (repo.short) head.append(element('span', repo.short, 'repo-short'));
-    tile.append(head, element('span', repo.description || repo.name, 'repo-name-mono'));
+    tile.append(head, element('span', enMeta?.desc || (isEn() && /[\u4e00-\u9fff]/.test(repo.description || '') ? repo.name : (repo.description || repo.name)), 'repo-name-mono'));
     container.append(tile);
   }
 }
@@ -2654,7 +2839,7 @@ function updateControls() {
     button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode));
   }
   $('#follow-live').setAttribute('aria-pressed', String(state.follow));
-  $('#follow-live span').textContent = state.follow ? '跟随最新' : '已固定视角';
+  $('#follow-live span').textContent = state.follow ? tr('follow_live', '跟随最新') : tr('follow_fixed', '已固定视角');
   $('#research-room').dataset.mode = state.mode;
   $('#journey-panel').hidden = state.mode !== 'journey';
 }
@@ -2701,15 +2886,19 @@ function conjectureRecords() {
     const normUrl = String(item.proof_url || item.id || '').trim();
     if (normUrl && byUrl.has(normUrl)) continue;
     const verdict = item.verdict === 'refuted' || item.verdict === 'obstruction' ? 'refuted' : 'proved';
+    const areaRaw = item.area || '数学研究';
+    const evRaw = item.evidence_kind || 'Lean 归档';
     const rec = {
       id: item.id || normUrl || item.title,
       verdict,
-      title: item.zh_title || item.title,
+      title: isEn() ? (item.title || item.zh_title) : (item.zh_title || item.title),
       enTitle: item.title,
-      area: item.area || '数学研究',
-      summary: item.summary || '',
+      area: isEn() ? (AREA_ZH_TO_EN[areaRaw] || areaRaw) : areaRaw,
+      summary: isEn()
+        ? (item.en_summary || (verdict === 'refuted' ? 'Formally verified refutation / obstruction archived in Lean 4.' : 'Formally certified theorem archived in Lean 4.'))
+        : (item.summary || ''),
       url: item.proof_url || '',
-      evidenceKind: item.evidence_kind || 'Lean 归档',
+      evidenceKind: isEn() ? (EVIDENCE_ZH_TO_EN[evRaw] || evRaw) : evRaw,
       settledAt: item.settled_at || '',
       live: false
     };
@@ -2733,10 +2922,12 @@ function conjectureRecords() {
       verdict,
       title: cleanWorkTitle(a, department(a.department) || { id: a.department }),
       enTitle: a.label || '',
-      area: copy?.area || '数学研究',
-      summary: a.kind === 'task' ? '已结案的公开研究单元，结论与验证路径已归档。' : '已通过 Lean 自动化检验并合入主分支的公开数学提交。',
+      area: copy?.area || L('数学研究', 'Math Research'),
+      summary: a.kind === 'task'
+        ? L('已结案的公开研究单元，结论与验证路径已归档。', 'Closed public research unit with archived verdict and verification trail.')
+        : L('已通过 Lean 自动化检验并合入主分支的公开数学提交。', 'Public mathematical proof verified by Lean CI and merged to the main branch.'),
       url: normUrl,
-      evidenceKind: a.kind === 'task' ? '已结案课题' : 'Lean 已合入',
+      evidenceKind: a.kind === 'task' ? L('已结案课题', 'Closed Thread') : L('Lean 已合入', 'Lean Merged'),
       settledAt: a.at || '',
       live: true
     };
@@ -2764,7 +2955,9 @@ function renderConjectures() {
   const refutedCount = all.filter(r => r.verdict === 'refuted').length;
   if (countBadge) countBadge.textContent = all.length ? String(all.length) : '';
   if (summaryEl) {
-    summaryEl.textContent = `已证明 ${provedCount} · 反驳/障碍 ${refutedCount} · 永久归档 site/data/conjectures.json + 实时合入`;
+    summaryEl.textContent = isEn()
+      ? `Proved ${provedCount} · Refuted / Obstruction ${refutedCount} · Curated archive + live merged Lean proofs`
+      : `已证明 ${provedCount} · 反驳/障碍 ${refutedCount} · 永久归档 site/data/conjectures.json + 实时合入`;
   }
   if (!container) return;
   const filtered = state.verdictFilter === 'all'
@@ -2772,24 +2965,24 @@ function renderConjectures() {
     : all.filter(r => r.verdict === state.verdictFilter);
   container.replaceChildren();
   if (!filtered.length) {
-    container.append(element('p', '当前筛选条件下暂无已归档结论，自动化证明与反驳合入后会自动追加于此。', 'loading'));
+    container.append(element('p', L('当前筛选条件下暂无已归档结论，自动化证明与反驳合入后会自动追加于此。', 'No archived verdicts match this filter; newly merged proofs and refutations append here automatically.'), 'loading'));
     return;
   }
   for (const rec of filtered.slice(0, 36)) {
     const card = rec.url ? external('', rec.url, 'conjecture-card' + (rec.verdict === 'refuted' ? ' is-refuted' : '')) : element('article', '', 'conjecture-card' + (rec.verdict === 'refuted' ? ' is-refuted' : ''));
     const head = element('div', '', 'conjecture-card-head');
     head.append(
-      element('span', rec.verdict === 'refuted' ? '✕ 反驳 / 障碍' : '✓ 已证明', 'verdict-badge ' + (rec.verdict === 'refuted' ? 'is-refuted' : 'is-proved')),
+      element('span', rec.verdict === 'refuted' ? tr('c_refuted', '✕ 反驳 / 障碍') : tr('c_proved', '✓ 已证明'), 'verdict-badge ' + (rec.verdict === 'refuted' ? 'is-refuted' : 'is-proved')),
       element('span', `${rec.area} · ${rec.evidenceKind}`, 'mono-meta')
     );
     const titleEl = element('strong', rec.title, 'conjecture-card-title');
     if (rec.enTitle && rec.enTitle !== rec.title) titleEl.title = rec.enTitle;
     const sub = element('p', rec.summary || rec.enTitle || '', 'conjecture-card-sub');
     const foot = element('div', '', 'conjecture-card-foot');
-    const dt = rec.settledAt && Number.isFinite(timestamp(rec.settledAt)) ? (rec.live ? relative(rec.settledAt) : rec.settledAt.slice(0, 10)) : '已归档';
+    const dt = rec.settledAt && Number.isFinite(timestamp(rec.settledAt)) ? (rec.live ? relative(rec.settledAt) : rec.settledAt.slice(0, 10)) : L('已归档', 'Archived');
     foot.append(
-      element('span', rec.live ? `LIVE 实时合入 · ${dt}` : `永久档案 · ${dt}`),
-      element('span', rec.url ? '查看证明 ↗' : '已记录', 'work-arrow')
+      element('span', rec.live ? (isEn() ? `LIVE MERGED · ${dt}` : `LIVE 实时合入 · ${dt}`) : (isEn() ? `ARCHIVED · ${dt}` : `永久档案 · ${dt}`)),
+      element('span', rec.url ? L('查看证明 ↗', 'View Proof ↗') : L('已记录', 'Recorded'), 'work-arrow')
     );
     card.append(head, titleEl, sub, foot);
     container.append(card);
@@ -2833,7 +3026,8 @@ async function refreshOutreachStats() {
       deptRoles.outreach = `${data.collaborating_scholars} 合作学者`;
       hubMeta.outreach = {
         tag: `SEC.02 · ${data.collaborating_scholars} COLLABORATING SCHOLARS`,
-        title: `对外合作 · ${data.collaborating_scholars} 位学者联机（${data.replied_scholars || 485} 回信）`
+        title: `对外合作 · ${data.collaborating_scholars} 位学者联机（${data.replied_scholars || 485} 回信）`,
+        titleEn: `Scholar Outreach · ${data.collaborating_scholars} Collaborating (${data.replied_scholars || 485} Replied)`
       };
       if (view()) renderHive();
     }
@@ -2952,13 +3146,17 @@ async function refreshLive() {
     }
     renderLive();
     if (arrivals.length) {
-      $('#live-announcement').textContent = `${department(arrivals[0].department)?.label || '研究院'}有新的进展。`;
+      const dLabel = langDeptLabel(department(arrivals[0].department) || arrivals[0].department, L('研究院', 'Institute'));
+      $('#live-announcement').textContent = isEn() ? `New update in ${dLabel}.` : `${dLabel}有新的进展。`;
     }
   } catch {
     renderHealth();
     if (!state.stream) {
       $('#connection-note').hidden = false;
-      $('#connection-note').textContent = '研究现场连接稍慢，稍后会自动恢复。你可以先阅读已有的研究。';
+      $('#connection-note').textContent = L(
+        '研究现场连接稍慢，稍后会自动恢复。你可以先阅读已有的研究。',
+        'Live stream connection is slow and will retry automatically. You can browse archived research meanwhile.'
+      );
     }
   } finally {
     state.liveBusy = false;
@@ -2988,9 +3186,9 @@ const holoWorld = {
 };
 
 const LAYER_PRESETS = {
-  mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵' },
-  station: { pitch:  0.44, dist: 17.6, lookY: 0.42, lookZ:  0.35, stationAlpha: 1.00, galaxyAlpha: 0.12, minPitch:  0.20, maxPitch: 0.84, tag: 'STATION · 24/7 活态科研环路' },
-  galaxy:  { pitch:  0.30, dist: 19.6, lookY: 3.10, lookZ: -0.95, stationAlpha: 0.04, galaxyAlpha: 1.42, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 浩瀚星空 DAG' }
+  mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵', tagEn: 'MIX · 3-STRATA PANORAMA' },
+  station: { pitch:  0.44, dist: 17.6, lookY: 0.42, lookZ:  0.35, stationAlpha: 1.00, galaxyAlpha: 0.12, minPitch:  0.20, maxPitch: 0.84, tag: 'STATION · 24/7 活态科研环路', tagEn: 'STATION · 24/7 ACTIVE LOOP' },
+  galaxy:  { pitch:  0.30, dist: 19.6, lookY: 3.10, lookZ: -0.95, stationAlpha: 0.04, galaxyAlpha: 1.42, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 浩瀚星空 DAG', tagEn: 'COSMOS · TRUTH DAG STARFIELD' }
 };
 
 const holoCam = {
@@ -3139,7 +3337,7 @@ function startCinemaDirector(now = performance.now()) {
   cinemaDirector.startMs = now;
   $('#cinema-director-btn')?.setAttribute('aria-pressed', 'true');
   const hint = $('#hive-hover-hint');
-  if (hint) hint.textContent = '◎ 导演自动巡航中 · 拖拽、滚轮或点击任意处立即归还控制权';
+  if (hint) hint.textContent = tr('hint_cinema', '◎ 导演自动巡航中 · 拖拽、滚轮或点击任意处立即归还控制权');
 }
 
 function stopCinemaDirector() {
@@ -3903,6 +4101,7 @@ function syncGalaxyMainView(active) {
 const GALAXY_NODE_PICK_PX = 16;
 const TRUTH_SOURCE_BLOB = 'https://github.com/the-omega-institute/trureturing/blob';
 const NODE_ROLE_ZH = { hub: '枢纽定理', interface: '接口定理', bridge: '桥接定理', foundation: '基础定理', internal: '内部定理', 'specialized-leaf': '专门叶定理' };
+const NODE_ROLE_EN = { hub: 'Hub Theorem', interface: 'Interface', bridge: 'Bridge', foundation: 'Foundation', internal: 'Internal Theorem', 'specialized-leaf': 'Specialized Leaf' };
 const galaxyDetail = { status: 'idle', data: null, picks: [], hoverKey: null, selectedKey: null, selectedNode: null, bounds: null, tracePath: null };
 
 // Pure BFS Proof Path Tracer on real Truth DAG edges + details prereqs:
@@ -4013,34 +4212,56 @@ function galaxyNodeSourceUrl(module, commit) {
 
 function galaxyNodeInfo(pick, details, clusters, links = null) {
   const cluster = (clusters || []).find(c => c.id === pick.cid);
-  const galaxy = cluster ? `${cluster.zh || cluster.name}星系` : '真值星系';
+  const gName = cluster ? langGalaxyName(cluster) : '';
+  const galaxy = cluster
+    ? (isEn() ? `${gName} Galaxy` : `${cluster.zh || cluster.name}星系`)
+    : L('真值星系', 'Truth Galaxy');
   if (pick.kind === 'new') {
     const stratum = String(pick.module || '').split('/')[1] || '';
     return {
       isNew: true,
-      badge: pick.preview ? '新加入（预览）' : '新加入',
+      badge: pick.preview ? L('新加入（预览）', 'New (Preview)') : L('新加入', 'Newly Frozen'),
       title: shortModuleName(pick.module),
       module: pick.module,
-      summary: pick.preview ? '预览演示节点，不计入真值图谱。' : 'dev 分支上新增冻结状态的 D5 模块。',
-      meta: [`${relative(pick.at)}冻结`, galaxy, stratum].filter(Boolean),
+      summary: pick.preview
+        ? L('预览演示节点，不计入真值图谱。', 'Preview demo node; not counted in the live Truth DAG.')
+        : L('dev 分支上新增冻结状态的 D5 模块。', 'Newly frozen D5 theorem module committed to the dev branch.'),
+      meta: [isEn() ? `Frozen ${relative(pick.at)}` : `${relative(pick.at)}冻结`, galaxy, stratum].filter(Boolean),
       href: pick.preview ? null : galaxyNodeSourceUrl(pick.module, pick.commit)
     };
   }
   const row = details?.stars?.[pick.idx];
   if (!row) {
-    return { isNew: false, badge: '定理节点', title: `${galaxy} · 定理节点`, module: '', summary: '节点名称暂不可用。', meta: [galaxy], href: null };
+    return {
+      isNew: false,
+      badge: L('定理节点', 'Theorem Node'),
+      title: `${galaxy} · ${L('定理节点', 'Theorem Node')}`,
+      module: '',
+      summary: L('节点名称暂不可用。', 'Module details unavailable.'),
+      meta: [galaxy],
+      href: null
+    };
   }
   const [module, title, summary, role, layer, theorems, prereqCount, dependentCount] = row;
   const depMeta = Number.isInteger(prereqCount)
-    ? [`依赖 ${prereqCount} 个模块 · 被 ${dependentCount || 0} 个模块依赖`]
-    : links?.total ? [`图中相连 ${links.total} 个节点${links.cross ? `（${links.cross} 个跨星系）` : ''}`] : [];
+    ? [isEn() ? `Deps: ${prereqCount} · Used by: ${dependentCount || 0}` : `依赖 ${prereqCount} 个模块 · 被 ${dependentCount || 0} 个模块依赖`]
+    : links?.total
+      ? [isEn()
+          ? `${links.total} connected nodes${links.cross ? ` (${links.cross} cross-galaxy)` : ''}`
+          : `图中相连 ${links.total} 个节点${links.cross ? `（${links.cross} 个跨星系）` : ''}`]
+      : [];
   return {
     isNew: false,
-    badge: NODE_ROLE_ZH[role] || '定理节点',
+    badge: isEn() ? (NODE_ROLE_EN[role] || 'Theorem Node') : (NODE_ROLE_ZH[role] || '定理节点'),
     title: title || shortModuleName(module),
     module,
     summary: summary || '',
-    meta: [galaxy, `DAG 第 ${layer} 层`, `${theorems} 条定理`, ...depMeta],
+    meta: [
+      galaxy,
+      isEn() ? `DAG Layer ${layer}` : `DAG 第 ${layer} 层`,
+      isEn() ? `${theorems} theorems` : `${theorems} 条定理`,
+      ...depMeta
+    ],
     href: galaxyNodeSourceUrl(module, details.source_commit)
   };
 }
@@ -4072,7 +4293,7 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
   if (!card) return;
   const close = element('button', '×', 'gnc-close');
   close.type = 'button';
-  close.setAttribute('aria-label', '关闭节点详情');
+  close.setAttribute('aria-label', L('关闭节点详情', 'Close node details'));
   close.addEventListener('click', () => closeGalaxyNodeCard());
   const parts = [close, element('span', info.badge, `gnc-badge${info.isNew ? ' is-new' : ''}`), element('h3', info.title, 'gnc-title')];
   if (info.module) parts.push(element('p', info.module, 'gnc-module'));
@@ -4080,7 +4301,7 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
   if (info.meta?.length) parts.push(element('p', info.meta.join(' · '), 'gnc-meta'));
   const actions = element('div', '', 'gnc-actions');
   if (info.href) {
-    const link = element('a', info.linkLabel || '查看 Lean 源码 ↗', 'gnc-link');
+    const link = element('a', info.linkLabel || tr('lean_source_btn', '查看 Lean 源码 ↗'), 'gnc-link');
     link.href = info.href;
     link.target = '_blank';
     link.rel = 'noopener';
@@ -4124,10 +4345,10 @@ function openLanternConjectureCard(lantern) {
   const info = {
     badge: isRef ? tr('lantern_badge_refuted', '✦ 猜想提灯 · 反驳 / 障碍') : tr('lantern_badge_proved', '✦ 猜想提灯 · 已证明'),
     isNew: !isRef,
-    title: curLang() === 'en' ? (rec.enTitle || rec.title || 'Settled Conjecture') : (rec.title || rec.enTitle || '已归档猜想成果'),
-    module: curLang() === 'en' ? (rec.title && rec.title !== rec.enTitle ? rec.title : '') : (rec.enTitle && rec.enTitle !== rec.title ? rec.enTitle : ''),
-    summary: rec.summary || '已通过 Lean 形式验证或反例证伪的永久归档成果。',
-    meta: [rec.area || '数学研究', rec.evidenceKind || 'Lean 归档', rec.settledAt ? relative(rec.settledAt) : ''].filter(Boolean),
+    title: isEn() ? (rec.enTitle || rec.title || 'Settled Conjecture') : (rec.title || rec.enTitle || '已归档猜想成果'),
+    module: isEn() ? '' : (rec.enTitle && rec.enTitle !== rec.title ? rec.enTitle : ''),
+    summary: rec.summary || L('已通过 Lean 形式验证或反例证伪的永久归档成果。', 'Archived conjecture formally verified or refuted in Lean 4.'),
+    meta: [rec.area || L('数学研究', 'Math Research'), rec.evidenceKind || L('Lean 归档', 'Lean Archive'), rec.settledAt ? relative(rec.settledAt) : ''].filter(Boolean),
     href: rec.url || '',
     linkLabel: tr('lantern_read_btn', '在内置浏览器阅读证明 ↗'),
     canTrace: false
@@ -4238,7 +4459,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
       ctx.stroke();
       ctx.setLineDash([]);
       const lx = 0.25 * fx + 0.5 * mx + 0.25 * nx, ly = 0.25 * fy + 0.5 * my + 0.25 * ny;
-      const text = n.linked ? `${n.strength} 条依赖` : '邻近';
+      const text = n.linked ? (isEn() ? `${n.strength} deps` : `${n.strength} 条依赖`) : L('邻近', 'Nearby');
       ctx.lineWidth = 3;
       ctx.strokeStyle = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(4, 7, 12, 0.92)';
       ctx.strokeText(text, lx, ly);
@@ -4319,7 +4540,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   ctx.restore();
   const byKey = new Map(picks.map(p => [galaxyNodeKey(p), p]));
   const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
-  const textFor = p => (p.kind === 'new' ? `新 · ${shortModuleName(p.module)}` : clip(details?.stars?.[p.idx]?.[1] || '定理节点', 34));
+  const textFor = p => (p.kind === 'new' ? `${L('新', 'New')} · ${shortModuleName(p.module)}` : clip(details?.stars?.[p.idx]?.[1] || L('定理节点', 'Theorem Node'), 34));
   const cands = [];
   const add = (p, kind) => {
     if (!p || cands.some(c => c.key === galaxyNodeKey(p))) return;
@@ -4402,11 +4623,19 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     ? (() => {
       const row = details?.stars?.[sel.idx];
       const counts = sel.kind === 'star' && Number.isInteger(row?.[6])
-        ? `── 依赖 ${row[6]} · ┄ 被依赖 ${row[7] || 0}（图中 ${conn.prereqs.length + conn.dependents.length} 条）`
-        : sel.kind === 'star' ? `图中相连 ${conn.other.length}` : '新加入节点';
-      return `◎ 已聚焦节点 · ${counts} · 双指捏合/滚轮缩小、点空白或 Esc 退回星系`;
+        ? (isEn()
+            ? `── Deps ${row[6]} · ┄ Used by ${row[7] || 0} (${conn.prereqs.length + conn.dependents.length} shown)`
+            : `── 依赖 ${row[6]} · ┄ 被依赖 ${row[7] || 0}（图中 ${conn.prereqs.length + conn.dependents.length} 条）`)
+        : sel.kind === 'star'
+          ? (isEn() ? `${conn.other.length} linked in view` : `图中相连 ${conn.other.length}`)
+          : L('新加入节点', 'Newly frozen node');
+      return isEn()
+        ? `◎ Focused Node · ${counts} · Pinch/scroll out, click empty space or Esc to return`
+        : `◎ 已聚焦节点 · ${counts} · 双指捏合/滚轮缩小、点空白或 Esc 退回星系`;
     })()
-    : `◆ 新加入 ${freshHere}${details ? ' · ○ 枢纽定理' : ''}${plan?.neighbors.length ? ` · 聚集 ${plan.neighbors.length} 个相关星系` : ''} · 点击节点聚焦 · 捏合/滚轮缩回全景`;
+    : (isEn()
+        ? `◆ New ${freshHere}${details ? ' · ○ Hub Theorem' : ''}${plan?.neighbors.length ? ` · ${plan.neighbors.length} related galaxies` : ''} · Click node to inspect · Pinch/scroll out for panorama`
+        : `◆ 新加入 ${freshHere}${details ? ' · ○ 枢纽定理' : ''}${plan?.neighbors.length ? ` · 聚集 ${plan.neighbors.length} 个相关星系` : ''} · 点击节点聚焦 · 捏合/滚轮缩回全景`);
   ctx.lineWidth = 3.2;
   ctx.strokeStyle = halo;
   ctx.strokeText(legend, w * 0.5, 98);
@@ -4594,14 +4823,18 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
 function drawTruthGrowthFocus(ctx, f, k, now, gx, gy, lensR, w, col, halo) {
   if (k <= 0) return;
   const shown = Math.min(f.spawned, f.modules.length);
-  const name = f.cluster.name === 'Other' ? (f.modules[0]?.domain || '其他领域') : (f.cluster.zh || f.cluster.name);
+  const name = f.cluster.name === 'Other' ? (f.modules[0]?.domain || L('其他领域', 'Other Domains')) : langGalaxyName(f.cluster);
   const recent = f.modules.slice(Math.max(0, shown - 2), shown).map(record => record.module.split('/').slice(-2).join(' / '));
   const cx = w * 0.5;
   const preview = f.modules.some(record => record.preview);
-  const title = `⟡ 真值图谱生长 · ${name} +${shown} 新冻结模块${preview ? '（预览）' : ''}`;
+  const title = isEn()
+    ? `⟡ Truth DAG Growth · ${name} +${shown} newly frozen${preview ? ' (Preview)' : ''}`
+    : `⟡ 真值图谱生长 · ${name} +${shown} 新冻结模块${preview ? '（预览）' : ''}`;
   const detail = preview
-    ? '预览演示 · 不计入真值图谱'
-    : `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} 模块${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`;
+    ? L('预览演示 · 不计入真值图谱', 'Preview demo · not counted in live Truth DAG')
+    : isEn()
+      ? `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} modules${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`
+      : `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} 模块${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`;
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = k;
@@ -5190,8 +5423,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       const latestShort = featured ? shortModuleName(featured.module) : '';
       subText = isHovered
         ? (conjCount > 0
-            ? `✦ ${conjCount} 项猜想已解/反驳 · ${latestShort ? latestShort : '点击查看星系'}`
-            : (latestShort ? `↗ ${latestShort} · 点击查看星系` : `${cl.en || cl.name.toUpperCase()} · 点击查看星系`))
+            ? (isEn()
+                ? `✦ ${conjCount} conjectures settled · ${latestShort ? latestShort : 'Click to inspect'}`
+                : `✦ ${conjCount} 项猜想已解/反驳 · ${latestShort ? latestShort : '点击查看星系'}`)
+            : (latestShort
+                ? `↗ ${latestShort} · ${L('点击查看星系', 'Click to inspect')}`
+                : `${cl.en || cl.name.toUpperCase()} · ${L('点击查看星系', 'Click to inspect')}`))
         : (latestShort ? `↗ ${latestShort.slice(0, 24)}${latestShort.length > 24 ? '…' : ''}` : '');
     }
 
@@ -5219,10 +5456,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       drawTruthGrowthFocus(ctx, autoFocus, focusK, growthNow, focusTx, focusTy, lensR, w, nebPalette[autoFocus.cid % nebPalette.length], strokeHalo);
     } else if (manual) {
       const col = nebPalette[manual.cid % nebPalette.length];
-      const name = manual.cluster.zh || manual.cluster.name;
+      const name = langGalaxyName(manual.cluster);
       const bucket = recentBucket(manual.cid);
       const delta = bucket?.count || 0;
-      const recentNames = (bucket?.events || []).slice(0, 2).map(ev => `${shortModuleName(ev.module)}（${relative(ev.at)}）`);
+      const recentNames = (bucket?.events || []).slice(0, 2).map(ev => isEn()
+        ? `${shortModuleName(ev.module)} (${relative(ev.at)})`
+        : `${shortModuleName(ev.module)}（${relative(ev.at)}）`);
       const cxTop = w * 0.5;
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
@@ -5243,15 +5482,23 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       ctx.strokeStyle = strokeHalo;
       ctx.font = '800 14px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
       const ttl = delta > 0
-        ? `⟡ 真值星系生长 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 模块 · 近期 +${delta}）`
-        : `⟡ 真值星系 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`;
+        ? (isEn()
+            ? `⟡ Truth Galaxy Growth · ${name} (${(manual.cluster.count || 0).toLocaleString()} modules · +${delta} recent)`
+            : `⟡ 真值星系生长 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 模块 · 近期 +${delta}）`)
+        : (isEn()
+            ? `⟡ Truth Galaxy · ${name} (${(manual.cluster.count || 0).toLocaleString()} verified theorems)`
+            : `⟡ 真值星系 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`);
       ctx.strokeText(ttl, cxTop, 60);
       ctx.fillStyle = rgba(col, 1);
       ctx.fillText(ttl, cxTop, 60);
       ctx.font = '700 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
       const sub = recentNames.length
-        ? `最新冻结：${recentNames.join(' · ')}  （点击或 Esc 返回全景）`
-        : `${manual.cluster.en || manual.cluster.name.toUpperCase()} · 暂无新冻结模块 · 点击或 Esc 返回全景`;
+        ? (isEn()
+            ? `Recently frozen: ${recentNames.join(' · ')} (Click empty space or Esc for panorama)`
+            : `最新冻结：${recentNames.join(' · ')}  （点击或 Esc 返回全景）`)
+        : (isEn()
+            ? `${manual.cluster.en || manual.cluster.name.toUpperCase()} · Click empty space or Esc for panorama`
+            : `${manual.cluster.en || manual.cluster.name.toUpperCase()} · 暂无新冻结模块 · 点击或 Esc 返回全景`);
       ctx.strokeText(sub, cxTop, 80);
       ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba([220, 255, 240], 0.88);
       ctx.fillText(sub, cxTop, 80);
@@ -5392,28 +5639,28 @@ function matchGalaxyCidForText(text) {
 function xpPlanFor(a) {
   const text = `${a.label || ''} ${a.summary || ''}`;
   if (a.kind === 'contribution' && a.status === 'merged') {
-    if (a.department === 'publication') return { tier: 3, fx: 'paper', label: '论文跃迁' };
-    if (a.department === 'outreach') return { tier: 3, fx: 'outreach', label: `${outreachScholarCount()} 位学者同步` };
+    if (a.department === 'publication') return { tier: 3, fx: 'paper', label: L('论文跃迁', 'Paper Shipped') };
+    if (a.department === 'outreach') return { tier: 3, fx: 'outreach', label: isEn() ? `${outreachScholarCount()} Scholars Sync` : `${outreachScholarCount()} 位学者同步` };
     if (isSettledMathRecord(a)) {
       const refuted = classifyConjectureVerdict(text) === 'refuted';
-      return { tier: 3, fx: 'rocket', label: refuted ? '猜想反驳' : '猜想证明', galaxyCid: matchGalaxyCidForText(text) };
+      return { tier: 3, fx: 'rocket', label: refuted ? L('猜想反驳', 'Conjecture Refuted') : L('猜想证明', 'Conjecture Proved'), galaxyCid: matchGalaxyCidForText(text) };
     }
-    return { tier: 3, fx: 'routine', label: '成果合入' };
+    return { tier: 3, fx: 'routine', label: L('成果合入', 'PR Merged') };
   }
   if (a.kind === 'task' && a.status === 'closed' && isSettledMathRecord(a)) {
     const refuted = classifyConjectureVerdict(text) === 'refuted';
-    return { tier: 3, fx: 'rocket', label: refuted ? '猜想反驳' : '猜想解决', galaxyCid: matchGalaxyCidForText(text) };
+    return { tier: 3, fx: 'rocket', label: refuted ? L('猜想反驳', 'Conjecture Refuted') : L('猜想解决', 'Conjecture Settled'), galaxyCid: matchGalaxyCidForText(text) };
   }
   if (a.kind === 'automation') {
-    if (a.status === 'failed') return { tier: -1, fx: 'fail', label: '检验未通过' };
+    if (a.status === 'failed') return { tier: -1, fx: 'fail', label: L('检验未通过', 'Check Failed') };
     if (a.status === 'cancelled') return { tier: 0, fx: 'none', label: '' };
-    if (a.department === 'outreach') return { tier: 1, fx: 'outreach', label: '学者联机' };
-    return { tier: 1, fx: 'routine', label: a.status === 'succeeded' ? '核验通过' : '核验' };
+    if (a.department === 'outreach') return { tier: 1, fx: 'outreach', label: L('学者联机', 'Scholar Sync') };
+    return { tier: 1, fx: 'routine', label: a.status === 'succeeded' ? L('核验通过', 'Verified') : L('核验', 'Verify') };
   }
-  if (a.kind === 'task') return { tier: 2, fx: a.department === 'outreach' ? 'outreach' : 'routine', label: '新课题' };
-  if (a.kind === 'contribution') return { tier: 2, fx: a.department === 'publication' ? 'paper' : 'routine', label: '新提交' };
-  if (a.kind === 'discussion') return { tier: 1, fx: a.department === 'outreach' ? 'outreach' : 'routine', label: '讨论' };
-  return { tier: 1, fx: 'routine', label: '动态' };
+  if (a.kind === 'task') return { tier: 2, fx: a.department === 'outreach' ? 'outreach' : 'routine', label: L('新课题', 'New Thread') };
+  if (a.kind === 'contribution') return { tier: 2, fx: a.department === 'publication' ? 'paper' : 'routine', label: L('新提交', 'New PR') };
+  if (a.kind === 'discussion') return { tier: 1, fx: a.department === 'outreach' ? 'outreach' : 'routine', label: L('讨论', 'Note') };
+  return { tier: 1, fx: 'routine', label: L('动态', 'Event') };
 }
 
 const xpRank = q => (q.tier === 3 ? 3 : q.tier === 2 ? 2 : q.tier === 1 ? 1 : 0.5);
@@ -5576,7 +5823,7 @@ function launchConjectureRocket(item, originPt, now) {
         const r = 14 + Math.sqrt(s + 1) * 14;
         xpFx.bursts.push({ kind: 'starlet', x: pt.x + Math.cos(a) * r, y: pt.y + Math.sin(a) * r * 0.65, rgb: s % 3 === 0 ? warmGold : gCol, start: tArr + s * 45, dur: 2200, maxR: 5.5 + (s % 3) * 1.5 });
       }
-      const gName = gInfo?.cl?.zh || gInfo?.cl?.name || '周天星域';
+      const gName = gInfo?.cl ? langGalaxyName(gInfo.cl) : L('周天星域', 'Truth Cosmos');
       xpFx.bursts.push({
         kind: 'text',
         deptId: '__rocket__',
@@ -5585,8 +5832,8 @@ function launchConjectureRocket(item, originPt, now) {
         rgb: warmGold,
         start: tArr,
         dur: 2500,
-        text: `LEVEL UP · ${item.label || '猜想突破'}`,
-        sub: `点亮 ${gName} 星域 → 推入自动论文工厂`,
+        text: `LEVEL UP · ${item.label || L('猜想突破', 'Breakthrough')}`,
+        sub: isEn() ? `Ignited ${gName} → Auto-Paper Factory` : `点亮 ${gName} 星域 → 推入自动论文工厂`,
         size: 21,
         rise: 38,
         pop: true
@@ -5598,7 +5845,7 @@ function launchConjectureRocket(item, originPt, now) {
       const paperPt = xpTargetPoint('publication');
       if (paperPt) {
         xpFx.flights.push({
-          item: { deptId: 'publication', tier: 2, fx: 'paper', label: '推入论文工厂' },
+          item: { deptId: 'publication', tier: 2, fx: 'paper', label: L('推入论文工厂', 'To Paper Factory') },
           from: corePt,
           target: paperPt,
           start: tArr + 220,
@@ -5611,7 +5858,7 @@ function launchConjectureRocket(item, originPt, now) {
             flashXpCell('publication', 'is-xp-hit', 900);
             xpFx.bursts.push({ kind: 'prism', x: pp.x, y: pp.y, rgb: XP_ICE, start: tP, dur: 900, maxR: 48, width: 2.0 });
             const pTop = xpTextTop('publication', pp.y - 34, tP);
-            xpFx.bursts.push({ kind: 'text', deptId: 'publication', x: pp.x, y: pTop, rgb: XP_ICE, start: tP, dur: 1500, text: '→ 自动论文 · Mathesis', size: 13.5, rise: 28 });
+            xpFx.bursts.push({ kind: 'text', deptId: 'publication', x: pp.x, y: pTop, rgb: XP_ICE, start: tP, dur: 1500, text: L('→ 自动论文 · Mathesis', '→ Auto-Paper · Mathesis'), size: 13.5, rise: 28 });
           }
         });
       }
@@ -5638,7 +5885,7 @@ function xpArrive(item, target, now) {
       // Tier A: Ice-blue / silver prism shuttle into Mathesis Review & Preprint Platform!
       for (let k = 0; k < 2; k++) xpFx.bursts.push({ kind: 'prism', x, y, rgb: XP_ICE, start: now + k * 140, dur: 980, maxR: 56 + k * 30, width: 2.4 - k * 0.6 });
       xpFx.bursts.push({ kind: 'sparks', x, y, rgb: XP_ICE, start: now, dur: 1150, parts: xpParticles(26, 175, 110) });
-      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_ICE, start: now, dur: 2100, text: 'LEVEL UP · 论文跃迁', sub: '自动论文工厂 → Mathesis 审稿平台', size: 22, rise: 42, pop: true });
+      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_ICE, start: now, dur: 2100, text: L('LEVEL UP · 论文跃迁', 'LEVEL UP · PAPER SHIPPED'), sub: L('自动论文工厂 → Mathesis 审稿平台', 'Auto-Paper Factory → Mathesis Review'), size: 22, rise: 42, pop: true });
       flashXpCell(item.deptId, 'is-level-up', 1600);
       spawnHoloPulse(item.deptId, 1.2);
       spawnSpokeFlare('publication', 'outreach');
@@ -5648,7 +5895,7 @@ function xpArrive(item, target, now) {
     if (item.fx === 'outreach') {
       // Tier B: Warm amber long-range collaboration sync with verified external scholars!
       for (let k = 0; k < 2; k++) xpFx.bursts.push({ kind: 'ring', x, y, rgb: XP_AMBER, start: now + k * 150, dur: 940, maxR: 58 + k * 34, width: 2.4 - k * 0.6 });
-      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_AMBER, start: now, dur: 1950, text: 'OUTREACH SYNC', sub: `Mathesis ⇄ ${outreachScholarCount()} 位合作学者双向同步`, size: 20, rise: 40, pop: true });
+      xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb: XP_AMBER, start: now, dur: 1950, text: 'OUTREACH SYNC', sub: isEn() ? `Mathesis ⇄ ${outreachScholarCount()} Collaborating Scholars` : `Mathesis ⇄ ${outreachScholarCount()} 位合作学者双向同步`, size: 20, rise: 40, pop: true });
       flashXpCell(item.deptId, 'is-level-up', 1400);
       spawnHoloPulse(item.deptId, 1.15);
       spawnSpokeFlare('outreach', 'research');
@@ -5657,7 +5904,7 @@ function xpArrive(item, target, now) {
     }
     for (let k = 0; k < 3; k++) xpFx.bursts.push({ kind: 'ring', x, y, rgb, start: now + k * 140, dur: 950, maxR: 64 + k * 38, width: 3.2 - k * 0.7 });
     xpFx.bursts.push({ kind: 'sparks', x, y, rgb, start: now, dur: 1300, parts: xpParticles(36, 230, 160) });
-    xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 2100, text: 'LEVEL UP', sub: `${department(item.deptId)?.label || ''} · ${item.label} +1`, size: 26, rise: 48, pop: true });
+    xpFx.bursts.push({ kind: 'text', deptId: item.deptId, x, y: top, rgb, start: now, dur: 2100, text: 'LEVEL UP', sub: `${langDeptLabel(department(item.deptId) || item.deptId, '')} · ${item.label} +1`, size: 26, rise: 48, pop: true });
     flashXpCell(item.deptId, 'is-level-up', 1700);
     spawnHoloPulse(item.deptId, 1.25);
     if (xpFlowTarget[item.deptId]) spawnSpokeFlare(item.deptId, xpFlowTarget[item.deptId]);
@@ -6017,7 +6264,7 @@ function syncInstituteRealm(overrideTotal = null) {
     : 100;
   if (fillEl) fillEl.style.width = `${pct.toFixed(1)}%`;
   const growthTag = (truthGrowth.totalRecent || 0) > 0 ? ` · +${truthGrowth.totalRecent}` : '';
-  if (metaEl) metaEl.textContent = r.max ? `${total.toLocaleString()}/${r.max.toLocaleString()}${growthTag}` : `${total.toLocaleString()} 定理`;
+  if (metaEl) metaEl.textContent = r.max ? `${total.toLocaleString()}/${r.max.toLocaleString()}${growthTag}` : `${total.toLocaleString()} ${L('定理', 'theorems')}`;
 
   // Authentic automated breakthrough: fires LEVEL UP ONLY when real observed count genuinely crosses a realm!
   const crossedRealm = instituteRealm.lastIdx != null && r.idx > instituteRealm.lastIdx;
@@ -6037,6 +6284,7 @@ function syncInstituteRealm(overrideTotal = null) {
         xpFx.bursts.push({ kind: 'ring', x: center.x, y: center.y, rgb: XP_GOLD, start: now + k * 140, dur: 1050, maxR: 84 + k * 46, width: 3.2 - k * 0.7 });
       }
       xpFx.bursts.push({ kind: 'sparks', x: center.x, y: center.y, rgb: XP_GOLD, start: now, dur: 1500, parts: xpParticles(42, 240, 160) });
+      const realmLabel = i18n()?.realmName ? i18n().realmName(r.idx, r.name) : r.name;
       xpFx.bursts.push({
         kind: 'text',
         deptId: '__realm__',
@@ -6045,8 +6293,8 @@ function syncInstituteRealm(overrideTotal = null) {
         rgb: XP_GOLD,
         start: now,
         dur: 2500,
-        text: `LEVEL UP · 境·${r.roman} ${r.name}`,
-        sub: `自动验证突破 ${r.min.toLocaleString()} 定理`,
+        text: `LEVEL UP · ${tr('stage_prefix', '境·')}${r.roman} ${realmLabel}`,
+        sub: isEn() ? `Verified theorems crossed ${r.min.toLocaleString()}` : `自动验证突破 ${r.min.toLocaleString()} 定理`,
         size: 25,
         rise: 52,
         pop: true
@@ -6121,7 +6369,7 @@ function launchLogClickComet(rowEl, entry) {
   if (target && !state.quiet && !reduced) {
     const col = holoWorld[entry.deptId]?.hex || [112, 224, 242];
     xpFx.flights.push({
-      item: { deptId: entry.deptId, tier: 2, label: '信号定位' },
+      item: { deptId: entry.deptId, tier: 2, label: L('信号定位', 'Signal Lock') },
       from,
       target,
       start: now,
@@ -6178,18 +6426,21 @@ function activityLogEntry(a) {
   const title = cleanWorkTitle(a, d || { id: a.department });
   if (isGenericAutomationTitle(title)) return null;
   if (a.kind === 'automation') {
-    return { tag: 'VERIFY', tone: 'cyan', deptId: a.department, targetId: 'research', text: `形式验证 ▸ 核验：${title}` };
+    return {
+      tag: 'VERIFY', tone: 'cyan', deptId: a.department, targetId: 'research',
+      text: isEn() ? `${langDeptLabel('verification')} ▸ Verify: ${title}` : `形式验证 ▸ 核验：${title}`
+    };
   }
   if (a.department === 'books') {
-    return { tag: 'CODEX', tone: 'violet', deptId: 'books', targetId: 'verification', text: `理论书写 ▸ ${title}` };
+    return { tag: 'CODEX', tone: 'violet', deptId: 'books', targetId: 'verification', text: `${langDeptLabel('books')} ▸ ${title}` };
   }
   if (a.department === 'publication') {
-    return { tag: 'PAPER', tone: 'live', deptId: 'publication', targetId: 'verification', text: `论文与知识 ▸ ${title}` };
+    return { tag: 'PAPER', tone: 'live', deptId: 'publication', targetId: 'verification', text: `${langDeptLabel('publication')} ▸ ${title}` };
   }
   if (a.department === 'studio') {
-    return { tag: 'FORGE', tone: 'cyan', deptId: 'studio', targetId: 'books', text: `工具与表达 ▸ ${title}` };
+    return { tag: 'FORGE', tone: 'cyan', deptId: 'studio', targetId: 'books', text: `${langDeptLabel('studio')} ▸ ${title}` };
   }
-  return { tag: 'PROOF', tone: 'live', deptId: a.department, targetId: 'verification', text: `${d?.label || '数学攻坚'} ▸ ${title}` };
+  return { tag: 'PROOF', tone: 'live', deptId: a.department, targetId: 'verification', text: `${langDeptLabel(d || a.department, langDeptLabel('research'))} ▸ ${title}` };
 }
 
 function buildSciFiLogPool() {
@@ -6228,7 +6479,7 @@ function buildSciFiLogPool() {
         tone: meta.tone,
         deptId: d.id,
         targetId: meta.target,
-        text: `${d.label} ▸ ${m}`
+        text: `${langDeptLabel(d)} ▸ ${m}`
       });
     }
   }
@@ -6241,17 +6492,25 @@ function buildSciFiLogPool() {
 
   // 3. Cross-department real citation relays
   for (const b of handoffSummary().slice(0, 5)) {
-    const f = department(b.from)?.label || b.from;
-    const to = department(b.to)?.label || b.to;
-    add({ tag: 'RELAY', tone: 'gold', deptId: b.from, targetId: b.to, text: `${f} ══▸ ${to} // ${b.count} 条引用接力` });
+    const f = langDeptLabel(department(b.from) || b.from);
+    const to = langDeptLabel(department(b.to) || b.to);
+    add({
+      tag: 'RELAY', tone: 'gold', deptId: b.from, targetId: b.to,
+      text: isEn() ? `${f} ══▸ ${to} // ${b.count} relays` : `${f} ══▸ ${to} // ${b.count} 条引用接力`
+    });
   }
 
   // 4. Hub summary pulse
   if (totalHandoffs) {
-    add({ tag: 'HUB', tone: 'cyan', deptId: 'verification', targetId: 'research', text: `形式验证枢纽 ▸ 四路汇聚 · ${totalHandoffs} 条跨部门接力` });
+    add({
+      tag: 'HUB', tone: 'cyan', deptId: 'verification', targetId: 'research',
+      text: isEn()
+        ? `Verification Core ▸ 4-way hub · ${totalHandoffs} cross-dept relays`
+        : `形式验证枢纽 ▸ 四路汇聚 · ${totalHandoffs} 条跨部门接力`
+    });
   }
 
-  return pool.length ? pool : [{ tag: 'BOOT', tone: 'cyan', deptId: 'verification', text: '正在接入全院实时研究战报流…' }];
+  return pool.length ? pool : [{ tag: 'BOOT', tone: 'cyan', deptId: 'verification', text: L('正在接入全院实时研究战报流…', 'Connecting to live institute dispatch stream…') }];
 }
 
 function sciFiLogRow(entry, fresh, clock) {
@@ -6332,7 +6591,9 @@ function updateLogJump() {
   const btn = $('#log-jump-latest');
   if (!btn) return;
   btn.hidden = scifiLog.mode !== 'latest' || scifiLog.stick;
-  btn.textContent = scifiLog.unseen ? `↓ ${scifiLog.unseen} 条新事件` : '↓ 回到最新';
+  btn.textContent = scifiLog.unseen
+    ? (isEn() ? `↓ ${scifiLog.unseen} new events` : `↓ ${scifiLog.unseen} 条新事件`)
+    : tr('log_jump_latest', '↓ 回到最新');
 }
 
 function followLatestLog() {
@@ -6362,7 +6623,7 @@ function renderLatestSciFiLog() {
     row.dataset.xpTier = String(e.tier ?? 0);
     return row;
   }));
-  if (!entries.length) container.append(sciFiLogRow({ tag: 'IDLE', tone: 'muted', text: '暂无新的公开事件' }, false, '--:--:--'));
+  if (!entries.length) container.append(sciFiLogRow({ tag: 'IDLE', tone: 'muted', text: L('暂无新的公开事件', 'No new public events yet') }, false, '--:--:--'));
   scifiLog.painted = true;
   if (scifiLog.stick) {
     container.scrollTop = container.scrollHeight;
@@ -6372,7 +6633,7 @@ function renderLatestSciFiLog() {
   }
   updateLogJump();
   const pktEl = $('#log-pkt-count');
-  if (pktEl) pktEl.textContent = `${entries.length} 条`;
+  if (pktEl) pktEl.textContent = isEn() ? `${entries.length} events` : `${entries.length} 条`;
 }
 
 // A real entry joins the rolling stream at once; rolling holds briefly so the
@@ -6404,12 +6665,12 @@ function announceMatrixArrivals(added) {
 function updateLogBadge() {
   const badge = $('#log-rate-badge');
   if (!badge) return;
-  let text = 'LATEST · 最新在下';
+  let text = L('LATEST · 最新在下', 'LIVE · NEWEST AT BOTTOM');
   if (scifiLog.mode === 'cycle') {
-    text = reduced ? '轮播 · 系统已减少动态'
-      : state.quiet ? '轮播 · 静看中暂停'
-        : scifiLog.hoverPaused ? '轮播 · 悬停暂停'
-          : 'HIGH-DENSITY INTEL · 轮播';
+    text = reduced ? L('轮播 · 系统已减少动态', 'CYCLE · REDUCED MOTION')
+      : state.quiet ? L('轮播 · 静看中暂停', 'CYCLE · CALM PAUSED')
+        : scifiLog.hoverPaused ? L('轮播 · 悬停暂停', 'CYCLE · HOVER PAUSED')
+          : L('HIGH-DENSITY INTEL · 轮播', 'HIGH-DENSITY INTEL · CYCLE');
   }
   if (badge.textContent !== text) badge.textContent = text;
 }
@@ -6632,7 +6893,9 @@ function drawHolo3DFrame(dt = 0.016) {
     if (metaEl && truthNebula.loaded) {
       const totalTh = truthNebula.clusters.reduce((s, c) => s + (c.count || 0), 0) || 18367;
       const curTh = Math.round(totalTh * Math.min(1, u * 1.12));
-      metaEl.textContent = `${curTh.toLocaleString()} 定理 · 创世展开 ${Math.round(u * 100)}%`;
+      metaEl.textContent = isEn()
+        ? `${curTh.toLocaleString()} theorems · Genesis ${Math.round(u * 100)}%`
+        : `${curTh.toLocaleString()} 定理 · 创世展开 ${Math.round(u * 100)}%`;
     }
     const pill = $('#intro-cinema-pill');
     if (pill) {
@@ -7018,9 +7281,10 @@ function drawHolo3DFrame(dt = 0.016) {
       : cinemaDirector.active
         ? ` · ◎ CINEMA`
         : genesisScrub.open
-          ? ` · 演化 ${Math.round(genesisScrub.value * 100)}%`
+          ? (isEn() ? ` · GENESIS ${Math.round(genesisScrub.value * 100)}%` : ` · 演化 ${Math.round(genesisScrub.value * 100)}%`)
           : '';
-    const camReadout = `CAM // ${preset.tag} · AZ ${azDeg}°  EL ${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m${modeTag}`;
+    const camTag = isEn() ? (preset.tagEn || preset.tag) : preset.tag;
+    const camReadout = `CAM // ${camTag} · AZ ${azDeg}°  EL ${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m${modeTag}`;
     ctx.font = '500 8.5px "Geist Mono", ui-monospace, monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -8442,8 +8706,13 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       const hint = $('#hive-hover-hint');
       if (hint) {
         hint.textContent = node
-          ? `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · 点击聚焦（Shift+点击追踪两星最短证明路径）`
-          : '悬停或点击节点查看详情 · Shift+点击两节点连线 · 捏合/滚轮缩回全景';
+          ? (isEn()
+              ? `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · Click to inspect (Shift+Click to trace shortest proof path)`
+              : `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · 点击聚焦（Shift+点击追踪两星最短证明路径）`)
+          : L(
+              '悬停或点击节点查看详情 · Shift+点击两节点连线 · 捏合/滚轮缩回全景',
+              'Hover or click a theorem node · Shift+Click two nodes to trace proof path · Pinch/scroll out for panorama'
+            );
       }
       return;
     }
@@ -8462,8 +8731,11 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
           boardEl.style.cursor = 'pointer';
           const hint = $('#hive-hover-hint');
           if (hint) {
-            const vLabel = lHit.rec.verdict === 'refuted' ? '反驳' : '已证明';
-            hint.textContent = `✦ 猜想提灯（${vLabel}）· ${lHit.rec.title || lHit.rec.enTitle} · 点击阅读证明档案`;
+            const vLabel = lHit.rec.verdict === 'refuted' ? L('反驳', 'Refuted') : L('已证明', 'Proved');
+            const lTitle = isEn() ? (lHit.rec.enTitle || lHit.rec.title) : (lHit.rec.title || lHit.rec.enTitle);
+            hint.textContent = isEn()
+              ? `✦ Conjecture Lantern (${vLabel}) · ${lTitle} · Click to read proof archive`
+              : `✦ 猜想提灯（${vLabel}）· ${lTitle} · 点击阅读证明档案`;
           }
           return;
         }
@@ -8473,7 +8745,9 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
         boardEl.style.cursor = gHit ? 'pointer' : 'grab';
         const hint = $('#hive-hover-hint');
         if (gHit && hint) {
-          hint.textContent = `⟡ ${gHit.cl.zh || gHit.cl.name} 星系（${(gHit.cl.count || 0).toLocaleString()} 冻结定理）· 点击设为主视角`;
+          hint.textContent = isEn()
+            ? `⟡ ${langGalaxyName(gHit.cl)} Galaxy (${(gHit.cl.count || 0).toLocaleString()} verified theorems) · Click to inspect`
+            : `⟡ ${gHit.cl.zh || gHit.cl.name} 星系（${(gHit.cl.count || 0).toLocaleString()} 冻结定理）· 点击设为主视角`;
         } else if (!gHit) {
           updateHoverHint(state.hovered || state.selected);
         }
@@ -8764,11 +9038,63 @@ function applyLanguage(code) {
   if (api) api.setLang(code);
   renderHealth();
   renderMetrics();
+  renderTicker();
   renderHive();
   renderDepartment();
+  if (state.focused) renderDepartmentLens(department(state.focused));
+  if (state.mode === 'journey') renderJourney();
+  renderActivity();
+  renderLiveOps();
+  renderQuestions();
+  renderBooks();
+  renderConjectures();
+  renderPapers();
+  renderRepos();
+  updateControls();
   syncInstituteRealm();
   updateGalaxyBackBar();
   updateGenesisScrubUI();
+  syncFullscreenButton();
+
+  // Rebuild live dispatch log wall in the newly chosen language (no stale mixed-language rows!)
+  scifiLog.history.clear();
+  scifiLog.painted = false;
+  scifiLog.seeded = false;
+  scifiLog.cursor = 0;
+  const logStream = $('#scifi-log-stream');
+  if (logStream) logStream.replaceChildren();
+  updateLogBadge();
+  updateLogJump();
+  if (scifiLog.mode === 'latest') {
+    renderLatestSciFiLog();
+  } else if (view()) {
+    const pool = buildSciFiLogPool();
+    const initialCount = Math.min(8, pool.length);
+    for (let i = 0; i < initialCount; i++) {
+      pushSciFiLogLine(pool[i], false, -(initialCount - i) * 320);
+    }
+    scifiLog.cursor = initialCount % Math.max(1, pool.length);
+    scifiLog.seeded = true;
+  }
+
+  // Update active telemetry drawer title if open (or default title)
+  const activeTab = document.querySelector('[data-dock-tab][aria-selected="true"]')?.dataset.dockTab || 'live-ops';
+  const titleEl = $('#dock-drawer-title');
+  if (titleEl) {
+    const map = isEn() ? dockTitlesEn : dockTitles;
+    if (map[activeTab]) titleEl.textContent = map[activeTab];
+  }
+
+  // Re-render open galaxy node card if visible
+  if (galaxyDetail.selectedNode && !$('#galaxy-node-card')?.hidden) {
+    const node = galaxyDetail.selectedNode;
+    const links = node.kind === 'star' ? nodeLinks(node.idx) : null;
+    const info = galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters, links);
+    info.canTrace = node.kind === 'star';
+    info.starIdx = node.idx;
+    renderGalaxyNodeCard(info, 0, 0, galaxyDetail.bounds);
+  }
+
   applyLayer(state.layer);
   const zenBtn = $('#hud-zen-toggle');
   if (zenBtn) {
@@ -8795,6 +9121,14 @@ const dockTitles = {
   'ecosystem': 'INFRA // 公开研究仓库与 Rust 开源模板'
 };
 
+const dockTitlesEn = {
+  'live-ops': 'TELEMETRY // LEAN CI VERIFICATION ARRAY & CROSS-DECK RELAYS',
+  'questions': 'RESEARCH // ACTIVE MATHEMATICAL THREADS',
+  'conjectures': 'ARCHIVE // SETTLED CONJECTURES & REFUTATIONS (CURATED + LIVE LEAN)',
+  'publications': 'ARCHIVE // BILINGUAL MONOGRAPHS & PUBLIC PAPERS',
+  'ecosystem': 'INFRA // PUBLIC RESEARCH REPOSITORIES & RUST TEMPLATE'
+};
+
 function closeDockDrawer() {
   const dock = $('#telemetry-dock');
   if (!dock) return;
@@ -8815,7 +9149,8 @@ for (const tab of document.querySelectorAll('[data-dock-tab]')) {
     }
     dock?.classList.add('is-open');
     const titleEl = $('#dock-drawer-title');
-    if (titleEl && dockTitles[target]) titleEl.textContent = dockTitles[target];
+    const titleMap = isEn() ? dockTitlesEn : dockTitles;
+    if (titleEl && titleMap[target]) titleEl.textContent = titleMap[target];
     for (const sibling of document.querySelectorAll('[data-dock-tab]')) {
       sibling.setAttribute('aria-selected', String(sibling === tab));
     }
@@ -8840,9 +9175,9 @@ function registerDashboardTools({ host, z }) {
     execute: ({ mode }, signal) => {
       signal.throwIfAborted();
       const button = document.querySelector(`button[data-mode="${mode}"]`);
-      if (!button || button.disabled) return { ok: false, code: 'unavailable', message: '当前视图无法切换。' };
+      if (!button || button.disabled) return { ok: false, code: 'unavailable', message: L('当前视图无法切换。', 'Cannot switch view right now.') };
       button.click();
-      if (state.mode !== mode) return { ok: false, code: 'unavailable', message: '页面尚未切换视图。' };
+      if (state.mode !== mode) return { ok: false, code: 'unavailable', message: L('页面尚未切换视图。', 'View did not switch as requested.') };
       return { ok: true, value: currentView() };
     },
   });
@@ -9031,21 +9366,29 @@ function resolveInlineBrowserRoute(value) {
   }
   if (url.hostname === 'arxiv.org' || url.hostname === 'www.arxiv.org') {
     const m = url.pathname.match(/^\/(?:abs|pdf)\/(.+?)(?:\.pdf)?$/);
-    return m ? { href, kind: 'frame', src: `https://arxiv.org/pdf/${m[1]}`, label: 'arXiv 论文' } : { href, kind: 'blocked', host: url.hostname };
+    return m ? { href, kind: 'frame', src: `https://arxiv.org/pdf/${m[1]}`, label: L('arXiv 论文', 'arXiv Paper') } : { href, kind: 'blocked', host: url.hostname };
   }
   if (INLINE_BLOCKED_HOSTS.test(url.hostname)) return { href, kind: 'blocked', host: url.hostname };
-  return { href, kind: 'frame', src: href, label: '网页' };
+  return { href, kind: 'frame', src: href, label: L('网页', 'Web Page') };
 }
 
 const htmlEscape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ibTime = iso => (iso ? `${new Date(iso).toLocaleString('zh-CN', { hour12: false })}（${relative(iso)}）` : '—');
+const ibTime = iso => (iso
+  ? (isEn()
+      ? `${new Date(iso).toLocaleString('en-US', { hour12: false })} (${relative(iso)})`
+      : `${new Date(iso).toLocaleString('zh-CN', { hour12: false })}（${relative(iso)}）`)
+  : '—');
 const ibDuration = (a, b) => {
   const ms = timestamp(b) - timestamp(a);
   if (!Number.isFinite(ms) || ms < 0) return '';
   const s = Math.round(ms / 1000);
-  return s >= 60 ? `${Math.floor(s / 60)} 分 ${s % 60} 秒` : `${s} 秒`;
+  return isEn()
+    ? (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`)
+    : (s >= 60 ? `${Math.floor(s / 60)} 分 ${s % 60} 秒` : `${s} 秒`);
 };
 const IB_KIND_LABEL = { 'github-pr': 'Pull Request', 'github-issue': 'Issue', 'github-run': 'Actions 运行', 'github-commit': '提交', 'github-blob': '源码', 'github-release': '发布', 'github-repo': '仓库', frame: '网页', blocked: '外部站点' };
+const IB_KIND_LABEL_EN = { 'github-pr': 'Pull Request', 'github-issue': 'Issue', 'github-run': 'Actions Run', 'github-commit': 'Commit', 'github-blob': 'Source', 'github-release': 'Release', 'github-repo': 'Repository', frame: 'Web Page', blocked: 'External Site' };
+const ibKindLabel = kind => (isEn() ? (IB_KIND_LABEL_EN[kind] || '') : (IB_KIND_LABEL[kind] || ''));
 
 const IB_DOC_CSS = `
 :root{color-scheme:dark}
@@ -9085,7 +9428,7 @@ pre.code span::before{counter-increment:line;content:counter(line);display:inlin
 function ibPage(route, body) {
   const light = document.documentElement.dataset.theme === 'light' ? 'light' : '';
   return `<!doctype html><html><head><meta charset="utf-8"><base href="https://github.com/"><style>${IB_DOC_CSS}</style></head><body class="${light}">`
-    + `<div class="kind">${htmlEscape(IB_KIND_LABEL[route.kind] || '')} · ${htmlEscape(`${route.owner}/${route.repo}`)}</div>${body}</body></html>`;
+    + `<div class="kind">${htmlEscape(ibKindLabel(route.kind))} · ${htmlEscape(`${route.owner}/${route.repo}`)}</div>${body}</body></html>`;
 }
 
 async function ibFetch(url, accept, asText = false) {
@@ -9093,32 +9436,35 @@ async function ibFetch(url, accept, asText = false) {
   if (!resp.ok) {
     const remaining = resp.headers?.get?.('x-ratelimit-remaining');
     if ((resp.status === 403 || resp.status === 429) && remaining === '0') {
-      throw new Error('GitHub 公开接口本小时的访问额度已用完（每位访客每小时 60 次）。请稍后再试，或在新标签打开原页面。');
+      throw new Error(L(
+        'GitHub 公开接口本小时的访问额度已用完（每位访客每小时 60 次）。请稍后再试，或在新标签打开原页面。',
+        'GitHub public API hourly rate limit reached (60 requests/hr per visitor). Please try again later or open in a new tab.'
+      ));
     }
-    if (resp.status === 404) throw new Error('GitHub 上找不到这个页面，或它不是公开的。');
-    throw new Error(`GitHub 暂时无法读取（HTTP ${resp.status}）。`);
+    if (resp.status === 404) throw new Error(L('GitHub 上找不到这个页面，或它不是公开的。', 'This GitHub page was not found or is not public.'));
+    throw new Error(isEn() ? `Unable to load from GitHub (HTTP ${resp.status}).` : `GitHub 暂时无法读取（HTTP ${resp.status}）。`);
   }
   return asText ? resp.text() : resp.json();
 }
 
 const ibLabels = labels => (labels || []).map(l => `<span class="label">${htmlEscape(l.name || l)}</span>`).join('');
-const ibMarkdown = html => `<article class="markdown">${html || '<p class="muted">（没有正文）</p>'}</article>`;
+const ibMarkdown = html => `<article class="markdown">${html || `<p class="muted">${L('（没有正文）', '(No description)')}</p>`}</article>`;
 
 async function githubView(route) {
   const JSONH = 'application/vnd.github.html+json';
   if (route.kind === 'github-pr') {
     const pr = await ibFetch(route.api, JSONH);
-    const [label, cls] = pr.merged_at ? ['已合并', 'merged'] : pr.state === 'open' ? (pr.draft ? ['草稿', 'draft'] : ['进行中', 'open']) : ['已关闭', 'closed'];
+    const [label, cls] = pr.merged_at ? [L('已合并', 'Merged'), 'merged'] : pr.state === 'open' ? (pr.draft ? [L('草稿', 'Draft'), 'draft'] : [L('进行中', 'Open'), 'open']) : [L('已关闭', 'Closed'), 'closed'];
     return ibPage(route, `<h1>${htmlEscape(pr.title)} <span class="num">#${pr.number}</span></h1>`
-      + `<p class="meta"><span class="chip ${cls}">${label}</span>${htmlEscape(pr.user?.login || '')} · 创建于 ${htmlEscape(ibTime(pr.created_at))}${pr.merged_at ? ` · 合并于 ${htmlEscape(ibTime(pr.merged_at))}` : ''}</p>`
-      + `<p class="meta"><code>${htmlEscape(pr.head?.ref)}</code> → <code>${htmlEscape(pr.base?.ref)}</code> · <span class="add">+${pr.additions ?? 0}</span> <span class="del">−${pr.deletions ?? 0}</span> · ${pr.changed_files ?? 0} 个文件 · ${pr.commits ?? 0} 个提交</p>`
+      + `<p class="meta"><span class="chip ${cls}">${label}</span>${htmlEscape(pr.user?.login || '')} · ${L('创建于', 'Opened')} ${htmlEscape(ibTime(pr.created_at))}${pr.merged_at ? ` · ${L('合并于', 'Merged')} ${htmlEscape(ibTime(pr.merged_at))}` : ''}</p>`
+      + `<p class="meta"><code>${htmlEscape(pr.head?.ref)}</code> → <code>${htmlEscape(pr.base?.ref)}</code> · <span class="add">+${pr.additions ?? 0}</span> <span class="del">−${pr.deletions ?? 0}</span> · ${pr.changed_files ?? 0} ${L('个文件', 'files')} · ${pr.commits ?? 0} ${L('个提交', 'commits')}</p>`
       + `<p>${ibLabels(pr.labels)}</p>${ibMarkdown(pr.body_html)}`);
   }
   if (route.kind === 'github-issue') {
     const is = await ibFetch(route.api, JSONH);
-    const [label, cls] = is.state === 'open' ? ['进行中', 'open'] : ['已关闭', 'closed'];
+    const [label, cls] = is.state === 'open' ? [L('进行中', 'Open'), 'open'] : [L('已关闭', 'Closed'), 'closed'];
     return ibPage(route, `<h1>${htmlEscape(is.title)} <span class="num">#${is.number}</span></h1>`
-      + `<p class="meta"><span class="chip ${cls}">${label}</span>${htmlEscape(is.user?.login || '')} · 创建于 ${htmlEscape(ibTime(is.created_at))} · ${is.comments ?? 0} 条评论${is.closed_at ? ` · 关闭于 ${htmlEscape(ibTime(is.closed_at))}` : ''}</p>`
+      + `<p class="meta"><span class="chip ${cls}">${label}</span>${htmlEscape(is.user?.login || '')} · ${L('创建于', 'Opened')} ${htmlEscape(ibTime(is.created_at))} · ${is.comments ?? 0} ${L('条评论', 'comments')}${is.closed_at ? ` · ${L('关闭于', 'Closed')} ${htmlEscape(ibTime(is.closed_at))}` : ''}</p>`
       + `<p>${ibLabels(is.labels)}</p>${ibMarkdown(is.body_html)}`);
   }
   if (route.kind === 'github-run') {
@@ -9132,7 +9478,7 @@ async function githubView(route) {
     }).join('');
     return ibPage(route, `<h1>${htmlEscape(run.display_title || run.name)} <span class="num">#${run.run_number ?? ''}</span></h1>`
       + `<p class="meta"><span class="chip ${htmlEscape(verdict)}">${htmlEscape(verdict)}</span>${htmlEscape(run.name)} · ${htmlEscape(run.event)} · <code>${htmlEscape(run.head_branch)}</code> · <code>${htmlEscape(String(run.head_sha || '').slice(0, 7))}</code></p>`
-      + `<p class="meta">开始 ${htmlEscape(ibTime(run.run_started_at || run.created_at))} · 用时 ${htmlEscape(ibDuration(run.run_started_at || run.created_at, run.updated_at))}</p>`
+      + `<p class="meta">${L('开始', 'Started')} ${htmlEscape(ibTime(run.run_started_at || run.created_at))} · ${L('用时', 'Duration')} ${htmlEscape(ibDuration(run.run_started_at || run.created_at, run.updated_at))}</p>`
       + (rows ? `<table class="rows">${rows}</table>` : ''));
   }
   if (route.kind === 'github-commit') {
@@ -9147,21 +9493,21 @@ async function githubView(route) {
   if (route.kind === 'github-blob') {
     const text = await ibFetch(route.raw, 'text/plain', true);
     const lines = String(text).slice(0, 400000).split('\n').slice(0, 6000);
-    return ibPage(route, `<h1>${htmlEscape(route.path.split('/').pop())}</h1><p class="meta"><code>${htmlEscape(route.path)}</code> · <code>${htmlEscape(route.ref.slice(0, 12))}</code> · ${lines.length} 行</p>`
+    return ibPage(route, `<h1>${htmlEscape(route.path.split('/').pop())}</h1><p class="meta"><code>${htmlEscape(route.path)}</code> · <code>${htmlEscape(route.ref.slice(0, 12))}</code> · ${lines.length} ${L('行', 'lines')}</p>`
       + `<pre class="code">${lines.map(l => `<span>${htmlEscape(l) || ' '}</span>`).join('')}</pre>`);
   }
   if (route.kind === 'github-release') {
     const data = await ibFetch(route.api, JSONH);
     const list = Array.isArray(data) ? data : [data];
-    return ibPage(route, list.map(r => `<h1>${htmlEscape(r.name || r.tag_name)}</h1><p class="meta"><code>${htmlEscape(r.tag_name)}</code> · ${htmlEscape(r.author?.login || '')} · ${htmlEscape(ibTime(r.published_at))}</p>${ibMarkdown(r.body_html)}`).join('') || '<p class="muted">还没有发布。</p>');
+    return ibPage(route, list.map(r => `<h1>${htmlEscape(r.name || r.tag_name)}</h1><p class="meta"><code>${htmlEscape(r.tag_name)}</code> · ${htmlEscape(r.author?.login || '')} · ${htmlEscape(ibTime(r.published_at))}</p>${ibMarkdown(r.body_html)}`).join('') || `<p class="muted">${L('还没有发布。', 'No releases yet.')}</p>`);
   }
   if (route.kind === 'github-repo') {
     const repo = await ibFetch(route.api, 'application/vnd.github+json');
     const readme = await ibFetch(`${route.api}/readme`, 'application/vnd.github.html', true).catch(() => '');
     return ibPage(route, `<h1>${htmlEscape(repo.full_name)}</h1><p>${htmlEscape(repo.description || '')}</p>`
-      + `<p class="meta">★ ${repo.stargazers_count ?? 0} · ${htmlEscape(repo.language || '')} · 最近推送 ${htmlEscape(ibTime(repo.pushed_at))}</p><p>${ibLabels(repo.topics)}</p>${ibMarkdown(readme)}`);
+      + `<p class="meta">★ ${repo.stargazers_count ?? 0} · ${htmlEscape(repo.language || '')} · ${L('最近推送', 'Last push')} ${htmlEscape(ibTime(repo.pushed_at))}</p><p>${ibLabels(repo.topics)}</p>${ibMarkdown(readme)}`);
   }
-  throw new Error('无法显示这个 GitHub 页面。');
+  throw new Error(L('无法显示这个 GitHub 页面。', 'Unable to display this GitHub page.'));
 }
 
 function ibStatus(message, offerTab = false) {
@@ -9169,7 +9515,7 @@ function ibStatus(message, offerTab = false) {
   if (!status) return;
   status.replaceChildren(element('p', message));
   if (offerTab) {
-    const out = element('a', '在新标签打开原页面 ↗', 'ib-status-out');
+    const out = element('a', L('在新标签打开原页面 ↗', 'Open Original in New Tab ↗'), 'ib-status-out');
     out.href = inlineBrowser.history[inlineBrowser.index] || '#';
     out.target = '_blank';
     out.rel = 'noopener noreferrer';
@@ -9187,7 +9533,7 @@ function showInlineBrowserRoute(route) {
   const native = box.querySelector('.ib-native');
   const status = box.querySelector('.ib-status');
   box.querySelector('.ib-url').textContent = route.href;
-  box.querySelector('.ib-kind').textContent = route.label || IB_KIND_LABEL[route.kind] || '';
+  box.querySelector('.ib-kind').textContent = route.label || ibKindLabel(route.kind);
   box.querySelector('[data-ib-out]').setAttribute('href', route.href);
   box.querySelector('[data-ib="back"]').disabled = inlineBrowser.index <= 0;
   box.querySelector('[data-ib="forward"]').disabled = inlineBrowser.index >= inlineBrowser.history.length - 1;
@@ -9204,7 +9550,12 @@ function showInlineBrowserRoute(route) {
   if (frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
   native.hidden = true;
   if (route.kind === 'blocked') {
-    ibStatus(`${route.host} 不允许在其他网页里显示，只能在新标签打开。`, true);
+    ibStatus(
+      isEn()
+        ? `${route.host} does not allow embedding inside another page. Open it in a new tab instead.`
+        : `${route.host} 不允许在其他网页里显示，只能在新标签打开。`,
+      true
+    );
     return;
   }
   const cached = inlineBrowser.cache.get(route.href);
@@ -9219,9 +9570,9 @@ function showInlineBrowserRoute(route) {
     show(cached);
     return;
   }
-  ibStatus('正在从 GitHub 读取…');
+  ibStatus(L('正在从 GitHub 读取…', 'Loading from GitHub…'));
   githubView(route).then(show).catch(err => {
-    if (token === inlineBrowser.token) ibStatus(err.message || '读取失败。', true);
+    if (token === inlineBrowser.token) ibStatus(err.message || L('读取失败。', 'Failed to load.'), true);
   });
 }
 
@@ -9336,9 +9687,9 @@ const fullscreenElement = () => document.fullscreenElement || document.webkitFul
 function syncFullscreenButton() {
   const on = Boolean(fullscreenElement());
   fullscreenButton.setAttribute('aria-pressed', String(on));
-  fullscreenButton.setAttribute('aria-label', on ? '退出全屏' : '进入全屏');
-  fullscreenButton.title = on ? '退出全屏（Esc）' : '全屏显示';
-  fullscreenButton.querySelector('span').textContent = on ? '退出全屏' : '全屏';
+  fullscreenButton.setAttribute('aria-label', on ? tr('fullscreen_exit', '退出全屏') : L('进入全屏', 'Enter fullscreen'));
+  fullscreenButton.title = on ? L('退出全屏（Esc）', 'Exit fullscreen (Esc)') : tr('fullscreen_title', '全屏显示');
+  fullscreenButton.querySelector('span').textContent = on ? tr('fullscreen_exit', '退出全屏') : tr('fullscreen_enter', '全屏');
 }
 
 fullscreenButton.hidden = !(document.fullscreenEnabled || document.webkitFullscreenEnabled);
@@ -9397,6 +9748,25 @@ if (reduced) {
 
 try {
   i18n()?.applyDom(document);
+  if (isEn()) {
+    const set = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
+    set('#hive-hover-hint', tr('hint_mix', '3-Strata Observatory · Drag to orbit (dbl-click reset) · Click sky to strum · Space for Sonar'));
+    set('#ticker-text', 'Connecting to trureturing live collaboration & Lean CI stream…');
+    set('#dock-drawer-title', dockTitlesEn['live-ops']);
+    set('#realm-stage', `${tr('stage_prefix', 'TIER ')}IV`);
+    set('#realm-name', i18n()?.realmName ? i18n().realmName(4, 'Ascension') : 'Ascension');
+    set('#realm-xp-meta', 'Syncing');
+    set('#department-mode', tr('exec_sessions', 'Research Sessions'));
+    set('#department-state', tr('connecting', 'Connecting'));
+    set('#department-title', langDeptLabel('research', 'Math Research'));
+    set('#department-responsibility', langDeptResp('research'));
+    set('#activity-note', 'Live research signals');
+    set('#relay-summary', 'Cross-deck flow');
+    set('#live-feed-meta', 'Syncing…');
+    set('#conjecture-summary', 'Loading curated & live Lean proofs and refutations…');
+    updateLogBadge();
+    syncFullscreenButton();
+  }
   const savedTheme = localStorage.getItem(themeKey);
   if (savedTheme === 'light' || savedTheme === 'matrix' || savedTheme === 'blueprint') applyLook(savedTheme);
   else renderHoloSky();
