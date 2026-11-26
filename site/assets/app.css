@@ -493,8 +493,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 .research-room[data-layer="galaxy"] .hive-cells,
-.research-room.is-galaxy-main .hive-cells,
-.research-room.is-growth-showcase .hive-cells {
+.research-room.is-galaxy-main .hive-cells {
   opacity: 0 !important;
   pointer-events: none !important;
 }
