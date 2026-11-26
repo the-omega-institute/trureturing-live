@@ -26,7 +26,7 @@ standard library; continuous organization observations use a pinned Rust foundat
 The public dashboard loads without a frontend build, runtime CDN, or browser login.
 
 The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors approve a scoped browser credential on NyxID. The SDK encrypts the child credential with a non-exportable key in the site's IndexedDB and revalidates it after reload. The dedicated chrono-cd service forwards requests to NyxID. Each tab can read its current view and switch between organization and journey. Disconnecting revokes the child credential across that site's tabs.
-[SDK v0.1.0-alpha.6](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.1.0-alpha.6)
+[SDK v0.1.0-alpha.7](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.1.0-alpha.7)
 
 ## Run locally
 

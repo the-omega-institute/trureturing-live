@@ -8968,7 +8968,7 @@ $('#human-sound-btn')?.addEventListener('click', () => {
   if (sciFiAudio.enabled) sciFiAudio.playStarHarp(0.6);
 });
 window.addEventListener('keydown', e => {
-  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest?.('nyx-assistant') || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   if (state.focused || state.mode !== 'organization') return;
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'button' || tag === 'a') return;
@@ -9265,7 +9265,7 @@ $('#lens-back').addEventListener('click', () => closeDepartmentLens());
 
 // Clicking a panel's own blank background returns one level up. Controls, text,
 // drags, text selections and scrollbar presses keep the panel open.
-const panelControlSelector = 'a, button, input, select, textarea, summary, label, [role="button"], [role="tab"], [tabindex]:not([tabindex="-1"]), .lens-agent';
+const panelControlSelector = 'nyx-assistant, a, button, input, select, textarea, summary, label, [role="button"], [role="tab"], [tabindex]:not([tabindex="-1"]), .lens-agent';
 
 function bindBackgroundBack(panel, back) {
   if (!panel) return;
@@ -9708,6 +9708,7 @@ document.addEventListener('fullscreenchange', syncFullscreenButton);
 document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 
 document.addEventListener('keydown', event => {
+  if (event.target.closest?.('nyx-assistant')) return;
   if (event.key === 'Escape') {
     if (introCinema.active) {
       skipIntroCinema();

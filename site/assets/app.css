@@ -2901,10 +2901,52 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   .inline-browser .ib-out::after { content: "↗"; font-size: 14px; }
 }
 
-nyx-assistant {
+.view-toolbar {
+  position: absolute;
+  top: 62px;
+  left: 18px;
+  z-index: 48;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.view-toolbar .galaxy-back-bar {
+  position: static;
+  align-self: flex-start;
+  margin-block-start: 9px;
+}
+.view-toolbar nyx-assistant {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  --nyx-panel-max-height: min(30rem, calc(100dvh - 140px));
   --nyx-surface: var(--surface-solid);
   --nyx-text: var(--ink);
   --nyx-accent: var(--accent);
   --nyx-accent-text: var(--bg);
   --nyx-radius: 10px;
+}
+
+@media (orientation: portrait), (max-width: 980px) {
+  .view-toolbar {
+    position: relative;
+    inset: auto;
+    grid-column: 1 / -1;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 6px 12px;
+    min-height: 58px;
+    background: var(--surface-solid);
+  }
+  .view-toolbar .galaxy-back-bar { margin-block-start: 0; align-self: center; }
+  .view-toolbar nyx-assistant {
+    --nyx-panel-max-height: min(30rem, 58dvh);
+  }
+  .research-room {
+    height: auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+}
+@media (max-width: 980px) and (orientation: landscape) {
+  .hive-board { position: relative; height: 64vh; min-height: 320px; }
 }
