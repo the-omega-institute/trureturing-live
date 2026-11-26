@@ -3186,9 +3186,9 @@ const holoWorld = {
 };
 
 const LAYER_PRESETS = {
-  mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵', tagEn: 'MIX · 3-STRATA PANORAMA' },
-  station: { pitch:  0.29, dist: 22.0, lookY: 1.95, lookZ: -0.45, stationAlpha: 1.00, galaxyAlpha: 0.18, minPitch:  0.14, maxPitch: 0.80, tag: 'STATION · 阿卡西之眼与 24/7 活态环路', tagEn: 'STATION · AKASHA EYE & 24/7 ACTIVE LOOP' },
-  galaxy:  { pitch:  0.14, dist: 24.8, lookY: 2.05, lookZ: -2.00, stationAlpha: 0.00, galaxyAlpha: 1.24, minPitch: -0.35, maxPitch: 0.72, tag: 'GALAXY · 全量真值星图', tagEn: 'COSMOS · REAL TRUTH DAG' }
+  mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.02, maxPitch: 0.78, tag: 'MIX · 天地星阵', tagEn: 'MIX · 3-STRATA PANORAMA' },
+  station: { pitch:  0.29, dist: 22.0, lookY: 1.95, lookZ: -0.45, stationAlpha: 1.00, galaxyAlpha: 0.18, minPitch:  0.14, maxPitch: 0.78, tag: 'STATION · 阿卡西之眼与 24/7 活态环路', tagEn: 'STATION · AKASHA EYE & 24/7 ACTIVE LOOP' },
+  galaxy:  { pitch:  0.34, dist: 27.4, lookY: 2.50, lookZ: -0.55, stationAlpha: 0.00, galaxyAlpha: 1.15, minPitch: -0.24, maxPitch: 0.78, tag: 'GALAXY · 环绕真值星系', tagEn: 'COSMOS · ORBITAL TRUTH GALAXIES' }
 };
 
 const holoCam = {
@@ -3450,7 +3450,6 @@ async function loadFullTruthAtlas() {
 async function loadTruthNebula() {
   if (truthNebula.loaded || truthNebula.loading || /jsdom/i.test(navigator.userAgent || '')) return;
   truthNebula.loading = true;
-  loadFullTruthAtlas();
   try {
     const resp = await fetch('data/truth-nebula.v1.json', { cache: 'force-cache' });
     if (!resp.ok) return;
@@ -3914,16 +3913,16 @@ function galaxyGatherPlanFor(cid, frame, fovY, aspect) {
   return plan;
 }
 
-// In dedicated Cosmos (星系) mode, unfurl the 7 mathematical galaxies from a flat halo into a
-// grand 3D multi-level cosmic amphitheater filling the full viewport around & beneath the Akasha Eye!
+// In dedicated Cosmos (星系) mode, gently expand the 7 inclined 3D spiral galaxies along their wide orbital ring
+// around & beneath the Akasha Eye — every galaxy cleanly framed inside the viewport, zero clipping, zero clutter!
 const COSMOS_UNFURL = {
-  6: { offset: [ 0.00,  0.15, -0.35], scale: 1.85, stretch: [1.45, 2.35, 1.42] }, // Observer: crown center beneath Akasha Eye
-  0: { offset: [-1.10,  0.85,  0.55], scale: 2.08, stretch: [1.50, 2.65, 1.45] }, // Combinatorics: grand upper-left nebula
-  2: { offset: [ 1.10,  0.85,  0.55], scale: 2.08, stretch: [1.50, 2.65, 1.45] }, // Arith: grand upper-right golden nebula
-  3: { offset: [-1.35, -0.55,  1.20], scale: 1.98, stretch: [1.48, 2.55, 1.44] }, // ConceptDynamics: lush mid-left amethyst nebula
-  5: { offset: [ 1.35, -0.55,  1.20], scale: 1.98, stretch: [1.48, 2.55, 1.44] }, // Weil: lush mid-right sapphire nebula
-  1: { offset: [-0.95, -2.15,  2.15], scale: 2.18, stretch: [1.52, 2.75, 1.48] }, // Quantum: massive lower-left cyan nebula
-  4: { offset: [ 0.95, -2.15,  2.15], scale: 2.12, stretch: [1.50, 2.68, 1.46] }  // Analytic: massive lower-right emerald nebula
+  6: { offset: [ 0.00, -0.05, -0.55], scale: 1.18, stretch: [1.14, 1.14, 1.14] }, // Observer: rear center below Akasha Eye
+  0: { offset: [-0.25,  0.10, -0.20], scale: 1.24, stretch: [1.18, 1.16, 1.18] }, // Combinatorics: upper-left spiral galaxy
+  2: { offset: [ 0.25,  0.10, -0.20], scale: 1.24, stretch: [1.18, 1.16, 1.18] }, // Arith: upper-right spiral galaxy
+  3: { offset: [-0.30, -0.20,  0.30], scale: 1.20, stretch: [1.16, 1.14, 1.16] }, // ConceptDynamics: mid-left spiral wing
+  5: { offset: [ 0.30, -0.20,  0.30], scale: 1.20, stretch: [1.16, 1.14, 1.16] }, // Weil: mid-right spiral wing
+  1: { offset: [ 0.25, -0.65,  1.15], scale: 1.24, stretch: [1.18, 1.16, 1.18] }, // Quantum: lower-left foreground spiral galaxy
+  4: { offset: [-0.25, -0.65,  1.15], scale: 1.22, stretch: [1.16, 1.16, 1.16] }  // Analytic: lower-right foreground spiral galaxy
 };
 
 // Eases every galaxy's gather transform toward the plan (or expanded galaxy observatory / rest) and hands it to the GPU.
@@ -5333,13 +5332,13 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         ]);
       }
       const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-      const baseA = webCid != null ? (isLight ? 0.36 : 0.42) : (isLight ? 0.24 : 0.26);
-      const alpha = baseA + strength * (webCid != null ? 0.22 : 0.16);
+      const baseA = webCid != null ? (isLight ? 0.36 : 0.42) : (isLight ? 0.14 : 0.13);
+      const alpha = baseA + strength * (webCid != null ? 0.22 : 0.08);
       const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
       grad.addColorStop(0, rgba(a.col, alpha));
       grad.addColorStop(1, rgba(b.col, alpha));
       ctx.strokeStyle = grad;
-      ctx.lineWidth = (webCid != null ? 1.0 : 0.85) + strength * 0.65;
+      ctx.lineWidth = (webCid != null ? 1.0 : 0.65) + strength * (webCid != null ? 0.65 : 0.25);
       ctx.beginPath();
       pts.forEach(([px, py], idx) => idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
       ctx.stroke();
@@ -5348,13 +5347,13 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         const f = (tEff * (0.14 + (i % 3) * 0.03) + i * 0.23) % 1;
         const idxF = Math.min(pts.length - 1, Math.floor(f * (pts.length - 1)));
         const mp = pts[idxF];
-        ctx.fillStyle = isLight ? rgba(a.col, 0.92) : rgba([238, 248, 255], alpha * 1.45);
+        ctx.fillStyle = isLight ? rgba(a.col, 0.85) : rgba([238, 248, 255], Math.min(0.75, alpha * 2.2));
         ctx.beginPath();
-        ctx.arc(mp[0], mp[1], 1.7 + strength * 0.9, 0, Math.PI * 2);
+        ctx.arc(mp[0], mp[1], 1.4 + strength * 0.7, 0, Math.PI * 2);
         ctx.fill();
       }
-      // Subtle dependency weight pill on top 6 inter-galaxy bridges in epic 星系 mode
-      if (isPureGalaxyView && i < 6 && pts.length > 10 && count >= 34) {
+      // Show numeric dependency weight pill ONLY when hovering a galaxy so open cosmic space stays uncluttered!
+      if (webCid != null && i < 6 && pts.length > 10 && count >= 34) {
         const midPt = pts[Math.floor(pts.length / 2)];
         if (midPt[0] > 40 && midPt[0] < w - rightGutter - 40 && midPt[1] > 80 && midPt[1] < h - 90) {
           ctx.save();
@@ -5365,7 +5364,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
           ctx.strokeStyle = isLight ? 'rgba(242, 239, 232, 0.94)' : 'rgba(2, 6, 12, 0.92)';
           const tag = `${count}`;
           ctx.strokeText(tag, midPt[0], midPt[1]);
-          ctx.fillStyle = isLight ? rgba(a.col, 0.92) : rgba([208, 234, 248], 0.78);
+          ctx.fillStyle = isLight ? rgba(a.col, 0.92) : rgba([208, 234, 248], 0.82);
           ctx.fillText(tag, midPt[0], midPt[1]);
           ctx.restore();
         }
@@ -5373,19 +5372,12 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
   }
 
-  // Grand cosmic DAG banner + real trureturing-pages reuse-tier legend in dedicated 星系 Observatory mode
+  // Grand cosmic DAG banner + proportional-size dependency-tier legend in dedicated 星系 Observatory mode
   if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
-    const atlasCounts = truthAtlasFull.data?.counts;
-    const dagTotal = atlasCounts?.truth_nodes || truthNebula.counts?.truth_nodes || 18986;
-    const edgeTotal = atlasCounts?.rendered_edges || truthNebula.counts?.truth_edges || 16000;
-    const banner = inFullAtlas
-      ? L(
-          `TRUTH DAG ATLAS // 真实全量图谱 · ${dagTotal.toLocaleString()} Lean 冻结模块 · ${edgeTotal.toLocaleString()} 条依赖边`,
-          `TRUTH DAG ATLAS // FULL REAL GRAPH · ${dagTotal.toLocaleString()} VERIFIED MODULES · ${edgeTotal.toLocaleString()} DEPENDENCY EDGES`
-        )
-      : tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L18 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
-          n: dagTotal.toLocaleString()
-        });
+    const dagTotal = truthNebula.counts?.truth_nodes || 19022;
+    const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L84 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
+      n: dagTotal.toLocaleString()
+    });
     const bVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
     ctx.save();
     ctx.globalAlpha = bVis * 0.88;
@@ -5399,48 +5391,48 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.90)');
     ctx.fillText(banner, bx, 78);
 
-    // Compact scientific reuse-tier legend cleanly positioned above #human-console (matches trureturing-pages!)
-    if (inFullAtlas && w > 760) {
+    // Compact scientific reuse-tier size+color legend cleanly positioned above #human-console!
+    if (w > 760) {
       const items = isLight
         ? [
-            { col: [188, 112, 16], label: L('345+ 核心枢纽', '345+ Hubs') },
-            { col: [8, 115, 95],   label: '64–344' },
-            { col: [15, 138, 124], label: '6–63' },
-            { col: [40, 118, 158], label: '1–5' },
-            { col: [86, 114, 148], label: L('0 叶节点', '0 Leaves') }
+            { col: [188, 112, 16], r: 5.2, label: L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [8, 115, 95],   r: 4.1, label: '64–344' },
+            { col: [15, 138, 124], r: 3.2, label: '6–63' },
+            { col: [40, 118, 158], r: 2.4, label: '1–5' },
+            { col: [86, 114, 148], r: 1.7, label: L('0 叶节点', '0 Leaves') }
           ]
         : isBlueprint
           ? [
-              { col: [220, 255, 168], label: L('345+ 核心枢纽', '345+ Hubs') },
-              { col: [112, 255, 162], label: '64–344' },
-              { col: [46, 224, 122],  label: '6–63' },
-              { col: [30, 168, 92],   label: '1–5' },
-              { col: [20, 112, 62],   label: L('0 叶节点', '0 Leaves') }
+              { col: [224, 255, 174], r: 5.2, label: L('345+ 核心枢纽', '345+ Hubs') },
+              { col: [118, 255, 168], r: 4.1, label: '64–344' },
+              { col: [52, 224, 128],  r: 3.2, label: '6–63' },
+              { col: [36, 174, 96],   r: 2.4, label: '1–5' },
+              { col: [20, 112, 62],   r: 1.7, label: L('0 叶节点', '0 Leaves') }
             ]
           : [
-              { col: [247, 199, 97],  label: L('345+ 核心枢纽', '345+ Hubs') },
-              { col: [46, 232, 194],  label: '64–344' },
-              { col: [76, 214, 189],  label: '6–63' },
-              { col: [125, 189, 222], label: '1–5' },
-              { col: [92, 138, 191],  label: L('0 叶节点', '0 Leaves') }
+              { col: [248, 200, 96],  r: 5.2, label: L('345+ 核心枢纽', '345+ Hubs') },
+              { col: [52, 232, 196],  r: 4.1, label: '64–344' },
+              { col: [76, 214, 189],  r: 3.2, label: '6–63' },
+              { col: [122, 188, 224], r: 2.4, label: '1–5' },
+              { col: [92, 138, 191],  r: 1.7, label: L('0 叶节点', '0 Leaves') }
             ];
       const ly = h - 118;
       let lx = 26;
       ctx.font = '500 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.globalAlpha = bVis * 0.85;
-      const prefix = L('被依赖度：', 'Depended on by: ');
-      ctx.fillStyle = isLight ? 'rgba(24, 42, 58, 0.72)' : 'rgba(156, 188, 212, 0.74)';
+      ctx.globalAlpha = bVis * 0.86;
+      const prefix = L('按被依赖度分大小：', 'Sized by dependents: ');
+      ctx.fillStyle = isLight ? 'rgba(24, 42, 58, 0.72)' : 'rgba(156, 188, 212, 0.76)';
       ctx.fillText(prefix, lx, ly);
-      lx += ctx.measureText(prefix).width + 4;
+      lx += ctx.measureText(prefix).width + 6;
       for (const it of items) {
         ctx.fillStyle = rgba(it.col, 0.96);
         ctx.beginPath();
-        ctx.arc(lx + 4, ly, 3.6, 0, Math.PI * 2);
+        ctx.arc(lx + it.r, ly, it.r, 0, Math.PI * 2);
         ctx.fill();
-        lx += 12;
-        ctx.fillStyle = isLight ? 'rgba(20, 36, 52, 0.84)' : 'rgba(206, 228, 244, 0.86)';
+        lx += it.r * 2 + 5;
+        ctx.fillStyle = isLight ? 'rgba(20, 36, 52, 0.84)' : 'rgba(206, 228, 244, 0.88)';
         ctx.fillText(it.label, lx, ly);
         lx += ctx.measureText(it.label).width + 13;
       }
@@ -5448,8 +5440,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.restore();
   }
 
-  // In ring galaxy observatory mode (before full 18k atlas loads), mark top hub theorem nodes with crisp optical micro-rings
-  if (useGLSky && !inFullAtlas && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
+  // Skip extra 2D hub circles in Cosmos since Tier 4 345+ hubs already render larger with 4-point star glint natively in WebGL2!
+  if (false) {
     const hubsPerCid = new Map();
     for (let i = 0; i < (truthNebula.baseCount || n); i++) {
       const cid = stars[i][3];
@@ -7244,8 +7236,8 @@ function drawHolo3DFrame(dt = 0.016) {
     : (genesisScrub.open ? genesisScrub.value : 1.05);
   const targetGalaxyBoost = (state.layer === 'galaxy' || Boolean(galaxyFrame)) ? 1.0 : 0.0;
   holoCam.galaxyBoost += (targetGalaxyBoost - holoCam.galaxyBoost) * damp;
-  const targetFullAtlas = (useGL && truthAtlasFull.loaded && state.layer === 'galaxy' && !galaxyFrame && !state.focused) ? 1.0 : 0.0;
-  holoCam.fullAtlasAlpha += (targetFullAtlas - holoCam.fullAtlasAlpha) * damp;
+  // Use our unified orbital spiral-galaxy DAG (sized & colored by real dependency count) across all views!
+  holoCam.fullAtlasAlpha = 0.0;
   const targetStationFocus = (state.layer === 'station' && !galaxyFrame && !state.focused) ? 1.0 : 0.0;
   holoCam.stationFocus += (targetStationFocus - holoCam.stationFocus) * damp;
 
@@ -9054,7 +9046,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   };
 
   boardEl.addEventListener('pointerdown', e => {
-    if (state.focused || e.target.closest('nyx-assistant, button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
+    if (e.button !== 0 || state.focused || e.target.closest('nyx-assistant, button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
     skipIntroCinema();
     stopCinemaDirector();
     holoCam.dragging = true;
@@ -9073,15 +9065,20 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       holoCam.mouseNormY = (e.clientY / window.innerHeight - 0.5) * 2;
     }
     if (holoCam.dragging) {
-      const dx = e.clientX - holoCam.lastX;
-      const dy = e.clientY - holoCam.lastY;
+      const rawDx = e.clientX - holoCam.lastX;
+      const rawDy = e.clientY - holoCam.lastY;
+      if (!Number.isFinite(rawDx) || !Number.isFinite(rawDy)) return;
+      const dx = Math.max(-160, Math.min(160, rawDx));
+      const dy = Math.max(-160, Math.min(160, rawDy));
       if (Math.abs(dx) + Math.abs(dy) > 3) holoCam.dragMoved = true;
       holoCam.lastX = e.clientX;
       holoCam.lastY = e.clientY;
       // Smooth orbital drag around the 3D monolith plaza & 3D cosmic sky dome!
       const lp = LAYER_PRESETS[state.layer] || LAYER_PRESETS.mix;
-      holoCam.targetYaw = Math.max(-0.58, Math.min(0.58, holoCam.targetYaw - dx * 0.0042));
-      holoCam.targetPitch = Math.max(lp.minPitch, Math.min(lp.maxPitch, holoCam.targetPitch + dy * 0.0034));
+      const nextYaw = holoCam.targetYaw - dx * 0.0042;
+      const nextPitch = holoCam.targetPitch + dy * 0.0034;
+      if (Number.isFinite(nextYaw)) holoCam.targetYaw = Math.max(-0.58, Math.min(0.58, nextYaw));
+      if (Number.isFinite(nextPitch)) holoCam.targetPitch = Math.max(lp.minPitch, Math.min(lp.maxPitch, nextPitch));
       return;
     }
     // Shift + Glide across the celestial sky strums the Constellation Harp with silk trails!
@@ -9226,11 +9223,13 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     }
   });
 
-  window.addEventListener('pointercancel', () => {
+  const stopBoardDrag = () => {
     if (!holoCam.dragging) return;
     holoCam.dragging = false;
     boardEl.classList.remove('is-dragging');
-  });
+  };
+  window.addEventListener('pointercancel', stopBoardDrag);
+  window.addEventListener('blur', stopBoardDrag);
 
   boardEl.addEventListener('dblclick', e => {
     if (state.focused || e.target.closest('nyx-assistant, button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
