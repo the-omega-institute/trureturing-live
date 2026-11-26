@@ -1044,8 +1044,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .scifi-log-line:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
 /* ============================================================================
-   PROJECTED COMPACT PEDESTAL CALLOUTS (.hive-cell)
-   Anchored cleanly BELOW each 3D biomimetic entity so 0% of 3D art is blocked!
+   Projected station labels
    ============================================================================ */
 .hive-cells {
   position: absolute;
@@ -1073,6 +1072,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 
 .hive-cell.is-boot-flash {
   animation: hud-flash-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--stagger) * 58ms + 140ms) both;
+}
+.hive-cell[hidden] { display: none; }
+.research-room:is(.is-department-focused, .is-galaxy-main, [data-mode="journey"], [data-layer="galaxy"]) .hive-cell {
+  visibility: hidden;
 }
 
 .hive-cell.is-apex-label {
@@ -1154,6 +1157,33 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .hive-cell.is-apex-label[aria-pressed="true"] {
   transform: translate(-50%, calc(-100% - 3px)) scale(calc(var(--depth-scale) * var(--cell-scale, 1) * 1.05));
 }
+
+.hive-cell.is-wing-label,
+.hive-cell.is-wing-label:hover,
+.hive-cell.is-wing-label[aria-pressed="true"] {
+  width: max-content;
+  max-width: min(290px, 31%);
+  transform: translate(-50%, -50%);
+}
+.is-wing-label .cell-pin { display: none; }
+.is-wing-label .cell-card,
+:root[data-lang="en"] .is-wing-label .cell-card { width: 100%; max-width: 100%; }
+.is-wing-label :is(.cell-head, .cell-meta-row) { max-width: 100%; }
+.is-wing-label .cell-title { flex-shrink: 0; }
+.is-wing-label .cell-role-tag { overflow: hidden; text-overflow: ellipsis; }
+.cell-leader {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--cell-color);
+  stroke-width: 1px;
+  opacity: 0.52;
+}
+.is-wing-label:is(:hover, :focus-visible, [aria-pressed="true"]) .cell-leader { opacity: 0.9; }
 
 .hive-cell:hover .cell-card,
 .hive-cell[aria-pressed="true"] .cell-card {
@@ -2797,6 +2827,9 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
 /* Phones: the page scrolls under a sticky relay rail. */
 @media (orientation: portrait) and (max-width: 699px) {
   .hive-cell { --cell-scale: 0.9; }
+  .is-wing-label .cell-icon,
+  .is-wing-label .cell-head::before { display: none; }
+  .is-wing-label .cell-title { flex-shrink: 1; min-width: 0; overflow-wrap: anywhere; white-space: normal; text-align: left; line-height: 1.2; }
   .cell-role-tag,
   .cell-meta-row { display: none; }
   .fui-orbit-hint { display: none; }

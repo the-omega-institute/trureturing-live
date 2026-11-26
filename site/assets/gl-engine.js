@@ -234,39 +234,6 @@
       }
     }
 
-    addIcosahedron(cx, cy, cz, radius, mat = 1, explode = 0) {
-      const t = (1 + Math.sqrt(5)) * 0.5;
-      const raw = [
-        [-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0],
-        [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t],
-        [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]
-      ].map(([x, y, z]) => {
-        const l = Math.hypot(x, y, z);
-        return [x / l * radius, y / l * radius, z / l * radius];
-      });
-      const idx = [
-        [0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],
-        [1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
-        [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],
-        [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]
-      ];
-      for (const [a, b, c] of idx) {
-        const pa = raw[a], pb = raw[b], pc = raw[c];
-        const mx = (pa[0] + pb[0] + pc[0]) / 3;
-        const my = (pa[1] + pb[1] + pc[1]) / 3;
-        const mz = (pa[2] + pb[2] + pc[2]) / 3;
-        const ml = Math.hypot(mx, my, mz) || 1;
-        const ox = cx + (mx / ml) * explode;
-        const oy = cy + (my / ml) * explode;
-        const oz = cz + (mz / ml) * explode;
-        this.addPolygon([
-          [ox + pa[0], oy + pa[1], oz + pa[2]],
-          [ox + pb[0], oy + pb[1], oz + pb[2]],
-          [ox + pc[0], oy + pc[1], oz + pc[2]]
-        ], mat);
-      }
-    }
-
     addTorusRing(cx, cy, cz, majorR, minorR, segs = 32, tubeSegs = 6, tiltX = 0, tiltZ = 0, mat = 2) {
       const cX = Math.cos(tiltX), sX = Math.sin(tiltX);
       const cZ = Math.cos(tiltZ), sZ = Math.sin(tiltZ);
@@ -632,16 +599,30 @@
   layout(location=2) in float aMat;
   uniform mat4 uViewProj;
   uniform mat4 uModel;
+  uniform float uTime;
   out vec3 vWorldPos;
   out vec3 vLocalPos;
   out vec3 vNorm;
   out float vMat;
   void main() {
     vLocalPos = aPos;
-    vec4 wp = uModel * vec4(aPos, 1.0);
-    vWorldPos = wp.xyz;
-    vNorm = normalize(mat3(uModel) * aNorm);
+    vec3 normal = aNorm;
     vMat = aMat;
+    if (aMat == 6.0) {
+      // Analytic radial surface and normal for the book's two-frequency golden breath.
+      vec3 q = aPos;
+      float t = uTime * 0.72, c = cos(t), s = sin(t), beat = cos(1.618033989 * t);
+      float h = length(q.xz), x2 = q.x*q.x, z2 = q.z*q.z;
+      float f = 1.0 + 0.18 * (q.z*(3.0*x2-z2)*c - q.x*(x2-3.0*z2)*s + q.y*h*beat);
+      vec3 grad = 0.18 * vec3(6.0*q.x*q.z*c - 3.0*(x2-z2)*s, h*beat,
+                             3.0*(x2-z2)*c + 6.0*q.x*q.z*s);
+      grad.xz += 0.18 * q.y * beat * q.xz / max(h, 0.0001);
+      normal = normalize((f + dot(q, grad)) * q - grad);
+      vLocalPos = 0.78 * f * q;
+    }
+    vec4 wp = uModel * vec4(vLocalPos, 1.0);
+    vWorldPos = wp.xyz;
+    vNorm = normalize(mat3(uModel) * normal);
     gl_Position = uViewProj * wp;
   }`;
 
@@ -706,7 +687,27 @@
     vec3 col;
     float alpha = uStationAlpha;
 
-    if (vMat > 2.5) {
+    if (vMat > 5.5) {
+      // A continuous colour field follows the three lobes of the breathing surface.
+      vec3 q = normalize(vLocalPos);
+      float field = 0.5 - 0.45*q.y + 0.25*q.z*(3.0*q.x*q.x-q.z*q.z)/max(dot(q.xz,q.xz),0.0001);
+      vec3 shell = mix(vec3(0.15,0.13,0.32),vec3(0.10,0.51,0.55),smoothstep(0.13,0.66,field));
+      shell = mix(shell,vec3(0.80,0.57,0.29),smoothstep(0.65,0.95,field));
+      if (uTheme > 0.5 && uTheme < 1.5) shell = mix(shell,vec3(0.10,0.57,0.34),0.65);
+      col = shell * (0.33 + 0.68*diffKey + 0.25*diffFill);
+      col += vec3(0.75,0.90,0.96) * (0.40*pow(max(dot(N,Hkey),0.0),51.0) + 0.40*fresnel);
+      float contour = 1.0-smoothstep(0.004,0.011,abs(field-0.53));
+      col += mix(shell,vec3(0.67,0.86,0.91),0.60) * contour * 0.45;
+    } else if (vMat > 4.5) {
+      // Satin folds let the bright titanium creases and thin gold binding read clearly.
+      vec3 coat = uTheme > 0.5 && uTheme < 1.5 ? mix(uAccent,vec3(0.10,0.60,0.32),0.65) : uAccent;
+      col = coat*(0.18 + 0.40*diffKey + 0.22*diffFill + 0.12*diffRim);
+      col += vec3(0.65,0.79,0.91)*(0.36*pow(max(dot(N,Hkey),0.0),54.0) + 0.26*fresnel);
+    } else if (vMat > 3.5) {
+      // A coloured inlay stays legible in the bloom pass, including its gold centre.
+      vec3 inlay = uTheme > 0.5 && uTheme < 1.5 ? mix(uAccent, vec3(0.20, 0.92, 0.50), 0.65) : uAccent;
+      col = inlay * (0.88 + 0.14 * NoV + 0.10 * uActive);
+    } else if (vMat > 2.5) {
       // Material 3: EMISSIVE INNER QUANTUM CORE (vivid saturated core in Daylight, neon phosphor in Matrix!)
       vec3 coreTint = uTheme > 1.5
         ? mix(uAccent * 0.92, vec3(0.08, 0.22, 0.32), 0.12)
@@ -1411,7 +1412,7 @@
     plinth.addPrism(0, 0.10, 0, 0.70, 0.66, 0.06, 6, 2, Math.PI / 6);
     g.plinth = plinth.build(gl, 20);
 
-    // 00 // VERIFICATION — Stepped Crystalline Octagonal Spire + Inner Core + Twin Containment Rings
+    // 00 // VERIFICATION — Stepped Crystalline Octagonal Spire + Inner Core + Hopf Bands
     const verBase = new MeshBuilder();
     verBase.addPrism(0, 0.0, 0, 0.76, 0.62, 0.46, 8, 1, Math.PI / 8);
     verBase.addPrism(0, 0.50, 0, 0.58, 0.44, 0.52, 8, 1, Math.PI / 8);
@@ -1423,68 +1424,100 @@
     }
     g.verification = verBase.build(gl, 18);
 
-    const verRing = new MeshBuilder();
-    verRing.addTorusRing(0, 0, 0, 1.04, 0.032, 32, 6, 0.36, 0.15, 2);
-    verRing.addTorusRing(0, 0, 0, 0.86, 0.022, 28, 6, -0.44, -0.22, 1);
-    g.verRing = verRing.build(gl, 28);
-
     // 01 // RESEARCH — Igloo Fractured Floating Crystal Icosahedron Monolith
     const resCore = new MeshBuilder();
     resCore.addOctahedron(0, 0, 0, 0.28, 0.36, 0.28, 3);
     g.resCore = resCore.build(gl, 15);
     const resShell = new MeshBuilder();
-    resShell.addIcosahedron(0, 0, 0, 0.68, 1, 0.09);
+    const resCrown = new MeshBuilder();
+    g.tints = Object.fromEntries(Object.entries(StationModels.colors).map(([name, rgb]) =>
+      [name, rgb.map(channel => channel / 255)]));
+    // The five plates incident on vertex 0 form one orbit of a 72° rotation.
+    const { vertices, faces } = StationModels.icosahedron;
+    for (const indices of faces) {
+      const corners = indices.map(i => vertices[i].map(v => v * 0.68));
+      const center = [0, 1, 2].map(axis => (corners[0][axis] + corners[1][axis] + corners[2][axis]) / 3);
+      const normal = center.map(v => v / Math.hypot(...center));
+      const rim = corners.map(p => p.map((v, axis) => v + 0.09 * normal[axis]));
+      if (!indices.includes(0)) {
+        resShell.addPolygon(rim, 5);
+        continue;
+      }
+      const inset = corners.map(p => p.map((v, axis) =>
+        0.80 * v + 0.20 * center[axis] + 0.104 * normal[axis]));
+      for (let i = 0; i < 3; i++) {
+        const j = (i + 1) % 3;
+        resShell.addPolygon([rim[i], rim[j], inset[j], inset[i]], 2);
+      }
+      resCrown.addPolygon(inset, 1);
+    }
     g.resShell = resShell.build(gl, 18);
+    g.resCrown = resCrown.build(gl, 18);
 
-    // 02 // REVIEW — Twin Counter-Poised Brutalist Obsidian-Glass Monolith Slabs
-    const revBase = new MeshBuilder();
-    revBase.addBox(0, 0.58, 0, 0.08, 1.06, 0.08, 2);
-    revBase.addOctahedron(0, 1.24, 0, 0.14, 0.20, 0.14, 3);
-    g.revBase = revBase.build(gl, 18);
-    const revSlab = new MeshBuilder();
-    revSlab.addBox(0, 0, 0, 0.44, 0.86, 0.18, 1, 0.22);
-    revSlab.addBox(0, 0.46, 0, 0.46, 0.04, 0.20, 2, 0.22);
-    g.revSlab = revSlab.build(gl, 18);
+    // Each tint shares a draw call across its crystal, titanium and emissive panels.
+    g.stationModels = {};
+    for (const id of StationModels.ids) {
+      const { vertices, faces, lift, speed } = StationModels.get(id);
+      const builders = new Map();
+      for (const { indices, finish } of faces) {
+        const tint = id === 'review' ? 'cyan' : finish.tint;
+        if (!builders.has(tint)) builders.set(tint, new MeshBuilder());
+        builders.get(tint).addPolygon(indices.map(i => vertices[i]), id === 'review' ? 6 : finish.material);
+      }
+      const parts = Array.from(builders, ([tint, builder]) => ({
+        mesh: builder.build(gl, 48),
+        color: g.tints[tint]
+      }));
+      g.stationModels[id] = { parts, lift, speed };
+    }
 
     // 03 // BOOKS — Stratified Floating Glass Archive Monolith
-    const bookSlab = new MeshBuilder();
-    bookSlab.addChamferedTerrace(0, 0, 0.66, 0.46, 0.14, -0.04, 0.04, 1);
-    g.bookSlab = bookSlab.build(gl, 20);
+    g.bookPages = StationModels.jetPages.map(({ order, trace }) => {
+      const slab = new MeshBuilder();
+      slab.addChamferedTerrace(0, 0, 0.66, 0.46, 0.14, -0.04, 0.04, 2);
+      // A recessed-colour inset makes the trace legible on the polished glass leaf.
+      const inset = [[-.48,-.385],[-.57,-.29],[-.57,.29],[-.48,.385],
+        [.48,.385],[.57,.29],[.57,-.29],[.48,-.385]];
+      slab.addPolygon(inset.map(([x, z]) => [x, 0.042, z]), 5);
+      // Inlay the partial sum into the upper surface and index its coefficients on the fore-edge.
+      const ribbon = trace.map(([x, sum]) => {
+        const z = 0.30 - sum * 0.20;
+        return [[x * 0.53, 0.048, z - 0.016], [x * 0.53, 0.048, z + 0.016]];
+      });
+      for (let i = 1; i < ribbon.length; i++) {
+        slab.addPolygon([ribbon[i - 1][0], ribbon[i - 1][1], ribbon[i][1], ribbon[i][0]], 4);
+      }
+      for (let k = 0; k <= order; k++) {
+        slab.addBox(-0.40 + k * 0.14, 0, 0.465, 0.076, 0.047, 0.016, k === order ? 4 : 2);
+      }
+      return slab.build(gl, 20);
+    });
     const bookCore = new MeshBuilder();
-    bookCore.addBox(0, 0.60, 0, 0.14, 0.96, 0.14, 3, Math.PI / 4);
+    bookCore.addBox(0, 0.60, 0, 0.14, 0.96, 0.14, 4, Math.PI / 4);
     g.bookCore = bookCore.build(gl, 18);
-
-    // 04 // PUBLICATION — Tri-Obelisk Stepped Crystalline Monolith Cluster
-    const pub = new MeshBuilder();
-    pub.addPrism(0.0, 0.0, 0.0, 0.34, 0.22, 1.28, 6, 1, 0);
-    pub.addPrism(0.0, 1.28, 0.0, 0.22, 0.02, 0.28, 6, 3, 0);
-    pub.addPrism(-0.46, 0.0, 0.22, 0.24, 0.16, 0.86, 6, 1, Math.PI / 6);
-    pub.addPrism(-0.46, 0.86, 0.22, 0.16, 0.02, 0.18, 6, 2, Math.PI / 6);
-    pub.addPrism(0.44, 0.0, -0.18, 0.26, 0.18, 1.02, 6, 1, Math.PI / 6);
-    pub.addPrism(0.44, 1.02, -0.18, 0.18, 0.02, 0.22, 6, 2, Math.PI / 6);
-    g.publication = pub.build(gl, 18);
-
-    // 05 // OUTREACH — Sculpted Faceted Deep-Space Parabolic Dish Monolith
-    const outBase = new MeshBuilder();
-    outBase.addPrism(0, 0.0, 0, 0.42, 0.26, 0.56, 6, 0, Math.PI / 6);
-    g.outBase = outBase.build(gl, 18);
-    const outDish = new MeshBuilder();
-    outDish.addParabolicDish(0, 0, 0, 0.72, 0.34, 12, 3, -0.34, 1);
-    outDish.addPrism(0, 0.02, -0.02, 0.05, 0.02, 0.56, 6, 2, 0);
-    outDish.addOctahedron(0, 0.62, -0.18, 0.10, 0.12, 0.10, 3);
-    g.outDish = outDish.build(gl, 24);
 
     // 06 // STUDIO — Nested Brutalist Precision Foundry Cube Monolith
     const stuOuter = new MeshBuilder();
-    const s = 0.44, t = 0.065;
-    for (const a of [-s, s]) {
-      for (const b of [-s, s]) {
-        stuOuter.addBox(a, b, 0, t, t, s * 2 + t, 2);
-        stuOuter.addBox(a, 0, b, t, s * 2 + t, t, 2);
-        stuOuter.addBox(0, a, b, s * 2 + t, t, t, 2);
+    const stuTrace = new MeshBuilder();
+    const half = 0.44, rail = 0.065;
+    for (const { from, to, axis, lit } of StationModels.bladeEdges) {
+      const center = from.map((v, i) => half * (v + to[i]) / 2);
+      const size = [rail, rail, rail];
+      size[axis] = 2 * half + rail;
+      stuOuter.addBox(...center, ...size, lit ? 5 : 2);
+      if (lit) {
+        // A narrow conductor follows the exposed corner of each selected rail.
+        const contact = center.map((v, i) => i === axis ? 0 : v + from[i] * rail * 0.46);
+        const width = [0.032, 0.032, 0.032];
+        width[axis] = 2 * half - 0.075;
+        stuTrace.addBox(...contact, ...width, 4);
       }
     }
+    for (const corner of StationModels.bladeCorners) {
+      stuOuter.addOctahedron(...corner.map(v => v * half), 0.078, 0.078, 0.078, 5);
+    }
     g.stuOuter = stuOuter.build(gl, 20);
+    g.stuTrace = stuTrace.build(gl, 20);
     const stuInner = new MeshBuilder();
     stuInner.addBox(0, 0, 0, 0.48, 0.48, 0.48, 1);
     stuInner.addOctahedron(0, 0, 0, 0.24, 0.24, 0.24, 3);
@@ -1492,21 +1525,61 @@
 
     // A0 // DIRECTION (AKASHA EYE / 阿卡西之眼) — Sovereign Levitating Diamond Eye Core + Quad Celestial Astrolabe Rings
     const dirCore = new MeshBuilder();
-    dirCore.addOctahedron(0, 0, 0, 0.62, 0.90, 0.62, 1, Math.PI / 4);
-    dirCore.addOctahedron(0, 0, 0, 0.34, 0.38, 0.34, 3, 0);
+    // A narrow stepped girdle catches light between the two original diamond tips.
+    const girdle = [[.062, .536], [.028, .569], [0, .586], [-.028, .569], [-.062, .536]].map(([y, r]) =>
+      Array.from({ length: 4 }, (_, i) => {
+        const a = Math.PI / 4 + i * Math.PI / 2;
+        return [r * Math.cos(a), y, r * Math.sin(a)];
+      }));
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      dirCore.addPolygon([girdle[0][j], girdle[0][i], [0, .82, 0]], 1);
+      for (let k = 1; k < girdle.length; k++) {
+        const upper = girdle[k - 1], lower = girdle[k];
+        dirCore.addPolygon([upper[i], upper[j], lower[j], lower[i]], k === 2 ? 4 : 2);
+      }
+      dirCore.addPolygon([girdle[4][i], girdle[4][j], [0, -.82, 0]], 1);
+    }
+    dirCore.addOctahedron(0, 0, 0, 0.30, 0.32, 0.30, 3, 0);
     // Zenith & nadir sacred golden axis needles crowning the Eye of Akasha
-    dirCore.addPrism(0,  0.88, 0, 0.10, 0.008, 0.36, 4, 3, Math.PI / 4);
-    dirCore.addPrism(0, -1.24, 0, 0.008, 0.10, 0.36, 4, 3, Math.PI / 4);
+    dirCore.addPrism(0,  0.80, 0, 0.10, 0.008, 0.36, 4, 3, Math.PI / 4);
+    dirCore.addPrism(0, -1.16, 0, 0.008, 0.10, 0.36, 4, 3, Math.PI / 4);
     g.dirCore = dirCore.build(gl, 16);
     const dirRing = new MeshBuilder();
+    dirRing.addTorusRing(0, 0, 0, 1.32, 0.022, 48, 6, 0.14, -0.10, 2);
+    dirRing.addTorusRing(0, 0, 0, 1.06, 0.036, 36, 6, 0.36, 0.20, 2);
+    dirRing.addTorusRing(0, 0, 0, 0.80, 0.024, 32, 6, -0.58, -0.35, 2);
     dirRing.addTorusRing(0, 0, 0, 1.62, 0.022, 56, 6, -0.08, 0.14, 2);
-    dirRing.addTorusRing(0, 0, 0, 1.32, 0.026, 48, 6,  0.14, -0.10, 2);
-    dirRing.addTorusRing(0, 0, 0, 1.04, 0.038, 36, 6,  0.38,  0.22, 2);
-    dirRing.addTorusRing(0, 0, 0, 0.78, 0.024, 32, 6, -0.58, -0.35, 2);
     // 4 luminous cardinal diamond beacons mounted on the grand outer celestial ring
     for (let k = 0; k < 4; k++) {
       const a = (k * Math.PI) / 2;
       dirRing.addOctahedron(Math.cos(a) * 1.62, Math.sin(a) * 0.14, Math.sin(a) * 1.62, 0.085, 0.11, 0.085, 3, 0);
+    }
+    // Two compact sight mounts sit at opposite ends of one diameter of the outer ring.
+    const dialPoint = (angle, radius, height) => {
+      const x = radius * Math.cos(angle), z = radius * Math.sin(angle);
+      const y = height * Math.cos(0.14) - z * Math.sin(0.14);
+      return [x * Math.cos(-0.10) - y * Math.sin(-0.10), x * Math.sin(-0.10) + y * Math.cos(-0.10),
+        height * Math.sin(0.14) + z * Math.cos(0.14)];
+    };
+    // Ten engraved graduations complete the twelve positions with the two sights.
+    for (let i = 1; i < 12; i++) {
+      if (i === 6) continue;
+      const angle = StationModels.dialPoles[0] + i * Math.PI / 6;
+      const inner = i % 3 === 0 ? 1.21 : 1.255;
+      dirRing.addPolygon([dialPoint(angle - .014, inner, .008), dialPoint(angle + .014, inner, .008),
+        dialPoint(angle + .014, 1.329, .008), dialPoint(angle - .014, 1.329, .008)], 2);
+    }
+    for (const [i, angle] of StationModels.dialPoles.entries()) {
+      const outline = [[angle - 0.105, 1.32], [angle, 1.405], [angle + 0.105, 1.32], [angle, 1.235]];
+      const plate = outline.map(([azimuth, radius]) => dialPoint(azimuth, radius, 0.026));
+      const lower = outline.map(([azimuth, radius]) => dialPoint(azimuth, radius, -0.026));
+      dirRing.addPolygon(lower, 2);
+      for (let j = 0; j < 4; j++) {
+        const k = (j + 1) % 4;
+        dirRing.addPolygon([plate[j], plate[k], lower[k], lower[j]], 2);
+      }
+      dirRing.addPolygon(plate.slice().reverse(), i === 0 ? 4 : 5);
     }
     g.dirRing = dirRing.build(gl, 28);
 
@@ -2551,50 +2624,41 @@
 
           if (e.id === 'verification') {
             const scH = (0.96 + (e.hEntity - 1.44) * 0.25) * bootK;
-            const spinSpd = 0.24 + ciLoad * 0.44;
             M4.compose(this.modelMat, e.x, y0 + 0.06, e.z, 0, tAnim * (0.05 + ciLoad * 0.06), 0, bootK, scH, bootK);
             this.drawMesh(this.geo.verification, this.modelMat, accent, Math.max(act, ciLoad * 0.45), Math.max(run, ciLoad), themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
-            M4.compose(this.modelMat, e.x, y0 + 0.84 * scH, e.z, Math.sin(tAnim * 0.32) * 0.14, -tAnim * spinSpd, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.verRing, this.modelMat, accent, Math.max(act, ciLoad * 0.4), Math.max(run, ciLoad), themeIdx, tAnim, edgeA * 0.9, entAlpha, genesisRadius);
-          } else if (e.id === 'research') {
+          }
+          if (e.id === 'research') {
             const fy = y0 + 1.00 * bootK + Math.sin(tAnim * 0.9) * 0.05;
             M4.compose(this.modelMat, e.x, fy, e.z, tAnim * 0.14, tAnim * 0.24, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.resShell, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.resShell, this.modelMat, this.geo.tints.cyan, act, run, themeIdx, tAnim, edgeA * 0.46, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.resCrown, this.modelMat, this.geo.tints.violet, act, run, themeIdx, tAnim, edgeA * 0.42, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x, fy, e.z, -tAnim * 0.22, -tAnim * 0.32, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.resCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
-          } else if (e.id === 'review') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
-            const sway = Math.sin(tAnim * 0.85) * 0.10;
-            M4.compose(this.modelMat, e.x - 0.42 * bootK, y0 + (0.76 + sway) * bootK, e.z, 0, 0.28, 0.06, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
-            M4.compose(this.modelMat, e.x + 0.42 * bootK, y0 + (0.76 - sway) * bootK, e.z, 0, -0.28, -0.06, bootK, bootK, bootK);
-            this.drawMesh(this.geo.revSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.resCore, this.modelMat, this.geo.tints.cyan, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
+          } else if (this.geo.stationModels[e.id]) {
+            const { parts, lift, speed } = this.geo.stationModels[e.id];
+            M4.compose(this.modelMat, e.x, y0 + lift * bootK, e.z, 0, tAnim * speed, 0, bootK, bootK, bootK);
+            // The breathing shell has a continuous surface with no etched panel edges.
+            const edgeStrength = e.id === 'review' ? 0 : edgeA * 0.42;
+            for (const { mesh, color } of parts) {
+              this.drawMesh(mesh, this.modelMat, color, act, run, themeIdx, tAnim, edgeStrength, entAlpha, genesisRadius);
+            }
           } else if (e.id === 'books') {
             M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, tAnim * 0.16, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.bookCore, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
-            for (let lv = 0; lv < 5; lv++) {
+            this.drawMesh(this.geo.bookCore, this.modelMat, this.geo.tints.amber, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
+            for (let lv = 0; lv < this.geo.bookPages.length; lv++) {
               const ly = y0 + (0.36 + lv * 0.185 + Math.sin(tAnim * 1.1 + lv * 0.65) * 0.028) * bootK;
               const sc = (1.0 - lv * 0.07) * bootK;
               M4.compose(this.modelMat, e.x, ly, e.z, 0, lv * 0.12 + Math.sin(tAnim * 0.35 + lv) * 0.08, 0, sc, bootK, sc);
-              this.drawMesh(this.geo.bookSlab, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 0.95, entAlpha, genesisRadius);
+              const pageTint = lv === 2 ? this.geo.tints.cyan : this.geo.tints.violet;
+              this.drawMesh(this.geo.bookPages[lv], this.modelMat, pageTint, act, run, themeIdx, tAnim, edgeA * 0.40, entAlpha, genesisRadius);
             }
-          } else if (e.id === 'publication') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0.25 + Math.sin(tAnim * 0.2) * 0.08, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.publication, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha, genesisRadius);
-          } else if (e.id === 'outreach') {
-            M4.compose(this.modelMat, e.x, y0 + 0.20, e.z, 0, 0, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.outBase, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA, entAlpha, genesisRadius);
-            // Gently sweep radio dish toward the 223-scholar deep-space crescent off the right horizon!
-            const dishYaw = -1.15 + Math.sin(tAnim * 0.28) * 0.38;
-            M4.compose(this.modelMat, e.x, y0 + 0.74 * bootK, e.z, 0, dishYaw, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.outDish, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.05, entAlpha, genesisRadius);
           } else if (e.id === 'studio') {
             const cy3 = y0 + 0.84 * bootK;
             M4.compose(this.modelMat, e.x, cy3, e.z, tAnim * 0.14, tAnim * 0.22, 0.18, bootK, bootK, bootK);
-            this.drawMesh(this.geo.stuOuter, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.0, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.stuOuter, this.modelMat, this.geo.tints.violet, act, run, themeIdx, tAnim, edgeA * 0.40, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.stuTrace, this.modelMat, this.geo.tints.cyan, act, run, themeIdx, tAnim, 0, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x, cy3, e.z, -tAnim * 0.26, -tAnim * 0.34, 0, bootK, bootK, bootK);
-            this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.stuInner, this.modelMat, this.geo.tints.cyan, act, run, themeIdx, tAnim, edgeA * 0.42, entAlpha, genesisRadius);
           } else if (e.id === 'direction') {
             const fy = y0 + Math.sin(tAnim * 0.85) * 0.08;
             const scEye = bootK * (1.24 + galaxyBoost * 0.24 + stationFocus * 0.16);
