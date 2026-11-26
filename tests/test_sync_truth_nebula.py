@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from sync_truth_nebula import build_nebula
+from sync_truth_nebula import build_full_atlas, build_nebula
 
 
 def node(path, domain, title, summary, role='internal', layer=1, theorems=2):
@@ -59,6 +59,20 @@ class NebulaDetailTests(unittest.TestCase):
         summary = next(row[2] for row in details['stars'] if row[0] == 'D5/S1/Combinatorics/M0')
         self.assertLessEqual(len(summary), 241)
         self.assertTrue(summary.endswith('…'))
+
+    def test_full_atlas_preserves_every_truth_node_and_reuse_tiers(self):
+        manifest, layout, graph = atlas()
+        graph['nodes'][0][13] = 400  # tier 4 core hub
+        graph['nodes'][1][13] = 90   # tier 3 pillar
+        full = build_full_atlas(manifest, layout, graph)
+        self.assertEqual(full['schema_version'], 'trureturing-truth-atlas-full.v1')
+        self.assertEqual(full['counts']['truth_nodes'], 10)
+        self.assertEqual(len(full['nodes']), 10 * 5)
+        self.assertEqual(full['counts']['tiers'][4], 1)
+        self.assertEqual(full['counts']['tiers'][3], 1)
+        self.assertGreaterEqual(full['counts']['rendered_edges'], 3)
+        self.assertIn('0', full['centers'])
+        self.assertIn('1', full['centers'])
 
 
 if __name__ == '__main__':

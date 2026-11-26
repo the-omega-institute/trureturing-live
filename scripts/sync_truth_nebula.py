@@ -22,10 +22,12 @@ BASE_URL = "https://www.trureturing.org/"
 MANIFEST_URL = BASE_URL + "data/atlas-startup.v1.json"
 OUT_PATH = pathlib.Path(__file__).resolve().parents[1] / "site" / "data" / "truth-nebula.v1.json"
 DETAILS_PATH = OUT_PATH.with_name("truth-nebula-details.v1.json")
+FULL_ATLAS_PATH = OUT_PATH.with_name("truth-atlas-full.v1.json")
 
 MAX_STARS = 3600
 MAX_INTRA_EDGES = 3600
 MAX_CROSS_EDGES = 420
+MAX_ATLAS_EDGES = 16000
 MAX_SUMMARY = 240
 MAX_NODE_LINKS = 10
 USER_AGENT = "Mozilla/5.0 (compatible; trureturing-live-nebula-sync/1.0; +https://live.trureturing.org)"
@@ -249,15 +251,14 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
         dx = (positions[i][0] - mx) / r90
         dy = (positions[i][1] - my) / r90
         dz = (positions[i][2] - mz) / r90
-        # Spread stars airily with radial push-out (sqrt curve) so clusters NEVER clump into dense white knots!
+        # Preserve authentic branched DAG silhouette (linear scaling clamped softly at outer outliers)
         r_loc = math.sqrt(dx * dx + dy * dy + dz * dz)
-        if r_loc > 1e-4:
-            r_airy = min(1.42, math.pow(min(1.45, r_loc), 0.62) * 1.18)
-            mult = r_airy / r_loc
+        if r_loc > 1.38:
+            mult = (1.38 + math.log1p(r_loc - 1.38) * 0.24) / r_loc
             dx *= mult
             dy *= mult
             dz *= mult
-            r_loc = r_airy
+            r_loc = math.sqrt(dx * dx + dy * dy + dz * dz)
         if cid == other_cid:
             # Spread Foundations ("Other") airily along the vast outer galactic halo instead of a central clump!
             ang = math.atan2(dy, dx)
@@ -360,6 +361,151 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
     }, details
 
 
+def reuse_tier(dependent_count: int) -> int:
+    """Match trureturing-pages reuse tiers (0, 1-5, 6-63, 64-344, 345+)."""
+    if dependent_count >= 345:
+        return 4
+    if dependent_count >= 64:
+        return 3
+    if dependent_count >= 6:
+        return 2
+    if dependent_count >= 1:
+        return 1
+    return 0
+
+
+def build_full_atlas(manifest: dict, layout: dict, graph: dict) -> dict:
+    """Full 100% real Truth DAG in authentic atlas-branched-dag-v5 3D topology.
+
+    Outputs compact flat integer arrays so WebGL2 renders ALL ~19,000 real Lean
+    verified modules and up to 16,000 real directed dependency edges at 60fps
+    without synthetic smoke clouds.
+    """
+    nodes = graph.get("nodes") or []
+    edges = graph.get("edges") or []
+    positions = layout.get("positions") or []
+    if not nodes or len(positions) != len(nodes):
+        raise ValueError("Layout/graph length mismatch")
+
+    truth_indices = [i for i, n in enumerate(nodes) if len(n) > 5 and n[1] == "truth"]
+    if not truth_indices:
+        raise ValueError("No truth nodes found in atlas graph")
+    truth_set = set(truth_indices)
+
+    dom_counts = Counter((nodes[i][5] or "Other") for i in truth_indices)
+    top_domains = [d for d, _ in dom_counts.most_common(7)]
+    dom_to_cid = {d: idx for idx, d in enumerate(top_domains)}
+    other_cid = len(top_domains)
+
+    # Robust 4th-96th percentile bounding frame so extreme outliers don't compress the main graph
+    xs = sorted(positions[i][0] for i in truth_indices)
+    ys = sorted(positions[i][1] for i in truth_indices)
+    zs = sorted(positions[i][2] for i in truth_indices)
+    n_t = len(truth_indices)
+    lo = max(0, int(n_t * 0.03))
+    hi = min(n_t - 1, int(n_t * 0.97))
+    cx = (xs[lo] + xs[hi]) * 0.5
+    cy = (ys[lo] + ys[hi]) * 0.5
+    cz = (zs[lo] + zs[hi]) * 0.5
+    rx = max(1.0, (xs[hi] - xs[lo]) * 0.5)
+    ry = max(1.0, (ys[hi] - ys[lo]) * 0.5)
+    rz = max(1.0, (zs[hi] - zs[lo]) * 0.5)
+    span = max(rx, ry * 1.15, rz * 1.15)
+
+    max_layer = max((int(nodes[i][12]) for i in truth_indices if len(nodes[i]) > 12 and isinstance(nodes[i][12], int)), default=10)
+    max_layer = max(1, max_layer)
+
+    # Sort nodes ascending by reuse tier so core amber-gold hubs (tier 4) draw cleanly on top!
+    def node_reuse(i: int) -> int:
+        n = nodes[i]
+        return int(n[13]) if len(n) > 13 and isinstance(n[13], (int, float)) else 0
+
+    def node_layer(i: int) -> int:
+        n = nodes[i]
+        return int(n[12]) if len(n) > 12 and isinstance(n[12], int) else 0
+
+    ordered = sorted(truth_indices, key=lambda i: (reuse_tier(node_reuse(i)), node_layer(i), i))
+    orig_to_atlas = {orig_i: atlas_i for atlas_i, orig_i in enumerate(ordered)}
+
+    flat_nodes: list[int] = []
+    coords_by_atlas: list[tuple[int, int, int]] = []
+    cid_sums: dict[int, list[float]] = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])
+    tier_counts = [0, 0, 0, 0, 0]
+
+    for orig_i in ordered:
+        px, py, pz = positions[orig_i]
+        nx = max(-1350, min(1350, int(round((px - cx) / span * 1000.0))))
+        ny = max(-1100, min(1100, int(round((py - cy) / span * 1000.0))))
+        nz = max(-1100, min(1100, int(round((pz - cz) / span * 1000.0))))
+        cid = dom_to_cid.get(nodes[orig_i][5] or "Other", other_cid)
+        t_val = reuse_tier(node_reuse(orig_i))
+        tier_counts[t_val] += 1
+        lay_norm = min(1.0, max(0.0, node_layer(orig_i) / max_layer))
+        gen = min(99, max(0, int(round(math.pow(lay_norm, 0.55) * 99))))
+        meta = t_val * 100 + gen
+        flat_nodes.extend((nx, ny, nz, cid, meta))
+        coords_by_atlas.append((nx, ny, nz))
+        acc = cid_sums[cid]
+        acc[0] += nx
+        acc[1] += ny
+        acc[2] += nz
+        acc[3] += 1.0
+
+    # Real 3D cluster centroids in authentic atlas-branched-dag-v5 space
+    centers: dict[str, list[int]] = {}
+    for cid in range(len(top_domains)):
+        acc = cid_sums.get(cid)
+        if acc and acc[3] > 0:
+            centers[str(cid)] = [int(round(acc[0] / acc[3])), int(round(acc[1] / acc[3])), int(round(acc[2] / acc[3]))]
+
+    # Collect up to MAX_ATLAS_EDGES real directed truth-dependency edges preserving branching trees & hubs!
+    edge_cands: list[tuple[int, int, int]] = []
+    seen_e: set[tuple[int, int]] = set()
+    for e in edges:
+        if len(e) < 3 or e[2] != "truth-dependency":
+            continue
+        u, v = e[0], e[1]
+        if u not in truth_set or v not in truth_set or u == v:
+            continue
+        au = orig_to_atlas.get(u)
+        av = orig_to_atlas.get(v)
+        if au is None or av is None or au == av:
+            continue
+        pair = (au, av) if au < av else (av, au)
+        if pair in seen_e:
+            continue
+        seen_e.add(pair)
+        cu, cv = coords_by_atlas[au], coords_by_atlas[av]
+        d3 = math.dist(cu, cv)
+        if d3 > 980.0:
+            continue
+        # Favor structured local/mid-range branches + high-reuse hubs over noisy extreme chords
+        score = node_reuse(u) + node_reuse(v) + (180 if d3 < 320.0 else 0)
+        edge_cands.append((score, au, av))
+
+    edge_cands.sort(key=lambda item: (-item[0], item[1], item[2]))
+    flat_edges: list[int] = []
+    for _, au, av in edge_cands[:MAX_ATLAS_EDGES]:
+        flat_edges.extend((au, av))
+
+    snap = graph.get("source_snapshot") or {}
+    return {
+        "schema_version": "trureturing-truth-atlas-full.v1",
+        "layout_profile": layout.get("layout_profile") or manifest.get("layout_profile") or "atlas-branched-dag-v5",
+        "source_commit": snap.get("source_commit") or "",
+        "truth_release_digest": manifest.get("truth_release_digest") or "",
+        "counts": {
+            "truth_nodes": len(ordered),
+            "rendered_edges": len(flat_edges) // 2,
+            "max_layer": max_layer,
+            "tiers": tier_counts,
+        },
+        "centers": centers,
+        "nodes": flat_nodes,
+        "edges": flat_edges,
+    }
+
+
 def main() -> int:
     manifest = json.loads(fetch_bytes(MANIFEST_URL).decode("utf-8"))
     fast = manifest.get("fast") or {}
@@ -369,9 +515,10 @@ def main() -> int:
     layout = json.loads(gzip.decompress(fetch_bytes(BASE_URL + layout_path)).decode("utf-8"))
     graph = json.loads(gzip.decompress(fetch_bytes(BASE_URL + graph_path)).decode("utf-8"))
     payload, details = build_nebula(manifest, layout, graph)
+    full_atlas = build_full_atlas(manifest, layout, graph)
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    for path, data in ((DETAILS_PATH, details), (OUT_PATH, payload)):
+    for path, data in ((DETAILS_PATH, details), (OUT_PATH, payload), (FULL_ATLAS_PATH, full_atlas)):
         tmp_path = path.with_suffix(".json.tmp")
         tmp_path.write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
         tmp_path.replace(path)
@@ -381,7 +528,9 @@ def main() -> int:
         f"{payload['counts']['truth_nodes']:,} truth nodes -> "
         f"{payload['counts']['sampled_stars']} stars, "
         f"{payload['counts']['sampled_edges']} DAG edges, "
-        f"{payload['counts']['cluster_links']} inter-galaxy bundles"
+        f"{payload['counts']['cluster_links']} inter-galaxy bundles; "
+        f"full atlas: {FULL_ATLAS_PATH.stat().st_size:,} bytes "
+        f"({full_atlas['counts']['truth_nodes']:,} nodes, {full_atlas['counts']['rendered_edges']:,} edges)"
     )
     return 0
 
