@@ -501,7 +501,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .galaxy-back-bar {
   position: fixed;
   left: 22px;
-  top: 82px;
+  top: 132px;
   z-index: 38;
   display: inline-flex;
   align-items: center;
@@ -2909,13 +2909,20 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   gap: 12px;
   pointer-events: none;
 }
-.scene-controls nyx-assistant {
-  margin-inline-start: auto;
+/* Floating draggable Nyx Assistant — starts top-left below the optical HUD readout and drags anywhere. */
+nyx-assistant {
+  position: fixed;
+  left: 22px;
+  top: 86px;
+  right: auto;
+  bottom: auto;
+  z-index: 64;
+  width: max-content;
   pointer-events: auto;
   user-select: text;
   cursor: default;
-  --nyx-panel-max-width: 100cqw;
-  --nyx-panel-max-height: min(30rem, calc(100cqh - max(42px, 2.8em)));
+  --nyx-panel-max-width: min(28rem, calc(100vw - 32px));
+  --nyx-panel-max-height: min(30rem, calc(100dvh - 140px));
   --nyx-surface: var(--surface-solid);
   --nyx-mark: url("/assets/mark.svg");
   --nyx-connected: var(--live);
@@ -2931,10 +2938,37 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   --nyx-accent-text: var(--accent);
   --nyx-radius: 3px;
 }
-.research-room[data-mode="journey"] .scene-controls nyx-assistant {
-  display: none;
+nyx-assistant[data-nyx-v="below"]::part(panel) {
+  top: calc(100% + 6px);
+  bottom: auto;
 }
-.scene-controls button[slot="prompt"] {
+nyx-assistant[data-nyx-v="above"]::part(panel) {
+  bottom: calc(100% + 6px);
+  top: auto;
+}
+nyx-assistant[data-nyx-h="left"]::part(panel) {
+  left: 0;
+  right: auto;
+}
+nyx-assistant[data-nyx-h="right"]::part(panel) {
+  right: 0;
+  left: auto;
+}
+nyx-assistant::part(launcher),
+nyx-assistant::part(header) {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+nyx-assistant[data-nyx-dragging]::part(launcher),
+nyx-assistant[data-nyx-dragging]::part(header) {
+  cursor: grabbing;
+}
+nyx-assistant[data-nyx-dragging]::part(panel) {
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.48), inset 0 1px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+nyx-assistant button[slot="prompt"] {
   margin-top: 9px;
   padding: 3px 8px;
   border: 1px solid var(--border);
@@ -2943,13 +2977,13 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   background: var(--surface-soft);
   font: 600 .88em/1.45 var(--font-mono);
 }
-.scene-controls button[slot="prompt"]::after {
+nyx-assistant button[slot="prompt"]::after {
   content: "↗";
   margin-inline-start: .45em;
   color: var(--accent);
 }
-.scene-controls button[slot="prompt"]:hover,
-.scene-controls button[slot="prompt"]:focus-visible {
+nyx-assistant button[slot="prompt"]:hover,
+nyx-assistant button[slot="prompt"]:focus-visible {
   color: var(--ink);
   border-color: var(--border-strong);
 }
@@ -2958,7 +2992,13 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
     inset: 10px 12px;
     gap: 8px;
   }
-  .galaxy-back-bar { position: absolute; inset: 10px auto auto 12px; }
+  nyx-assistant {
+    left: 12px;
+    top: 62px;
+    --nyx-panel-max-width: calc(100vw - 24px);
+    --nyx-panel-max-height: min(26rem, calc(100dvh - 116px));
+  }
+  .galaxy-back-bar { position: absolute; inset: 54px auto auto 12px; }
   .human-console { overflow-x: auto; scrollbar-width: none; }
   .human-console > * { flex: none; }
   .dock-triggers { max-width: 100%; overflow-x: auto; }
