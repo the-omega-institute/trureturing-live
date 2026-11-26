@@ -120,186 +120,187 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   --_nyx-ink: var(--nyx-text, CanvasText);
   --_nyx-paper: var(--nyx-surface, Canvas);
   --_nyx-accent: var(--nyx-accent, #236456);
-  --_nyx-line: color-mix(in srgb, var(--_nyx-ink) 18%, transparent);
+  --_nyx-line: var(--nyx-border, color-mix(in srgb, var(--_nyx-ink) 22%, var(--_nyx-paper)));
+  --_nyx-muted: var(--nyx-muted, color-mix(in srgb, var(--_nyx-ink) 73%, var(--_nyx-paper)));
+  --_nyx-control: var(--nyx-control-surface, color-mix(in srgb, var(--_nyx-accent) 7%, var(--_nyx-paper)));
+  --_nyx-label: var(--nyx-control-text, var(--_nyx-ink));
+  --_nyx-corner: min(var(--nyx-radius, 12px), 8px);
   position: fixed;
   z-index: var(--nyx-z-index, 1000);
-  inset: auto max(16px, env(safe-area-inset-right))
-    max(16px, env(safe-area-inset-bottom)) auto;
+  inset: auto max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) auto;
   color: var(--_nyx-ink);
 }
 :host([position="left"]) {
   right: auto;
   left: max(16px, env(safe-area-inset-left));
 }
-* {
-  box-sizing: border-box;
+:host([layout="anchored"]) {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: max-content;
+  flex: none;
 }
-[hidden] {
-  display: none !important;
-}
-button,
-textarea,
-a {
-  font: inherit;
-}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+button, textarea, a { font: inherit; }
 button {
   cursor: pointer;
-  border: 0;
-  color: inherit;
-  background: transparent;
-}
-button:disabled {
-  cursor: default;
-  opacity: 0.55;
-}
-button:focus-visible,
-a:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--_nyx-accent);
-  outline-offset: 2px;
-}
-.launch,
-.send,
-.connect {
-  background: var(--_nyx-accent);
-  color: var(--nyx-accent-text, white);
+  color: var(--_nyx-label);
+  background: var(--_nyx-control);
+  border: 1px solid var(--_nyx-line);
+  border-radius: var(--_nyx-corner);
+  font-family: var(--nyx-control-font, inherit);
+  font-size: .92em;
+  line-height: 1.25;
   font-weight: 600;
+  white-space: nowrap;
+}
+button:hover:enabled {
+  border-color: var(--_nyx-accent);
+  background: color-mix(in srgb, var(--_nyx-accent) 13%, var(--_nyx-paper));
+}
+button:disabled { opacity: .6; cursor: default; }
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--_nyx-accent);
+  outline-offset: 1px;
 }
 .launch {
-  border-radius: 999px;
-  min-height: 46px;
-  padding: 0 19px;
-  box-shadow: 0 3px 16px #0002;
-  display: flex;
+  display: inline-flex;
+  width: max-content;
   align-items: center;
-  gap: 10px;
+  gap: .55em;
+  min-height: max(36px, 2.45em);
+  padding: .4em .95em;
+  box-shadow: 0 2px 8px #0002;
 }
 .bubble {
   display: inline-block;
-  width: 18px;
-  height: 14px;
-  border: 1.8px solid currentColor;
-  border-radius: 5px 5px 5px 1px;
+  flex: none;
+  width: 1.15em;
+  height: .95em;
+  border: 1.5px solid currentColor;
+  border-radius: .26em .26em .26em 0;
+  color: var(--_nyx-accent);
+  background: radial-gradient(circle at 32% 50%, currentColor .07em, transparent .1em),
+    radial-gradient(circle at 68% 50%, currentColor .07em, transparent .1em);
 }
 .panel {
   border: 1px solid var(--_nyx-line);
-  border-radius: var(--nyx-radius, 18px);
+  border-radius: var(--nyx-radius, 12px);
   background: var(--_nyx-paper);
-  box-shadow: 0 8px 32px #0002;
+  box-shadow: 0 8px 28px #0003;
+  width: min(24rem, var(--nyx-panel-max-width, calc(100vw - 32px)));
+  max-height: var(--nyx-panel-max-height, min(30rem, calc(100dvh - 32px)));
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  width: min(23rem, calc(100vw - 32px));
-  max-height: var(--nyx-panel-max-height, calc(100dvh - 32px));
-  height: 30rem;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
-.panel:has(form[hidden]):not(:has(.msg)) {
-  height: auto;
+:host([layout="anchored"]) .panel {
+  position: absolute;
+  inset: auto 0 calc(100% + 6px) auto;
 }
-.chat:empty {
-  padding: 0;
-}
+:host([layout="anchored"][position="left"]) .panel { left: 0; right: auto; }
 header {
+  flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 12px 12px 18px;
+  flex-wrap: wrap;
+  gap: .4em;
+  padding: 5px 8px 5px 12px;
   border-bottom: 1px solid var(--_nyx-line);
 }
 h2 {
-  font: inherit;
+  font-family: var(--nyx-control-font, inherit);
+  font-size: 1em;
   font-weight: 650;
-  margin: 0;
+  margin: 0 auto 0 0;
+}
+.close, .disconnect {
+  color: var(--_nyx-muted);
+  background: transparent;
 }
 .close {
-  font: 24px/1 system-ui;
-  width: 40px;
-  height: 40px;
+  font: 1.35em/1 system-ui;
+  border-color: transparent;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
 }
-.disconnect {
-  margin-inline-start: auto;
-  font-size: 0.82em;
-  text-decoration: underline;
-}
+.disconnect { font-size: .85em; padding: .25em .62em; min-height: 26px; }
 .chat {
-  flex: 1;
   min-height: 0;
+  flex: 0 1 auto;
   overflow: auto;
-  padding: 16px;
   overscroll-behavior: contain;
+  padding: 0 12px;
 }
-p {
-  margin: 0 0 10px;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-.msg {
-  padding: 9px 12px;
-  border: 1px solid var(--_nyx-line);
-  border-radius: 12px;
-  width: fit-content;
-  max-width: 94%;
-}
+.chat:empty { display: none; }
+p { margin: 0 0 .6em; overflow-wrap: anywhere; white-space: pre-wrap; }
+.msg { width: fit-content; max-width: 95%; }
+.msg:first-child { margin-block-start: .65em; }
+.msg:last-child { margin-bottom: .65em; }
 .user {
-  background: color-mix(in srgb, var(--_nyx-accent) 11%, var(--_nyx-paper));
+  background: var(--_nyx-control);
+  border: 1px solid var(--_nyx-line);
+  border-radius: var(--_nyx-corner);
+  padding: .35em .65em;
   margin-inline-start: auto;
 }
-.controls {
-  padding: 12px;
-  border-top: 1px solid var(--_nyx-line);
-}
-.status {
-  font-size: 0.88em;
-}
-.status:empty {
-  display: none;
-}
+.controls { flex: none; padding: 8px 10px; }
+.chat:not(:empty) + .controls { border-top: 1px solid var(--_nyx-line); }
+.status { font-size: .9em; color: var(--_nyx-muted); }
+.status:empty { display: none; }
 form {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: .4em;
+  border: 1px solid var(--_nyx-line);
+  border-radius: var(--_nyx-corner);
+  padding: 3px;
 }
+form:focus-within { border-color: var(--_nyx-accent); }
 textarea {
-  height: 3.2em;
-  resize: vertical;
-  min-height: 40px;
-  max-height: 6em;
-  min-width: 0;
   flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  max-height: 6em;
+  height: 2.25em;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: .45em .5em;
   color: var(--_nyx-ink);
-  background: var(--_nyx-paper);
-  padding: 8px;
-  border: 1px solid var(--_nyx-line);
-  border-radius: 9px;
+  background: transparent;
 }
-.send,
-.connect,
-.resume {
-  border-radius: 10px;
-  min-height: 40px;
-  padding: 0 13px;
+@supports (field-sizing: content) {
+  textarea:not(:placeholder-shown) { field-sizing: content; height: auto; }
 }
-.resume {
-  border: 1px solid var(--_nyx-line);
+textarea::placeholder { color: var(--_nyx-muted); opacity: 1; }
+.send, .connect, .resume { min-height: 32px; padding: .3em .85em; }
+.send, .connect {
+  background: var(--nyx-action-surface, var(--_nyx-accent));
+  color: var(--nyx-accent-text, white);
 }
-a {
-  color: var(--_nyx-accent);
-  display: inline-block;
-  margin: 0 0 8px;
-  text-decoration: underline;
+.send:hover:enabled, .connect:hover:enabled {
+  background: var(--nyx-action-surface, var(--_nyx-accent));
+  color: var(--nyx-accent-text, white);
 }
+.resume { margin-top: .5em; }
+a { color: var(--_nyx-accent); display: inline-block; margin: 0 0 .5em; text-decoration: underline; }
 `;var Rl=class extends HTMLElement{#r=this.attachShadow({mode:"open"});#i;#n;#t;#o=!1;#u;#a=!1;get host(){return this.#i}get z(){return S}constructor(){super(),this.#r.innerHTML=`<style>${eg}</style>
       <button class="launch" part="launcher" type="button" aria-expanded="false" aria-controls="panel"><span class="bubble" part="launcher-icon" aria-hidden="true"></span>Nyx \u52A9\u624B</button>
       <section hidden id="panel" class="panel" part="panel" role="dialog" aria-labelledby="title">
-        <header part="header"><h2 id="title">Nyx \u52A9\u624B</h2><button class="disconnect" type="button" hidden>\u65AD\u5F00\u6388\u6743</button>
+        <header part="header"><h2 id="title">Nyx \u52A9\u624B</h2><button class="disconnect" part="secondary-action" type="button" hidden>\u65AD\u5F00\u6388\u6743</button>
           <button class="close" part="close" type="button" aria-label="\u6536\u8D77\u52A9\u624B">\xD7</button></header>
         <div class="chat" role="log" aria-label="\u804A\u5929\u8BB0\u5F55" aria-live="polite"></div>
         <div class="controls"><p class="status" role="status"></p>
           <a class="verify" hidden target="_blank" rel="noopener noreferrer"></a>
           <p class="connect-hint">\u8FDE\u63A5 NyxID \u540E\uFF0C\u53EF\u4EE5\u5411\u52A9\u624B\u63D0\u95EE\u6216\u64CD\u4F5C\u5F53\u524D\u9875\u9762\u3002</p>
           <button class="connect" part="primary-action" type="button">\u8FDE\u63A5 NyxID</button>
-          <form hidden><textarea part="input" aria-label="\u6D88\u606F" placeholder="\u7ED9 Nyx \u53D1\u6D88\u606F\u2026" required></textarea>
+          <form hidden><textarea rows="1" part="input" aria-label="\u6D88\u606F" placeholder="\u7ED9 Nyx \u53D1\u6D88\u606F\u2026" required></textarea>
             <button class="send" part="primary-action" type="submit">\u53D1\u9001</button></form>
           <button class="resume" hidden type="button">\u6838\u5BF9\u539F\u8BF7\u6C42</button>
         </div>
-      </section>`,this.#e(".launch").onclick=()=>this.#v(!0),this.#e(".close").onclick=()=>this.#v(!1),this.#e(".connect").onclick=()=>{this.#g()},this.#e(".disconnect").onclick=()=>{this.#b()},this.#e("form").onsubmit=r=>{r.preventDefault(),this.#h(!1)},this.#e(".resume").onclick=()=>{this.#h(!0)},this.#e("textarea").onkeydown=r=>{r.key==="Enter"&&!r.shiftKey&&!r.isComposing&&(r.preventDefault(),this.#h(!1))},this.#e(".panel").onkeydown=r=>{r.key==="Escape"&&this.#v(!1)}}#e(r){return this.#r.querySelector(r)}connectedCallback(){this.hasAttribute("data-proxy")?this.bind(new we(new URL(this.dataset.proxy||"/",location.href))):(this.#l(),this.dataset.storage==="local"&&this.#g(!0)),window.addEventListener("storage",this.#c),window.addEventListener("pagehide",this.#s),window.addEventListener("pageshow",this.#d)}#c=r=>{this.#p&&(r.key===null||r.key===this.#u?.credentialStorageKey)&&(this.#f(),this.#g(!0))};#s=()=>this.#f();#d=r=>{r.persisted&&(this.disconnectedCallback(),this.connectedCallback())};disconnectedCallback(){window.removeEventListener("storage",this.#c),window.removeEventListener("pagehide",this.#s),window.removeEventListener("pageshow",this.#d),this.#f()}#f(){let r=this.#o?void 0:this.#t;return this.#t=void 0,this.#o=!1,this.#m(),(this.#p?void 0:r?.())?.catch(()=>{this.#i||(this.#e(".status").textContent="\u8BF7\u5728 NyxID \u6838\u5BF9\u6D4F\u89C8\u5668\u5B50\u51ED\u636E\u7684\u64A4\u9500\u72B6\u6001\u3002")})}#m(){this.#n?.controller.abort(),this.#n=void 0,this.#i?.dispose(),this.#i=void 0,this.#a=!1,this.#e(".chat").replaceChildren(),this.#e("textarea").value="",this.#e(".status").textContent="",this.#e(".verify").hidden=!0,this.#l()}bind(r){this.#$(r)}#$(r,i){this.#f();let o=new qi(Kp(r),()=>({title:document.title,language:document.documentElement.lang}));this.#i=o,this.#t=i,this.#l(),this.dispatchEvent(new CustomEvent("nyx-ready",{bubbles:!0,composed:!0,detail:{host:o,z:S}}))}#p=!1;#_(){let r=new URL(this.dataset.nyxid||"https://nyx.chrono-ai.fun"),i,o;this.dataset.storage==="local"&&(o=localStorage),this.#p=!!o;try{i=sessionStorage}catch{}let t=(this.dataset.services??"llm-nyx,chrono-llm-public").split(",").map(n=>n.trim());return new Hi({base:r,verificationOrigin:this.dataset.verificationOrigin||r.origin,services:t,storage:i,credentialStorage:o,clientLabel:location.hostname,keySource:this.dataset.keySource==="new"?"new":"existing"})}async#g(r=!1){if(this.#n||this.#i||this.#t)return;let i=new AbortController,o={controller:i,restoreOnly:r},{signal:t}=i;this.#n=o,this.#l(),this.#e(".status").textContent="\u6B63\u5728\u8FDE\u63A5 NyxID\u2026";try{let n=this.#u??=this.#_(),a=r?await n.restore(t):await n.connect(t,(c,s)=>{let u=this.#e(".verify");u.href=c.href,u.textContent="\u6253\u5F00 NyxID \u6388\u6743\u9875",u.hidden=!1,this.#e(".status").textContent="\u5728 NyxID \u6838\u5BF9\u6388\u6743\u7801 "+s,this.#l()});if(t.aborted){this.#p||await a?.revoke();return}if(!a){this.#e(".status").textContent="";return}this.#$(a.connection,a.revoke),this.#e(".panel").hidden||this.#e("textarea").focus()}catch(n){t.aborted||(this.#e(".status").textContent=n instanceof Error?n.message:"\u65E0\u6CD5\u8FDE\u63A5 NyxID\u3002")}finally{this.#n===o&&(this.#n=void 0,this.#e(".verify").hidden=!0,this.#l())}}async#b(){let r=this.#t;if(this.#o||!r&&this.#n?.restoreOnly!==!1)return;if(this.#u?.cancel(),!r){this.#f(),this.#e(".connect").focus();return}this.#o=!0,this.#m(),this.#e(".status").textContent="\u6B63\u5728\u64A4\u9500 NyxID \u6388\u6743\u2026";let i=!1;try{await r()}catch{i=!0}this.#t===r&&(this.#o=!1,i||(this.#t=void 0),this.#e(".status").textContent=i?"NyxID \u672A\u786E\u8BA4\u64A4\u9500\uFF0C\u8BF7\u91CD\u8BD5\u65AD\u5F00\u6388\u6743\u3002":"",this.#l(),this.#e(".panel").hidden||this.#e(i?".disconnect":".connect").focus())}#l(){let r=!!this.#i?.pendingRequestId,i=this.#n?.restoreOnly===!1,o=this.#e(".disconnect");this.#e(".connect").hidden=!!(this.#i||this.#n||this.#t),this.#e(".connect-hint").hidden=this.#e(".connect").hidden,o.hidden=!this.#t&&!i,o.disabled=this.#o,o.textContent=i?"\u505C\u6B62\u7B49\u5F85\u6388\u6743":"\u65AD\u5F00\u6388\u6743",this.#e("form").hidden=!this.#i,this.#e(".send").disabled=this.#a||r,this.#e(".resume").hidden=this.#a||!r}#v(r){this.#e(".panel").hidden=!r;let i=this.#e(".launch");i.hidden=r,i.setAttribute("aria-expanded",String(r));let o=".connect";this.#i?o="textarea":this.#n||this.#o?o=".close":this.#t&&(o=".disconnect"),this.#e(r?o:".launch").focus()}#y(r,i){let o=this.#e(".chat"),t=document.createElement("p");t.className=i?"msg user":"msg",t.setAttribute("aria-label",i?"\u4F60":"Nyx"),t.textContent=r,o.append(t),o.scrollTop=o.scrollHeight}async#h(r){let i=this.#i,o=this.#e("textarea");if(!i||this.#a||!!i.pendingRequestId!==r)return;let t=o.value.trim();if(!r){if(!t)return;this.#y(t,!0),o.value=""}this.#a=!0,this.#l(),this.#e(".status").textContent=r?"\u6B63\u5728\u6838\u5BF9\u539F\u8BF7\u6C42\u2026":"\u6B63\u5728\u7B49\u5F85\u56DE\u590D\u2026";try{let n=await(r?i.resume():i.send(t));if(i!==this.#i)return;this.#y(n,!1),this.#e(".status").textContent=""}catch(n){i===this.#i&&(this.#e(".status").textContent=n instanceof Error?n.message:"\u8BF7\u6C42\u5931\u8D25\u3002")}finally{i===this.#i&&(this.#a=!1,this.#l())}}},Ll=document.currentScript;function tg(){if(document.querySelector("nyx-assistant"))return;let e=document.createElement("nyx-assistant");for(let r of["data-nyxid","data-verification-origin","data-proxy","data-services","data-key-source","data-storage"])Ll?.hasAttribute(r)&&e.setAttribute(r,Ll.getAttribute(r));Ll?.dataset.position==="left"&&e.setAttribute("position","left"),document.body.append(e)}customElements.get("nyx-assistant")||(customElements.define("nyx-assistant",Rl),document.readyState==="loading"?document.addEventListener("DOMContentLoaded",tg,{once:!0}):tg());})();
+      </section>`,this.#e(".launch").onclick=()=>this.#v(this.#e(".panel").hidden),this.#e(".close").onclick=()=>this.#v(!1),this.#e(".connect").onclick=()=>{this.#g()},this.#e(".disconnect").onclick=()=>{this.#b()},this.#e("form").onsubmit=r=>{r.preventDefault(),this.#h(!1)},this.#e(".resume").onclick=()=>{this.#h(!0)},this.#e("textarea").onkeydown=r=>{r.key==="Enter"&&!r.shiftKey&&!r.isComposing&&(r.preventDefault(),this.#h(!1))},this.#e(".panel").onkeydown=r=>{r.key==="Escape"&&this.#v(!1)}}#e(r){return this.#r.querySelector(r)}connectedCallback(){this.hasAttribute("data-proxy")?this.bind(new we(new URL(this.dataset.proxy||"/",location.href))):(this.#l(),this.dataset.storage==="local"&&this.#g(!0)),window.addEventListener("storage",this.#c),window.addEventListener("pagehide",this.#s),window.addEventListener("pageshow",this.#d)}#c=r=>{this.#p&&(r.key===null||r.key===this.#u?.credentialStorageKey)&&(this.#f(),this.#g(!0))};#s=()=>this.#f();#d=r=>{r.persisted&&(this.disconnectedCallback(),this.connectedCallback())};disconnectedCallback(){window.removeEventListener("storage",this.#c),window.removeEventListener("pagehide",this.#s),window.removeEventListener("pageshow",this.#d),this.#f()}#f(){let r=this.#o?void 0:this.#t;return this.#t=void 0,this.#o=!1,this.#m(),(this.#p?void 0:r?.())?.catch(()=>{this.#i||(this.#e(".status").textContent="\u8BF7\u5728 NyxID \u6838\u5BF9\u6D4F\u89C8\u5668\u5B50\u51ED\u636E\u7684\u64A4\u9500\u72B6\u6001\u3002")})}#m(){this.#n?.controller.abort(),this.#n=void 0,this.#i?.dispose(),this.#i=void 0,this.#a=!1,this.#e(".chat").replaceChildren(),this.#e("textarea").value="",this.#e(".status").textContent="",this.#e(".verify").hidden=!0,this.#l()}bind(r){this.#$(r)}#$(r,i){this.#f();let o=new qi(Kp(r),()=>({title:document.title,language:document.documentElement.lang}));this.#i=o,this.#t=i,this.#l(),this.dispatchEvent(new CustomEvent("nyx-ready",{bubbles:!0,composed:!0,detail:{host:o,z:S}}))}#p=!1;#_(){let r=new URL(this.dataset.nyxid||"https://nyx.chrono-ai.fun"),i,o;this.dataset.storage==="local"&&(o=localStorage),this.#p=!!o;try{i=sessionStorage}catch{}let t=(this.dataset.services??"llm-nyx,chrono-llm-public").split(",").map(n=>n.trim());return new Hi({base:r,verificationOrigin:this.dataset.verificationOrigin||r.origin,services:t,storage:i,credentialStorage:o,clientLabel:location.hostname,keySource:this.dataset.keySource==="new"?"new":"existing"})}async#g(r=!1){if(this.#n||this.#i||this.#t)return;let i=new AbortController,o={controller:i,restoreOnly:r},{signal:t}=i;this.#n=o,this.#l(),this.#e(".status").textContent="\u6B63\u5728\u8FDE\u63A5 NyxID\u2026";try{let n=this.#u??=this.#_(),a=r?await n.restore(t):await n.connect(t,(c,s)=>{let u=this.#e(".verify");u.href=c.href,u.textContent="\u6253\u5F00 NyxID \u6388\u6743\u9875",u.hidden=!1,this.#e(".status").textContent="\u5728 NyxID \u6838\u5BF9\u6388\u6743\u7801 "+s,this.#l()});if(t.aborted){this.#p||await a?.revoke();return}if(!a){this.#e(".status").textContent="";return}this.#$(a.connection,a.revoke),this.#e(".panel").hidden||this.#e("textarea").focus()}catch(n){t.aborted||(this.#e(".status").textContent=n instanceof Error?n.message:"\u65E0\u6CD5\u8FDE\u63A5 NyxID\u3002")}finally{this.#n===o&&(this.#n=void 0,this.#e(".verify").hidden=!0,this.#l())}}async#b(){let r=this.#t;if(this.#o||!r&&this.#n?.restoreOnly!==!1)return;if(this.#u?.cancel(),!r){this.#f(),this.#e(".connect").focus();return}this.#o=!0,this.#m(),this.#e(".status").textContent="\u6B63\u5728\u64A4\u9500 NyxID \u6388\u6743\u2026";let i=!1;try{await r()}catch{i=!0}this.#t===r&&(this.#o=!1,i||(this.#t=void 0),this.#e(".status").textContent=i?"NyxID \u672A\u786E\u8BA4\u64A4\u9500\uFF0C\u8BF7\u91CD\u8BD5\u65AD\u5F00\u6388\u6743\u3002":"",this.#l(),this.#e(".panel").hidden||this.#e(i?".disconnect":".connect").focus())}#l(){let r=!!this.#i?.pendingRequestId,i=this.#n?.restoreOnly===!1,o=this.#e(".disconnect");this.#e(".connect").hidden=!!(this.#i||this.#n||this.#t),this.#e(".connect-hint").hidden=this.#e(".connect").hidden,o.hidden=!this.#t&&!i,o.disabled=this.#o,o.textContent=i?"\u505C\u6B62\u7B49\u5F85\u6388\u6743":"\u65AD\u5F00\u6388\u6743",this.#e("form").hidden=!this.#i,this.#e(".send").disabled=this.#a||r,this.#e(".resume").hidden=this.#a||!r}#v(r){this.#e(".panel").hidden=!r;let i=this.#e(".launch");i.hidden=r&&this.getAttribute("layout")!=="anchored",i.setAttribute("aria-expanded",String(r));let o=".connect";this.#i?o="textarea":this.#n||this.#o?o=".close":this.#t&&(o=".disconnect"),this.#e(r?o:".launch").focus()}#y(r,i){let o=this.#e(".chat"),t=document.createElement("p");t.className=i?"msg user":"msg",t.setAttribute("aria-label",i?"\u4F60":"Nyx"),t.textContent=r,o.append(t),o.scrollTop=o.scrollHeight}async#h(r){let i=this.#i,o=this.#e("textarea");if(!i||this.#a||!!i.pendingRequestId!==r)return;let t=o.value.trim();if(!r){if(!t)return;this.#y(t,!0),o.value=""}this.#a=!0,this.#l(),this.#e(".status").textContent=r?"\u6B63\u5728\u6838\u5BF9\u539F\u8BF7\u6C42\u2026":"\u6B63\u5728\u7B49\u5F85\u56DE\u590D\u2026";try{let n=await(r?i.resume():i.send(t));if(i!==this.#i)return;this.#y(n,!1),this.#e(".status").textContent=""}catch(n){i===this.#i&&(this.#e(".status").textContent=n instanceof Error?n.message:"\u8BF7\u6C42\u5931\u8D25\u3002")}finally{i===this.#i&&(this.#a=!1,this.#l())}}},Ll=document.currentScript;function tg(){if(document.querySelector("nyx-assistant"))return;let e=document.createElement("nyx-assistant");for(let r of["data-nyxid","data-verification-origin","data-proxy","data-services","data-key-source","data-storage"])Ll?.hasAttribute(r)&&e.setAttribute(r,Ll.getAttribute(r));Ll?.dataset.position==="left"&&e.setAttribute("position","left"),document.body.append(e)}customElements.get("nyx-assistant")||(customElements.define("nyx-assistant",Rl),document.readyState==="loading"?document.addEventListener("DOMContentLoaded",tg,{once:!0}):tg());})();
