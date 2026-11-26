@@ -23,8 +23,10 @@ domain. The existing Atlas stays at https://www.trureturing.org/atlas.
 
 The dashboard is plain HTML, CSS and JavaScript. The panorama collector uses Python's
 standard library; continuous organization observations use a pinned Rust foundation.
-There is no frontend build step, runtime CDN, browser token,
-private data dependency or change to any observed repository.
+The public dashboard loads without a frontend build, runtime CDN, or browser login.
+
+The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors approve a scoped browser credential on NyxID. The SDK encrypts the child credential with a non-exportable key in the site's IndexedDB and revalidates it after reload. The dedicated chrono-cd service forwards requests to NyxID. Each tab can read its current view and switch between organization and journey. Disconnecting revokes the child credential across that site's tabs.
+[SDK v0.1.0-alpha.5](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.1.0-alpha.5)
 
 ## Run locally
 

@@ -8828,6 +8828,29 @@ for (const tab of document.querySelectorAll('[data-dock-tab]')) {
 $('#dock-close-btn')?.addEventListener('click', closeDockDrawer);
 
 // Event bindings
+function registerDashboardTools({ host, z }) {
+  const currentView = () => ({ mode: state.mode, following: state.follow });
+  host.registerTool({
+    name: 'read_view', description: 'Read the current dashboard view and live-follow state in this tab.',
+    parameters: z.object({}), execute: () => ({ ok: true, value: currentView() }),
+  });
+  host.registerTool({
+    name: 'switch_view', description: 'Switch this tab to the organization overview or the journey view.',
+    parameters: z.object({ mode: z.enum(['organization', 'journey']) }),
+    execute: ({ mode }, signal) => {
+      signal.throwIfAborted();
+      const button = document.querySelector(`button[data-mode="${mode}"]`);
+      if (!button || button.disabled) return { ok: false, code: 'unavailable', message: '当前视图无法切换。' };
+      button.click();
+      if (state.mode !== mode) return { ok: false, code: 'unavailable', message: '页面尚未切换视图。' };
+      return { ok: true, value: currentView() };
+    },
+  });
+}
+document.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
+const nyxWidget = document.querySelector('nyx-assistant');
+if (nyxWidget?.host) registerDashboardTools(nyxWidget);
+
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => {
     if (button.dataset.mode === 'journey') state.follow = false;

@@ -2892,3 +2892,11 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   .inline-browser .ib-out { font-size: 0; }
   .inline-browser .ib-out::after { content: "↗"; font-size: 14px; }
 }
+
+nyx-assistant {
+  --nyx-surface: var(--surface-solid);
+  --nyx-text: var(--ink);
+  --nyx-accent: var(--accent);
+  --nyx-accent-text: var(--bg);
+  --nyx-radius: 10px;
+}
