@@ -2164,9 +2164,10 @@
         const tone = isLight
           ? [0.16, 0.24, 0.34]
           : isMatrixPal
-            ? (i % 5 === 0 ? [0.58, 1.0, 0.72] : [0.14, 0.88, 0.44])
-            : (i % 6 === 0 ? [0.96, 0.89, 0.76] : [0.76, 0.88, 0.98]);
-        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, isLight ? 0.24 : (0.18 + rand() * 0.38), 0, -0.1);
+            ? (i % 5 === 0 ? [0.48, 0.82, 0.60] : [0.12, 0.68, 0.34])
+            : (i % 6 === 0 ? [0.82, 0.86, 0.92] : [0.58, 0.70, 0.82]);
+        const alpha = isLight ? 0.18 : (isMatrixPal ? 0.12 + rand() * 0.22 : 0.10 + rand() * 0.22);
+        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, alpha, 0, -0.1);
       }
 
       // 2. Real Lean Verified Truth DAG stars on the 3D Orbital Spiral Galaxies — sized & colored by real dependency tier!
@@ -2188,16 +2189,16 @@
               [0.91, 1.00, 0.92]  // 345+ core hubs: incandescent Matrix white-green #e8ffea!
             ]
           : [
-              [0.36, 0.54, 0.74], // 0 leaves: quiet slate-blue stardust
-              [0.48, 0.74, 0.88], // 1-5: crisp ice-cyan
-              [0.30, 0.84, 0.75], // 6-63: luminous mint-teal
-              [0.20, 0.92, 0.78], // 64-344: vibrant turquoise
-              [0.98, 0.79, 0.38]  // 345+ core hubs: radiant amber-gold
+              [0.32, 0.44, 0.64], // 0 leaves: quiet blue stardust
+              [0.40, 0.56, 0.74], // 1-5: pale sapphire
+              [0.52, 0.68, 0.82], // 6-63: blue-white glow
+              [0.66, 0.76, 0.86], // 64-344: soft silver-cyan
+              [0.86, 0.78, 0.62]  // 345+ hubs: restrained warm white
             ];
       const tierSizes  = [1.95, 2.80, 4.10, 5.85, 8.20];
       const tierAlphas = isLight
         ? [0.64, 0.80, 0.90, 0.96, 1.00]
-        : [0.60, 0.80, 0.92, 0.98, 1.00];
+        : [0.44, 0.58, 0.70, 0.80, 0.88];
 
       const worldPts = [];
       const starBuckets = [[], [], [], [], [], []]; // 0 = Foundations belt, 1..5 = named galaxy tier 0..4
@@ -2304,8 +2305,8 @@
           const hi = (tu >= 3 || tv >= 3);
           const col = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
           const al = cu === 7
-            ? (isLight ? 0.06 : 0.05)
-            : (hi ? (isLight ? 0.19 : 0.15) : (isLight ? 0.10 : 0.08));
+            ? (isLight ? 0.06 : 0.035)
+            : (hi ? (isLight ? 0.19 : 0.10) : (isLight ? 0.10 : 0.05));
           edgeData.push(
             pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge,
             pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge

@@ -5179,7 +5179,7 @@ function drawMagnifiedStars(ctx, scene, x, y, width, height, zoom, isLight) {
     if (bridge || projZ[u] === 999 || projZ[v] === 999 || stars[u][3] !== stars[v][3]) continue;
     const ax = projX[u], ay = projY[u], bx = projX[v], by = projY[v];
     if (Math.max(ax, bx) < x || Math.min(ax, bx) > right || Math.max(ay, by) < y || Math.min(ay, by) > bottom) continue;
-    ctx.strokeStyle = rgba(scene.palette[stars[u][3] % scene.palette.length], 0.27);
+    ctx.strokeStyle = rgba(scene.palette[stars[u][3] % scene.palette.length], 0.17);
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
   }
   for (let i = 0; i < stars.length; i++) {
@@ -5188,9 +5188,9 @@ function drawMagnifiedStars(ctx, scene, x, y, width, height, zoom, isLight) {
     const [, , , cid, generation, degree] = stars[i];
     const col = scene.palette[cid % scene.palette.length];
     const r = (degree >= 7 ? 0.95 : degree >= 3 ? 0.68 : 0.47) / scale;
-    ctx.fillStyle = rgba(col, 0.10);
+    ctx.fillStyle = rgba(col, 0.07);
     ctx.beginPath(); ctx.arc(px, py, r * 2.3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = rgba(!isLight && degree >= 7 ? [222, 240, 250] : col, 0.59 + 0.28 * generation / 100);
+    ctx.fillStyle = rgba(!isLight && degree >= 7 ? [206, 218, 232] : col, 0.48 + 0.22 * generation / 100);
     ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
   }
 }
@@ -5429,14 +5429,14 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
           [12, 102, 82], [24, 72, 148], [134, 78, 16], [36, 78, 94]
         ]
       : [
-          [76,  228, 218], // 0 Combinatorics: Lagoon Turquoise
-          [86,  198, 255], // 1 Quantum: Electric Sapphire-Cyan
-          [242, 194, 108], // 2 Arith: Carina Gold-Amber
-          [176, 146, 248], // 3 ConceptDynamics: Cosmic Amethyst-Violet
-          [84,  228, 174], // 4 Analytic: Aurora Emerald-Mint
-          [122, 176, 255], // 5 Weil: Astral Periwinkle-Cobalt
-          [244, 186, 162], // 6 Observer: Rose-Champagne Starlight
-          [138, 192, 232]  // 7 Foundations Belt: Milky-Way Silver-Blue
+          [142, 182, 224], // 0 Combinatorics: cool blue-white
+          [154, 190, 232], // 1 Quantum: pale sapphire
+          [202, 188, 154], // 2 Arith: muted warm starlight
+          [174, 164, 218], // 3 ConceptDynamics: soft violet
+          [146, 198, 186], // 4 Analytic: pale mint
+          [160, 184, 224], // 5 Weil: quiet periwinkle
+          [208, 178, 164], // 6 Observer: dusty rose-white
+          [158, 184, 216]  // 7 Foundations Belt: silver-blue
         ];
 
   const quiet = state.quiet || reduced;
@@ -5680,8 +5680,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
         ]);
       }
       const strength = Math.min(1.0, Math.log1p(count) / Math.log1p(140));
-      const baseA = webCid != null ? (isLight ? 0.36 : 0.42) : (isLight ? 0.14 : 0.13);
-      const alpha = baseA + strength * (webCid != null ? 0.22 : 0.08);
+      const baseA = webCid != null ? (isLight ? 0.36 : 0.28) : (isLight ? 0.14 : 0.09);
+      const alpha = baseA + strength * (webCid != null ? 0.15 : 0.05);
       const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
       grad.addColorStop(0, rgba(a.col, alpha));
       grad.addColorStop(1, rgba(b.col, alpha));
@@ -5695,7 +5695,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
         const f = (tEff * (0.14 + (i % 3) * 0.03) + i * 0.23) % 1;
         const idxF = Math.min(pts.length - 1, Math.floor(f * (pts.length - 1)));
         const mp = pts[idxF];
-        ctx.fillStyle = isLight ? rgba(a.col, 0.85) : rgba([238, 248, 255], Math.min(0.75, alpha * 2.2));
+        ctx.fillStyle = isLight ? rgba(a.col, 0.85) : rgba([238, 248, 255], Math.min(0.48, alpha * 1.8));
         ctx.beginPath();
         ctx.arc(mp[0], mp[1], 1.4 + strength * 0.7, 0, Math.PI * 2);
         ctx.fill();
@@ -5750,10 +5750,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
       const hasGrowth = Boolean(recentBucket(clId)?.count);
       const branchDim = clusterEmphasis(clId);
       const alpha = isSpot
-        ? (isLight ? 0.28 : 0.34)
+        ? (isLight ? 0.28 : 0.24)
         : hasGrowth
-          ? (isLight ? 0.13 : 0.13)
-          : (isLight ? 0.065 : 0.068);
+          ? (isLight ? 0.13 : 0.09)
+          : (isLight ? 0.065 : 0.05);
       ctx.strokeStyle = rgba(col, alpha * Math.min(1.15, branchDim));
       ctx.lineWidth = isSpot ? 0.80 : 0.45;
       ctx.beginPath();
@@ -5784,10 +5784,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
       if (mask < 0.16) continue;
       const col = nebPalette[s[3] % nebPalette.length];
       const degW = s[5];
-      const baseA = isSpot ? 0.72 : hasGrowth ? 0.38 : 0.24;
+      const baseA = isSpot ? 0.58 : hasGrowth ? 0.30 : 0.18;
       const aCore = (baseA + (degW >= 7 ? 0.12 : 0)) * mask * Math.min(1.15, clusterEmphasis(s[3]));
       const sz = (degW >= 7 ? 1.5 : 1.0) * grow;
-      ctx.fillStyle = rgba(degW >= 8 && !isLight ? [232, 244, 255] : col, Math.min(0.84, aCore));
+      ctx.fillStyle = rgba(degW >= 8 && !isLight ? [214, 224, 236] : col, Math.min(0.72, aCore));
       ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
     }
   }
@@ -7801,7 +7801,7 @@ function drawHolo3DFrame(dt = 0.016) {
       ? [[34,255,122],[74,255,158],[148,255,114],[26,224,128],[92,255,174],[48,242,136],[168,255,124],[34,192,108]]
       : isLight
         ? [[8,96,92],[10,82,138],[142,74,12],[66,48,146],[12,102,82],[24,72,148],[134,78,16],[36,78,94]]
-        : [[76,228,218],[86,198,255],[242,194,108],[176,146,248],[84,228,174],[122,176,255],[244,186,162],[138,192,232]];
+        : [[142,182,224],[154,190,232],[202,188,154],[174,164,218],[146,198,186],[160,184,224],[208,178,164],[158,184,216]];
     const lightEntityPalette = {
       direction: [154, 84, 8], research: [4, 108, 78], review: [55, 48, 163], verification: [3, 83, 136],
       books: [107, 33, 168], publication: [17, 100, 53], outreach: [180, 60, 12], studio: [45, 67, 86]
