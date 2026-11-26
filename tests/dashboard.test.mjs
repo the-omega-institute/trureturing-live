@@ -469,9 +469,9 @@ test('truth DAG growth is grouped by galaxy and brought into close-up one place 
     const rising=win.growthFocusAmount(700);
     assert.ok(rising>0&&rising<1,'the close-up eases in');
     assert.equal(win.growthFocusAmount(3000),1,'the close-up holds while the galaxy grows');
-    const settling=win.growthFocusAmount(6400);
+    const settling=win.growthFocusAmount(8300);
     assert.ok(settling>0&&settling<1,'the close-up eases back');
-    assert.equal(win.growthFocusAmount(8000),0,'then the sky is calm');
+    assert.equal(win.growthFocusAmount(9600),0,'then the sky is calm');
     assert.deepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/X'),'a module always grows at the same place');
     assert.notDeepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/Y'));
   }finally{dom.window.close();}
@@ -597,7 +597,7 @@ test('independent embedded review and studio branch pills select each branch cle
   }finally{dom.window.close();}
 });
 
-test('opening a galaxy flies the camera to it as the main view; growth enlarges the galaxy in place',async()=>{
+test('opening a galaxy flies the camera to it as the main view; a growing galaxy takes the stage and returns',async()=>{
   const {dom,win}=await boot();try{
     const fov=38*Math.PI/180;
     const pose=win.galaxyCameraPose([-5.6,3.45,-9.9],1.4,fov);
@@ -613,33 +613,69 @@ test('opening a galaxy flies the camera to it as the main view; growth enlarges 
     assert.equal(win.galaxyCameraAllowed('growth',view()),false,'growth keeps the layout: the camera stays');
     assert.equal(win.galaxyCameraAllowed('manual',view({focusedDepartment:'research'})),false);
     assert.equal(win.galaxyCameraAllowed('manual',view({mode:'journey'})),false);
-    assert.equal(win.growthSwellAllowed(view()),true,'a growing galaxy is enlarged in the normal view');
-    assert.equal(win.growthSwellAllowed(view({layer:'galaxy'})),true);
-    assert.equal(win.growthSwellAllowed(view({layer:'station'})),false,'the station view is left alone');
-    assert.equal(win.growthSwellAllowed(view({manual:true})),false,'an opened galaxy is not disturbed');
-    assert.equal(win.growthSwellAllowed(view({focusedDepartment:'research'})),false);
-    assert.equal(win.growthSwellScale(0),1);
-    assert.ok(win.growthSwellScale(600)>1&&win.growthSwellScale(600)<win.growthSwellScale(1300),'the galaxy grows in smoothly');
-    assert.ok(win.growthSwellScale(3000)>=1.8,'and is clearly enlarged while it grows');
-    assert.ok(win.growthSwellScale(6400)<win.growthSwellScale(3000),'it shrinks back when growth ends');
-    assert.equal(win.growthSwellScale(7000),1,'and returns to its size');
-    const cl=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'}];
-    const sw=win.galaxyGatherTargets(null,cl,{cid:1,pivot:[-9.9,1.35,-3.9],scale:2.1,lift:1.8});
-    assert.equal(sw.get(1).scale,2.1);assert.deepEqual([...sw.get(1).pivot],[-9.9,1.35,-3.9]);assert.deepEqual([...sw.get(1).offset],[0,0,0],'it is enlarged where it is');
-    assert.ok(sw.get(1).alpha>=1);
-    assert.ok(sw.get(1).stretch[1]>1&&sw.get(1).stretch[0]===1,'its flat band opens up vertically while it grows');
-    assert.deepEqual([...sw.get(0).stretch],[1,1,1]);
-    assert.ok(win.growthSwellScale(3000)>=3,'the growing galaxy is enlarged enough to read');
-    const stage={left:30,right:1100,top:110,bottom:500};
-    assert.deepEqual([...win.growthSwellShift([600,300],120,80,stage)],[0,0],'a galaxy with room is enlarged exactly where it is');
-    const [lx]=win.growthSwellShift([60,300],120,80,stage);
-    assert.equal(lx,90,'a galaxy at the edge moves just far enough to stay on stage');
-    const [,ty]=win.growthSwellShift([600,150],120,80,stage);
-    assert.equal(ty,40);
-    const [bx,by]=win.growthSwellShift([1080,480],120,80,stage);
-    assert.equal(bx,-100);assert.equal(by,-60);
-    assert.deepEqual([...win.growthSwellShift([500,300],700,80,stage)],[65,0],'a galaxy wider than the stage is centred');
-    assert.equal(sw.get(0).scale,1);assert.equal(sw.get(0).alpha,1);assert.deepEqual([...sw.get(0).offset],[0,0,0],'the rest of the layout stays');
+    assert.equal(win.growthShowcaseAllowed(view()),true,'a growing galaxy takes the stage in the normal view');
+    assert.equal(win.growthShowcaseAllowed(view({layer:'galaxy'})),true);
+    assert.equal(win.growthShowcaseAllowed(view({layer:'station'})),false,'the station view is left alone');
+    assert.equal(win.growthShowcaseAllowed(view({manual:true})),false,'an opened galaxy is not disturbed');
+    assert.equal(win.growthShowcaseAllowed(view({focusedDepartment:'research'})),false);
+    assert.equal(win.growthShowcaseAllowed(view({intro:true})),false,'nor the opening sequence');
+    assert.equal(win.growthShowcaseAllowed(view({cinema:true})),false,'nor the director cruise');
+    const clusters=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'},{id:2,name:'Arith'},{id:3,name:'ConceptDynamics'},{id:4,name:'Analytic'},{id:5,name:'Weil'},{id:6,name:'Observer'},{id:7,name:'Other'}];
+    const frames=new win.Map([[0,{center:[-5.74,3.45,-9.8],radius:1.4}],[2,{center:[5.74,3.45,-9.8],radius:1.3}],[3,{center:[-9.09,2.45,-6.49],radius:1.2}],[5,{center:[9.09,2.45,-6.49],radius:1.2}],
+      [1,{center:[-9.92,1.35,-3.81],radius:1.3}],[4,{center:[9.92,1.35,-3.81],radius:1.1}],[6,{center:[0,3.55,-11.25],radius:1.1}],[7,{center:[0,2,-10],radius:9}]]);
+    const look=[0,2.55,-0.35],yaw=0,pitch=0.23,dist=26.2;
+    const pos=[look[0]+dist*Math.cos(pitch)*Math.sin(yaw),look[1]+dist*Math.sin(pitch),look[2]+dist*Math.cos(pitch)*Math.cos(yaw)];
+    const camera={pos,look,yaw,pitch,tanHalf:Math.tan(19*Math.PI/180)};
+    const plan=win.growthShowcasePlan(0,clusters,frames,camera,1.27);
+    const sub=(a,b)=>a.map((x,i)=>x-b[i]),dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],len=a=>Math.hypot(...a);
+    const basis=win.galaxyViewBasis(yaw,pitch);
+    const far=len(sub(frames.get(0).center,pos));
+    const rel=sub(plan.center,pos);
+    assert.ok(plan.depth<far*0.7,'the growing galaxy comes toward the viewer');
+    assert.ok(Math.abs(dot(rel,basis.right))<0.05*plan.depth,'to the middle of the stage');
+    assert.ok(dot(rel,basis.up)>0&&dot(rel,basis.up)<plan.depth*camera.tanHalf*0.5,'in the sky above the station');
+    assert.ok(plan.scale*1.4/plan.depth>3*1.4/far,'and is shown far larger');
+    assert.deepEqual(plan.others.map(o=>o.cid).sort(),[1,2,3,4,5,6],'every other galaxy lines up around it; the foundations belt does not');
+    const deg=plan.others.map(o=>{const d=sub(o.target,plan.center);return Math.atan2(dot(d,basis.up)/plan.ry,dot(d,basis.right)/plan.rx)*180/Math.PI;}).map(a=>(a+360)%360).sort((a,b)=>a-b);
+    assert.ok(deg.every(a=>a<=55.001||a>=124.999),'the top is kept clear for the caption');
+    const gaps=deg.map((a,i)=>(i+1<deg.length?deg[i+1]:deg[0]+360)-a).sort((a,b)=>a-b);
+    assert.ok(gaps.slice(0,-1).every(g=>Math.abs(g-gaps[0])<1e-6),'the others are spaced evenly around the rest of the ellipse');
+    assert.ok(Math.abs(gaps.at(-1)-70)<1e-6);
+    const sideOf=c=>Math.sign(dot(sub(frames.get(c).center,frames.get(0).center),basis.right));
+    const placed=c=>Math.sign(dot(sub(plan.others.find(o=>o.cid===c).target,plan.center),basis.right));
+    assert.equal(placed(2),sideOf(2),'and keep their order around it');
+    const halfH=plan.depth*camera.tanHalf,halfW=halfH*1.27;
+    for(const o of plan.others){
+      const r=frames.get(o.cid).radius*o.scale;
+      assert.ok(r<1.4*plan.scale,'each is shown smaller than the growing galaxy');
+      assert.ok(len(sub(o.target,plan.center))>1.4*plan.scale*plan.lift+r,'and clear of it');
+      const d=sub(o.target,pos);
+      assert.ok(Math.abs(dot(d,basis.right))+r<halfW&&Math.abs(dot(d,basis.up))+r<halfH,'and on stage');
+      for(const q of plan.others)if(q!==o)assert.ok(len(sub(o.target,q.target))>r+frames.get(q.cid).radius*q.scale,'and clear of each other');
+    }
+    const full=win.growthShowcaseTargets(plan,clusters,frames,1);
+    assert.deepEqual(full.get(0).offset.map(v=>+v.toFixed(6)),sub(plan.center,frames.get(0).center).map(v=>+v.toFixed(6)));
+    assert.equal(full.get(0).scale,plan.scale);
+    assert.ok(full.get(0).stretch[1]>1&&full.get(0).alpha>=1,'its flat band opens up and brightens');
+    const o2=plan.others.find(o=>o.cid===2);
+    assert.deepEqual(full.get(2).offset.map(v=>+v.toFixed(6)),sub(o2.target,frames.get(2).center).map(v=>+v.toFixed(6)));
+    assert.ok(full.get(7).alpha<0.5&&full.get(7).scale===1,'the foundations belt dims in place');
+    const rest=win.growthShowcaseTargets(plan,clusters,frames,0);
+    assert.ok([...rest.values()].every(t=>t.scale===1&&t.alpha===1&&t.offset.every(v=>v===0)&&t.stretch.every(v=>v===1)),'afterwards everything returns to its place');
+    assert.equal(win.growthFocusAmount(win.growthSpawnDue(0)),1,'new stars are born once the galaxy has arrived');
+    assert.equal(win.growthFocusAmount(win.growthSpawnDue(7)+1200),1,'and every supernova ends before the galaxy returns');
+    assert.equal(win.birthFx(-1,'m'),null);
+    const at=ms=>win.birthFx(ms,'D5/S1/X/Y');
+    assert.ok(at(80).flash>0.5,'a new star is born in a flash');
+    assert.ok(at(600).shock.r>at(200).shock.r,'its shock wave expands');
+    assert.ok(at(300).spikes.len>0,'with star spikes');
+    assert.ok(at(600).particles.length>=8&&at(600).particles.every(p=>Math.hypot(p.dx,p.dy)>0),'and ejecta flying out');
+    assert.equal(at(2000).pulses.length,3,'then it sends pulse broadcasts');
+    assert.ok(at(2000).pulses.every(p=>p.r>0&&p.a>0));
+    const after=at(6000);
+    assert.ok(after.flash===0&&after.shock===null&&after.spikes===null&&after.particles.length===0&&after.pulses.length===0,'and settles');
+    assert.deepEqual(JSON.stringify(at(500)),JSON.stringify(win.birthFx(500,'D5/S1/X/Y')),'the burst is the same each time');
+    assert.notEqual(JSON.stringify(at(500).particles),JSON.stringify(win.birthFx(500,'D5/S2/Other').particles),'and differs between modules');
     const preview=[...win.previewGrowthRecords(['Quantum','Arith'])];
     assert.ok(preview.length>=2&&preview.every(r=>r.preview===true),'preview growth is marked as preview');
     assert.deepEqual([...new Set(preview.map(r=>r.domain))],['Quantum','Arith']);
