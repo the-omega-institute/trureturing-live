@@ -998,18 +998,20 @@
         return;
       }
       // Crisp jewel-like dependency-tiered astronomical star (amber-gold 345+ hubs get delicate 4-point star glint!)
-      float disc = smoothstep(0.78, 0.34, r);
-      float softHalo = exp(-r * r * 5.0) * (0.28 + vHub * 0.34);
+      float galaxySoft = uTheme < 0.5 ? 0.68 : 1.0;
+      float disc = smoothstep(0.78, 0.34, r) * galaxySoft;
+      float softHalo = exp(-r * r * 5.0) * (0.22 + vHub * 0.26);
       float glint = vHub * (
         exp(-abs(d.y) * 32.0) * exp(-abs(d.x) * 4.8) +
         exp(-abs(d.x) * 32.0) * exp(-abs(d.y) * 4.8)
-      ) * 0.62;
+      ) * (uTheme < 0.5 ? 0.28 : 0.62);
       float alphaOut = clamp(max(disc, softHalo) + glint, 0.0, 1.0);
       float rimDark = smoothstep(0.56, 0.84, r) * 0.18;
-      float spec = smoothstep(0.36, 0.03, r) * (0.34 + vHub * 0.48);
+      float spec = smoothstep(0.36, 0.03, r) * (uTheme < 0.5 ? 0.16 + vHub * 0.26 : 0.34 + vHub * 0.48);
+      vec3 observatoryWhite = vec3(0.80, 0.87, 0.96);
       vec3 bodyCol = uTheme > 1.5
         ? mix(mix(vCol, vec3(0.08, 0.14, 0.22), rimDark * 0.35), vec3(1.0, 0.99, 0.96), smoothstep(0.30, 0.02, r) * (0.22 + vHub * 0.38))
-        : mix(vCol * (1.0 - rimDark), vec3(1.0, 0.99, 0.94), spec);
+        : mix(vCol * (1.0 - rimDark), uTheme < 0.5 ? observatoryWhite : vec3(1.0, 0.99, 0.94), spec);
       fragColor = vec4(bodyCol, alphaOut * clamp(vAlpha, 0.0, 1.0));
     } else if (vKind > 1.5) {
       // Radiant Warm Conjecture Lantern Star with crisp 4-point astronomical diffraction spikes
@@ -1904,8 +1906,8 @@
         destroyFBO(gl, this.sceneFBO);
         destroyFBO(gl, this.bloomA);
         destroyFBO(gl, this.bloomB);
-        const bw = Math.max(2, Math.floor(pw * 0.5));
-        const bh = Math.max(2, Math.floor(ph * 0.5));
+        const bw = Math.max(2, Math.floor(pw * 0.75));
+        const bh = Math.max(2, Math.floor(ph * 0.75));
         this.sceneFBO = createFBO(gl, pw, ph, true, this.hasFloat);
         if (!this.sceneFBO.ok) {
           destroyFBO(gl, this.sceneFBO);
@@ -2164,9 +2166,10 @@
         const tone = isLight
           ? [0.16, 0.24, 0.34]
           : isMatrixPal
-            ? (i % 5 === 0 ? [0.58, 1.0, 0.72] : [0.14, 0.88, 0.44])
-            : (i % 6 === 0 ? [0.96, 0.89, 0.76] : [0.76, 0.88, 0.98]);
-        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, isLight ? 0.24 : (0.18 + rand() * 0.38), 0, -0.1);
+            ? (i % 5 === 0 ? [0.48, 0.82, 0.60] : [0.12, 0.68, 0.34])
+            : (i % 6 === 0 ? [0.82, 0.86, 0.92] : [0.58, 0.70, 0.82]);
+        const alpha = isLight ? 0.18 : (isMatrixPal ? 0.12 + rand() * 0.22 : 0.06 + rand() * 0.14);
+        starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, alpha, 0, -0.1);
       }
 
       // 2. Real Lean Verified Truth DAG stars on the 3D Orbital Spiral Galaxies — sized & colored by real dependency tier!
@@ -2188,16 +2191,16 @@
               [0.91, 1.00, 0.92]  // 345+ core hubs: incandescent Matrix white-green #e8ffea!
             ]
           : [
-              [0.36, 0.54, 0.74], // 0 leaves: quiet slate-blue stardust
-              [0.48, 0.74, 0.88], // 1-5: crisp ice-cyan
-              [0.30, 0.84, 0.75], // 6-63: luminous mint-teal
-              [0.20, 0.92, 0.78], // 64-344: vibrant turquoise
-              [0.98, 0.79, 0.38]  // 345+ core hubs: radiant amber-gold
+              [0.32, 0.44, 0.64], // 0 leaves: quiet blue stardust
+              [0.40, 0.56, 0.74], // 1-5: pale sapphire
+              [0.52, 0.68, 0.82], // 6-63: blue-white glow
+              [0.66, 0.76, 0.86], // 64-344: soft silver-cyan
+              [0.86, 0.78, 0.62]  // 345+ hubs: restrained warm white
             ];
       const tierSizes  = [1.95, 2.80, 4.10, 5.85, 8.20];
       const tierAlphas = isLight
         ? [0.64, 0.80, 0.90, 0.96, 1.00]
-        : [0.60, 0.80, 0.92, 0.98, 1.00];
+        : [0.22, 0.30, 0.40, 0.50, 0.62];
 
       const worldPts = [];
       const starBuckets = [[], [], [], [], [], []]; // 0 = Foundations belt, 1..5 = named galaxy tier 0..4
@@ -2217,7 +2220,8 @@
             const cO = isLight ? [0.28, 0.38, 0.48] : (isMatrixPal ? [0.10, 0.56, 0.30] : [0.44, 0.62, 0.78]);
             const szO = 40.0 + (tier >= 3 ? 2.6 : 1.9);
             const alO = isLight ? 0.38 : (tier >= 3 ? 0.48 : 0.32);
-            starBuckets[0].push(wx, wy, wz, cO[0], cO[1], cO[2], szO, alO, s[3] + 1, gen);
+            const naturalAlpha = isLight || isMatrixPal ? 1 : 0.72 + gen * 0.28;
+            starBuckets[0].push(wx, wy, wz, cO[0], cO[1], cO[2], szO, alO * naturalAlpha, s[3] + 1, gen);
           } else {
             const tc = tierColors[tier];
             // Gently infuse mid-tier arms (tier 1..2) with 22% of the galaxy's signature hue so every galaxy stays distinct!
@@ -2225,7 +2229,8 @@
             const rS = tc[0] * (1 - galBlend) + (galCol[0] / 255) * galBlend;
             const gS = tc[1] * (1 - galBlend) + (galCol[1] / 255) * galBlend;
             const bS = tc[2] * (1 - galBlend) + (galCol[2] / 255) * galBlend;
-            starBuckets[tier + 1].push(wx, wy, wz, rS, gS, bS, 40.0 + tierSizes[tier], tierAlphas[tier], s[3] + 1, gen);
+            const naturalAlpha = isLight || isMatrixPal ? 1 : 0.62 + gen * 0.38;
+            starBuckets[tier + 1].push(wx, wy, wz, rS, gS, bS, 40.0 + tierSizes[tier], tierAlphas[tier] * naturalAlpha, s[3] + 1, gen);
           }
         }
         for (let b = 0; b < starBuckets.length; b++) {
@@ -2246,7 +2251,7 @@
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
           if (!isLight) {
             const cHalo = isMatrixPal ? [0.12, 0.62, 0.34] : [col[0] / 255 * 0.55, col[1] / 255 * 0.68, col[2] / 255 * 0.80];
-            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.085, cl.id + 1, 0.05);
+            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.025, cl.id + 1, 0.05);
           }
         }
       }
@@ -2304,8 +2309,8 @@
           const hi = (tu >= 3 || tv >= 3);
           const col = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
           const al = cu === 7
-            ? (isLight ? 0.06 : 0.05)
-            : (hi ? (isLight ? 0.19 : 0.15) : (isLight ? 0.10 : 0.08));
+            ? (isLight ? 0.06 : 0.025)
+            : (hi ? (isLight ? 0.19 : 0.06) : (isLight ? 0.10 : 0.03));
           edgeData.push(
             pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge,
             pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge
@@ -2937,7 +2942,7 @@
         gl.depthMask(true);
       }
 
-      // ---- PASS 2..5: SELECTIVE GPU BLOOM + ACES FILMIC + CHROMATIC EDGE + VIGNETTE + FILM GRAIN ----
+      // ---- PASS 2..5: selective high-resolution GPU bloom + ACES filmic + chromatic edge + vignette ----
       // In Cosmos mode, tighten bloom threshold so dependency-tiered star discs stay crisp while golden hubs & Akasha Eye gleam!
       const cosmosSharp = Math.max(galaxyBoost, (this.geo.atlasNodeCount > 0) ? Math.max(0, Math.min(1, fullAtlasAlpha)) : 0.0);
       gl.disable(gl.DEPTH_TEST);
@@ -2949,13 +2954,13 @@
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.sceneFBO.tex);
       gl.uniform1i(this.brightProg.u.uTex, 0);
-      gl.uniform1f(this.brightProg.u.uThreshold, isLight ? 0.94 : (0.42 + cosmosSharp * 0.22));
+      gl.uniform1f(this.brightProg.u.uThreshold, isLight ? 0.94 : (0.58 + cosmosSharp * 0.20));
       drawFullQuad();
 
       gl.useProgram(this.blurProg.p);
       gl.uniform1i(this.blurProg.u.uTex, 0);
       for (let pass = 0; pass < 2; pass++) {
-        const spread = pass === 0 ? 1.30 : 2.50;
+        const spread = pass === 0 ? 0.90 : 1.70;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomB.fbo);
         gl.bindTexture(gl.TEXTURE_2D, this.bloomA.tex);
         gl.uniform2f(this.blurProg.u.uDir, spread / this.bloomA.w, 0);
@@ -2978,7 +2983,7 @@
       gl.uniform1i(this.compProg.u.uBloom, 1);
       gl.uniform1f(this.compProg.u.uTheme, themeIdx);
       gl.uniform1f(this.compProg.u.uTime, tAnim);
-      const baseBloom = isLight ? 0.12 : (isMatrix ? 0.52 : 0.60);
+      const baseBloom = isLight ? 0.12 : (isMatrix ? 0.52 : 0.30);
       gl.uniform1f(this.compProg.u.uBloomStrength, baseBloom * (1.0 - cosmosSharp * 0.44));
       gl.uniform1f(this.compProg.u.uExposure, exposure);
       drawFullQuad();
