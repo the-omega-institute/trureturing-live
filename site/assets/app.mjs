@@ -1014,6 +1014,17 @@ function createCell(d, index) {
   pin.setAttribute('aria-hidden', 'true');
   pin.append(element('i', '', 'cell-pin-node'), element('i', '', 'cell-pin-stem'));
 
+  let leader;
+  if (holoWorld[d.id]?.x) {
+    button.classList.add('is-wing-label');
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'cell-leader');
+    svg.setAttribute('aria-hidden', 'true');
+    leader = document.createElementNS(ns, 'path');
+    svg.append(leader);
+    button.append(svg);
+  }
+
   const card = element('span', '', 'cell-card');
   const head = element('span', '', 'cell-head');
   const liveDot = element('i', '', 'cell-live-dot');
@@ -1051,7 +1062,7 @@ function createCell(d, index) {
       state.cells.get(next.id)?.button.focus();
     }
   });
-  return { button, status, title, mode, seats, landmark, landmarkCap };
+  return { button, status, title, mode, seats, landmark, landmarkCap, leader };
 }
 
 function previewDepartment(id) {
@@ -7380,6 +7391,78 @@ try {
 // ============================================================================
 // MAIN 3D BIOMIMETIC RENDER FRAME
 // ============================================================================
+// Place wing labels just outside and below their plinth. If two cards meet
+// during an orbit, use the nearest clear position inside the visible stage.
+function placeStationLabels(labels, bounds) {
+  const { left, right, top, bottom } = bounds;
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const occupied = [];
+  const gap = 6;
+  const axisX = labels.find(label => label.id === 'verification')?.body.x ?? (left + right) / 2;
+
+  // Batch layout reads before moving any buttons.
+  for (const label of labels) {
+    label.width = label.cell.button.offsetWidth;
+    label.height = label.cell.button.offsetHeight;
+  }
+
+  // Central labels have fixed attachment points. Place the wings in a stable
+  // order so a depth-sort change alone cannot change which card makes room.
+  labels.sort((a, b) => a.order - b.order);
+  for (const label of labels) {
+    const { cell, anchor, apex, scale, body } = label;
+    const { button, leader } = cell;
+    const hw = label.width * (leader ? 1 : scale) / 2;
+    const hh = label.height * (leader ? 1 : scale) / 2;
+    let x, cy;
+    if (leader) {
+      const side = body.x < axisX ? -1 : 1;
+      const offset = clamp(label.radius * 0.65 + hw * 0.18, 14, 56);
+      const preferredX = clamp(anchor.x + side * offset, left + hw, right - hw);
+      const preferredY = clamp(anchor.y + hh + gap, top + hh, bottom - hh);
+      x = preferredX;
+      cy = preferredY;
+
+      const overlaps = (cx, y, rect) =>
+        cx + hw + gap > rect.left && cx - hw - gap < rect.right &&
+        y + hh + gap > rect.top && y - hh - gap < rect.bottom;
+      if (occupied.some(rect => overlaps(x, cy, rect))) {
+        const xs = [x], ys = [cy];
+        for (const rect of occupied) {
+          xs.push(clamp(rect.left - hw - gap, left + hw, right - hw), clamp(rect.right + hw + gap, left + hw, right - hw));
+          ys.push(clamp(rect.top - hh - gap, top + hh, bottom - hh), clamp(rect.bottom + hh + gap, top + hh, bottom - hh));
+        }
+        let best = Infinity;
+        for (const cx of xs) {
+          for (const y of ys) {
+            const dx = cx - preferredX, dy = y - preferredY;
+            const cost = dx * dx + dy * dy * (dy < 0 ? 1.4 : 1);
+            if (cost < best && !occupied.some(rect => overlaps(cx, y, rect))) {
+              best = cost;
+              x = cx;
+              cy = y;
+            }
+          }
+        }
+      }
+      const endX = anchor.x - x + hw, endY = anchor.y - cy + hh;
+      const startX = clamp(endX, 0, 2 * hw), startY = clamp(endY, 0, 2 * hh);
+      leader.setAttribute('d', `M${startX.toFixed(1)},${startY.toFixed(1)} L${endX.toFixed(1)},${endY.toFixed(1)}`);
+    } else {
+      x = clamp(anchor.x, left + hw, right - hw);
+      cy = clamp(anchor.y + (apex ? -hh : hh), top + hh, bottom - hh);
+      button.style.setProperty('--depth-scale', scale.toFixed(3));
+      button.classList.toggle('is-apex-label', apex);
+    }
+    occupied.push({ left: x - hw, right: x + hw, top: cy - hh, bottom: cy + hh });
+    const y = leader ? cy : cy + (apex ? hh : -hh);
+    button.style.left = `${x.toFixed(1)}px`;
+    button.style.top = `${y.toFixed(1)}px`;
+    button.style.zIndex = String(label.selected ? 40 : Math.max(1, Math.round(30 - anchor.z)));
+    button.classList.add('is-projected');
+  }
+}
+
 function drawHolo3DFrame(dt = 0.016) {
   const canvas = $('#holo-3d');
   if (!canvas || /jsdom/i.test(navigator.userAgent || '')) return;
@@ -8647,6 +8730,7 @@ function drawHolo3DFrame(dt = 0.016) {
       }
     }
 
+    const nightPalette = !isLight && !isBlueprint ? StationModels.colors : null;
     if (id === 'direction') {
       // 01 SUPERVISORY OPTICAL APERTURE (监管之眼 · 精密光学轨道视界 — zero cartoon eyelashes!)
       const sy = yBase + Math.sin(t * 1.1) * 0.03;
@@ -8665,6 +8749,36 @@ function drawHolo3DFrame(dt = 0.016) {
         ctx.beginPath();
         ctx.arc(0, 0, wEye * 0.86, 0, Math.PI * 2);
         ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(StationModels.dialPoles[0] + t * 0.18);
+        ctx.strokeStyle = rgba(rgb, isLight ? 0.52 : 0.62);
+        ctx.beginPath();
+        for (let i = 1; i < 12; i++) {
+          if (i === 6) continue;
+          const theta = i * Math.PI / 6;
+          const inner = wEye * (i % 3 === 0 ? 0.76 : 0.81);
+          ctx.moveTo(inner * Math.cos(theta), inner * Math.sin(theta));
+          ctx.lineTo(wEye * 0.86 * Math.cos(theta), wEye * 0.86 * Math.sin(theta));
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // Opposite sights on one Bloch measurement axis, centred on the original reticle.
+        for (const [i, angle] of StationModels.dialPoles.entries()) {
+          ctx.save();
+          ctx.rotate(angle + t * 0.18);
+          ctx.translate(wEye * 0.86, 0);
+          ctx.beginPath();
+          ctx.moveTo(-3.8 * sc, 0);
+          ctx.lineTo(0, -2.6 * sc);
+          ctx.lineTo(3.8 * sc, 0);
+          ctx.lineTo(0, 2.6 * sc);
+          ctx.closePath();
+          ctx.fillStyle = rgba(i === 0 ? rgb : hiRGB, 0.90);
+          ctx.fill();
+          ctx.restore();
+        }
 
         // Cardinal reticle hairlines (precision aerospace optics)
         for (const [x1, y1, x2, y2] of [
@@ -8733,72 +8847,30 @@ function drawHolo3DFrame(dt = 0.016) {
       const cy3 = yBase + hEntity * 0.56 * bootK;
       const rad = 0.66 * bootK;
       const spin = t * 0.18;
-      const nodes = [];
-      for (let i = 0; i < 12; i++) {
-        const phi = Math.acos(1 - 2 * ((i + 0.5) / 12));
-        const theta = Math.PI * (1 + Math.sqrt(5)) * i + spin;
-        const nx = cx3 + Math.sin(phi) * Math.cos(theta) * rad;
-        const ny = cy3 + Math.cos(phi) * rad * 0.88;
-        const nz = cz3 + Math.sin(phi) * Math.sin(theta) * rad;
-        nodes.push({ p: project(nx, ny, nz), x: nx, y: ny, z: nz });
-      }
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y, nodes[i].z - nodes[j].z);
-          if (dist < rad * 1.28) {
-            draw3DSeg(nodes[i].p, nodes[j].p, rgba(rgb, glowA * 0.55), 0.9);
-          }
+      const crystal = nightPalette?.cyan || rgb;
+      const crownTint = nightPalette?.violet || hiRGB;
+      const { vertices, faces } = StationModels.icosahedron;
+      const cs = Math.cos(spin), sn = Math.sin(spin);
+      const nodes = vertices.map(([x, y, z]) => project(
+        cx3 + rad * (x * cs - z * sn), cy3 + y * rad, cz3 + rad * (x * sn + z * cs)
+      ));
+      for (const [i, j, k] of faces) {
+        const a = nodes[i], b = nodes[j], c = nodes[k];
+        if (!a || !b || !c) continue;
+        const front = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > 0;
+        const crown = i === 0 || j === 0 || k === 0;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath();
+        if (crown && front) {
+          ctx.fillStyle = rgba(crownTint, 0.34);
+          ctx.fill();
         }
-      }
-      for (let i = 0; i < nodes.length; i++) {
-        const pt = nodes[i].p;
-        if (!pt) continue;
-        ctx.fillStyle = rgba(i % 4 === 0 ? hiRGB : rgb, 0.88);
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 1.8, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = rgba(crown ? crownTint : crystal, (front ? 0.58 : 0.18) * glowA);
+        ctx.lineWidth = crown && front ? 1.3 : 0.75;
+        ctx.stroke();
       }
       draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3 - rad * 0.84, cz3), rgba(rgb, 0.42), 1.0);
       draw3DRing(cx3, cy3, cz3, rad * 1.18, rad * 1.18, 32, rgba(rgb, 0.24), 0.75);
-    } else if (id === 'review') {
-      // 03 INDEPENDENT REVIEW (独立评审): Precision CAD Balance Scales
-      const hPole = 1.05 * bootK;
-      const tilt = Math.sin(t * 0.9) * 0.10;
-      const arm = 0.64 * bootK;
-      const baseP = project(cx3, 0.04, cz3);
-      const fulcP = project(cx3, hPole, cz3);
-      draw3DSeg(baseP, fulcP, rgba(rgb, glowA * 0.78), 1.35);
-      const eyeTop = project(cx3, hPole + 0.24 * bootK, cz3);
-      draw3DSeg(fulcP, eyeTop, rgba(hiRGB, glowA * 0.75), 1.0);
-      if (eyeTop) {
-        ctx.fillStyle = rgba(hiRGB, 0.90);
-        ctx.beginPath(); ctx.arc(eyeTop.x, eyeTop.y, 2.4, 0, Math.PI * 2); ctx.fill();
-      }
-      const lx = cx3 - Math.cos(tilt) * arm, ly = hPole + Math.sin(tilt) * arm;
-      const rx = cx3 + Math.cos(tilt) * arm, ry = hPole - Math.sin(tilt) * arm;
-      draw3DSeg(project(lx, ly, cz3), project(rx, ry, cz3), rgba(hiRGB, glowA * 0.82), 1.25);
-      for (const [px, py] of [[lx, ly], [rx, ry]]) {
-        const panY = py - 0.42 * bootK;
-        const rPan = 0.28 * bootK;
-        const topArm = project(px, py, cz3);
-        for (let k = 0; k < 3; k++) {
-          const a = (k / 3) * Math.PI * 2 + t * 0.18;
-          draw3DSeg(topArm, project(px + Math.cos(a) * rPan, panY, cz3 + Math.sin(a) * rPan), rgba(rgb, glowA * 0.48), 0.75);
-        }
-        const panPts = [];
-        for (let k = 0; k < 6; k++) {
-          const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
-          panPts.push(project(px + Math.cos(a) * rPan, panY, cz3 + Math.sin(a) * rPan));
-        }
-        if (!panPts.some(p => !p)) {
-          ctx.beginPath();
-          panPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-          ctx.closePath();
-          ctx.fillStyle = rgba(rgb, fillA * 1.2);
-          ctx.fill();
-          ctx.strokeStyle = rgba(hiRGB, glowA * 0.76);
-          ctx.lineWidth = 0.95;
-          ctx.stroke();
-        }
-      }
     } else if (id === 'verification') {
       // CENTRAL HUB (形式验证): Precision Ice-Cyan Architectural Double-Helix Lattice inside Hairline Prism Frame
       const hHelix = hEntity * bootK;
@@ -8843,9 +8915,11 @@ function drawHolo3DFrame(dt = 0.016) {
       const py = 0.34 * bootK + Math.sin(t * 1.0) * 0.03;
       const wLeaf = 0.74 * bootK, dLeaf = 0.50 * bootK, lift = 0.20 * bootK;
       draw3DSeg(project(cx3, 0.04, cz3), project(cx3, py, cz3), rgba(rgb, 0.38), 1.0);
-      for (let lv = 0; lv < 3; lv++) {
-        const yL = py + lv * 0.10 * bootK;
-        const arch = (lv === 2 ? 0.25 : 0.13 + lv * 0.05) * bootK;
+      const lastPage = StationModels.jetPages.length - 1;
+      for (const { order: lv, trace } of StationModels.jetPages) {
+        const pageTint = nightPalette ? (lv === 2 ? nightPalette.cyan : nightPalette.violet) : rgb;
+        const yL = py + (lv / lastPage) * 0.20 * bootK;
+        const arch = (lv === lastPage ? 0.25 : 0.13 + lv * 0.025) * bootK;
         const spF = project(cx3, yL, cz3 + dLeaf), spB = project(cx3, yL, cz3 - dLeaf);
         const lMF = project(cx3 - wLeaf * 0.52, yL + arch, cz3 + dLeaf), lMB = project(cx3 - wLeaf * 0.52, yL + arch, cz3 - dLeaf);
         const lEF = project(cx3 - wLeaf, yL + lift * 0.55, cz3 + dLeaf), lEB = project(cx3 - wLeaf, yL + lift * 0.55, cz3 - dLeaf);
@@ -8856,10 +8930,29 @@ function drawHolo3DFrame(dt = 0.016) {
           ctx.beginPath();
           poly.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
           ctx.closePath();
-          ctx.fillStyle = rgba(rgb, fillA * (lv === 2 ? 1.15 : 0.65));
+          ctx.fillStyle = rgba(pageTint, fillA * (lv === lastPage ? 1.15 : 0.65));
           ctx.fill();
-          ctx.strokeStyle = rgba(lv === 2 ? hiRGB : rgb, glowA * (lv === 2 ? 0.78 : 0.44));
-          ctx.lineWidth = lv === 2 ? 1.1 : 0.75;
+          ctx.strokeStyle = rgba(pageTint, glowA * (lv === lastPage ? 0.78 : 0.44));
+          ctx.lineWidth = lv === lastPage ? 1.1 : 0.75;
+          ctx.stroke();
+        }
+        // Index the truncation order on the front edge of each leaf.
+        for (let k = 0; k <= lv; k++) {
+          const x = cx3 + (0.24 + k * 0.075) * wLeaf;
+          const y = yL + (0.24 + k * 0.075) * arch / 0.52;
+          draw3DSeg(project(x, y, cz3 + dLeaf), project(x + 0.03 * wLeaf, y + 0.012 * bootK, cz3 + dLeaf),
+            rgba(k === lv ? (nightPalette?.amber || hiRGB) : pageTint, 0.84), 1.15);
+        }
+        if (lv === lastPage) {
+          ctx.beginPath();
+          for (const [i, [x, sum]] of trace.entries()) {
+            const u = 0.52 + 0.42 * x;
+            const pageHeight = u <= 0.52 ? arch * u / 0.52 : arch + (lift * 0.55 - arch) * (u - 0.52) / 0.48;
+            const pt = project(cx3 + wLeaf * u, yL + pageHeight + 0.012 * bootK, cz3 + dLeaf * (0.62 - 0.42 * sum));
+            if (pt) i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.strokeStyle = rgba(nightPalette?.violet || hiRGB, 0.80);
+          ctx.lineWidth = 1.1;
           ctx.stroke();
         }
       }
@@ -8883,56 +8976,7 @@ function drawHolo3DFrame(dt = 0.016) {
         ctx.lineWidth = 0.9;
         ctx.stroke();
       }
-    } else if (id === 'publication') {
-      // 06 PAPERS & KNOWLEDGE (论文与知识): Precision Crystal Knowledge Constellation Lattice
-      const hTree = hEntity * bootK;
-      const basePt = project(cx3, 0.04, cz3);
-      const forkPt = project(cx3, hTree * 0.44, cz3);
-      draw3DSeg(basePt, forkPt, rgba(rgb, glowA * 0.78), 1.35);
-      const branches = [
-        [0, 1.02, 0],
-        [-0.64, 0.84, 0.24], [0.64, 0.84, 0.24],
-        [-0.44, 0.78, -0.50], [0.44, 0.78, -0.50],
-        [0, 0.72, 0.62]
-      ];
-      const tips = [];
-      for (let i = 0; i < branches.length; i++) {
-        const [bx, by, bz] = branches[i];
-        const rot = t * 0.14;
-        const rx = bx * Math.cos(rot) - bz * Math.sin(rot);
-        const rz = bx * Math.sin(rot) + bz * Math.cos(rot);
-        const tip = project(cx3 + rx * bootK, by * hTree, cz3 + rz * bootK);
-        tips.push(tip);
-        draw3DSeg(forkPt, tip, rgba(rgb, glowA * 0.62), 0.95);
-      }
-      for (let i = 1; i < tips.length; i++) {
-        draw3DSeg(tips[0], tips[i], rgba(rgb, 0.28), 0.70);
-        draw3DSeg(tips[i], tips[(i % (tips.length - 1)) + 1], rgba(rgb, 0.22), 0.65);
-      }
-      for (let i = 0; i < tips.length; i++) {
-        if (!tips[i]) continue;
-        ctx.fillStyle = rgba(i === 0 ? hiRGB : rgb, 0.92);
-        ctx.beginPath(); ctx.arc(tips[i].x, tips[i].y, i === 0 ? 2.8 : 2.0, 0, Math.PI * 2); ctx.fill();
-      }
-    } else if (id === 'outreach') {
-      // 07 ACADEMIC OUTREACH (学术交流): Deep-Space Precision Parabolic Telemetry Array
-      const hDish = hEntity * 0.58 * bootK;
-      draw3DSeg(project(cx3, 0.04, cz3), project(cx3, hDish, cz3), rgba(rgb, glowA * 0.76), 1.3);
-      draw3DRing(cx3, hDish + 0.10, cz3, 0.34 * bootK, 0.34 * bootK, 16, rgba(rgb, glowA * 0.55), 0.9);
-      draw3DRing(cx3, hDish + 0.28, cz3, 0.68 * bootK, 0.68 * bootK, 24, rgba(hiRGB, glowA * 0.80), 1.2);
-      for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2 + t * 0.14;
-        draw3DSeg(project(cx3, hDish, cz3), project(cx3 + Math.cos(a) * 0.68 * bootK, hDish + 0.28, cz3 + Math.sin(a) * 0.68 * bootK), rgba(rgb, 0.42), 0.75);
-      }
-      const tip = project(cx3, hDish + 0.52 * bootK, cz3);
-      draw3DSeg(project(cx3, hDish, cz3), tip, rgba(hiRGB, 0.78), 1.0);
-      if (tip) { ctx.fillStyle = rgba(hiRGB, 0.92); ctx.beginPath(); ctx.arc(tip.x, tip.y, 2.2, 0, Math.PI * 2); ctx.fill(); }
-      for (let wv = 0; wv < 2; wv++) {
-        const u = (t * 0.32 + wv * 0.5) % 1;
-        const rad = (0.30 + u * 0.72) * bootK;
-        draw3DRing(cx3, hDish + 0.46 + u * 0.65, cz3, rad, rad, 24, rgba(rgb, Math.sin(u * Math.PI) * 0.46), 0.85);
-      }
-    } else {
+    } else if (id === 'studio') {
       // 08 STUDIO & TOOLING (工具与表达): Precision Titanium CAD Gears + Holo Cube
       const cy3 = 0.52 * bootK;
       draw3DSeg(project(cx3, 0.04, cz3), project(cx3, cy3, cz3), rgba(rgb, 0.45), 1.15);
@@ -8948,21 +8992,62 @@ function drawHolo3DFrame(dt = 0.016) {
           if (!pt) continue;
           if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
         }
-        ctx.fillStyle = rgba(rgb, fillA * 1.1);
+        ctx.fillStyle = rgba(nightPalette?.violet || rgb, fillA * 1.1);
         ctx.fill();
-        ctx.strokeStyle = rgba(hiRGB, glowA * 0.78);
+        ctx.strokeStyle = rgba(nightPalette?.violet || hiRGB, glowA * 0.78);
         ctx.lineWidth = 1.0;
         ctx.stroke();
       };
       drawGear(cx3 - 0.16 * bootK, cy3, cz3, 0.42, 0.58, 1, false);
       drawGear(cx3 + 0.34 * bootK, cy3 + 0.36 * bootK, cz3, 0.26, 0.40, -1.4, true);
-      const cY = cy3 + 0.70 * bootK, cs = 0.20 * bootK, rot = t * 0.42;
-      const cubeV = [-1, 1].flatMap(sy => [0, 1, 2, 3].map(k => {
-        const a = rot + k * Math.PI / 2 + Math.PI / 4;
-        return project(cx3 - 0.16 * bootK + Math.cos(a) * cs * 1.4, cY + sy * cs, cz3 + Math.sin(a) * cs * 1.4);
-      }));
-      for (const [u, v] of [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]) {
-        draw3DSeg(cubeV[u], cubeV[v], rgba(rgb, glowA * 0.72), 0.85);
+      const cY = cy3 + 0.70 * bootK, cubeHalf = 0.20 * bootK, rot = t * 0.42;
+      const cs = Math.cos(rot), sn = Math.sin(rot);
+      const cubeV = StationModels.bladeCorners.map(([x, y, z]) =>
+        project(cx3 - 0.16 * bootK + (x * cs - z * sn) * cubeHalf,
+          cY + y * cubeHalf, cz3 + (x * sn + z * cs) * cubeHalf));
+      for (const { mask, toMask, lit } of StationModels.bladeEdges) {
+        draw3DSeg(cubeV[mask], cubeV[toMask], rgba(lit ? (nightPalette?.cyan || hiRGB) : (nightPalette?.violet || rgb), glowA * (lit ? 0.95 : 0.42)), lit ? 1.2 : 0.7);
+      }
+    }
+
+    if (StationModels.ids.includes(id)) {
+      const { vertices, faces, lift, speed, breathBasis } = StationModels.get(id, true);
+      const yaw = t * speed, cs = Math.cos(yaw), sn = Math.sin(yaw);
+      const phase = (state.quiet || reduced ? 4.2 : t) * .72;
+      const breath = breathBasis && [Math.cos(phase), Math.sin(phase), Math.cos((1 + Math.sqrt(5)) * .5 * phase)];
+      const projected = vertices.map(([x, y, z], i) => {
+        let scale = bootK;
+        if (breath) {
+          const [a, b, c] = breathBasis[i];
+          scale *= .78 * (1 + a * breath[0] + b * breath[1] + c * breath[2]);
+        }
+        return project(cx3 + scale * (cs * x + sn * z), yBase + bootK * lift + scale * y,
+          cz3 + scale * (cs * z - sn * x));
+      });
+      const visible = [];
+      for (const face of faces) {
+        let depth = 0;
+        for (const index of face.indices) {
+          if (!projected[index]) { depth = -1; break; }
+          depth += projected[index].z;
+        }
+        if (depth >= 0) visible.push({ face, depth: depth / face.indices.length });
+      }
+      visible.sort((a, b) => b.depth - a.depth);
+      for (const { face } of visible) {
+        const { indices, finish, normal } = face;
+        const [nx, ny, nz] = normal;
+        const facing = Math.abs(-0.50 * (cs * nx + sn * nz) + 0.75 * ny + 0.42 * (cs * nz - sn * nx));
+        ctx.fillStyle = finish.shades[Math.round(11 * facing)];
+        const first = projected[indices[0]];
+        ctx.beginPath();
+        ctx.moveTo(first.x, first.y);
+        for (let k = 1; k < indices.length; k++) {
+          const p = projected[indices[k]];
+          ctx.lineTo(p.x, p.y);
+        }
+        ctx.closePath();
+        ctx.fill();
       }
     }
 
@@ -8985,6 +9070,7 @@ function drawHolo3DFrame(dt = 0.016) {
     })
     .sort((a, b) => b.depth - a.depth);
 
+  const labels = [];
   holoCam.projectedTowers.clear();
 
   for (const { d, cfg } of sorted) {
@@ -9032,75 +9118,29 @@ function drawHolo3DFrame(dt = 0.016) {
       drawBiomimetic(d.id, cfg, hEntity, yBase, rgb, isSel, running, bootK, pulseBoost);
     }
 
-    // Anchor KPR chamfered mission tag cleanly above floating Architect monolith or below each grounded monolith!
+    // Model picking uses the sculpture center, independent of its callout.
     const anchorPt = cfg.apex
       ? project(cfg.x, yBase + 1.18, cfg.z)
       : project(cfg.x, yBase - 0.06, cfg.z + cfg.r * (d.id === 'verification' ? 1.05 : 0.85));
     const bodyCenter = project(cfg.x, yBase + (cfg.eye ? 0.0 : hEntity * 0.55), cfg.z);
+    const cell = state.cells.get(d.id);
+    if (cell) cell.button.hidden = !(anchorPt && bodyCenter);
     if (anchorPt && bodyCenter) {
       holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(48, cfg.r * bodyCenter.s * 1.48) });
-      const cell = state.cells.get(d.id);
       if (cell) {
-        const depthScale = Math.max(0.84, Math.min(1.04, 16.5 / anchorPt.z));
-        cell._proj = { x: anchorPt.x, y: anchorPt.y, z: anchorPt.z, depthScale, apex: Boolean(cfg.apex), isSel };
+        labels.push({ cell, id: d.id, order: cfg.order, anchor: anchorPt, body: bodyCenter, radius: cfg.r * bodyCenter.s,
+          scale: Math.max(0.84, Math.min(1.04, 16.5 / anchorPt.z)), apex: Boolean(cfg.apex), selected: isSel });
       }
     }
   }
 
-  // Screen-space card anti-overlap pass: guarantees zero colliding department cards at any drag angle!
-  const placedCards = [];
-  const isCompactCards = w <= 700;
-  for (const [, cell] of state.cells) {
-    if (!cell._proj) continue;
-    const p = cell._proj;
-    const bw = (isCompactCards ? 76 : 166) * p.depthScale;
-    const bh = (isCompactCards ? 24 : 54) * p.depthScale;
-    const cyCard = p.apex ? p.y - bh * 0.5 : p.y + bh * 0.5;
-    placedCards.push({ cell, x: p.x, cy: cyCard, hw: bw * 0.5 + (isCompactCards ? 4 : 6), hh: bh * 0.5 + (isCompactCards ? 4 : 5), apex: p.apex, bh, p });
-  }
-  const padX = isCompactCards ? 8 : 18;
-  const padTop = isCompactCards ? 46 : 82;
-  const padBot = isCompactCards ? 52 : 94;
-  for (let iter = 0; iter < (isCompactCards ? 6 : 4); iter++) {
-    for (let i = 0; i < placedCards.length; i++) {
-      for (let j = i + 1; j < placedCards.length; j++) {
-        const a = placedCards[i], b = placedCards[j];
-        const ox = (a.hw + b.hw) - Math.abs(a.x - b.x);
-        const oy = (a.hh + b.hh) - Math.abs(a.cy - b.cy);
-        if (ox > 0 && oy > 0) {
-          if (oy <= ox * (isCompactCards ? 1.6 : 1.15)) {
-            const push = oy * 0.54;
-            if (a.cy <= b.cy) { a.cy -= push; b.cy += push; }
-            else { a.cy += push; b.cy -= push; }
-          } else {
-            const push = ox * 0.54;
-            if (a.x <= b.x) { a.x -= push; b.x += push; }
-            else { a.x += push; b.x -= push; }
-          }
-        }
-      }
-    }
-    if (isCompactCards) {
-      for (const item of placedCards) {
-        item.x = Math.max(item.hw + padX, Math.min(w - item.hw - padX, item.x));
-        item.cy = Math.max(padTop + item.hh, Math.min(h - padBot - item.hh, item.cy));
-      }
-    }
-  }
-  for (const item of placedCards) {
-    const minX = item.hw + padX;
-    const maxX = rightGutter > 0 ? w - rightGutter - 14 - item.hw : w - item.hw - padX;
-    const clampedX = Math.max(minX, Math.min(maxX, item.x));
-    const clampedCy = Math.max(padTop + item.hh, Math.min(h - padBot - item.hh, item.cy));
-    const topY = item.apex ? clampedCy + item.bh * 0.5 : clampedCy - item.bh * 0.5;
-    item.cell.button.style.left = `${clampedX.toFixed(1)}px`;
-    item.cell.button.style.top = `${topY.toFixed(1)}px`;
-    item.cell.button.style.zIndex = String(item.p.isSel ? 40 : Math.round(30 - item.p.z));
-    item.cell.button.style.setProperty('--depth-scale', item.p.depthScale.toFixed(3));
-    item.cell.button.classList.toggle('is-apex-label', item.apex);
-    item.cell.button.classList.add('is-projected');
-    item.cell._proj = null;
-  }
+  const controls = $('.scene-controls').getBoundingClientRect();
+  placeStationLabels(labels, {
+    left: controls.left - rect.left,
+    right: controls.right - rect.left,
+    top: controls.top - rect.top + 24,
+    bottom: controls.bottom - rect.top - 52
+  });
 
   // Supreme Akasha Eye Precision Gaze Beam + Celestial Crown Halo + Rotating 12-Tick Astrolabe Crown over tracked department!
   if (useGL && holoCam.stationAlpha > 0.25) {
@@ -9383,9 +9423,9 @@ function startHoloLoop() {
   loadTruthNebula();
   triggerScanSweep();
   if (introCinema.active) startIntroCinema(performance.now());
-  let prev = performance.now();
+  let prev;
   const tick = now => {
-    const dt = (now - prev) / 1000;
+    const dt = prev === undefined ? 0 : (now - prev) / 1000;
     prev = now;
     if (!document.hidden) {
       drawHolo3DFrame(dt);
