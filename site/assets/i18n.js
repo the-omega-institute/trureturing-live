@@ -11,6 +11,8 @@
 
   const DICTS = {
     zh: {
+      assistant_read: '读取当前视图',
+      assistant_journey: '查看接力轨迹',
       page_title: 'TRURETURING // LIVE · 3D 矩阵架构指挥大屏',
       skip_link: '进入 3D 全息指挥大屏',
       connecting: '正在连接',
@@ -175,6 +177,8 @@
     },
 
     en: {
+      assistant_read: 'Read current view',
+      assistant_journey: 'Show the relay journey',
       page_title: 'TRURETURING // LIVE · 3D AI Math Observatory',
       skip_link: 'Enter 3D Observatory',
       connecting: 'Connecting',
