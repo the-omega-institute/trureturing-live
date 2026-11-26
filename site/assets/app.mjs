@@ -4334,7 +4334,12 @@ function renderGalaxyNodeCard(info, x, y, bounds) {
   if (actions.childNodes.length) parts.push(actions);
   card.replaceChildren(...parts);
   card.hidden = false;
-  placeGalaxyNodeCard(bounds);
+  if (x != null && y != null) {
+    galaxyDetail.cardAnchor = { x, y };
+    galaxyDetail.cardPlacedAt = performance.now();
+    galaxyDetail.cardSettled = false;
+    placeGalaxyNodeCard(galaxyDetail.cardAnchor, bounds, popupObstacles());
+  }
 }
 
 function openLanternConjectureCard(lantern) {
@@ -4362,15 +4367,88 @@ function openLanternConjectureCard(lantern) {
 
 // The card docks at the top left of the stage so the focused node, which the camera
 // brings to the centre, and its connections stay in view.
-function placeGalaxyNodeCard(bounds) {
+// A clicked popup opens beside the pointer, at the nearest of eight positions around it
+// that hides the least: the pointer and what it clicked are never covered; the clicked
+// node outweighs its connections, which outweigh new and hub nodes, galaxy centres and
+// lanterns, which outweigh plain stars; nearness to the pointer breaks ties.
+function placePopupNear(anchor, size, bounds, obstacles = [], gap = 18) {
+  const { w, h } = size;
+  const { x, y } = anchor;
+  const raw = [
+    [x + gap, y - h * 0.35], [x - gap - w, y - h * 0.35],
+    [x - w / 2, y + gap], [x - w / 2, y - gap - h],
+    [x + gap, y + gap], [x + gap, y - gap - h],
+    [x - gap - w, y + gap], [x - gap - w, y - gap - h],
+    [x + gap, y - h / 2], [x - gap - w, y - h / 2]
+  ];
+  const clampX = v => Math.max(bounds.left, Math.min(bounds.right - w, v));
+  const clampY = v => Math.max(bounds.top, Math.min(bounds.bottom - h, v));
+  const covers = (left, top, px, py, r) => px >= left - r && px <= left + w + r && py >= top - r && py <= top + h + r;
+  let best = null;
+  for (const [cx, cy] of raw) {
+    const left = clampX(cx), top = clampY(cy);
+    if (covers(left, top, x, y, 8)) continue;
+    let cost = 0;
+    for (const o of obstacles) if (covers(left, top, o.x, o.y, o.r || 0)) cost += o.weight ?? 1;
+    cost += Math.hypot(Math.max(left - x, 0, x - (left + w)), Math.max(top - y, 0, y - (top + h))) / 40;
+    if (!best || cost < best.cost) best = { left, top, cost };
+  }
+  return best ? { left: best.left, top: best.top } : { left: clampX(x + gap), top: clampY(y + gap) };
+}
+
+// What a popup should not hide, weighted by importance.
+function popupObstacles() {
+  const obs = [];
+  const linked = new Set();
+  const sel = galaxyDetail.selectedNode;
+  if (sel?.kind === 'star') {
+    const c = nodeConnections(sel.idx, galaxyDetail.data);
+    for (const j of [...c.prereqs, ...c.dependents, ...c.other]) linked.add(`s${j}`);
+  }
+  for (const p of galaxyDetail.picks || []) {
+    const key = galaxyNodeKey(p);
+    if (key === galaxyDetail.selectedKey) obs.push({ x: p.x, y: p.y, r: 18, weight: 100 });
+    else if (linked.has(key)) obs.push({ x: p.x, y: p.y, r: 10, weight: 8 });
+    else if (p.kind === 'new') obs.push({ x: p.x, y: p.y, r: 8, weight: 3 });
+    else obs.push({ x: p.x, y: p.y, r: 4, weight: (p.weight || 0) >= 7 ? 1.5 : 0.3 });
+  }
+  for (const g of holoCam.projectedGalaxies?.values() || []) obs.push({ x: g.x, y: g.y, r: 36, weight: 2 });
+  for (const l of holoCam.projectedLanterns || []) obs.push({ x: l.x, y: l.y, r: 8, weight: 1 });
+  return obs;
+}
+
+function galaxyNodeCardRect() {
   const card = document.querySelector('#galaxy-node-card');
-  if (!card || card.hidden || !bounds) return null;
+  if (!card || card.hidden) return null;
+  const lx = parseFloat(card.style.left) || 0, ly = parseFloat(card.style.top) || 0;
+  return { lx, ly, w: card.offsetWidth || parseFloat(card.style.width) || 300, h: Math.max(150, card.offsetHeight || 0) };
+}
+
+function placeGalaxyNodeCard(anchor, bounds, obstacles) {
+  const card = document.querySelector('#galaxy-node-card');
+  if (!card || card.hidden || !bounds || !anchor) return null;
   const width = Math.min(320, Math.max(200, bounds.right - bounds.left - 24));
-  const next = [`${width}px`, `${Math.round(bounds.left + 6)}px`, `${Math.round(bounds.top + 4)}px`];
-  if (card.style.width !== next[0]) card.style.width = next[0];
-  if (card.style.left !== next[1]) card.style.left = next[1];
-  if (card.style.top !== next[2]) card.style.top = next[2];
-  return { lx: bounds.left + 6, ly: bounds.top + 4, w: width, h: Math.max(150, card.offsetHeight || 0) };
+  if (card.style.width !== `${width}px`) card.style.width = `${width}px`;
+  const height = Math.max(150, card.offsetHeight || 190);
+  const spot = placePopupNear(anchor, { w: width, h: height }, bounds, obstacles);
+  card.style.left = `${Math.round(spot.left)}px`;
+  card.style.top = `${Math.round(spot.top)}px`;
+  return { lx: spot.left, ly: spot.top, w: width, h: height };
+}
+
+// While the camera brings a clicked node to the centre the card stays by the pointer;
+// it moves only if it would hide the node, and once more when the camera has settled.
+function keepGalaxyNodeCardClear(selPick, bounds, now) {
+  let rect = galaxyNodeCardRect();
+  if (!rect) return null;
+  const hidesNode = selPick && selPick.x >= rect.lx - 16 && selPick.x <= rect.lx + rect.w + 16 && selPick.y >= rect.ly - 16 && selPick.y <= rect.ly + rect.h + 16;
+  const settle = !galaxyDetail.cardSettled && galaxyDetail.cardPlacedAt && now - galaxyDetail.cardPlacedAt > 1300;
+  if (hidesNode || settle) {
+    if (settle) galaxyDetail.cardSettled = true;
+    const anchor = holoCam.pointerLocal || galaxyDetail.cardAnchor || selPick;
+    rect = placeGalaxyNodeCard(anchor, bounds, popupObstacles()) || rect;
+  }
+  return rect;
 }
 
 // Marks new nodes and hub theorems of the main-view galaxy, labels them and records the
@@ -4536,7 +4614,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
       ctx.fill();
     }
   }
-  const cardRect = galaxyDetail.selectedKey ? placeGalaxyNodeCard(galaxyDetail.bounds) : null;
+  const cardRect = galaxyDetail.selectedKey ? keepGalaxyNodeCardClear(selPick, galaxyDetail.bounds, now) : galaxyNodeCardRect();
   ctx.restore();
   const byKey = new Map(picks.map(p => [galaxyNodeKey(p), p]));
   const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
@@ -4666,6 +4744,67 @@ async function loadGalaxyDetails() {
   } catch {
     galaxyDetail.status = 'failed';
   }
+}
+
+// ---- Clicking galaxies ---------------------------------------------------------
+// Screen footprint of each named galaxy: the bounds of the middle 84% of its stars and up
+// to 80 of their positions. The foundations belt circles the whole sky and has none.
+function galaxyFootprints(stars, projX, projY, clusters, w, h) {
+  const named = new Map((clusters || []).filter(c => c.name !== 'Other').map(c => [c.id, []]));
+  for (let i = 0; i < stars.length; i++) {
+    const list = named.get(stars[i][3]);
+    const x = projX[i], y = projY[i];
+    if (list && x > -40 && x < w + 40 && y > -40 && y < h + 40) list.push([x, y]);
+  }
+  const out = new Map();
+  for (const [cid, pts] of named) {
+    if (pts.length < 3) continue;
+    const xs = pts.map(p => p[0]).sort((a, b) => a - b);
+    const ys = pts.map(p => p[1]).sort((a, b) => a - b);
+    const q = (arr, f) => arr[Math.min(arr.length - 1, Math.floor(arr.length * f))];
+    const step = Math.max(1, Math.ceil(pts.length / 80));
+    out.set(cid, { x0: q(xs, 0.08), x1: q(xs, 0.92), y0: q(ys, 0.08), y1: q(ys, 0.92), pts: pts.filter((_, k) => k % step === 0) });
+  }
+  return out;
+}
+
+// The galaxy under a point: within 48 px of its centre or name, or on its band within
+// 26 px of one of its stars; the nearest wins.
+function galaxyHitAt(x, y, projected, footprints) {
+  let best = null;
+  let bestD = Infinity;
+  for (const [cid, info] of projected || []) {
+    let d = Math.min(Math.hypot(x - info.x, y - info.y), Math.hypot(x - info.lx, y - info.ly));
+    if (d >= 48) d = Infinity;
+    const fp = footprints?.get(cid);
+    if (fp && x >= fp.x0 - 14 && x <= fp.x1 + 14 && y >= fp.y0 - 14 && y <= fp.y1 + 14) {
+      for (const [px, py] of fp.pts) {
+        const ds = Math.hypot(x - px, y - py);
+        if (ds < 26 && ds < d) d = ds;
+      }
+    }
+    if (d < bestD) {
+      bestD = d;
+      best = info;
+    }
+  }
+  return best;
+}
+
+// The galaxy the hover hint named, while the pointer stays where it was (4 px) for up to
+// two seconds: labels and the sky sway a little between frames, and a click should do what
+// the hint just said.
+function hoveredGalaxyAt(record, x, y, now) {
+  if (!record || now - record.t > 2000 || Math.hypot(x - record.x, y - record.y) > 4) return null;
+  return record.cid;
+}
+
+// In the panorama a click on a galaxy, or on a conjecture lantern inside it, opens the
+// galaxy; once a galaxy is open its lanterns are spread out and can be read.
+function skyClickTarget(inGalaxyView, galaxyHit, lanternHit) {
+  if (inGalaxyView && lanternHit) return 'lantern';
+  if (galaxyHit || lanternHit) return 'galaxy';
+  return null;
 }
 
 // Opening a node during a growth close-up pins that galaxy so the card stays readable.
@@ -5030,6 +5169,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     projZ[i] = pz;
     projLit[i] = 0;
   }
+  // Where each named galaxy's stars lie on screen, so a click anywhere on its band opens it.
+  holoCam.galaxyFootprints = galaxyFootprints(stars, projX, projY, clusters, w, h);
 
   ctx.save();
   if (useGLSky) ctx.globalAlpha = Math.min(1.0, skyVis);
@@ -8618,20 +8759,13 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
 
   const hitGalaxyAt = (clientX, clientY) => {
     const rect = boardEl.getBoundingClientRect();
-    const lx = clientX - rect.left;
-    const ly = clientY - rect.top;
-    let best = null;
-    let bestD = Infinity;
-    for (const [cid, info] of holoCam.projectedGalaxies) {
-      const dCore = Math.hypot(lx - info.x, ly - info.y);
-      const dLabel = Math.hypot(lx - info.lx, ly - info.ly);
-      const dist = Math.min(dCore, dLabel);
-      if (dist < 48 && dist < bestD) {
-        best = info;
-        bestD = dist;
-      }
-    }
-    return best;
+    return galaxyHitAt(clientX - rect.left, clientY - rect.top, holoCam.projectedGalaxies, holoCam.galaxyFootprints);
+  };
+  const inGalaxyView = () => Boolean(truthGrowth.manualFocus && !truthGrowth.manualFocus.closing);
+  const lanternHint = l => {
+    const vLabel = l.rec.verdict === 'refuted' ? L('反驳', 'Refuted') : L('已证明', 'Proved');
+    const lTitle = isEn() ? (l.rec.enTitle || l.rec.title) : (l.rec.title || l.rec.enTitle);
+    return isEn() ? `✦ Conjecture Lantern (${vLabel}) · ${lTitle} · Click to read proof archive` : `✦ 猜想提灯（${vLabel}）· ${lTitle} · 点击阅读证明档案`;
   };
 
   const hitLanternAt = (clientX, clientY) => {
@@ -8667,6 +8801,8 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     // Active Theory / Igloo subtle living cursor parallax
     if (window.innerWidth > 0 && window.innerHeight > 0) {
       holoCam.mouseNormX = (e.clientX / window.innerWidth - 0.5) * 2;
+      const boardRect = boardEl.getBoundingClientRect();
+      holoCam.pointerLocal = { x: e.clientX - boardRect.left, y: e.clientY - boardRect.top };
       holoCam.mouseNormY = (e.clientY / window.innerHeight - 0.5) * 2;
     }
     if (holoCam.dragging) {
@@ -8701,10 +8837,13 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       const rect = boardEl.getBoundingClientRect();
       const node = pickGalaxyNode(galaxyDetail.picks, e.clientX - rect.left, e.clientY - rect.top);
       galaxyDetail.hoverKey = node ? galaxyNodeKey(node) : null;
-      holoCam.hoveredLantern = null;
-      boardEl.style.cursor = node ? 'pointer' : 'grab';
+      const lantern = !node && inGalaxyView() ? hitLanternAt(e.clientX, e.clientY) : null;
+      holoCam.hoveredLantern = lantern;
+      boardEl.style.cursor = node || lantern ? 'pointer' : 'grab';
       const hint = $('#hive-hover-hint');
-      if (hint) {
+      if (hint && lantern) {
+        hint.textContent = lanternHint(lantern);
+      } else if (hint) {
         hint.textContent = node
           ? (isEn()
               ? `${galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters).title} · Click to inspect (Shift+Click to trace shortest proof path)`
@@ -8724,24 +8863,21 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
         boardEl.style.cursor = 'pointer';
         previewDepartment(hit);
       } else {
-        const lHit = hitLanternAt(e.clientX, e.clientY);
+        const lUnder = hitLanternAt(e.clientX, e.clientY);
+        const gUnder = hitGalaxyAt(e.clientX, e.clientY) || (lUnder ? holoCam.projectedGalaxies.get(lUnder.cid) || null : null);
+        const lHit = skyClickTarget(inGalaxyView(), gUnder, lUnder) === 'lantern' ? lUnder : null;
         if (lHit) {
           holoCam.hoveredLantern = lHit;
           holoCam.hoveredGalaxy = null;
           boardEl.style.cursor = 'pointer';
           const hint = $('#hive-hover-hint');
-          if (hint) {
-            const vLabel = lHit.rec.verdict === 'refuted' ? L('反驳', 'Refuted') : L('已证明', 'Proved');
-            const lTitle = isEn() ? (lHit.rec.enTitle || lHit.rec.title) : (lHit.rec.title || lHit.rec.enTitle);
-            hint.textContent = isEn()
-              ? `✦ Conjecture Lantern (${vLabel}) · ${lTitle} · Click to read proof archive`
-              : `✦ 猜想提灯（${vLabel}）· ${lTitle} · 点击阅读证明档案`;
-          }
+          if (hint) hint.textContent = lanternHint(lHit);
           return;
         }
         holoCam.hoveredLantern = null;
-        const gHit = hitGalaxyAt(e.clientX, e.clientY);
+        const gHit = gUnder;
         holoCam.hoveredGalaxy = gHit ? gHit.cl.id : null;
+        holoCam.hoverGalaxyRecord = gHit ? { cid: gHit.cl.id, x: e.clientX, y: e.clientY, t: performance.now() } : null;
         boardEl.style.cursor = gHit ? 'pointer' : 'grab';
         const hint = $('#hive-hover-hint');
         if (gHit && hint) {
@@ -8767,6 +8903,12 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
         openGalaxyNode(node, Boolean(e.shiftKey));
         return;
       }
+      const lantern = inGalaxyView() ? hitLanternAt(e.clientX, e.clientY) : null;
+      if (lantern) {
+        closeGalaxyNodeCard();
+        openLanternConjectureCard(lantern);
+        return;
+      }
       if (galaxyDetail.selectedKey || !$('#galaxy-node-card')?.hidden) {
         closeGalaxyNodeCard();
         return;
@@ -8779,16 +8921,19 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
         selectDepartment(hit, true, true);
         return;
       }
-      const lHit = hitLanternAt(e.clientX, e.clientY);
-      if (lHit) {
-        openLanternConjectureCard(lHit);
+      const lUnder = hitLanternAt(e.clientX, e.clientY);
+      const hinted = hoveredGalaxyAt(holoCam.hoverGalaxyRecord, e.clientX, e.clientY, performance.now());
+      const gHit = hitGalaxyAt(e.clientX, e.clientY)
+        || (lUnder ? holoCam.projectedGalaxies.get(lUnder.cid) || null : null)
+        || (hinted != null ? holoCam.projectedGalaxies.get(hinted) || null : null);
+      if (skyClickTarget(inGalaxyView(), gHit, lUnder) === 'lantern') {
+        openLanternConjectureCard(lUnder);
         return;
       }
-      if (!$('#galaxy-node-card')?.hidden && !galaxyDetail.selectedKey) {
+      if (!gHit && !$('#galaxy-node-card')?.hidden && !galaxyDetail.selectedKey) {
         closeGalaxyNodeCard();
         return;
       }
-      const gHit = hitGalaxyAt(e.clientX, e.clientY);
       if (gHit) {
         const now = performance.now();
         sciFiAudio.playGalaxy();
@@ -9092,7 +9237,7 @@ function applyLanguage(code) {
     const info = galaxyNodeInfo(node, galaxyDetail.data, truthNebula.clusters, links);
     info.canTrace = node.kind === 'star';
     info.starIdx = node.idx;
-    renderGalaxyNodeCard(info, 0, 0, galaxyDetail.bounds);
+    renderGalaxyNodeCard(info, null, null, galaxyDetail.bounds);
   }
 
   applyLayer(state.layer);
