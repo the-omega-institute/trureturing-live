@@ -7417,9 +7417,13 @@ function placeStationLabels(labels, bounds) {
     let x, cy;
     if (leader) {
       const side = body.x < axisX ? -1 : 1;
-      const offset = clamp(label.radius * 0.65 + hw * 0.18, 14, 56);
+      // Leave the inner edge of the card just beyond the plinth on wide views.
+      // On a phone the narrower shoulder still leaves room for the model.
+      const shoulder = clamp((right - left) / 760, 0.6, 1);
+      const offset = hw * shoulder + clamp(label.radius * 0.7, 10, 34);
+      const drop = clamp(label.radius * (label.branch ? 0.66 : 0.32), 8, label.branch ? 34 : 18);
       const preferredX = clamp(anchor.x + side * offset, left + hw, right - hw);
-      const preferredY = clamp(anchor.y + hh + gap, top + hh, bottom - hh);
+      const preferredY = clamp(anchor.y + hh + drop, top + hh, bottom - hh);
       x = preferredX;
       cy = preferredY;
 
@@ -9128,7 +9132,7 @@ function drawHolo3DFrame(dt = 0.016) {
     if (anchorPt && bodyCenter) {
       holoCam.projectedTowers.set(d.id, { x: bodyCenter.x, y: bodyCenter.y, r: Math.max(48, cfg.r * bodyCenter.s * 1.48) });
       if (cell) {
-        labels.push({ cell, id: d.id, order: cfg.order, anchor: anchorPt, body: bodyCenter, radius: cfg.r * bodyCenter.s,
+        labels.push({ cell, id: d.id, order: cfg.order, branch: cfg.onDemand, anchor: anchorPt, body: bodyCenter, radius: cfg.r * bodyCenter.s,
           scale: Math.max(0.84, Math.min(1.04, 16.5 / anchorPt.z)), apex: Boolean(cfg.apex), selected: isSel });
       }
     }
@@ -9139,7 +9143,7 @@ function drawHolo3DFrame(dt = 0.016) {
     left: controls.left - rect.left,
     right: controls.right - rect.left,
     top: controls.top - rect.top + 24,
-    bottom: controls.bottom - rect.top - 52
+    bottom: controls.bottom - rect.top - 40
   });
 
   // Supreme Akasha Eye Precision Gaze Beam + Celestial Crown Halo + Rotating 12-Tick Astrolabe Crown over tracked department!
