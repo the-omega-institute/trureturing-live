@@ -375,6 +375,7 @@
   uniform float uGalaxyAlpha; // 0.25 (station) .. 1.0 (mix) .. 1.50 (galaxy)
   uniform float uGalaxyBoost; // 0.0 (mix/station) .. 1.0 (cosmos / galaxy focus)
   uniform float uAspect;
+  uniform float uNdcShiftX;
   out vec4 fragColor;
 
   float hash(vec2 p) {
@@ -407,36 +408,75 @@
     vec2 skyP = p + vec2(uYaw * 0.45, -uPitch * 0.42);
 
     if (uTheme > 1.5) {
-      // High-Contrast Swiss Architectural Studio Cyclorama (曜白)
-      vec3 topC = vec3(0.915, 0.912, 0.892);
-      vec3 midC = vec3(0.890, 0.884, 0.860);
-      vec3 botC = vec3(0.845, 0.838, 0.812);
-      vec3 col = mix(botC, mix(midC, topC, smoothstep(0.32, 0.95, vUv.y)), smoothstep(0.0, 0.65, vUv.y));
-      // Soft architectural slate-indigo watercolor nebula wash in upper sky to frame dark-ink galaxies cleanly
-      float band = exp(-pow((vUv.y - mix(0.74, 0.60, uGalaxyBoost)) * mix(3.1, 2.2, uGalaxyBoost), 2.0));
-      float neb = fbm(skyP * 2.3 + vec2(0.0, uTime * 0.008));
-      float neb2 = fbm(skyP * 3.8 + vec2(neb * 1.1, -neb * 0.8));
-      col = mix(col, vec3(0.76, 0.82, 0.88), band * (neb * 0.24 + neb2 * 0.14 * uGalaxyBoost) * clamp(uGalaxyAlpha, 0.2, 1.45));
+      // Distinctive 曜白 Background Style: Sunlit Architectural Astrolabe Drafting Gallery
+      // (textured warm-cool alabaster drafting paper + diagonal gallery skylight louvers + engraved celestial meridian rings & compass ticks!)
+      vec3 topC = vec3(0.906, 0.902, 0.888);
+      vec3 midC = vec3(0.876, 0.882, 0.886);
+      vec3 botC = vec3(0.828, 0.838, 0.850);
+      vec3 col = mix(botC, mix(midC, topC, smoothstep(0.28, 0.94, vUv.y)), smoothstep(0.0, 0.64, vUv.y));
+
+      // Subtle tactile museum fine-paper / mineral plaster micro-texture
+      float paperFine = fbm(vUv * vec2(uAspect * 18.0, 18.0)) * 0.022 - 0.011;
+      col += vec3(paperFine, paperFine * 0.96, paperFine * 0.88);
+
+      // Soft diagonal museum louver skylight shafts sweeping across the upper-left -> lower-right gallery wall
+      float diag = (p.x * 0.72 + p.y * 0.69);
+      float shaft1 = exp(-pow((diag + 0.16) * 4.2, 2.0));
+      float shaft2 = exp(-pow((diag - 0.24) * 5.0, 2.0));
+      float shaft3 = exp(-pow((diag + 0.56) * 5.6, 2.0));
+      float skylight = (shaft1 * 0.65 + shaft2 * 0.45 + shaft3 * 0.35) * smoothstep(-0.35, 0.55, p.y);
+      col = mix(col, vec3(0.962, 0.960, 0.948), clamp(skylight * 0.52, 0.0, 0.42));
+
+      // Engraved Celestial Astrolabe Meridian Rings + 72° Compass Ticks (locked to optical center behind Akasha Eye + gentle parallax!)
+      float optX = -uNdcShiftX * 0.5 * uAspect;
+      vec2 astroC = p - vec2(optX - uYaw * 0.08, 0.05 + uPitch * 0.08);
+      float aR = length(astroC);
+      float aAng = atan(astroC.y, astroC.x);
+      float ring1 = exp(-pow((aR - 0.30) / 0.0018, 2.0));
+      float ring2 = exp(-pow((aR - 0.45) / 0.0016, 2.0));
+      float ring3 = exp(-pow((aR - 0.60) / 0.0020, 2.0));
+      float ringDash = exp(-pow((aR - 0.525) / 0.0015, 2.0)) * step(0.45, fract(aAng * 12.0 / 6.28318 + uTime * 0.006));
+      // 72 fine compass ticks between ring2 & ring3 + 12 cardinal ticks
+      float tick72 = step(0.965, abs(cos(aAng * 36.0))) * step(abs(aR - 0.475), 0.014);
+      float tick12 = step(0.992, abs(cos(aAng * 6.0))) * step(abs(aR - 0.485), 0.028);
+      // Hairline celestial zenith & equator drafting axes
+      float axisH = exp(-pow(astroC.y / 0.0012, 2.0)) * smoothstep(0.08, 0.22, aR) * (1.0 - smoothstep(0.64, 0.84, aR));
+      float axisV = exp(-pow(astroC.x / 0.0012, 2.0)) * smoothstep(0.08, 0.22, aR) * (1.0 - smoothstep(0.62, 0.78, aR));
+      // Subtle Swiss architectural drafting dot-matrix grid
+      vec2 dCell = fract(vUv * vec2(uAspect * 26.0, 26.0)) - 0.5;
+      float dDot = smoothstep(0.09, 0.02, length(dCell)) * 0.065;
+
+      vec3 inkSlate = vec3(0.32, 0.42, 0.52);
+      vec3 inkGold  = vec3(0.64, 0.48, 0.24);
+      float engSlate = clamp((ring1 * 0.16 + ring2 * 0.18 + ring3 * 0.13 + tick72 * 0.14 + axisH * 0.11 + axisV * 0.11 + dDot), 0.0, 0.34);
+      float engGold  = clamp((ringDash * 0.16 + tick12 * 0.22), 0.0, 0.28);
+      col = mix(col, inkSlate, engSlate);
+      col = mix(col, inkGold,  engGold);
+
+      // Serene pure-white-ivory crown halo directly behind Akasha Eye
+      vec2 eyeHaloP = p - vec2(optX, mix(0.24, 0.27, uGalaxyBoost));
+      float eyeWhite = exp(-dot(eyeHaloP * vec2(1.7, 2.1), eyeHaloP * vec2(1.7, 2.1)) * 14.0);
+      col = mix(col, vec3(0.968, 0.966, 0.958), eyeWhite * (0.50 + uGalaxyBoost * 0.14));
       fragColor = vec4(col, 1.0);
       return;
     }
 
-    // Clean, calm, high-contrast scientific obsidian backdrop (zero distracting aurora fog so real DAG structure shines!)
-    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.003, 0.014, 0.007) : vec3(0.011, 0.016, 0.026);
-    vec3 zenithTone = uTheme > 0.5 ? vec3(0.006, 0.024, 0.011) : vec3(0.016, 0.024, 0.039);
-    vec3 horizonMist = uTheme > 0.5 ? vec3(0.010, 0.044, 0.020) : vec3(0.020, 0.032, 0.052);
+    // Clean, calm, high-contrast backdrop: pure CRT pitch-black in Matrix | scientific obsidian in Holo!
+    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.000, 0.002, 0.001) : vec3(0.011, 0.016, 0.026);
+    vec3 zenithTone = uTheme > 0.5 ? vec3(0.000, 0.006, 0.002) : vec3(0.016, 0.024, 0.039);
+    vec3 horizonMist = uTheme > 0.5 ? vec3(0.000, 0.016, 0.006) : vec3(0.020, 0.032, 0.052);
     vec3 col = mix(deepAbyss, zenithTone, smoothstep(0.08, 0.88, vUv.y));
     col = mix(col, horizonMist, exp(-pow((vUv.y - 0.48) * 2.8, 2.0)) * (0.48 * (1.0 - uGalaxyBoost * 0.72)));
 
-    // Ultra-quiet cosmic depth gradient (restrained < 0.03 lift so 18,986 real DAG nodes provide 100% of the visual structure!)
+    // Ultra-quiet cosmic depth gradient (restrained so real DAG nodes & Matrix phosphor pop crisply!)
     float n1 = fbm(skyP * 1.85 + vec2(uTime * 0.003, 0.0));
-    vec3 depthTint = uTheme > 0.5 ? vec3(0.010, 0.065, 0.028) : vec3(0.024, 0.048, 0.084);
-    col += depthTint * (n1 * 0.24) * smoothstep(0.15, 0.85, vUv.y) * (1.0 - uGalaxyBoost * 0.45);
+    vec3 depthTint = uTheme > 0.5 ? vec3(0.000, 0.028, 0.010) : vec3(0.024, 0.048, 0.084);
+    col += depthTint * (n1 * 0.22) * smoothstep(0.15, 0.85, vUv.y) * (1.0 - uGalaxyBoost * 0.45);
 
-    // Subtle warm golden aura strictly behind the crowning Akasha Eye
+    // Subtle aura strictly behind the crowning Akasha Eye
     vec2 eyeHaloP = p - vec2(0.0, mix(0.24, 0.27, uGalaxyBoost));
     float eyeGlow = exp(-dot(eyeHaloP * vec2(1.75, 2.25), eyeHaloP * vec2(1.75, 2.25)) * 18.0);
-    vec3 eyeTint = uTheme > 0.5 ? vec3(0.04, 0.16, 0.07) : vec3(0.14, 0.10, 0.045);
+    vec3 eyeTint = uTheme > 0.5 ? vec3(0.03, 0.14, 0.05) : vec3(0.14, 0.10, 0.045);
     col += eyeTint * eyeGlow * (0.14 + uGalaxyBoost * 0.08);
 
     fragColor = vec4(col, 1.0);
@@ -490,15 +530,24 @@
     vec3 col = uFloorColor * (0.92 + 0.14 * micro);
 
     // Anti-aliased orbital ground CAD grid (2m major + subtle 0.5m micro)
+    // In Matrix mode, keep the base grid restrained and flare it 3.2x brighter as an outward radar sweep crosses it!
     float majorG = gridFactor(P.xz, 2.0, 1.15);
     float minorG = gridFactor(P.xz, 0.5, 0.85);
     float gridFade = exp(-dist * 0.072);
     float gridMask = (majorG * 0.68 + minorG * 0.16) * gridFade;
-    col = mix(col, uGridColor, gridMask * (uTheme > 1.5 ? 0.44 : (uTheme > 0.5 ? 0.42 : 0.28)));
+    if (uTheme > 0.5 && uTheme < 1.5) {
+      float radarR = mod(uTime * 5.2, 26.0);
+      float radarPulse = exp(-pow((dist - radarR) / 0.85, 2.0)) * (1.0 - smoothstep(18.0, 26.0, radarR));
+      col += uGridColor * gridMask * (0.20 + radarPulse * 0.82);
+    } else {
+      col = mix(col, uGridColor, gridMask * (uTheme > 1.5 ? 0.34 : 0.28));
+    }
     if (uTheme > 1.5) {
-      // Soft architectural studio contact shadow under the suspended space station footprint
-      float aoShadow = exp(-dist * dist * 0.016) * 0.11;
+      // Soft gallery contact shadow + luminous white-ice ambient reflection sheen under the floating station!
+      float aoShadow = exp(-dist * dist * 0.015) * 0.075;
       col *= (1.0 - aoShadow);
+      float fresFloor = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+      col = mix(col, vec3(0.995, 0.998, 1.0), fresFloor * 0.26 * (1.0 - smoothstep(14.0, 32.0, dist)));
     }
 
     // Concentric Orbital Foundation Trench Rings on the Ground Plane (r = 9.0, r = 11.4, r = 13.8) + slow pulse ring
@@ -683,19 +732,42 @@
       float specRim = pow(max(dot(N, Hrim), 0.0), 24.0);
       vec3 skyRefl = uTheme > 1.5 ? vec3(1.0, 0.99, 0.97) : (uTheme > 0.5 ? vec3(0.24, 1.0, 0.56) : vec3(0.52, 0.76, 0.96));
       if (uTheme > 1.5) {
-        // High-contrast solid ceramic architectural form with department color wash & crisp dark crease contrast!
-        col = base * (0.58 + 0.44 * diffKey + 0.12 * diffFill) * heightAO;
-        col = mix(col, uAccent, 0.16 + uActive * 0.20 + pow(max(0.0, 1.0 - abs(N.y)), 1.6) * 0.14);
-        col += skyRefl * specKey * 0.45;
-        col = mix(col, vec3(0.10, 0.18, 0.28), sharpFresnel * 0.22);
-        alpha *= 0.98;
+        // Frosted Alabaster Crystal + Luminous Pure-White Rim + Fine Activity Fill-Level Band (曜白 · 白光)!
+        float frostGrain = fract(sin(dot(floor(vWorldPos.xy * 36.0) + floor(vWorldPos.zy * 36.0), vec2(41.3, 289.1))) * 43758.5) * 0.028;
+        vec3 frostedBase = mix(vec3(0.89, 0.92, 0.95), vec3(0.995, 0.997, 1.0), diffKey * 0.65 + max(0.0, N.y) * 0.35) + frostGrain;
+        col = frostedBase * (0.76 + 0.26 * diffKey + 0.10 * diffFill) * mix(0.84, 1.06, clamp((vWorldPos.y + 0.35) * 0.45, 0.0, 1.0));
+        // Delicate department tint wash + luminous fill-level horizon ring driven by running/active state
+        float hNorm = clamp((vLocalPos.y + 0.15) * 0.55, 0.0, 1.0);
+        float fillLvl = clamp(0.28 + uRunning * 0.42 + uActive * 0.22, 0.15, 0.92);
+        float fillBand = exp(-pow((hNorm - fillLvl) * 18.0, 2.0));
+        float fillMask = smoothstep(fillLvl + 0.03, fillLvl - 0.03, hNorm);
+        col = mix(col, uAccent, (0.09 + fillMask * 0.10 + uActive * 0.14));
+        col = mix(col, mix(uAccent, vec3(1.0), 0.35), fillBand * (0.48 + uActive * 0.30));
+        // Pure-white frosted glass Fresnel edge glow (gives airy gallery white-light translucency!)
+        col += vec3(1.0, 0.998, 0.995) * (specKey * 0.52 + sharpFresnel * 0.44 + fresnel * 0.20);
+        alpha *= 0.92;
       } else {
         col = base * (0.34 + 0.68 * diffKey + 0.34 * diffFill) * heightAO;
         float innerScatter = pow(max(0.0, 1.0 - abs(N.y)), 1.5) * (0.16 + uActive * 0.22 + uRunning * 0.10);
-        col += (uTheme > 0.5 ? vec3(0.10, 0.92, 0.46) : uAccent) * (innerScatter + scanBand);
+        col += (uTheme > 0.5 ? vec3(0.04, 0.96, 0.34) : uAccent) * (innerScatter + scanBand);
+        if (uTheme > 0.5 && uTheme < 1.5) {
+          // Procedural Matrix vertical code-rain shimmer flowing down building crystal facades!
+          float colIdx = floor((vWorldPos.x * 5.2 + vWorldPos.z * 5.2));
+          float colSeed = fract(sin(colIdx * 127.1 + 31.7) * 43758.5453);
+          float rowCell = floor(vWorldPos.y * 8.5);
+          float headY = 1.0 - fract(uTime * (0.14 + colSeed * 0.26) + colSeed * 7.3);
+          float hFac = fract(vWorldPos.y * 0.42);
+          float trailDist = fract(hFac - headY);
+          float trail = pow(1.0 - trailDist, 3.6) * step(0.22, colSeed);
+          float bitOn = step(0.42, fract(sin(colIdx * 19.3 + rowCell * 7.7 + floor(uTime * (2.5 + trail * 8.0))) * 43758.5));
+          float glyphMask = bitOn * step(0.18, fract(vWorldPos.x * 5.2 + vWorldPos.z * 5.2)) * step(0.22, fract(vWorldPos.y * 8.5));
+          float isHead = step(0.955, 1.0 - trailDist);
+          col += vec3(0.0, 1.0, 0.28) * glyphMask * trail * 0.72;
+          col += vec3(0.88, 1.0, 0.90) * glyphMask * isHead * 0.95;
+        }
         col += skyRefl * specKey * 1.25;
         col += auroraRim * (specRim * 0.48 + fresnel * 0.88 * activeLift);
-        col += (uTheme > 0.5 ? vec3(0.56, 1.0, 0.74) : vec3(0.96, 0.99, 1.0)) * sharpFresnel * 0.68;
+        col += (uTheme > 0.5 ? vec3(0.86, 1.0, 0.90) : vec3(0.96, 0.99, 1.0)) * sharpFresnel * 0.72;
         alpha *= 0.88;
       }
     } else {
@@ -760,13 +832,13 @@
   uniform float uGenesisRadius;
   out vec4 fragColor;
   void main() {
-    vec3 silver = uTheme > 1.5 ? vec3(0.09, 0.16, 0.24) : (uTheme > 0.5 ? vec3(0.18, 1.0, 0.52) : vec3(0.76, 0.88, 0.98));
-    vec3 col = vMat > 0.5 ? mix(silver, uAccent, uTheme > 1.5 ? (0.40 + uActive * 0.35) : (uTheme > 0.5 ? 0.25 : 0.52 + uActive * 0.35))
-                          : mix(silver, uAccent, uTheme > 1.5 ? (0.22 + uActive * 0.35) : (uTheme > 0.5 ? 0.15 : 0.28 + uActive * 0.42));
-    if (vMat > 2.5) col = uTheme > 1.5 ? uAccent : (uTheme > 0.5 ? vec3(0.52, 1.0, 0.74) : mix(uAccent, vec3(1.0), 0.62));
+    vec3 silver = uTheme > 1.5 ? vec3(0.32, 0.42, 0.52) : (uTheme > 0.5 ? vec3(0.05, 1.0, 0.32) : vec3(0.76, 0.88, 0.98));
+    vec3 col = vMat > 0.5 ? mix(silver, uAccent, uTheme > 1.5 ? (0.42 + uActive * 0.35) : (uTheme > 0.5 ? 0.20 : 0.52 + uActive * 0.35))
+                          : mix(silver, uAccent, uTheme > 1.5 ? (0.24 + uActive * 0.32) : (uTheme > 0.5 ? 0.14 : 0.28 + uActive * 0.42));
+    if (vMat > 2.5) col = uTheme > 1.5 ? mix(uAccent, vec3(1.0), 0.25) : (uTheme > 0.5 ? vec3(0.88, 1.0, 0.90) : mix(uAccent, vec3(1.0), 0.62));
     float camDist = length(uCamPos - vWorldPos);
     float fade = clamp(1.22 - camDist * 0.018, 0.32, 1.0);
-    float themeBoost = uTheme > 1.5 ? 1.55 : (uTheme > 0.5 ? 1.38 : 1.0);
+    float themeBoost = uTheme > 1.5 ? 1.12 : (uTheme > 0.5 ? 1.44 : 1.0);
     float a = uAlpha * themeBoost * (vMat > 0.5 ? 1.0 : 0.68) * (1.0 + uActive * 0.65) * fade;
     if (uGenesisRadius < 40.0) {
       float rScan = length(vWorldPos.xz - vec2(0.0, -0.45));
@@ -908,6 +980,22 @@
     float r = length(d) * 2.0;
     if (r > 1.0) discard;
     if (vKind > 2.5) {
+      if (uTheme > 0.5 && uTheme < 1.5) {
+        // Matrix Digital Construct Node: sharp phosphor data-diamond/pixel glyph with CRT scan flicker!
+        float dia = (abs(d.x) + abs(d.y)) * 2.0;
+        float box = max(abs(d.x), abs(d.y)) * 2.0;
+        float coreShape = smoothstep(0.88, 0.42, mix(box, dia, 0.52));
+        float halo = exp(-r * r * 4.5) * (0.28 + vHub * 0.42);
+        float crossGlint = vHub * (
+          exp(-abs(d.y) * 34.0) * exp(-abs(d.x) * 4.2) +
+          exp(-abs(d.x) * 34.0) * exp(-abs(d.y) * 4.2)
+        ) * 0.72;
+        float flick = 0.90 + 0.10 * sin(uTime * 6.5 + vSeed * 5.0);
+        float alphaOut = clamp(max(coreShape, halo) + crossGlint, 0.0, 1.0);
+        vec3 mCol = mix(vCol, vec3(0.86, 1.0, 0.90), smoothstep(0.42, 0.06, box) * (0.36 + vHub * 0.54));
+        fragColor = vec4(mCol * flick, alphaOut * clamp(vAlpha, 0.0, 1.0));
+        return;
+      }
       // Crisp jewel-like dependency-tiered astronomical star (amber-gold 345+ hubs get delicate 4-point star glint!)
       float disc = smoothstep(0.78, 0.34, r);
       float softHalo = exp(-r * r * 5.0) * (0.28 + vHub * 0.34);
@@ -919,7 +1007,7 @@
       float rimDark = smoothstep(0.56, 0.84, r) * 0.18;
       float spec = smoothstep(0.36, 0.03, r) * (0.34 + vHub * 0.48);
       vec3 bodyCol = uTheme > 1.5
-        ? mix(vCol, vec3(0.05, 0.09, 0.14), rimDark * 0.45)
+        ? mix(mix(vCol, vec3(0.08, 0.14, 0.22), rimDark * 0.35), vec3(1.0, 0.99, 0.96), smoothstep(0.30, 0.02, r) * (0.22 + vHub * 0.38))
         : mix(vCol * (1.0 - rimDark), vec3(1.0, 0.99, 0.94), spec);
       fragColor = vec4(bodyCol, alphaOut * clamp(vAlpha, 0.0, 1.0));
     } else if (vKind > 1.5) {
@@ -1064,6 +1152,69 @@
     fragColor = vec4(sum, 1.0);
   }`;
 
+  // 3D Cylindrical Matrix Code-Rain Curtain Shader (wraps 360° around the entire observatory ONLY in 矩阵 mode!)
+  const RAIN_VS = `#version 300 es
+  precision highp float;
+  layout(location=0) in vec3 aPos;
+  layout(location=1) in vec2 aUv;
+  uniform mat4 uViewProj;
+  out vec2 vUv;
+  out float vWorldY;
+  void main() {
+    vUv = aUv;
+    vWorldY = aPos.y;
+    gl_Position = uViewProj * vec4(aPos, 1.0);
+  }`;
+
+  const RAIN_FS = `#version 300 es
+  precision highp float;
+  in vec2 vUv;
+  in float vWorldY;
+  uniform sampler2D uAtlas;
+  uniform float uTime;
+  uniform float uAlpha;
+  uniform float uGlyphCount;
+  out vec4 fragColor;
+  float h1(float x) { return fract(sin(x * 127.1 + 31.7) * 43758.5453); }
+  float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  void main() {
+    // Pure 0 / 1 Binary Matrix Construct: cascading binary streams + crisp strobe-flashing 0/1 cells across 360° 3D space!
+    float cols = 196.0;
+    float rows = 44.0;
+    float cx = floor(vUv.x * cols);
+    float cy = floor(vUv.y * rows);
+    vec2 cellId = vec2(cx, cy);
+    vec2 inC = vec2(fract(vUv.x * cols), 1.0 - fract(vUv.y * rows));
+
+    // Layer 1: Cascading vertical 0/1 streams
+    float sp = 0.45 + h1(cx * 2.3) * 1.10;
+    float headY = 1.0 - fract(uTime * sp * 0.06 + h1(cx * 3.7));
+    float dist = fract(vUv.y - headY);
+    float activeCol = step(0.36, h1(cx * 1.9));
+    float trail = pow(1.0 - dist, 4.2) * activeCol;
+    float isHead = step(0.984, 1.0 - dist) * activeCol;
+
+    // Layer 2: Spontaneous crisp 0/1 flashing/blinking cells ("0/1 闪现") scattered across the 3D matrix dome!
+    float cellSeed = h2(cellId);
+    float flashRate = 1.8 + cellSeed * 4.4;
+    float flashWave = pow(max(0.0, sin(uTime * flashRate + cellSeed * 62.83)), 16.0);
+    float flashMask = step(0.68, h2(cellId + vec2(17.3, 9.1))) * flashWave;
+
+    // Rapidly flip between 0 and 1 glyphs in the binary atlas as pulses & flashes fire!
+    float flipTick = floor(uTime * (2.2 + trail * 9.0 + flashMask * 12.0) + cellSeed * 19.0);
+    float gi = floor(h2(cellId + vec2(flipTick * 0.37, flipTick * 0.71)) * uGlyphCount);
+    vec2 cellUv = (vec2(mod(gi, 16.0), floor(gi / 16.0)) + inC) / 16.0;
+    float g = texture(uAtlas, cellUv).a;
+
+    float fadeY = smoothstep(0.03, 0.22, vUv.y) * (1.0 - smoothstep(0.78, 0.97, vUv.y));
+    float bodyLum = trail * 1.15 + flashMask * 1.05;
+    float hotLum  = isHead * 1.15 + pow(flashMask, 2.0) * 0.85;
+    vec3 col = vec3(0.08, 0.88, 0.36) * g * (0.04 + bodyLum) + vec3(0.84, 1.0, 0.88) * g * hotLum;
+    float outA = g * (0.07 + bodyLum * 0.78 + hotLum * 0.92) * fadeY * uAlpha;
+    if (outA < 0.008) discard;
+    fragColor = vec4(col * fadeY * uAlpha, clamp(outA, 0.0, 0.88));
+  }`;
+
   const COMPOSITE_FS = `#version 300 es
   precision highp float;
   in vec2 vUv;
@@ -1072,6 +1223,7 @@
   uniform float uTheme;
   uniform float uTime;
   uniform float uBloomStrength;
+  uniform float uExposure;
   out vec4 fragColor;
 
   vec3 aces(vec3 x) {
@@ -1098,18 +1250,21 @@
       col = aces(col * 1.08);
       if (uTheme > 0.5) {
         // Subtle authentic Matrix CRT phosphor scanline micro-texture
-        float scan = 1.0 - 0.048 * (0.5 + 0.5 * sin(gl_FragCoord.y * 2.1 + uTime * 1.4));
+        float scan = 1.0 - 0.055 * (0.5 + 0.5 * sin(gl_FragCoord.y * 2.1 + uTime * 1.4));
         col *= scan;
       }
       float vig = 1.0 - r2 * 0.54;
       col *= clamp(vig, 0.58, 1.0);
     } else {
       col = clamp(col, 0.0, 1.0);
-      float vig = 1.0 - r2 * 0.12;
-      col *= clamp(vig, 0.88, 1.0);
+      float vig = 1.0 - r2 * 0.14;
+      col *= clamp(vig, 0.86, 1.0);
     }
-    float grain = (hash12(gl_FragCoord.xy + fract(uTime * 11.3)) - 0.5) * (uTheme > 1.5 ? 0.011 : 0.019);
+    float grain = (hash12(gl_FragCoord.xy + fract(uTime * 11.3)) - 0.5) * (uTheme > 1.5 ? 0.012 : 0.019);
     col = clamp(col + grain, 0.0, 1.0);
+    // Silky exposure cushion when switching between Dark (Holo/Matrix) and Pearl Light — prevents harsh blinding flash!
+    vec3 midVeil = vec3(0.16, 0.21, 0.25);
+    col = mix(midVeil, col, clamp(uExposure, 0.0, 1.0));
     fragColor = vec4(col, 1.0);
   }`;
 
@@ -1483,6 +1638,24 @@
     ]), gl.STATIC_DRAW);
     g.floor = { vbo: floorVbo, count: 6 };
 
+    // 3D Cylindrical Matrix Code-Rain Curtain Geometry (radius = 38m, y = -8..28m, wraps 360° around observatory!)
+    const rainVerts = [];
+    const rSegs = 72, rRad = 38.0, yBot = -8.0, yTop = 28.0;
+    for (let i = 0; i < rSegs; i++) {
+      const u0 = i / rSegs, u1 = (i + 1) / rSegs;
+      const a0 = u0 * Math.PI * 2, a1 = u1 * Math.PI * 2;
+      const x0 = Math.sin(a0) * rRad, z0 = -Math.cos(a0) * rRad - 0.55;
+      const x1 = Math.sin(a1) * rRad, z1 = -Math.cos(a1) * rRad - 0.55;
+      rainVerts.push(
+        x0, yBot, z0, u0, 0,  x1, yBot, z1, u1, 0,  x1, yTop, z1, u1, 1,
+        x0, yBot, z0, u0, 0,  x1, yTop, z1, u1, 1,  x0, yTop, z0, u0, 1
+      );
+    }
+    const rainVbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, rainVbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(rainVerts), gl.STATIC_DRAW);
+    g.rainWall = { vbo: rainVbo, count: rainVerts.length / 5 };
+
     // Full-screen Post Quad
     const quadVbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadVbo);
@@ -1504,6 +1677,46 @@
     g.scholarCount = 0;
 
     return g;
+  }
+
+  function createMatrixGlyphAtlas(gl) {
+    // Pure crisp Binary 0 / 1 glyph atlas (multiple subtle weights & framed digital variants, ZERO katakana!)
+    const N = 16, cell = 32;
+    const count = 16;
+    const c = document.createElement('canvas');
+    c.width = c.height = N * cell;
+    const g = c.getContext('2d');
+    if (g) {
+      g.clearRect(0, 0, c.width, c.height);
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      for (let i = 0; i < count; i++) {
+        const ch = (i % 2 === 0) ? '0' : '1';
+        const x = (i % N) * cell + cell * 0.5;
+        const y = Math.floor(i / N) * cell + cell * 0.53;
+        const variant = Math.floor(i / 2);
+        const weight = variant % 3 === 0 ? 700 : (variant % 3 === 1 ? 500 : 400);
+        const px = variant >= 6 ? Math.round(cell * 0.62) : Math.round(cell * 0.74);
+        g.font = `${weight} ${px}px "Geist Mono", ui-monospace, monospace`;
+        g.fillStyle = '#ffffff';
+        g.fillText(ch, x, y);
+        // Subtle crisp corner frame on 2 of the 16 variants for authentic digital bit-cell readout feel
+        if (variant === 7) {
+          g.strokeStyle = 'rgba(255, 255, 255, 0.42)';
+          g.lineWidth = 1.2;
+          g.strokeRect((i % N) * cell + 4.5, Math.floor(i / N) * cell + 4.5, cell - 9, cell - 9);
+        }
+      }
+    }
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return { tex, count };
   }
 
   class TrureGL {
@@ -1531,11 +1744,13 @@
       this.starProg = createProgram(gl, STAR_VS, STAR_FS);
       this.qiProg = createProgram(gl, QI_VS, STAR_FS);
       this.dagLineProg = createProgram(gl, DAG_LINE_VS, DAG_LINE_FS);
+      this.rainProg = createProgram(gl, RAIN_VS, RAIN_FS);
       this.brightProg = createProgram(gl, QUAD_VS, BRIGHT_FS);
       this.blurProg = createProgram(gl, QUAD_VS, BLUR_FS);
       this.compProg = createProgram(gl, QUAD_VS, COMPOSITE_FS);
 
       this.geo = buildWorldGeometries(gl);
+      this.matrixAtlas = createMatrixGlyphAtlas(gl);
       this.projMat = M4.create();
       this.viewMat = M4.create();
       this.viewProj = M4.create();
@@ -1642,6 +1857,7 @@
       ndcShiftX = Number.isFinite(ndcShiftX) ? Math.max(-0.5, Math.min(0.5, ndcShiftX)) : 0;
       this.yaw = yaw;
       this.pitch = pitch;
+      this.ndcShiftX = ndcShiftX;
       const aspect = Math.max(0.25, this.cssW / Math.max(1, this.cssH));
       // Widen vertical FOV on narrow portrait phones so the full orbital ring & space station stay cleanly framed horizontally!
       const fovDeg = aspect < 1.05
@@ -1892,11 +2108,11 @@
           ]
         : isMatrixPal
           ? [
-              [0.08, 0.44, 0.24],
-              [0.14, 0.68, 0.38],
-              [0.20, 0.86, 0.50],
-              [0.46, 0.98, 0.66],
-              [0.88, 1.00, 0.68]
+              [0.04, 0.30, 0.12], // 0 leaves: deep CRT phosphor emerald
+              [0.06, 0.56, 0.22], // 1-5: mid phosphor green
+              [0.00, 0.85, 0.26], // 6-63: electric #00d944
+              [0.24, 1.00, 0.48], // 64-344: bright #3dff7a
+              [0.91, 1.00, 0.92]  // 345+ core hubs: incandescent Matrix white-green #e8ffea!
             ]
           : [
               [0.36, 0.54, 0.74], // 0 leaves: quiet slate-blue stardust
@@ -2111,7 +2327,8 @@
         fullAtlasAlpha = 0.0,
         sonarRadius = 0.0, sonarAlpha = 0.0,
         rheostatRevX = -2.0, rheostatStuX = 2.0,
-        genesisRadius = 99.0, genesisCut = 1.05, ciLoad = 0.45, scholarCount = 223
+        genesisRadius = 99.0, genesisCut = 1.05, ciLoad = 0.45, scholarCount = 223,
+        exposure = 1.0
       } = params;
       const gl = this.gl;
       if (this.contextLost || gl.isContextLost()) return;
@@ -2121,19 +2338,19 @@
       this.syncScholarBeacons(scholarCount, isLight);
 
       this.fogColor = isLight
-        ? [0.878, 0.870, 0.844]
+        ? [0.858, 0.872, 0.888]
         : isMatrix
-          ? [0.005, 0.024, 0.012]
+          ? [0.000, 0.005, 0.002]
           : [0.015, 0.024, 0.044];
       const floorCol = isLight
-        ? [0.892, 0.882, 0.854]
+        ? [0.878, 0.890, 0.906]
         : isMatrix
-          ? [0.006, 0.032, 0.016]
+          ? [0.000, 0.008, 0.003]
           : [0.020, 0.032, 0.052];
       const gridCol = isLight
-        ? [0.24, 0.30, 0.38]
+        ? [0.54, 0.62, 0.70]
         : isMatrix
-          ? [0.10, 0.94, 0.46]
+          ? [0.08, 0.92, 0.36]
           : [0.44, 0.66, 0.86];
 
       const drawFullQuad = () => {
@@ -2167,7 +2384,33 @@
         gl.uniform1f(sk.u.uGalaxyAlpha, galaxyAlpha);
         gl.uniform1f(sk.u.uGalaxyBoost, galaxyBoost);
         gl.uniform1f(sk.u.uAspect, this.cssW / this.cssH);
+        gl.uniform1f(sk.u.uNdcShiftX, this.ndcShiftX || 0.0);
         drawFullQuad();
+      }
+
+      // 1A-2. TRUE 3D CYLINDRICAL MATRIX CODE-RAIN CURTAIN (ONLY in 矩阵 mode — rotates in full 3D perspective!)
+      if (isMatrix && this.geo.rainWall && this.matrixAtlas) {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        gl.depthMask(false);
+        const rp = this.rainProg;
+        gl.useProgram(rp.p);
+        gl.uniformMatrix4fv(rp.u.uViewProj, false, this.viewProj);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.matrixAtlas.tex);
+        gl.uniform1i(rp.u.uAtlas, 0);
+        gl.uniform1f(rp.u.uTime, tAnim);
+        gl.uniform1f(rp.u.uAlpha, galaxyFocused ? 0.28 : 0.64);
+        gl.uniform1f(rp.u.uGlyphCount, this.matrixAtlas.count);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.rainWall.vbo);
+        gl.disableVertexAttribArray(2);
+        gl.disableVertexAttribArray(3);
+        gl.disableVertexAttribArray(4);
+        gl.disableVertexAttribArray(5);
+        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
+        gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
+        gl.drawArrays(gl.TRIANGLES, 0, this.geo.rainWall.count);
+        gl.depthMask(true);
       }
 
       gl.enable(gl.DEPTH_TEST);
@@ -2364,8 +2607,23 @@
           }
         }
 
-        // 1D. Volumetric Atmospheric Pillars + Supreme Akasha Eye Global Surveillance Cone + Live Reactor Heartbeat!
-        if (!isLight) {
+        // 1D. Volumetric Atmospheric Pillars + Supreme Akasha Eye Global Surveillance Cone + Soft Daylight Skylight Shafts!
+        if (isLight) {
+          // Soft Nordic skylight shafts descending gently from Akasha Eye in 曜白 mode (pure white architectural light!)
+          gl.depthMask(false);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          const eyeEnt = entities.find(e => e.eye);
+          if (eyeEnt && (!galaxyFocused || stationAlpha > 0.05)) {
+            const eyeY = eyeEnt.y || 6.95;
+            const ea = (galaxyFocused ? stationAlpha : 1.0);
+            if (stationAlpha > 0.08) {
+              this.drawVolumetricPillar(eyeEnt.x, 0.35, eyeEnt.z, 4.4 + stationFocus * 0.55, eyeY - 0.45, [1.0, 0.996, 0.988], 0.14 * ea * stationAlpha, true);
+              this.drawVolumetricPillar(eyeEnt.x, 1.45, eyeEnt.z, 1.85, eyeY - 1.50, [1.0, 1.0, 1.0], 0.12 * ea * stationAlpha, true);
+            }
+            this.drawVolumetricPillar(eyeEnt.x, eyeY + 0.55, eyeEnt.z, 0.95, 2.40, [1.0, 0.996, 0.988], 0.10 * ea, false);
+          }
+          gl.depthMask(true);
+        } else {
           gl.depthMask(false);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           const ver = entities.find(e => e.id === 'verification');
@@ -2656,8 +2914,9 @@
       gl.uniform1i(this.compProg.u.uBloom, 1);
       gl.uniform1f(this.compProg.u.uTheme, themeIdx);
       gl.uniform1f(this.compProg.u.uTime, tAnim);
-      const baseBloom = isLight ? 0.10 : (isMatrix ? 0.58 : 0.60);
+      const baseBloom = isLight ? 0.12 : (isMatrix ? 0.52 : 0.60);
       gl.uniform1f(this.compProg.u.uBloomStrength, baseBloom * (1.0 - cosmosSharp * 0.44));
+      gl.uniform1f(this.compProg.u.uExposure, exposure);
       drawFullQuad();
     }
   }

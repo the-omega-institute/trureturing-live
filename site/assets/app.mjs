@@ -3210,6 +3210,7 @@ const holoCam = {
   galaxyZoomScale: 1.0,
   galaxyZoomCooldown: 0,
   sonarStart: -99999,
+  themeFadeStart: -99999,
   rheostatRevX: -2.4,
   rheostatRevTargetId: 'research',
   rheostatStuX: 2.4,
@@ -5913,11 +5914,11 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
         ]
       : isBlueprint
         ? [
-            { col: [224, 255, 174], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
-            { col: [118, 255, 168], r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
-            { col: [52, 224, 128],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
-            { col: [36, 174, 96],   r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
-            { col: [20, 112, 62],   r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
+            { col: [232, 255, 234], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [61, 255, 122],  r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+            { col: [0, 217, 68],    r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+            { col: [15, 143, 56],   r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+            { col: [10, 76, 32],    r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
           ]
         : [
             { col: [248, 200, 96],  r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
@@ -7713,6 +7714,10 @@ function drawHolo3DFrame(dt = 0.016) {
     const detail = holoCam.gl.growthDetail;
     detail.fill(0);
     for (const event of growthEvents) detail[event.cid + 1] = growthInsetOpacity(nowMs - event.start, event.timing);
+    const fadeElapsed = nowMs - (holoCam.themeFadeStart || -99999);
+    const exposure = (fadeElapsed >= 0 && fadeElapsed < 540)
+      ? (0.28 + 0.72 * (1 - Math.pow(1 - fadeElapsed / 540, 3)))
+      : 1.0;
     holoCam.gl.render({
       t,
       themeIdx,
@@ -7734,38 +7739,37 @@ function drawHolo3DFrame(dt = 0.016) {
       genesisRadius,
       genesisCut: effectiveGenesisCut,
       ciLoad,
-      scholarCount: outreachScholarCount()
+      scholarCount: outreachScholarCount(),
+      exposure
     });
     // Transparent 2D vector HUD canvas layered cleanly over WebGL2 output
     ctx.clearRect(0, 0, w, h);
     if (state.focused) return;
-    // Authentic peripheral Matrix Math-Code Rain ONLY in 矩阵 (Matrix) theme!
+    // WebGL2 renders the full 3D 0/1 binary flashing curtain natively; in 2D here, add crisp subtle 0/1 bit-burst flashes in open space!
     if (isBlueprint && !state.quiet && !reduced) {
-      const glyphs = '∀∃⊢∎λΣΠℕℝℂ→⊗⟡01⊢≡∈∉⊂∪∩⊕';
-      const cols = 26;
       const safeW = w - rightGutter;
+      const bursts = w <= 700 ? 10 : 18;
       ctx.save();
       ctx.font = '600 10.5px "Geist Mono", ui-monospace, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      for (let c = 0; c < cols; c++) {
-        const fx = (c + 0.5) / cols;
-        // Keep central focal zone lighter so monoliths & stars stay ultra-clear!
-        const edgeBias = Math.min(1, Math.abs(fx - 0.5) * 2.15 + 0.24);
-        const cxCol = fx * safeW;
-        const spd = 28 + (c * 17 % 42);
-        const headY = ((t * spd + c * 97) % (h + 180)) - 90;
-        const len = 7 + (c % 5);
-        for (let k = 0; k < len; k++) {
-          const gy = headY - k * 14;
-          if (gy < 54 || gy > h - 68) continue;
-          const fade = (1 - k / len) * edgeBias;
-          const ch = glyphs[(c * 7 + k * 3 + Math.floor(t * 4 + c)) % glyphs.length];
-          ctx.fillStyle = k === 0
-            ? `rgba(186, 255, 214, ${(0.34 * fade).toFixed(3)})`
-            : `rgba(34, 255, 122, ${(0.17 * fade).toFixed(3)})`;
-          ctx.fillText(ch, cxCol, gy);
-        }
+      for (let b = 0; b < bursts; b++) {
+        const seed = (b * 137.508) % 360;
+        const bx = ((b * 97 + 41) % 86 + 7) / 100 * safeW;
+        const by = ((b * 53 + 29) % 72 + 14) / 100 * h;
+        // Keep central focal silhouette clean
+        const distCenter = Math.hypot((bx / Math.max(1, safeW) - 0.5) * 1.4, (by / Math.max(1, h) - 0.5) * 1.4);
+        if (distCenter < 0.28) continue;
+        const pulse = Math.pow(Math.max(0, Math.sin(t * (1.7 + (b % 5) * 0.55) + seed)), 12);
+        if (pulse < 0.08) continue;
+        const tick = Math.floor(t * 9 + b * 7);
+        const bitStr = b % 3 === 0
+          ? `${(tick >> 2) & 1}${(tick >> 1) & 1}${tick & 1}`
+          : `${tick & 1}`;
+        ctx.fillStyle = pulse > 0.72
+          ? `rgba(224, 255, 232, ${(pulse * 0.72).toFixed(3)})`
+          : `rgba(24, 224, 96, ${(pulse * 0.54).toFixed(3)})`;
+        ctx.fillText(bitStr, bx, by);
       }
       ctx.restore();
     }
@@ -9271,26 +9275,45 @@ function drawHolo3DFrame(dt = 0.016) {
       const p0 = project(lp.a[0], lp.a[1], lp.a[2]);
       const p1 = project(lp.b[0], lp.b[1], lp.b[2]);
       if (!p0 || !p1) continue;
-      ctx.strokeStyle = rgba(lp.col, isLight ? 0.56 : 0.46);
+      ctx.strokeStyle = rgba(lp.col, isLight ? 0.52 : (isBlueprint ? 0.54 : 0.46));
       ctx.lineWidth = li >= 5 ? 1.15 : 1.45;
-      ctx.setLineDash(li >= 5 ? [4, 5] : [6, 5]);
-      ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * 34);
+      ctx.setLineDash(isBlueprint ? [2.5, 4.5] : (li >= 5 ? [4, 5] : [6, 5]));
+      ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * (isBlueprint ? 52 : 34));
       ctx.beginPath();
       ctx.moveTo(p0.x, p0.y);
       ctx.lineTo(p1.x, p1.y);
       ctx.stroke();
       ctx.setLineDash([]);
-      // Racing live loop energy beads + tiny directional chevron arrows!
+      // Racing live loop energy beads (discrete high-speed green data packets in Matrix | luminous white-core beads in Holo/Light!)
       const dx = p1.x - p0.x, dy = p1.y - p0.y;
       const ang = Math.atan2(dy, dx);
       for (let k = 0; k < lp.n; k++) {
-        const u = ((state.quiet || reduced ? 0.3 : t * 0.42) + k / lp.n + li * 0.13) % 1;
+        const u = ((state.quiet || reduced ? 0.3 : t * (isBlueprint ? 0.56 : 0.42)) + k / lp.n + li * 0.13) % 1;
         const bx = p0.x + dx * u;
         const by = p0.y + dy * u;
-        ctx.fillStyle = rgba(lp.col, 0.95);
-        ctx.beginPath();
-        ctx.arc(bx, by, 2.6, 0, Math.PI * 2);
-        ctx.fill();
+        if (isBlueprint) {
+          // Segmented Matrix digital packet + incandescent #e8ffea leading head
+          ctx.save();
+          ctx.translate(bx, by);
+          ctx.rotate(ang);
+          ctx.fillStyle = 'rgba(0, 255, 65, 0.55)';
+          ctx.fillRect(-12, -1.4, 5, 2.8);
+          ctx.fillStyle = 'rgba(61, 255, 122, 0.82)';
+          ctx.fillRect(-5.5, -1.6, 5, 3.2);
+          ctx.fillStyle = 'rgba(232, 255, 234, 0.98)';
+          ctx.fillRect(1, -1.8, 3.6, 3.6);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = rgba(lp.col, 0.92);
+          ctx.beginPath();
+          ctx.arc(bx, by, 2.7, 0, Math.PI * 2);
+          ctx.fill();
+          // Pure-white luminous core anchor signaling active live execution!
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+          ctx.beginPath();
+          ctx.arc(bx, by, 1.15, 0, Math.PI * 2);
+          ctx.fill();
+        }
         // Tiny forward arrow chevron showing pipeline flow direction
         ctx.strokeStyle = isLight ? rgba(lp.col, 0.92) : 'rgba(245, 255, 252, 0.92)';
         ctx.lineWidth = 1.25;
@@ -9780,20 +9803,48 @@ $('#hud-zen-toggle')?.addEventListener('click', e => {
   e.currentTarget.textContent = zen ? tr('hud_expand', '展开') : tr('hud_zen', '纯净');
 });
 
+let themeVeilTimer = 0;
+function triggerThemeFade(prevLook, nextLook) {
+  if (!prevLook || prevLook === nextLook || /jsdom/i.test(navigator.userAgent || '')) return;
+  holoCam.themeFadeStart = performance.now();
+  let veil = document.getElementById('theme-fade-veil');
+  if (!veil) {
+    veil = document.createElement('div');
+    veil.id = 'theme-fade-veil';
+    veil.className = 'theme-fade-veil';
+    veil.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(veil);
+  }
+  // Cushion dark <-> light exposure transitions through a calm soft neutral slate veil (zero harsh flash!)
+  veil.style.background = prevLook === 'light'
+    ? 'rgba(214, 222, 232, 0.72)'
+    : prevLook === 'matrix'
+      ? 'rgba(2, 16, 8, 0.76)'
+      : 'rgba(6, 12, 22, 0.72)';
+  veil.classList.remove('is-fading');
+  veil.style.opacity = '1';
+  void veil.offsetWidth;
+  veil.classList.add('is-fading');
+  veil.style.opacity = '0';
+  clearTimeout(themeVeilTimer);
+  themeVeilTimer = setTimeout(() => { veil.classList.remove('is-fading'); }, 580);
+}
+
 function applyLook(look) {
   const docEl = document.documentElement;
   const meta = document.querySelector('meta[name="theme-color"]');
   const btn = $('#theme-toggle');
+  const prevLook = docEl.dataset.theme === 'light' ? 'light' : (docEl.dataset.look || 'holo');
   const norm = look === 'blueprint' ? 'matrix' : look;
   if (norm === 'light') {
     docEl.dataset.theme = 'light';
     delete docEl.dataset.look;
-    if (meta) meta.setAttribute('content', '#E8E5DC');
+    if (meta) meta.setAttribute('content', '#DCE2EA');
     if (btn) btn.textContent = '☾';
   } else if (norm === 'matrix') {
     delete docEl.dataset.theme;
     docEl.dataset.look = 'matrix';
-    if (meta) meta.setAttribute('content', '#010804');
+    if (meta) meta.setAttribute('content', '#000802');
     if (btn) btn.textContent = '☀';
   } else {
     delete docEl.dataset.theme;
@@ -9805,6 +9856,7 @@ function applyLook(look) {
   for (const b of document.querySelectorAll('[data-look]')) {
     b.setAttribute('aria-pressed', String(b.dataset.look === activeLook));
   }
+  if (prevLook !== activeLook) triggerThemeFade(prevLook, activeLook);
   renderHoloSky();
   triggerScanSweep();
 }
