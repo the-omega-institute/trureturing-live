@@ -8,11 +8,11 @@
   <title>TRURETURING // LIVE · 3D 矩阵架构指挥大屏</title>
   <link rel="preconnect" href="https://trureturing-live-reader.vercel.app" crossorigin>
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/app.css?v=assistant-stage1">
+  <link rel="stylesheet" href="assets/app.css?v=scene-corner1">
   <script defer src="assets/i18n.js?v=hive-v51"></script>
   <script defer src="assets/gl-engine.js?v=hive-v51"></script>
-  <script type="module" src="assets/app.mjs?v=assistant-stage1"></script>
-  <script defer src="assets/nyx-widget.js?v=4053652b"></script>
+  <script type="module" src="assets/app.mjs?v=scene-corner1"></script>
+  <script defer src="assets/nyx-widget.js?v=0b3a1f28"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute" data-i18n="skip_link">进入 3D 全息指挥大屏</a>
@@ -87,13 +87,6 @@
 
     <!-- Full-Viewport 100vw x 100vh 3D Holographic Citadel Room -->
     <main class="research-room" id="research-room">
-      <div class="view-toolbar">
-        <nyx-assistant data-nyxid="https://nyx-assistant-sdk-chronoai.apps.nyxid.ai" data-verification-origin="https://nyxid.ai" data-storage="local" data-services="llm-nyx,chrono-llm-public" data-key-source="new"></nyx-assistant>
-        <div id="galaxy-back-bar" class="galaxy-back-bar" hidden>
-          <button type="button" id="galaxy-back-btn" class="galaxy-back-btn" data-i18n="back_panorama">← 返回全景</button>
-          <button type="button" id="galaxy-home-btn" class="galaxy-home-btn" data-i18n="home_panorama" hidden>返回全景</button>
-        </div>
-      </div>
       <div class="hive-board" id="hive-board" role="group" aria-label="3D 全息研究院架构大屏；拖拽旋转视角，滚轮推进，悬浮预览部门，点击飞入部门全息舱">
         <canvas id="holo-gl" class="holo-gl-canvas" aria-hidden="true"></canvas>
         <canvas id="holo-3d" class="holo-3d-canvas" aria-hidden="true"></canvas>
@@ -104,6 +97,10 @@
 
         <!-- Projected Floating Chrono-Metaverse 3D Landmark Callouts -->
         <div id="hive-cells" class="hive-cells"><p class="loading">正在初始化 3D 全息建筑群…</p></div>
+        <div id="galaxy-back-bar" class="galaxy-back-bar" hidden>
+          <button type="button" id="galaxy-back-btn" class="galaxy-back-btn" data-i18n="back_panorama">← 返回全景</button>
+          <button type="button" id="galaxy-home-btn" class="galaxy-home-btn" data-i18n="home_panorama" hidden>返回全景</button>
+        </div>
         <aside id="galaxy-node-card" class="galaxy-node-card" aria-live="polite" hidden></aside>
 
         <!-- Subtle Cinema Telemetry Corner Readout -->
@@ -113,28 +110,31 @@
         </div>
 
         <!-- Authentic Automated Cultivation Realm Progress + Tactile Sonar / Cinema / Genesis Console -->
-        <div class="human-console" id="human-console" role="region" aria-label="全院自动境界与观测控制台">
-          <div class="human-rank-pill" id="realm-pill" data-i18n-title="realm_title" title="由全院 24/7 自动化 Lean 形式验证与冻结定理总数实时驱动，仅真实科研突破自动进阶">
-            <span class="human-lv" id="realm-stage">境·IV</span>
-            <span class="human-rank-name" id="realm-name">化神</span>
-            <span class="human-xp-track" aria-hidden="true"><i id="realm-xp-fill" style="width: 67%"></i></span>
-            <span class="human-xp-meta" id="realm-xp-meta">同步中</span>
+        <div class="scene-controls">
+          <div class="human-console" id="human-console" role="region" aria-label="全院自动境界与观测控制台">
+            <div class="human-rank-pill" id="realm-pill" data-i18n-title="realm_title" title="由全院 24/7 自动化 Lean 形式验证与冻结定理总数实时驱动，仅真实科研突破自动进阶">
+              <span class="human-lv" id="realm-stage">境·IV</span>
+              <span class="human-rank-name" id="realm-name">化神</span>
+              <span class="human-xp-track" aria-hidden="true"><i id="realm-xp-fill" style="width: 67%"></i></span>
+              <span class="human-xp-meta" id="realm-xp-meta">同步中</span>
+            </div>
+            <button type="button" class="human-pulse-btn" id="sonar-pulse-btn" data-i18n-title="sonar_title" title="发射灵识扫频光波（快捷键 Space）巡检当前活跃部门与周天星环">
+              <i aria-hidden="true">✦</i><span data-i18n="sonar_btn">灵识扫频</span><kbd>Space</kbd>
+            </button>
+            <button type="button" class="human-tool-btn" id="cinema-director-btn" aria-pressed="false" data-i18n-title="cinema_title" title="导演自动巡航模式（快捷键 C）· 自动切换电影机位，任意鼠标/触控板操作立刻归还控制">
+              <i aria-hidden="true">◎</i><span data-i18n="cinema_btn">巡航</span>
+            </button>
+            <button type="button" class="human-tool-btn" id="genesis-scrub-btn" aria-pressed="false" data-i18n-title="genesis_title" title="星系时间机器 · 拖动滑块回放从公理奇点到当前定理星海的演化史">
+              <i aria-hidden="true">⏱</i><span data-i18n="genesis_btn">演化</span>
+            </button>
+            <button type="button" class="human-tool-btn" id="replay-intro-btn" data-i18n-title="intro_title" title="重播 2.8 秒「天顶俯冲 + 蓝图扫描显影 + 真实 DAG 分层星爆」开屏">
+              <i aria-hidden="true">⟳</i><span data-i18n="intro_btn">开屏</span>
+            </button>
+            <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" data-i18n-title="sound_title" title="开启或静音科幻晶体微音效">
+              <span id="human-sound-icon" aria-hidden="true">♪</span>
+            </button>
           </div>
-          <button type="button" class="human-pulse-btn" id="sonar-pulse-btn" data-i18n-title="sonar_title" title="发射灵识扫频光波（快捷键 Space）巡检当前活跃部门与周天星环">
-            <i aria-hidden="true">✦</i><span data-i18n="sonar_btn">灵识扫频</span><kbd>Space</kbd>
-          </button>
-          <button type="button" class="human-tool-btn" id="cinema-director-btn" aria-pressed="false" data-i18n-title="cinema_title" title="导演自动巡航模式（快捷键 C）· 自动切换电影机位，任意鼠标/触控板操作立刻归还控制">
-            <i aria-hidden="true">◎</i><span data-i18n="cinema_btn">巡航</span>
-          </button>
-          <button type="button" class="human-tool-btn" id="genesis-scrub-btn" aria-pressed="false" data-i18n-title="genesis_title" title="星系时间机器 · 拖动滑块回放从公理奇点到当前定理星海的演化史">
-            <i aria-hidden="true">⏱</i><span data-i18n="genesis_btn">演化</span>
-          </button>
-          <button type="button" class="human-tool-btn" id="replay-intro-btn" data-i18n-title="intro_title" title="重播 2.8 秒「天顶俯冲 + 蓝图扫描显影 + 真实 DAG 分层星爆」开屏">
-            <i aria-hidden="true">⟳</i><span data-i18n="intro_btn">开屏</span>
-          </button>
-          <button type="button" class="human-sound-btn" id="human-sound-btn" aria-pressed="true" data-i18n-title="sound_title" title="开启或静音科幻晶体微音效">
-            <span id="human-sound-icon" aria-hidden="true">♪</span>
-          </button>
+          <nyx-assistant data-nyxid="https://nyx-assistant-sdk-chronoai.apps.nyxid.ai" data-verification-origin="https://nyxid.ai" data-storage="local" data-services="llm-nyx,chrono-llm-public" data-key-source="new"></nyx-assistant>
         </div>
 
         <!-- Floating Genesis Time-Scrub Dock (Hidden at rest; toggled via ⏱ 演化) -->

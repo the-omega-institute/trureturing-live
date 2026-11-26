@@ -8653,7 +8653,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   };
 
   boardEl.addEventListener('pointerdown', e => {
-    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
+    if (state.focused || e.target.closest('nyx-assistant, button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
     skipIntroCinema();
     stopCinemaDirector();
     holoCam.dragging = true;
@@ -8819,7 +8819,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   });
 
   boardEl.addEventListener('dblclick', e => {
-    if (state.focused || e.target.closest('button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
+    if (state.focused || e.target.closest('nyx-assistant, button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
     skipIntroCinema();
     stopCinemaDirector();
     holoCam.galaxyZoomScale = 1.0;
@@ -8856,7 +8856,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   };
 
   boardEl.addEventListener('wheel', e => {
-    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    if (state.focused || e.target.closest('nyx-assistant, .department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
     if (!e.ctrlKey && e.target.closest('.galaxy-node-card')) return;
     e.preventDefault();
     handleBoardZoom(e.deltaY, Boolean(e.ctrlKey), performance.now());
@@ -8865,14 +8865,14 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   // Safari macOS native trackpad pinch support (gesturestart / gesturechange)
   let safariGestureScale = 1;
   boardEl.addEventListener('gesturestart', e => {
-    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    if (state.focused || e.target.closest('nyx-assistant, .department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
     skipIntroCinema();
     stopCinemaDirector();
     e.preventDefault();
     safariGestureScale = e.scale || 1;
   }, { passive: false });
   boardEl.addEventListener('gesturechange', e => {
-    if (state.focused || e.target.closest('.department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
+    if (state.focused || e.target.closest('nyx-assistant, .department-panel, .telemetry-dock, .scifi-log-wall, .inline-browser')) return;
     e.preventDefault();
     const cur = e.scale || 1;
     const ds = safariGestureScale - cur;
@@ -9182,6 +9182,20 @@ function registerDashboardTools({ host, z }) {
     },
   });
 }
+// On short phones the wrapping header and sticky relay rail share the scene's viewport.
+const sceneHeader = $('.fui-top');
+const sceneFooter = $('.fui-bottom-shell');
+if (sceneHeader && sceneFooter && typeof ResizeObserver === 'function') {
+  const sizeScene = () => {
+    const chromeHeight = sceneHeader.offsetHeight + sceneFooter.offsetHeight;
+    $('#hive-board').style.setProperty('--scene-chrome-height', chromeHeight + 'px');
+  };
+  const chromeObserver = new ResizeObserver(sizeScene);
+  chromeObserver.observe(sceneHeader);
+  chromeObserver.observe(sceneFooter);
+  sizeScene();
+}
+
 document.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
 const nyxWidget = document.querySelector('nyx-assistant');
 if (nyxWidget?.host) registerDashboardTools(nyxWidget);
