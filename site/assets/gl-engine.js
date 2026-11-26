@@ -1906,8 +1906,8 @@
         destroyFBO(gl, this.sceneFBO);
         destroyFBO(gl, this.bloomA);
         destroyFBO(gl, this.bloomB);
-        const bw = Math.max(2, Math.floor(pw * 0.5));
-        const bh = Math.max(2, Math.floor(ph * 0.5));
+        const bw = Math.max(2, Math.floor(pw * 0.75));
+        const bh = Math.max(2, Math.floor(ph * 0.75));
         this.sceneFBO = createFBO(gl, pw, ph, true, this.hasFloat);
         if (!this.sceneFBO.ok) {
           destroyFBO(gl, this.sceneFBO);
@@ -2220,7 +2220,8 @@
             const cO = isLight ? [0.28, 0.38, 0.48] : (isMatrixPal ? [0.10, 0.56, 0.30] : [0.44, 0.62, 0.78]);
             const szO = 40.0 + (tier >= 3 ? 2.6 : 1.9);
             const alO = isLight ? 0.38 : (tier >= 3 ? 0.48 : 0.32);
-            starBuckets[0].push(wx, wy, wz, cO[0], cO[1], cO[2], szO, alO, s[3] + 1, gen);
+            const naturalAlpha = isLight || isMatrixPal ? 1 : 0.72 + gen * 0.28;
+            starBuckets[0].push(wx, wy, wz, cO[0], cO[1], cO[2], szO, alO * naturalAlpha, s[3] + 1, gen);
           } else {
             const tc = tierColors[tier];
             // Gently infuse mid-tier arms (tier 1..2) with 22% of the galaxy's signature hue so every galaxy stays distinct!
@@ -2228,7 +2229,8 @@
             const rS = tc[0] * (1 - galBlend) + (galCol[0] / 255) * galBlend;
             const gS = tc[1] * (1 - galBlend) + (galCol[1] / 255) * galBlend;
             const bS = tc[2] * (1 - galBlend) + (galCol[2] / 255) * galBlend;
-            starBuckets[tier + 1].push(wx, wy, wz, rS, gS, bS, 40.0 + tierSizes[tier], tierAlphas[tier], s[3] + 1, gen);
+            const naturalAlpha = isLight || isMatrixPal ? 1 : 0.62 + gen * 0.38;
+            starBuckets[tier + 1].push(wx, wy, wz, rS, gS, bS, 40.0 + tierSizes[tier], tierAlphas[tier] * naturalAlpha, s[3] + 1, gen);
           }
         }
         for (let b = 0; b < starBuckets.length; b++) {
@@ -2249,7 +2251,7 @@
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
           if (!isLight) {
             const cHalo = isMatrixPal ? [0.12, 0.62, 0.34] : [col[0] / 255 * 0.55, col[1] / 255 * 0.68, col[2] / 255 * 0.80];
-            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.045, cl.id + 1, 0.05);
+            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.025, cl.id + 1, 0.05);
           }
         }
       }
@@ -2940,7 +2942,7 @@
         gl.depthMask(true);
       }
 
-      // ---- PASS 2..5: SELECTIVE GPU BLOOM + ACES FILMIC + CHROMATIC EDGE + VIGNETTE + FILM GRAIN ----
+      // ---- PASS 2..5: selective high-resolution GPU bloom + ACES filmic + chromatic edge + vignette ----
       // In Cosmos mode, tighten bloom threshold so dependency-tiered star discs stay crisp while golden hubs & Akasha Eye gleam!
       const cosmosSharp = Math.max(galaxyBoost, (this.geo.atlasNodeCount > 0) ? Math.max(0, Math.min(1, fullAtlasAlpha)) : 0.0);
       gl.disable(gl.DEPTH_TEST);
@@ -2952,13 +2954,13 @@
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.sceneFBO.tex);
       gl.uniform1i(this.brightProg.u.uTex, 0);
-      gl.uniform1f(this.brightProg.u.uThreshold, isLight ? 0.94 : (0.42 + cosmosSharp * 0.22));
+      gl.uniform1f(this.brightProg.u.uThreshold, isLight ? 0.94 : (0.58 + cosmosSharp * 0.20));
       drawFullQuad();
 
       gl.useProgram(this.blurProg.p);
       gl.uniform1i(this.blurProg.u.uTex, 0);
       for (let pass = 0; pass < 2; pass++) {
-        const spread = pass === 0 ? 1.30 : 2.50;
+        const spread = pass === 0 ? 0.90 : 1.70;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.bloomB.fbo);
         gl.bindTexture(gl.TEXTURE_2D, this.bloomA.tex);
         gl.uniform2f(this.blurProg.u.uDir, spread / this.bloomA.w, 0);
@@ -2981,7 +2983,7 @@
       gl.uniform1i(this.compProg.u.uBloom, 1);
       gl.uniform1f(this.compProg.u.uTheme, themeIdx);
       gl.uniform1f(this.compProg.u.uTime, tAnim);
-      const baseBloom = isLight ? 0.12 : (isMatrix ? 0.52 : 0.60);
+      const baseBloom = isLight ? 0.12 : (isMatrix ? 0.52 : 0.30);
       gl.uniform1f(this.compProg.u.uBloomStrength, baseBloom * (1.0 - cosmosSharp * 0.44));
       gl.uniform1f(this.compProg.u.uExposure, exposure);
       drawFullQuad();
