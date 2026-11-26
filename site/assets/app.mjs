@@ -4999,7 +4999,7 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
 
 // Reserve the two upper corners of the usable canvas. Keep an existing window
 // in its corner when its neighbour finishes or another galaxy enters.
-function growthInsetLayout(points, w, h, headroom = 0) {
+function growthInsetLayout(points, w, h, headroom = 0, launcher = null) {
   const compact = w < 550;
   const margin = compact ? 8 : 18;
   const y = compact || h > w ? 8 - headroom : Math.min(62, h * 0.12);
@@ -5012,6 +5012,12 @@ function growthInsetLayout(points, w, h, headroom = 0) {
     const column = points.filter(p => p.x > x - gap && p.x < x + width + gap)
       .sort((a, b) => a.y - b.y);
     let top = y, available = height;
+    if (launcher && launcher.left < x + width && launcher.right > x &&
+        launcher.top < top + height && launcher.bottom > top) {
+      const above = launcher.top - 8 - top;
+      if (above >= Math.min(height, compact ? 95 : 110)) available = above;
+      else top = launcher.bottom + 8;
+    }
     for (const point of column) {
       if (point.y < top - gap || point.y > top + available + gap) continue;
       const above = point.y - gap - top;
@@ -5321,7 +5327,12 @@ function drawGrowthObservations(events, projected, w, h, now, isLight, scene) {
   }
   const sources = visible.map(event => ({ ...projected.get(event.cid), placement: event.placement }));
   const headroom = w < 550 ? parseFloat(getComputedStyle(layer.parentElement).marginTop) || 0 : 0;
-  const boxes = growthInsetLayout(sources, w, h, headroom);
+  const board = layer.parentElement.getBoundingClientRect();
+  const pill = $('#nyx-assistant').getBoundingClientRect();
+  const boxes = growthInsetLayout(sources, w, h, headroom, {
+    left: pill.left - board.left, right: pill.right - board.left,
+    top: pill.top - board.top, bottom: pill.bottom - board.top
+  });
   for (let i = 0; i < layer.children.length; i++) {
     layer.children[i].hidden = !visible.some(event => event.slot === i);
   }
