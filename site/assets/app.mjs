@@ -3188,7 +3188,7 @@ const holoWorld = {
 const LAYER_PRESETS = {
   mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵', tagEn: 'MIX · 3-STRATA PANORAMA' },
   station: { pitch:  0.29, dist: 22.0, lookY: 1.95, lookZ: -0.45, stationAlpha: 1.00, galaxyAlpha: 0.18, minPitch:  0.14, maxPitch: 0.80, tag: 'STATION · 阿卡西之眼与 24/7 活态环路', tagEn: 'STATION · AKASHA EYE & 24/7 ACTIVE LOOP' },
-  galaxy:  { pitch:  0.17, dist: 23.6, lookY: 2.75, lookZ: -0.85, stationAlpha: 0.00, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 阿卡西之眼与浩瀚真值星海', tagEn: 'COSMOS · AKASHA EYE & TRUTH DAG' }
+  galaxy:  { pitch:  0.14, dist: 24.8, lookY: 2.05, lookZ: -2.00, stationAlpha: 0.00, galaxyAlpha: 1.24, minPitch: -0.35, maxPitch: 0.72, tag: 'GALAXY · 全量真值星图', tagEn: 'COSMOS · REAL TRUTH DAG' }
 };
 
 const holoCam = {
@@ -3205,6 +3205,7 @@ const holoCam = {
   stationAlpha: 1.0,
   galaxyAlpha: 1.0,
   galaxyBoost: 0.0,
+  fullAtlasAlpha: 0.0,
   stationFocus: 0.0,
   galaxyZoomScale: 1.0,
   galaxyZoomCooldown: 0,
@@ -3422,9 +3423,34 @@ function initTruthNebulaData(data) {
   if (view()) renderHealth();
 }
 
+const truthAtlasFull = {
+  loaded: false,
+  loading: false,
+  data: null
+};
+
+async function loadFullTruthAtlas() {
+  if (truthAtlasFull.loaded || truthAtlasFull.loading || /jsdom/i.test(navigator.userAgent || '')) return;
+  truthAtlasFull.loading = true;
+  try {
+    const resp = await fetch('data/truth-atlas-full.v1.json', { cache: 'force-cache' });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data?.schema_version === 'trureturing-truth-atlas-full.v1' && Array.isArray(data.nodes)) {
+      truthAtlasFull.data = data;
+      truthAtlasFull.loaded = true;
+    }
+  } catch {
+    // Graceful fallback: 3,600-star ring nebula still renders cleanly
+  } finally {
+    truthAtlasFull.loading = false;
+  }
+}
+
 async function loadTruthNebula() {
   if (truthNebula.loaded || truthNebula.loading || /jsdom/i.test(navigator.userAgent || '')) return;
   truthNebula.loading = true;
+  loadFullTruthAtlas();
   try {
     const resp = await fetch('data/truth-nebula.v1.json', { cache: 'force-cache' });
     if (!resp.ok) return;
@@ -5146,10 +5172,26 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       };
   const maskFor = (cid, px, py) => (focusK > 0 && cid === growthFocus.cid ? Math.max(coreClear(px, py), 0.78 * focusK) : coreClear(px, py));
 
-  // Pre-project all mathematical galaxy centroids
+  // Pre-project all mathematical galaxy centroids (use REAL atlas-branched-dag-v5 3D centroids in full Cosmos DAG mode!)
+  const inFullAtlas = Boolean(
+    useGLSky && truthAtlasFull.loaded && holoCam.fullAtlasAlpha > 0.35 && holoCam.galaxyMainCid == null && focusK < 0.05
+  );
+  const atlasCenters = truthAtlasFull.data?.centers || null;
   const clProj = new Map();
   for (const cl of clusters) {
-    const [px, py, pz, inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000, cl.id);
+    let px, py, pz, inv;
+    const ac = inFullAtlas && atlasCenters ? atlasCenters[String(cl.id)] : null;
+    if (ac && holoCam.gl.mapAtlasPoint) {
+      const [wx, wy, wz] = holoCam.gl.mapAtlasPoint(ac[0] / 1000, ac[1] / 1000, ac[2] / 1000);
+      const p = holoCam.gl.project(wx, wy, wz);
+      if (p) {
+        px = p.x; py = p.y; pz = p.z; inv = Math.min(1.65, 22.0 / Math.max(8, p.z));
+      } else {
+        px = -9999; py = -9999; pz = 999; inv = 0;
+      }
+    } else {
+      [px, py, pz, inv] = projectNeb(cl.center[0] / 1000, cl.center[1] / 1000, cl.center[2] / 1000, cl.id);
+    }
     clProj.set(cl.id, { cl, x: px, y: py, z: pz, inv, col: nebPalette[cl.id % nebPalette.length] });
   }
 
@@ -5164,30 +5206,34 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     return recentBucket(cid)?.count ? 1.18 : 0.68;
   };
 
-  // PASS 0: Project all 1,160 real frozen Truth DAG stars
-  for (let i = 0; i < n; i++) {
-    const s = stars[i];
-    const hasGrowth = Boolean(recentBucket(s[3])?.count);
-    let nx = s[0] / 1000, ny = s[1] / 1000, nz = s[2] / 1000;
-    if (hasGrowth && !quiet) {
-      const cl = clProj.get(s[3])?.cl;
-      if (cl && cl.name !== 'Other') {
-        const gen = s[4] / 100;
-        const swell = 1.0 + gen * 0.045 * (0.5 + 0.5 * Math.sin(tEff * 0.42 + s[3] * 1.1));
-        const cx3 = cl.center[0] / 1000, cy3 = cl.center[1] / 1000, cz3 = cl.center[2] / 1000;
-        nx = cx3 + (nx - cx3) * swell;
-        ny = cy3 + (ny - cy3) * swell;
-        nz = cz3 + (nz - cz3) * swell;
+  // PASS 0: Project ring Truth DAG stars (skipped when Full 18,986-Node GPU Real Atlas DAG owns the stage!)
+  if (inFullAtlas) {
+    holoCam.galaxyFootprints = new Map();
+  } else {
+    for (let i = 0; i < n; i++) {
+      const s = stars[i];
+      const hasGrowth = Boolean(recentBucket(s[3])?.count);
+      let nx = s[0] / 1000, ny = s[1] / 1000, nz = s[2] / 1000;
+      if (hasGrowth && !quiet) {
+        const cl = clProj.get(s[3])?.cl;
+        if (cl && cl.name !== 'Other') {
+          const gen = s[4] / 100;
+          const swell = 1.0 + gen * 0.045 * (0.5 + 0.5 * Math.sin(tEff * 0.42 + s[3] * 1.1));
+          const cx3 = cl.center[0] / 1000, cy3 = cl.center[1] / 1000, cz3 = cl.center[2] / 1000;
+          nx = cx3 + (nx - cx3) * swell;
+          ny = cy3 + (ny - cy3) * swell;
+          nz = cz3 + (nz - cz3) * swell;
+        }
       }
+      const [px, py, pz] = projectNeb(nx, ny, nz, s[3]);
+      projX[i] = px;
+      projY[i] = py;
+      projZ[i] = pz;
+      projLit[i] = 0;
     }
-    const [px, py, pz] = projectNeb(nx, ny, nz, s[3]);
-    projX[i] = px;
-    projY[i] = py;
-    projZ[i] = pz;
-    projLit[i] = 0;
+    // Where each named galaxy's stars lie on screen, so a click anywhere on its band opens it.
+    holoCam.galaxyFootprints = galaxyFootprints(stars, projX, projY, clusters, w, h);
   }
-  // Where each named galaxy's stars lie on screen, so a click anywhere on its band opens it.
-  holoCam.galaxyFootprints = galaxyFootprints(stars, projX, projY, clusters, w, h);
 
   ctx.save();
   if (useGLSky) ctx.globalAlpha = Math.min(1.0, skyVis);
@@ -5253,9 +5299,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
   }
 
-  // PASS 3: INTER-GALAXY PERIMETER ARCS — illuminate on hover/close-up, AND gently showcase the 9 major real bridges in dedicated 星系 mode!
+  // PASS 3: INTER-GALAXY PERIMETER ARCS — illuminate on hover/close-up in ring mode (omitted in full 18,986-node DAG where real edges shine!)
   const isPureGalaxyView = state.layer === 'galaxy' && holoCam.galaxyMainCid == null && focusK < 0.05;
-  if (webCid != null || isPureGalaxyView) {
+  if (!inFullAtlas && (webCid != null || isPureGalaxyView)) {
     const ringRx = w * 0.35;
     const ringRy = h * 0.39;
     const namedLinks = clusterLinks.filter(([u, v, count]) => {
@@ -5327,15 +5373,22 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
   }
 
-  // Grand cosmic DAG banner in dedicated 星系 Observatory mode
+  // Grand cosmic DAG banner + real trureturing-pages reuse-tier legend in dedicated 星系 Observatory mode
   if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
-    const dagTotal = truthNebula.counts?.truth_nodes || 18367;
-    const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L18 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
-      n: dagTotal.toLocaleString()
-    });
+    const atlasCounts = truthAtlasFull.data?.counts;
+    const dagTotal = atlasCounts?.truth_nodes || truthNebula.counts?.truth_nodes || 18986;
+    const edgeTotal = atlasCounts?.rendered_edges || truthNebula.counts?.truth_edges || 16000;
+    const banner = inFullAtlas
+      ? L(
+          `TRUTH DAG ATLAS // 真实全量图谱 · ${dagTotal.toLocaleString()} Lean 冻结模块 · ${edgeTotal.toLocaleString()} 条依赖边`,
+          `TRUTH DAG ATLAS // FULL REAL GRAPH · ${dagTotal.toLocaleString()} VERIFIED MODULES · ${edgeTotal.toLocaleString()} DEPENDENCY EDGES`
+        )
+      : tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L18 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
+          n: dagTotal.toLocaleString()
+        });
     const bVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
     ctx.save();
-    ctx.globalAlpha = bVis * 0.86;
+    ctx.globalAlpha = bVis * 0.88;
     ctx.font = '600 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -5343,13 +5396,60 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.strokeStyle = isLight ? 'rgba(240, 237, 230, 0.95)' : 'rgba(2, 6, 12, 0.90)';
     const bx = (w - rightGutter) * 0.5;
     ctx.strokeText(banner, bx, 78);
-    ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.88)');
+    ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.90)');
     ctx.fillText(banner, bx, 78);
+
+    // Compact scientific reuse-tier legend cleanly positioned above #human-console (matches trureturing-pages!)
+    if (inFullAtlas && w > 760) {
+      const items = isLight
+        ? [
+            { col: [188, 112, 16], label: L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [8, 115, 95],   label: '64–344' },
+            { col: [15, 138, 124], label: '6–63' },
+            { col: [40, 118, 158], label: '1–5' },
+            { col: [86, 114, 148], label: L('0 叶节点', '0 Leaves') }
+          ]
+        : isBlueprint
+          ? [
+              { col: [220, 255, 168], label: L('345+ 核心枢纽', '345+ Hubs') },
+              { col: [112, 255, 162], label: '64–344' },
+              { col: [46, 224, 122],  label: '6–63' },
+              { col: [30, 168, 92],   label: '1–5' },
+              { col: [20, 112, 62],   label: L('0 叶节点', '0 Leaves') }
+            ]
+          : [
+              { col: [247, 199, 97],  label: L('345+ 核心枢纽', '345+ Hubs') },
+              { col: [46, 232, 194],  label: '64–344' },
+              { col: [76, 214, 189],  label: '6–63' },
+              { col: [125, 189, 222], label: '1–5' },
+              { col: [92, 138, 191],  label: L('0 叶节点', '0 Leaves') }
+            ];
+      const ly = h - 118;
+      let lx = 26;
+      ctx.font = '500 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = bVis * 0.85;
+      const prefix = L('被依赖度：', 'Depended on by: ');
+      ctx.fillStyle = isLight ? 'rgba(24, 42, 58, 0.72)' : 'rgba(156, 188, 212, 0.74)';
+      ctx.fillText(prefix, lx, ly);
+      lx += ctx.measureText(prefix).width + 4;
+      for (const it of items) {
+        ctx.fillStyle = rgba(it.col, 0.96);
+        ctx.beginPath();
+        ctx.arc(lx + 4, ly, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+        lx += 12;
+        ctx.fillStyle = isLight ? 'rgba(20, 36, 52, 0.84)' : 'rgba(206, 228, 244, 0.86)';
+        ctx.fillText(it.label, lx, ly);
+        lx += ctx.measureText(it.label).width + 13;
+      }
+    }
     ctx.restore();
   }
 
-  // In dedicated 星系 Observatory mode, mark top hub theorem nodes in every galaxy with crisp optical micro-rings!
-  if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
+  // In ring galaxy observatory mode (before full 18k atlas loads), mark top hub theorem nodes with crisp optical micro-rings
+  if (useGLSky && !inFullAtlas && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
     const hubsPerCid = new Map();
     for (let i = 0; i < (truthNebula.baseCount || n); i++) {
       const cid = stars[i][3];
@@ -5436,8 +5536,8 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     if (!useGLSky) drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
   }
 
-  // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules!)
-  for (let k = 0; k < truthGrowth.recentSprouts.length; k++) {
+  // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules! Ring/focus mode only)
+  for (let k = 0; !inFullAtlas && k < truthGrowth.recentSprouts.length; k++) {
     const sp = truthGrowth.recentSprouts[k];
     const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000, sp.cid);
     const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000, sp.cid);
@@ -7144,6 +7244,8 @@ function drawHolo3DFrame(dt = 0.016) {
     : (genesisScrub.open ? genesisScrub.value : 1.05);
   const targetGalaxyBoost = (state.layer === 'galaxy' || Boolean(galaxyFrame)) ? 1.0 : 0.0;
   holoCam.galaxyBoost += (targetGalaxyBoost - holoCam.galaxyBoost) * damp;
+  const targetFullAtlas = (useGL && truthAtlasFull.loaded && state.layer === 'galaxy' && !galaxyFrame && !state.focused) ? 1.0 : 0.0;
+  holoCam.fullAtlasAlpha += (targetFullAtlas - holoCam.fullAtlasAlpha) * damp;
   const targetStationFocus = (state.layer === 'station' && !galaxyFrame && !state.focused) ? 1.0 : 0.0;
   holoCam.stationFocus += (targetStationFocus - holoCam.stationFocus) * damp;
 
@@ -7230,6 +7332,9 @@ function drawHolo3DFrame(dt = 0.016) {
       const settledConjs = state.settledConjectures || conjectureRecords();
       holoCam.gl.syncTruthDag(truthNebula.stars, truthNebula.edges, truthNebula.clusters, glNebPalette, truthGrowth.recentByCluster, isLight, settledConjs);
     }
+    if (truthAtlasFull.loaded && holoCam.gl.syncFullAtlas) {
+      holoCam.gl.syncFullAtlas(truthAtlasFull.data, themeIdx);
+    }
     const glEntities = departments().map(d => {
       const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1.2, order: 0, hex: [116, 224, 244] };
       return {
@@ -7262,6 +7367,7 @@ function drawHolo3DFrame(dt = 0.016) {
       stationAlpha: holoCam.stationAlpha,
       galaxyAlpha: holoCam.galaxyAlpha,
       galaxyBoost: holoCam.galaxyBoost,
+      fullAtlasAlpha: holoCam.fullAtlasAlpha,
       stationFocus: holoCam.stationFocus,
       galaxyFocused: Boolean(galaxyFrame),
       sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
@@ -7331,9 +7437,9 @@ function drawHolo3DFrame(dt = 0.016) {
   // 1B. PURE BACKGROUND TRUTH DAG OUTER-RIM CRYSTALLIZATION & ASTRONOMICAL STAR-TRACKER LABELS
   drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint);
 
-  // 1C. INTERACTIVE CONJECTURE LANTERN STARS (sub-pixel hover reticle + click-to-read proof!)
+  // 1C. INTERACTIVE CONJECTURE LANTERN STARS (sub-pixel hover reticle + click-to-read proof! Ring/focus modes only)
   holoCam.projectedLanterns = [];
-  if (useGL && holoCam.galaxyAlpha > 0.20) {
+  if (useGL && holoCam.galaxyAlpha > 0.20 && holoCam.fullAtlasAlpha < 0.35) {
     const rawLanterns = holoCam.gl.getLanternStars();
     const maxSafeX = rightGutter > 0 ? w - rightGutter - 18 : w - 24;
     for (let i = 0; i < rawLanterns.length; i++) {
