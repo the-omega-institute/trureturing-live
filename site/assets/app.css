@@ -2993,16 +2993,163 @@ nyx-assistant button[slot="prompt"]:focus-visible {
     gap: 8px;
   }
   nyx-assistant {
-    left: 12px;
-    top: 62px;
-    --nyx-panel-max-width: calc(100vw - 24px);
-    --nyx-panel-max-height: min(26rem, calc(100dvh - 116px));
+    left: 10px;
+    top: 92px;
+    --nyx-panel-max-width: calc(100vw - 20px);
+    --nyx-panel-max-height: min(26rem, calc(100dvh - 124px));
   }
-  .galaxy-back-bar { position: absolute; inset: 54px auto auto 12px; }
+  .galaxy-back-bar { position: absolute; inset: 48px auto auto 10px; }
   .human-console { overflow-x: auto; scrollbar-width: none; }
+  .human-console::-webkit-scrollbar { display: none; }
   .human-console > * { flex: none; }
-  .dock-triggers { max-width: 100%; overflow-x: auto; }
+  .dock-triggers { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .dock-triggers::-webkit-scrollbar { display: none; }
   .research-room { height: auto; }
+}
+@media (max-width: 700px) {
+  /* Sleek 2-row non-wrapping mobile command header (~82px total instead of 4 wrapped rows!) */
+  .fui-top,
+  :root[data-look="blueprint"] .fui-top,
+  :root[data-look="matrix"] .fui-top,
+  :root[data-theme="light"] .fui-top {
+    padding: 8px 10px 7px;
+    row-gap: 6px;
+    gap: 6px;
+  }
+  .fui-top-left {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .brand { gap: 7px; min-width: 0; }
+  .brand img { width: 20px; height: 20px; }
+  .brand-name { font-size: 11.5px; letter-spacing: 0.08em; }
+  .connection { height: 24px; padding: 0 8px; font-size: 10px; }
+  .fui-top-right {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 6px;
+    padding-bottom: 1px;
+    -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 92%, transparent 100%);
+  }
+  .fui-top-right::-webkit-scrollbar { display: none; }
+  .fui-top-right > * { flex: none; }
+  .layer-switcher,
+  .style-switcher,
+  .lang-switcher,
+  .mode-switch { padding: 2px; }
+  .layer-switcher button,
+  .style-switcher button,
+  .mode-switch button,
+  .follow-button {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 10.5px;
+  }
+  .lang-switcher button {
+    height: 26px;
+    padding: 0 7px;
+    font-size: 10px;
+  }
+  /* Hide desktop-only auxiliary buttons & redundant sun icon on mobile phones */
+  #hud-zen-toggle,
+  #motion-toggle,
+  #expand-room,
+  #theme-toggle {
+    display: none;
+  }
+
+  /* Balanced 3D stage height so both the 3D scene and department card read cleanly on first screen */
+  .hive-board {
+    height: clamp(345px, 50svh, 435px);
+  }
+  .scene-controls {
+    inset: 8px 10px;
+    gap: 6px;
+  }
+  .human-console {
+    gap: 5px;
+    width: 100%;
+    -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 92%, transparent 100%);
+  }
+  .human-rank-pill,
+  .human-pulse-btn,
+  .human-tool-btn,
+  .human-sound-btn {
+    height: 28px;
+    font-size: 10px;
+  }
+  .human-rank-pill { padding: 0 8px; gap: 5px; }
+  .human-pulse-btn,
+  .human-tool-btn { padding: 0 8px; gap: 4px; }
+  .human-sound-btn { width: 28px; min-width: 28px; padding: 0; }
+  .human-xp-track,
+  .human-xp-meta,
+  #replay-intro-btn {
+    display: none;
+  }
+
+  /* Compact Nyx pill on narrow mobile */
+  nyx-assistant {
+    font-size: 12px;
+    --nyx-panel-max-width: calc(100vw - 20px);
+    --nyx-panel-max-height: min(24rem, calc(100dvh - 120px));
+  }
+
+  /* Crisp micro-pill 3D department callouts so all 8 waypoints stay readable without overlapping */
+  .hive-cell { --cell-scale: 0.80; }
+  .cell-card,
+  :root[data-lang="en"] .cell-card {
+    max-width: 112px;
+    padding: 2.5px 6.5px;
+    gap: 0;
+    clip-path: none;
+    border-radius: 3px;
+    border-left-width: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.44);
+  }
+  .cell-head { gap: 3.5px; }
+  .cell-head::before { display: none; }
+  .cell-title { font-size: 9.5px; letter-spacing: 0; }
+  .hive-cell:not([aria-pressed="true"]) .cell-landmark { display: none; }
+  .cell-landmark-cap { font-size: 7.5px; padding: 0.5px 4px; }
+  .cell-pin-stem { height: 5px; }
+  .cell-pin-node { width: 4px; height: 4px; }
+
+  /* Compact department panel & sticky bottom navigation dock */
+  .department-panel {
+    margin: 0 10px;
+    padding: 12px 13px;
+    border-radius: 10px;
+  }
+  .fui-bottom-shell {
+    padding: 5px 8px max(6px, env(safe-area-inset-bottom));
+  }
+  .fui-bottom-rail {
+    min-height: 0;
+    padding: 4px 6px;
+    row-gap: 4px;
+    border-radius: 10px;
+  }
+  .method-strip,
+  .dock-triggers {
+    -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 90%, transparent 100%);
+  }
+  .method-steps { gap: 3px; }
+  .method-steps button,
+  .dock-triggers button {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 10.5px;
+  }
+  .method-steps strong { font-size: 10.5px; }
+  .method-steps .step-badge { display: none; }
 }
 @media (max-width: 980px) and (orientation: landscape) {
   .hive-board { position: relative; height: 64vh; min-height: 320px; }
