@@ -2910,71 +2910,23 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
   pointer-events: none;
 }
 .scene-controls nyx-assistant {
-  position: relative;
-  inset: auto;
-  z-index: auto;
-  width: 110px;
-  min-height: 36px;
-  flex: none;
   margin-inline-start: auto;
-  cursor: default;
-  user-select: text;
   pointer-events: auto;
+  user-select: text;
+  cursor: default;
+  --nyx-panel-max-width: 100cqw;
+  --nyx-panel-max-height: min(30rem, calc(100cqh - max(42px, 2.8em)));
   --nyx-surface: var(--surface-solid);
   --nyx-text: var(--ink);
   --nyx-accent: var(--accent);
-  --nyx-accent-text: var(--bg);
+  --nyx-muted: var(--ink-2);
+  --nyx-control-font: var(--font-mono);
+  --nyx-border: var(--border-strong);
+  --nyx-control-surface: color-mix(in srgb, var(--accent) 6%, var(--surface-solid));
+  --nyx-control-text: var(--ink);
+  --nyx-action-surface: var(--accent-soft);
+  --nyx-accent-text: var(--accent);
   --nyx-radius: 3px;
-  --nyx-panel-max-height: min(30rem, calc(100cqh - 42px));
-}
-nyx-assistant::part(launcher), nyx-assistant::part(primary-action) {
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 3px;
-  border: 1px solid var(--border-strong);
-  font: 650 12px/1.25 var(--font-mono);
-  letter-spacing: .03em;
-}
-nyx-assistant::part(launcher) {
-  width: 100%;
-  justify-content: center;
-  gap: 9px;
-  border-inline-start: 2px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface-solid));
-  color: var(--ink);
-  box-shadow: 0 3px 12px rgb(0 0 0 / 18%);
-}
-nyx-assistant::part(launcher-icon) {
-  color: var(--accent);
-  width: 15px;
-  height: 12px;
-  border-radius: 3px 3px 3px 0;
-  background: radial-gradient(circle at 33% 50%, currentColor 1px, transparent 1.2px),
-    radial-gradient(circle at 67% 50%, currentColor 1px, transparent 1.2px);
-}
-nyx-assistant::part(launcher):hover, nyx-assistant::part(launcher):focus-visible {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 17%, var(--surface-solid));
-}
-nyx-assistant::part(panel) {
-  position: absolute;
-  inset: auto 0 calc(100% + 6px) auto;
-  width: min(24rem, 100cqw);
-  border-color: var(--border-strong);
-  border-top: 2px solid var(--accent);
-  box-shadow: 0 10px 32px rgb(0 0 0 / 28%);
-}
-nyx-assistant::part(header) {
-  padding: 4px 8px 4px 14px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface-solid));
-  font: 600 13px/1.4 var(--font-mono);
-}
-nyx-assistant::part(close) { color: var(--ink-2); }
-nyx-assistant::part(input) {
-  border-radius: 3px;
-  background: var(--bg);
-  border-color: var(--border-strong);
 }
 @media (orientation: portrait), (max-width: 980px) {
   .scene-controls {
