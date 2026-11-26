@@ -835,6 +835,7 @@
   uniform vec3 uGatherStretch[9];
   uniform float uGatherAlpha[9];
   uniform float uTheme;
+  uniform float uGrowthDetail[9];
   out vec3 vCol;
   out float vAlpha;
   out float vKind;
@@ -883,6 +884,11 @@
     vKind = isAtlasDisc > 0.5 ? 3.0 : (isCloud > 0.5 ? 1.0 : (isLantern > 0.5 ? 2.0 : 0.0));
     vSeed = fract(sin(dot(aPos.xy + aPos.z * 0.37, vec2(12.9898, 78.233))) * 43758.5453) * 6.28318;
     vHub = (isAtlasDisc > 0.5 ? smoothstep(6.2, 8.0, baseSize) : isNode * smoothstep(5.4, 7.6, baseSize));
+    // For the magnified galaxy, separate the stars by reducing their diffuse
+    // cloud layers before bloom. Compact star cores keep the topology legible.
+    float detail = uGrowthDetail[gi];
+    vAlpha *= mix(1.0, isCloud > 0.5 ? 0.055 : (isLantern > 0.5 ? 0.38 : 0.80), detail);
+    gl_PointSize *= mix(1.0, isCloud > 0.5 ? 0.85 : 0.79, detail);
   }`;
 
   const STAR_FS = `#version 300 es
@@ -1558,6 +1564,7 @@
       this.gatherPivot = new Float32Array(27);
       this.gatherStretch = new Float32Array(27);
       this.gatherAlpha = new Float32Array(9);
+      this.growthDetail = new Float32Array(9);
       this.setGather([]);
     }
 
@@ -1591,6 +1598,7 @@
       gl.uniform3fv(prog.u.uGatherPivot, this.gatherPivot);
       gl.uniform3fv(prog.u.uGatherStretch, this.gatherStretch);
       gl.uniform1fv(prog.u.uGatherAlpha, this.gatherAlpha);
+      if (prog === this.starProg) gl.uniform1fv(prog.u.uGrowthDetail, this.growthDetail);
     }
 
     ensureSize(cssW, cssH, dpr) {

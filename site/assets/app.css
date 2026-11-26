@@ -498,6 +498,47 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   pointer-events: none !important;
 }
 
+.growth-emission {
+  position: absolute;
+  z-index: 11;
+  pointer-events: none;
+}
+.growth-pointer {
+  position: absolute;
+  z-index: 13;
+  height: 1.5px;
+  pointer-events: none;
+  transform-origin: 0 50%;
+  background: var(--accent);
+  filter: drop-shadow(0 1px 1px var(--surface-solid));
+}
+.growth-pointer::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border-block: 3.5px solid transparent;
+  border-left: 7px solid var(--accent);
+}
+.growth-inset {
+  position: absolute;
+  z-index: 14;
+  pointer-events: none;
+  outline: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  outline-offset: -1px;
+  border-radius: 3px;
+}
+
+@media (max-width: 550px) and (orientation: portrait) {
+  .hive-board { transition: margin-top 440ms cubic-bezier(.22,.61,.36,1); }
+  .hive-board:has(#growth-observations:not([hidden])) {
+    margin-top: 100px;
+    overflow: visible;
+    clip-path: inset(-100px 0 0);
+  }
+}
+
 .galaxy-back-bar {
   position: fixed;
   left: 22px;
