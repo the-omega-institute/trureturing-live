@@ -1635,7 +1635,11 @@
       this.yaw = yaw;
       this.pitch = pitch;
       const aspect = Math.max(0.25, this.cssW / Math.max(1, this.cssH));
-      this.fovY = (aspect < 1.2 ? 44 : 38.0) * (Math.PI / 180);
+      // Widen vertical FOV on narrow portrait phones so the full orbital ring & space station stay cleanly framed horizontally!
+      const fovDeg = aspect < 1.05
+        ? Math.min(64.0, Math.max(44.0, 48.0 / Math.max(0.68, aspect)))
+        : (aspect < 1.25 ? 43.0 : 38.0);
+      this.fovY = fovDeg * (Math.PI / 180);
       M4.perspective(this.projMat, this.fovY, aspect, 0.35, 160.0, ndcShiftX);
 
       const cp = Math.cos(pitch), sp = Math.sin(pitch);

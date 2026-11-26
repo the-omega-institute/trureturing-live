@@ -5375,54 +5375,62 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   // Grand cosmic DAG banner + proportional-size dependency-tier legend in dedicated 星系 Observatory mode
   if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
     const dagTotal = truthNebula.counts?.truth_nodes || 19022;
-    const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L84 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
-      n: dagTotal.toLocaleString()
-    });
+    const isCompactHud = w <= 700;
     const bVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
     ctx.save();
-    ctx.globalAlpha = bVis * 0.88;
-    ctx.font = '600 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineWidth = 3.0;
-    ctx.strokeStyle = isLight ? 'rgba(240, 237, 230, 0.95)' : 'rgba(2, 6, 12, 0.90)';
-    const bx = (w - rightGutter) * 0.5;
-    ctx.strokeText(banner, bx, 78);
-    ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.90)');
-    ctx.fillText(banner, bx, 78);
+    if (!isCompactHud) {
+      const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L84 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
+        n: dagTotal.toLocaleString()
+      });
+      ctx.globalAlpha = bVis * 0.88;
+      ctx.font = '600 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3.0;
+      ctx.strokeStyle = isLight ? 'rgba(240, 237, 230, 0.95)' : 'rgba(2, 6, 12, 0.90)';
+      const bx = (w - rightGutter) * 0.5;
+      ctx.strokeText(banner, bx, 78);
+      ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.90)');
+      ctx.fillText(banner, bx, 78);
+    }
 
     // Compact scientific reuse-tier size+color legend cleanly positioned above #human-console!
-    if (w > 760) {
-      const items = isLight
+    const items = isLight
+      ? [
+          { col: [188, 112, 16], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+          { col: [8, 115, 95],   r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+          { col: [15, 138, 124], r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+          { col: [40, 118, 158], r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+          { col: [86, 114, 148], r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
+        ]
+      : isBlueprint
         ? [
-            { col: [188, 112, 16], r: 5.2, label: L('345+ 核心枢纽', '345+ Hubs') },
-            { col: [8, 115, 95],   r: 4.1, label: '64–344' },
-            { col: [15, 138, 124], r: 3.2, label: '6–63' },
-            { col: [40, 118, 158], r: 2.4, label: '1–5' },
-            { col: [86, 114, 148], r: 1.7, label: L('0 叶节点', '0 Leaves') }
+            { col: [224, 255, 174], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [118, 255, 168], r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+            { col: [52, 224, 128],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+            { col: [36, 174, 96],   r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+            { col: [20, 112, 62],   r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
           ]
-        : isBlueprint
-          ? [
-              { col: [224, 255, 174], r: 5.2, label: L('345+ 核心枢纽', '345+ Hubs') },
-              { col: [118, 255, 168], r: 4.1, label: '64–344' },
-              { col: [52, 224, 128],  r: 3.2, label: '6–63' },
-              { col: [36, 174, 96],   r: 2.4, label: '1–5' },
-              { col: [20, 112, 62],   r: 1.7, label: L('0 叶节点', '0 Leaves') }
-            ]
-          : [
-              { col: [248, 200, 96],  r: 5.2, label: L('345+ 核心枢纽', '345+ Hubs') },
-              { col: [52, 232, 196],  r: 4.1, label: '64–344' },
-              { col: [76, 214, 189],  r: 3.2, label: '6–63' },
-              { col: [122, 188, 224], r: 2.4, label: '1–5' },
-              { col: [92, 138, 191],  r: 1.7, label: L('0 叶节点', '0 Leaves') }
-            ];
-      const ly = h - 118;
-      let lx = 26;
-      ctx.font = '500 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.globalAlpha = bVis * 0.86;
-      const prefix = L('按被依赖度分大小：', 'Sized by dependents: ');
+        : [
+            { col: [248, 200, 96],  r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [52, 232, 196],  r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+            { col: [76, 214, 189],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+            { col: [122, 188, 224], r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+            { col: [92, 138, 191],  r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
+          ];
+    ctx.font = isCompactHud
+      ? '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif'
+      : '500 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = bVis * 0.86;
+    const prefix = isCompactHud ? L('依赖度:', 'Deps:') : L('按被依赖度分大小：', 'Sized by dependents: ');
+    const gapAfterDot = isCompactHud ? 3.5 : 5;
+    const gapBetween = isCompactHud ? 8 : 13;
+    const totalLegendW = ctx.measureText(prefix).width + 6 + items.reduce((acc, it) => acc + it.r * 2 + gapAfterDot + ctx.measureText(it.label).width + gapBetween, -gapBetween);
+    const ly = isCompactHud ? (h - 52) : (h - 118);
+    let lx = isCompactHud ? Math.max(10, (w - totalLegendW) * 0.5) : 26;
+    if (w > 760 || isCompactHud) {
       ctx.fillStyle = isLight ? 'rgba(24, 42, 58, 0.72)' : 'rgba(156, 188, 212, 0.76)';
       ctx.fillText(prefix, lx, ly);
       lx += ctx.measureText(prefix).width + 6;
@@ -5431,10 +5439,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         ctx.beginPath();
         ctx.arc(lx + it.r, ly, it.r, 0, Math.PI * 2);
         ctx.fill();
-        lx += it.r * 2 + 5;
+        lx += it.r * 2 + gapAfterDot;
         ctx.fillStyle = isLight ? 'rgba(20, 36, 52, 0.84)' : 'rgba(206, 228, 244, 0.88)';
         ctx.fillText(it.label, lx, ly);
-        lx += ctx.measureText(it.label).width + 13;
+        lx += ctx.measureText(it.label).width + gapBetween;
       }
     }
     ctx.restore();
@@ -5623,27 +5631,30 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   );
 
   holoCam.projectedGalaxies.clear();
-  const minLabelX = 82;
-  const maxLabelX = w - rightGutter - 82;
+  const isCompactMobile = w <= 700;
+  const minLabelX = isCompactMobile ? 42 : 82;
+  const maxLabelX = w - rightGutter - (isCompactMobile ? 42 : 82);
   for (const { cl, x: px, y: py, col } of clProj.values()) {
     if (cl.name === 'Other') continue;
-    if (useGLSky && (px < -60 || px > w - rightGutter + 40 || py < 36 || py > h - 70)) continue;
+    if (useGLSky && (px < -60 || px > w - rightGutter + 40 || py < (isCompactMobile ? 22 : 36) || py > h - (isCompactMobile ? 54 : 70))) continue;
     const isBottom = cl.center[1] < 0;
     const isMidUpper = !isBottom && cl.center[1] < 760;
     const bucket = recentBucket(cl.id);
     const delta = bucket?.count || 0;
-    const isFeatured = delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2;
-    const isUpperCrown = cl.id === 0 || cl.id === 2 || cl.id === 6;
+    const isFeatured = !isCompactMobile && delta > 0 && topGrowingIds.has(cl.id) && focusK < 0.2;
+    const isUpperCrown = cl.id === 0 || cl.id === 2 || (!isCompactMobile && cl.id === 6);
     const lx = useGLSky
       ? Math.max(minLabelX, Math.min(maxLabelX, px))
       : Math.max(isFeatured ? 380 : 336, Math.min(w - (isFeatured ? 380 : 336), px));
     const ly = useGLSky
-      ? Math.max(76, Math.min(h - 92, py + (isUpperCrown ? -22 : 22)))
+      ? Math.max(isCompactMobile ? 34 : 76, Math.min(h - (isCompactMobile ? 64 : 92), py + (isUpperCrown ? (isCompactMobile ? -16 : -22) : (isCompactMobile ? 17 : 22))))
       : (isBottom ? Math.min(h - 114, py + 26) : Math.max(82, py - (isMidUpper ? 36 : 24)));
     if (!useGLSky && (lx < 292 || lx > w - 292)) continue;
 
     holoCam.projectedGalaxies.set(cl.id, { x: px, y: py, lx, ly, cl, col });
     const isHovered = holoCam.hoveredGalaxy === cl.id && focusK < 0.2;
+    // On narrow mobile phones, suppress outer galaxy text labels in Mix & Station so Space Station tags never overlap!
+    if (isCompactMobile && state.layer !== 'galaxy' && holoCam.galaxyMainCid == null && !isHovered) continue;
 
     if (isHovered) {
       ctx.save();
@@ -5662,11 +5673,13 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     ctx.globalAlpha = Math.max(0, Math.min(1, baseLabelA * Math.min(1, skyVis)));
     const starMark = conjCount > 0 ? ' ✦' : '';
     const gTitle = langGalaxyName(cl);
-    const mainLabel = delta > 0
-      ? `${gTitle} · ${(cl.count || 0).toLocaleString()}  +${delta}${starMark}`
-      : `${gTitle} · ${(cl.count || 0).toLocaleString()}${starMark}`;
+    const mainLabel = isCompactMobile
+      ? gTitle
+      : (delta > 0
+          ? `${gTitle} · ${(cl.count || 0).toLocaleString()}  +${delta}${starMark}`
+          : `${gTitle} · ${(cl.count || 0).toLocaleString()}${starMark}`);
     let subText = '';
-    if (isHovered || isFeatured) {
+    if (!isCompactMobile && (isHovered || isFeatured)) {
       const evList = bucket?.events || [];
       const rotIdx = (!isHovered && !quiet && evList.length > 1) ? Math.floor(tEff / 6.5) % Math.min(6, evList.length) : 0;
       const featured = evList[rotIdx] || bucket?.latest;
@@ -7515,13 +7528,14 @@ function drawHolo3DFrame(dt = 0.016) {
 
   // KPR / Active Theory Peripheral Optical Viewfinder Frame (frames the open left-to-center 82% 3D viewport!)
   if (useGL) {
-    const fx0 = 22;
-    const fx1 = rightGutter > 0 ? w - rightGutter - 12 : w - 22;
-    const fy0 = 64, fy1 = h - 70;
-    const tick = 12;
+    const isCompactVf = w <= 700;
+    const fx0 = isCompactVf ? 10 : 22;
+    const fx1 = rightGutter > 0 ? w - rightGutter - 12 : w - (isCompactVf ? 10 : 22);
+    const fy0 = isCompactVf ? 10 : 64, fy1 = h - (isCompactVf ? 46 : 70);
+    const tick = isCompactVf ? 8 : 12;
     const vfCol = isLight ? [60, 74, 88] : [156, 198, 228];
     ctx.save();
-    ctx.strokeStyle = rgba(vfCol, isLight ? 0.26 : 0.22);
+    ctx.strokeStyle = rgba(vfCol, isLight ? 0.24 : 0.20);
     ctx.lineWidth = 1.0;
     ctx.beginPath();
     ctx.moveTo(fx0, fy0 + tick); ctx.lineTo(fx0, fy0); ctx.lineTo(fx0 + tick, fy0);
@@ -7529,24 +7543,39 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.moveTo(fx0, fy1 - tick); ctx.lineTo(fx0, fy1); ctx.lineTo(fx0 + tick, fy1);
     ctx.moveTo(fx1 - tick, fy1); ctx.lineTo(fx1, fy1); ctx.lineTo(fx1, fy1 - tick);
     ctx.stroke();
-    // Live camera azimuth / elevation / dolly / strata readout (top-left inside optical corner, clear of zenith galaxies!)
-    const azDeg = (holoCam.yaw * 180 / Math.PI).toFixed(1).padStart(5, ' ');
-    const elVal = holoCam.pitch * 180 / Math.PI;
-    const elDeg = (elVal >= 0 ? '+' : '') + elVal.toFixed(1);
-    const modeTag = introCinema.active
-      ? ' · GENESIS SCAN'
-      : cinemaDirector.active
-        ? ` · ◎ CINEMA`
-        : genesisScrub.open
-          ? (isEn() ? ` · GENESIS ${Math.round(genesisScrub.value * 100)}%` : ` · 演化 ${Math.round(genesisScrub.value * 100)}%`)
-          : '';
-    const camTag = isEn() ? (preset.tagEn || preset.tag) : preset.tag;
-    const camReadout = `CAM // ${camTag} · AZ ${azDeg}°  EL ${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m${modeTag}`;
-    ctx.font = '500 8.5px "Geist Mono", ui-monospace, monospace';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = rgba(vfCol, isLight ? 0.58 : 0.48);
-    ctx.fillText(camReadout, fx0 + 16, fy0 + 3);
+    if (isCompactVf) {
+      // Compact top-right badge on mobile so top-left stays 100% clear for Nyx Assistant & zero overlap with Akasha Eye!
+      const dagTotal = truthNebula.counts?.truth_nodes || 19022;
+      const shortTag = state.layer === 'galaxy'
+        ? `${L('星系', 'COSMOS')} · ${dagTotal.toLocaleString()}`
+        : state.layer === 'station'
+          ? L('空间站 · 24/7 环路', 'STATION · 24/7 LOOP')
+          : `${L('天地星阵', 'PANORAMA')} · ${holoCam.dist.toFixed(0)}m`;
+      ctx.font = '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = rgba(vfCol, isLight ? 0.62 : 0.56);
+      ctx.fillText(shortTag, fx1 - 10, fy0 + 2);
+    } else {
+      // Live camera azimuth / elevation / dolly / strata readout (top-left inside optical corner, clear of zenith galaxies!)
+      const azDeg = (holoCam.yaw * 180 / Math.PI).toFixed(1).padStart(5, ' ');
+      const elVal = holoCam.pitch * 180 / Math.PI;
+      const elDeg = (elVal >= 0 ? '+' : '') + elVal.toFixed(1);
+      const modeTag = introCinema.active
+        ? ' · GENESIS SCAN'
+        : cinemaDirector.active
+          ? ` · ◎ CINEMA`
+          : genesisScrub.open
+            ? (isEn() ? ` · GENESIS ${Math.round(genesisScrub.value * 100)}%` : ` · 演化 ${Math.round(genesisScrub.value * 100)}%`)
+            : '';
+      const camTag = isEn() ? (preset.tagEn || preset.tag) : preset.tag;
+      const camReadout = `CAM // ${camTag} · AZ ${azDeg}°  EL ${elDeg}°  DOLLY ${holoCam.dist.toFixed(1)}m${modeTag}`;
+      ctx.font = '500 8.5px "Geist Mono", ui-monospace, monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = rgba(vfCol, isLight ? 0.58 : 0.48);
+      ctx.fillText(camReadout, fx0 + 16, fy0 + 3);
+    }
     ctx.restore();
     // In Cosmos / Galaxy Observatory mode, hide foreground Space Station 2D overlays
     // EXCEPT keep the Supreme Akasha Eye crowned, projected, clickable, and casting celestial oversight rays over the Truth DAG!
@@ -7555,12 +7584,12 @@ function drawHolo3DFrame(dt = 0.016) {
       if (holoCam.galaxyMainCid == null && holoWorld.direction) {
         const eyeCfg = holoWorld.direction;
         const pEye = holoCam.gl.project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
-        if (pEye && pEye.x > 20 && pEye.x < w - rightGutter - 20 && pEye.y > 48 && pEye.y < h - 68) {
+        if (pEye && pEye.x > 20 && pEye.x < w - rightGutter - 20 && pEye.y > (isCompactVf ? 28 : 48) && pEye.y < h - 54) {
           const hitR = Math.max(38, Math.min(76, pEye.s * 1.55));
           holoCam.projectedTowers.set('direction', { x: pEye.x, y: pEye.y, r: hitR, z: pEye.z });
           const eyeRGB = isLight ? [154, 84, 8] : isBlueprint ? [168, 255, 118] : [242, 206, 134];
           const eyeActive = activeId === 'direction';
-          const haloR = Math.max(34, Math.min(72, pEye.s * 1.48));
+          const haloR = Math.max(isCompactVf ? 24 : 34, Math.min(isCompactVf ? 46 : 72, pEye.s * 1.48));
           const spin = (state.quiet || reduced) ? 0.35 : t * 0.26;
           ctx.save();
           // 1. Delicate celestial oversight rays streaming from Akasha Eye down to every named Truth DAG galaxy
@@ -7615,20 +7644,26 @@ function drawHolo3DFrame(dt = 0.016) {
           const capTitle = L('◈ A0 · 阿卡西之眼', '◈ A0 · AKASHA EYE');
           const capSub = L('全局方向 · 统摄真值星海', 'GLOBAL DIRECTION · COSMOS OVERSIGHT');
           const topTipY = pEyeTop ? pEyeTop.y : (pEye.y - haloR * 1.25);
-          const capY = Math.max(98, Math.min(topTipY - 26, pEye.y - haloR * 1.26 - 20));
+          const capY = isCompactVf
+            ? Math.max(36, Math.min(topTipY - 14, pEye.y - haloR * 1.18 - 10))
+            : Math.max(98, Math.min(topTipY - 26, pEye.y - haloR * 1.26 - 20));
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.font = '700 11px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+          ctx.font = isCompactVf
+            ? '700 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif'
+            : '700 11px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
           ctx.lineWidth = 3.2;
           ctx.strokeStyle = isLight ? 'rgba(242, 239, 232, 0.95)' : 'rgba(2, 6, 12, 0.92)';
           ctx.strokeText(capTitle, pEye.x, capY);
           ctx.fillStyle = rgba(eyeRGB, eyeActive ? 1.0 : 0.95);
           ctx.fillText(capTitle, pEye.x, capY);
-          ctx.font = '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-          ctx.lineWidth = 2.6;
-          ctx.strokeText(capSub, pEye.x, capY + 13.5);
-          ctx.fillStyle = rgba(eyeRGB, isLight ? 0.74 : 0.68);
-          ctx.fillText(capSub, pEye.x, capY + 13.5);
+          if (!isCompactVf) {
+            ctx.font = '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+            ctx.lineWidth = 2.6;
+            ctx.strokeText(capSub, pEye.x, capY + 13.5);
+            ctx.fillStyle = rgba(eyeRGB, isLight ? 0.74 : 0.68);
+            ctx.fillText(capSub, pEye.x, capY + 13.5);
+          }
           ctx.restore();
         }
       }
@@ -8681,39 +8716,49 @@ function drawHolo3DFrame(dt = 0.016) {
 
   // Screen-space card anti-overlap pass: guarantees zero colliding department cards at any drag angle!
   const placedCards = [];
+  const isCompactCards = w <= 700;
   for (const [, cell] of state.cells) {
     if (!cell._proj) continue;
     const p = cell._proj;
-    const bw = 166 * p.depthScale;
-    const bh = 54 * p.depthScale;
+    const bw = (isCompactCards ? 76 : 166) * p.depthScale;
+    const bh = (isCompactCards ? 24 : 54) * p.depthScale;
     const cyCard = p.apex ? p.y - bh * 0.5 : p.y + bh * 0.5;
-    placedCards.push({ cell, x: p.x, cy: cyCard, hw: bw * 0.5 + 6, hh: bh * 0.5 + 5, apex: p.apex, bh, p });
+    placedCards.push({ cell, x: p.x, cy: cyCard, hw: bw * 0.5 + (isCompactCards ? 4 : 6), hh: bh * 0.5 + (isCompactCards ? 4 : 5), apex: p.apex, bh, p });
   }
-  for (let iter = 0; iter < 4; iter++) {
+  const padX = isCompactCards ? 8 : 18;
+  const padTop = isCompactCards ? 46 : 82;
+  const padBot = isCompactCards ? 52 : 94;
+  for (let iter = 0; iter < (isCompactCards ? 6 : 4); iter++) {
     for (let i = 0; i < placedCards.length; i++) {
       for (let j = i + 1; j < placedCards.length; j++) {
         const a = placedCards[i], b = placedCards[j];
         const ox = (a.hw + b.hw) - Math.abs(a.x - b.x);
         const oy = (a.hh + b.hh) - Math.abs(a.cy - b.cy);
         if (ox > 0 && oy > 0) {
-          if (oy <= ox * 1.15) {
-            const push = oy * 0.52;
+          if (oy <= ox * (isCompactCards ? 1.6 : 1.15)) {
+            const push = oy * 0.54;
             if (a.cy <= b.cy) { a.cy -= push; b.cy += push; }
             else { a.cy += push; b.cy -= push; }
           } else {
-            const push = ox * 0.52;
+            const push = ox * 0.54;
             if (a.x <= b.x) { a.x -= push; b.x += push; }
             else { a.x += push; b.x -= push; }
           }
         }
       }
     }
+    if (isCompactCards) {
+      for (const item of placedCards) {
+        item.x = Math.max(item.hw + padX, Math.min(w - item.hw - padX, item.x));
+        item.cy = Math.max(padTop + item.hh, Math.min(h - padBot - item.hh, item.cy));
+      }
+    }
   }
   for (const item of placedCards) {
-    const minX = item.hw + 18;
-    const maxX = rightGutter > 0 ? w - rightGutter - 14 - item.hw : w - item.hw - 18;
+    const minX = item.hw + padX;
+    const maxX = rightGutter > 0 ? w - rightGutter - 14 - item.hw : w - item.hw - padX;
     const clampedX = Math.max(minX, Math.min(maxX, item.x));
-    const clampedCy = Math.max(82 + item.hh, Math.min(h - 94 - item.hh, item.cy));
+    const clampedCy = Math.max(padTop + item.hh, Math.min(h - padBot - item.hh, item.cy));
     const topY = item.apex ? clampedCy + item.bh * 0.5 : clampedCy - item.bh * 0.5;
     item.cell.button.style.left = `${clampedX.toFixed(1)}px`;
     item.cell.button.style.top = `${topY.toFixed(1)}px`;
@@ -8941,41 +8986,43 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.restore();
   }
 
-  // Minimalist KPR wing & dual-branch designations placed cleanly in open negative space (zero card/spire overlap!)
-  const os = state.outreachStats || {};
-  const wingLabelCol = isLight ? [15, 31, 46] : isBlueprint ? [96, 255, 162] : [168, 198, 224];
-  const mathesisLabelCol = isLight ? [154, 84, 8] : isBlueprint ? [168, 255, 118] : [236, 200, 134];
-  const bridgeLabelCol = isLight ? [11, 107, 101] : isBlueprint ? [64, 255, 146] : [148, 224, 238];
-  const activeVerRun = countRunning(department('verification')) || 0;
-  drawHoloText(-5.55, 2.26, -2.75, tr('hud_sec1', 'SEC.01 // 理论生产翼（猜想 · 书稿）'), wingLabelCol, sec1Hot || holoCam.stationFocus > 0.5, 8.6);
-  drawHoloText( 5.55, 2.38, -2.75, tr('hud_sec2', `SEC.02 // 论文 · Mathesis · ${scholarCount} 合作学者`, { n: scholarCount }), wingLabelCol, sec2Hot || holoCam.stationFocus > 0.5, 8.6);
-  drawHoloText(-1.55, 0.10,  4.68, tr('hud_branch_a', 'BRANCH A // 独立评审滑轨'), isBlueprint ? [64, 255, 146] : revBranchRGB, sec3Hot || holoCam.stationFocus > 0.5, 8.0);
-  drawHoloText( 1.55, 0.10,  4.68, tr('hud_branch_b', 'BRANCH B // 工具表达滑轨'), isBlueprint ? [96, 255, 178] : stuBranchRGB, sec4Hot || holoCam.stationFocus > 0.5, 8.0);
-  drawHoloText( 8.05, 0.18, -0.25, tr('hud_mathesis', `Mathesis ⇄ ${scholarCount} 合作学者`, { n: scholarCount }), mathesisLabelCol, poHot || holoCam.stationFocus > 0.5, 8.4);
-  if (activeId === 'outreach') {
-    drawHoloText(
-      8.05, 0.88, 1.90,
-      tr('hud_outreach_detail', `✦ ${scholarCount} 合作 · ${os.replied_scholars || 485} 回信 · ${os.contacted_scholars || 1049} 联络 · ${os.joint_papers || 32} 联合论文`, {
-        n: scholarCount,
-        replied: os.replied_scholars || 485,
-        contacted: os.contacted_scholars || 1049,
-        joint: os.joint_papers || 32
-      }),
-      mathesisLabelCol,
-      true,
-      8.2
-    );
+  // Minimalist KPR wing & dual-branch designations placed cleanly in open negative space (desktop/tablet only; suppressed on narrow phones to prevent text pileups!)
+  if (w > 700) {
+    const os = state.outreachStats || {};
+    const wingLabelCol = isLight ? [15, 31, 46] : isBlueprint ? [96, 255, 162] : [168, 198, 224];
+    const mathesisLabelCol = isLight ? [154, 84, 8] : isBlueprint ? [168, 255, 118] : [236, 200, 134];
+    const bridgeLabelCol = isLight ? [11, 107, 101] : isBlueprint ? [64, 255, 146] : [148, 224, 238];
+    const activeVerRun = countRunning(department('verification')) || 0;
+    drawHoloText(-5.55, 2.26, -2.75, tr('hud_sec1', 'SEC.01 // 理论生产翼（猜想 · 书稿）'), wingLabelCol, sec1Hot || holoCam.stationFocus > 0.5, 8.6);
+    drawHoloText( 5.55, 2.38, -2.75, tr('hud_sec2', `SEC.02 // 论文 · Mathesis · ${scholarCount} 合作学者`, { n: scholarCount }), wingLabelCol, sec2Hot || holoCam.stationFocus > 0.5, 8.6);
+    drawHoloText(-1.55, 0.10,  4.68, tr('hud_branch_a', 'BRANCH A // 独立评审滑轨'), isBlueprint ? [64, 255, 146] : revBranchRGB, sec3Hot || holoCam.stationFocus > 0.5, 8.0);
+    drawHoloText( 1.55, 0.10,  4.68, tr('hud_branch_b', 'BRANCH B // 工具表达滑轨'), isBlueprint ? [96, 255, 178] : stuBranchRGB, sec4Hot || holoCam.stationFocus > 0.5, 8.0);
+    drawHoloText( 8.05, 0.18, -0.25, tr('hud_mathesis', `Mathesis ⇄ ${scholarCount} 合作学者`, { n: scholarCount }), mathesisLabelCol, poHot || holoCam.stationFocus > 0.5, 8.4);
+    if (activeId === 'outreach') {
+      drawHoloText(
+        8.05, 0.88, 1.90,
+        tr('hud_outreach_detail', `✦ ${scholarCount} 合作 · ${os.replied_scholars || 485} 回信 · ${os.contacted_scholars || 1049} 联络 · ${os.joint_papers || 32} 联合论文`, {
+          n: scholarCount,
+          replied: os.replied_scholars || 485,
+          contacted: os.contacted_scholars || 1049,
+          joint: os.joint_papers || 32
+        }),
+        mathesisLabelCol,
+        true,
+        8.2
+      );
+    }
+    if (holoCam.stationFocus > 0.45) {
+      drawHoloText(-2.58, 0.52, -1.06, tr('hud_station_left_live', `⚡ 猜想·书稿 ⇄ Lean 核枢 · ${activeVerRun} 项实时核验`, { run: activeVerRun }), bridgeLabelCol, true, 8.8);
+      drawHoloText( 2.65, 0.52, -1.06, tr('hud_station_right_live', '✦ 自动论文工厂 ⇄ Mathesis · 持续产出'), mathesisLabelCol, true, 8.8);
+      drawHoloText( 0.0,  0.12,  5.62, tr('hud_station_loop_tag', `24/7 ACTIVE LOOP // 猜想 → 形式化 → 书稿论文 → ${scholarCount} 学者回流`, { n: scholarCount }), bridgeLabelCol, true, 8.4);
+    } else {
+      if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, tr('hud_left_bridge', '理论生产 ⇄ Lean 核枢'), bridgeLabelCol, true, 8.8);
+      if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, tr('hud_right_bridge', 'Lean 核枢 ⇄ 自动论文'), bridgeLabelCol, true, 8.8);
+    }
+    if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_rev_tap', `评审支路接入 → ${langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚')}`, { dept: langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚') }), isBlueprint ? [64, 255, 146] : revBranchRGB, true, 8.5);
+    if (sec4Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_stu_tap', `工具支路接入 → ${langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识')}`, { dept: langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识') }), isBlueprint ? [96, 255, 178] : stuBranchRGB, true, 8.5);
   }
-  if (holoCam.stationFocus > 0.45) {
-    drawHoloText(-2.58, 0.52, -1.06, tr('hud_station_left_live', `⚡ 猜想·书稿 ⇄ Lean 核枢 · ${activeVerRun} 项实时核验`, { run: activeVerRun }), bridgeLabelCol, true, 8.8);
-    drawHoloText( 2.65, 0.52, -1.06, tr('hud_station_right_live', '✦ 自动论文工厂 ⇄ Mathesis · 持续产出'), mathesisLabelCol, true, 8.8);
-    drawHoloText( 0.0,  0.12,  5.62, tr('hud_station_loop_tag', `24/7 ACTIVE LOOP // 猜想 → 形式化 → 书稿论文 → ${scholarCount} 学者回流`, { n: scholarCount }), bridgeLabelCol, true, 8.4);
-  } else {
-    if (thHot || bkHot) drawHoloText(-2.58, 0.26, -1.16, tr('hud_left_bridge', '理论生产 ⇄ Lean 核枢'), bridgeLabelCol, true, 8.8);
-    if (pbHot || coHot) drawHoloText( 2.65, 0.26, -1.16, tr('hud_right_bridge', 'Lean 核枢 ⇄ 自动论文'), bridgeLabelCol, true, 8.8);
-  }
-  if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_rev_tap', `评审支路接入 → ${langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚')}`, { dept: langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚') }), isBlueprint ? [64, 255, 146] : revBranchRGB, true, 8.5);
-  if (sec4Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_stu_tap', `工具支路接入 → ${langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识')}`, { dept: langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识') }), isBlueprint ? [96, 255, 178] : stuBranchRGB, true, 8.5);
 }
 
 function startHoloLoop() {
@@ -9623,7 +9670,16 @@ function initNyxDraggable(el) {
 
   const defaultPos = () => {
     const narrow = window.innerWidth <= 980;
-    return { x: narrow ? 12 : 22, y: narrow ? 62 : 86 };
+    if (narrow) {
+      // Anchor right below .fui-top inside the top-left of the 3D stage so Nyx NEVER covers header controls!
+      const topBar = document.querySelector('.fui-top');
+      const board = document.querySelector('#hive-board');
+      const topY = board
+        ? Math.max(10, Math.round(board.getBoundingClientRect().top + 8))
+        : (topBar ? Math.max(10, Math.round(topBar.getBoundingClientRect().bottom + 8)) : 96);
+      return { x: 10, y: topY };
+    }
+    return { x: 22, y: 86 };
   };
 
   let hasCustomPos = false;
@@ -9819,7 +9875,13 @@ function initNyxDraggable(el) {
       mo.observe(panel, { attributes: true, attributeFilter: ['hidden'] });
     }
 
+    const syncDefault = () => {
+      if (hasCustomPos) return;
+      const def = defaultPos();
+      applyPos(def.x, def.y, false);
+    };
     applyPos(curX, curY, false);
+    requestAnimationFrame(() => { syncDefault(); syncQuadrant(); });
     syncQuadrant();
     return true;
   };
@@ -9830,7 +9892,7 @@ function initNyxDraggable(el) {
     }).catch(() => {});
   }
 
-  window.addEventListener('resize', () => {
+  const syncOnViewportChange = () => {
     const { panel } = shadowParts();
     if (!hasCustomPos) {
       const def = defaultPos();
@@ -9839,6 +9901,13 @@ function initNyxDraggable(el) {
       applyPos(curX, curY, false);
     }
     if (!panel || panel.hidden) syncQuadrant();
+  };
+  window.addEventListener('resize', syncOnViewportChange, { passive: true });
+  window.addEventListener('scroll', () => {
+    if (!hasCustomPos && window.innerWidth <= 980) {
+      const def = defaultPos();
+      applyPos(def.x, def.y, false);
+    }
   }, { passive: true });
 }
 
