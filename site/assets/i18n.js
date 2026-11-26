@@ -1,13 +1,13 @@
 // ============================================================================
-// TRURETURING // LIVE — Multi-Language Localization Engine (ZH / EN / JA)
-// Zero-reload instant language switching across DOM HUD, 3D Canvas labels,
-// department telemetry, Truth DAG galaxies, and conjecture archives.
+// TRURETURING // LIVE — Bilingual Localization Engine (中文 / English)
+// Zero-reload instant language switching across DOM HUD, tooltips, 3D Canvas,
+// department telemetry, live dispatch wall, Truth DAG galaxies, and drawers.
 // ============================================================================
 (() => {
   'use strict';
 
   const STORAGE_KEY = 'trureturing-lang-v1';
-  const SUPPORTED = ['zh', 'en', 'ja'];
+  const SUPPORTED = ['zh', 'en'];
 
   const DICTS = {
     zh: {
@@ -33,25 +33,35 @@
       follow_fixed: '已固定视角',
       hud_zen: '纯净',
       hud_expand: '展开',
+      hud_zen_title: '隐藏右侧面板，纯享 3D 空间',
       motion_quiet: '静看',
+      motion_quiet_title: '暂停旋转 / 静看',
       fullscreen_enter: '全屏',
       fullscreen_exit: '退出全屏',
+      fullscreen_title: '全屏显示',
       back_galaxy: '← 返回星系',
       back_panorama: '← 返回全景',
       home_panorama: '返回全景',
+      realm_title: '由全院 24/7 自动化 Lean 形式验证与冻结定理总数实时驱动，仅真实科研突破自动进阶',
       sonar_btn: '灵识扫频',
+      sonar_title: '发射灵识扫频光波（快捷键 Space）巡检当前活跃部门与周天星环',
       cinema_btn: '巡航',
+      cinema_title: '导演自动巡航模式（快捷键 C）· 自动切换电影机位，任意鼠标/触控板操作立刻归还控制',
       genesis_btn: '演化',
+      genesis_title: '星系时间机器 · 拖动滑块回放从公理奇点到当前定理星海的演化史',
       intro_btn: '开屏',
+      intro_title: '重播 2.8 秒「天顶俯冲 + 蓝图扫描显影 + 真实 DAG 分层星爆」开屏',
+      sound_title: '开启或静音科幻晶体微音效',
+      genesis_play_title: '播放或暂停演化回放',
       intro_skip: '跳过',
       intro_step1: 'OMEGA OBSERVATORY // ① 周天星海 · 真值 DAG 创世绽放',
       intro_step2: 'OMEGA OBSERVATORY // ② 全息蓝图扫描 · 轨道空间站实体化',
       intro_step3: 'OMEGA OBSERVATORY // ③ 实时自动化观测 · 准备就绪',
       log_wall_title: 'MATRIX // 全院战报',
       log_mode_latest: '最新',
+      log_mode_latest_title: '按时间列出真实的最新事件，有新事件才追加',
       log_mode_cycle: '轮播',
-      log_rate_cycle: 'HIGH-DENSITY INTEL · 轮播',
-      log_rate_latest: 'LIVE TIMELINE · 最新事件',
+      log_mode_cycle_title: '循环滚动播放全院动态',
       log_ops_dag: 'DAG 节点',
       log_ops_growth: '近期增长',
       log_ops_ci: 'CI 引擎',
@@ -74,7 +84,9 @@
       rail_04: '书籍推进',
       rail_05: '论文·合作',
       rail_review: '独立评审',
+      rail_review_title: '按需红队独立支路：接入猜想、书稿、形式化与论文的对抗评审',
       rail_studio: '工具表达',
+      rail_studio_title: '按需工具基建支路：支撑全院编译工具、书稿渲染与前端表达',
       tab_live_ops: '检验灯阵',
       tab_questions: '在研课题',
       tab_conjectures: '猜想档案',
@@ -134,25 +146,20 @@
       lean_source_btn: '查看 Lean 源码 ↗',
       genesis_meta: 'DAG 演化 · {pct}% · ~{th} 定理 · ✦ {conj} 猜想',
       health_connected: '刚刚更新',
-      health_summary: '{depts} 个部门，持续相连 · {ci} 项自动化正在运转 · {relays} 条跨部门引用接力',
       exec_human: '人的方向与判断',
       exec_sessions: '独立研究会话',
       exec_actions: 'Actions 自动引擎',
-      exec_mixed: '会话 + 自动检查',
-      rel_now: '刚刚',
-      rel_min: '{n} 分钟前',
-      rel_hour: '{n} 小时前',
-      rel_day: '{n} 天前',
+      exec_mixed: '会话与自动化协作',
       stage_prefix: '境·',
       depts: {
-        direction: { label: '研究方向', role: '全局监控' },
-        research: { label: '数学攻坚', role: '猜想攻关' },
-        review: { label: '独立评审', role: '评审支路' },
-        verification: { label: '形式验证', role: 'Lean 核枢' },
-        books: { label: '理论书写', role: '书籍理论' },
-        publication: { label: '论文与知识', role: 'Mathesis' },
-        outreach: { label: '学术交流', role: '{n} 合作学者' },
-        studio: { label: '工具与表达', role: '工具支路' }
+        direction:    { label: '研究方向', role: '全局监控', resp: '提出前沿数学问题与边界约束，把握全院长期研究方向与判断。' },
+        research:     { label: '数学攻坚', role: '猜想攻关', resp: '认领课题，探索证明与反例，把可以检验的论证提交给共同研究。' },
+        review:       { label: '独立评审', role: '评审支路', resp: '独立跨模型复核与对抗边界审计，剔除漏洞并提炼可形式化声明。' },
+        verification: { label: '形式验证', role: 'Lean 核枢', resp: '承接来自数学攻坚、理论书写、论文评议与外部合作的形式化验证请求，固化可复用 Lean 定理。' },
+        books:        { label: '理论书写', role: '书籍理论', resp: '把验证通过的定理沉淀为结构清晰的双语理论专著章节，并持续提出新的形式化需求。' },
+        publication:  { label: '论文与知识', role: 'Mathesis', resp: '将形式化成果自动汇编为公开论文、短文与 Mathesis 审稿预印本目录。' },
+        outreach:     { label: '学术交流', role: '{n} 合作学者', resp: '与全球合作学者双向联络，同步已验证定理与短文，并把新问题回流研究闭环。' },
+        studio:       { label: '工具与表达', role: '工具支路', resp: '构建 Lean 验证工具链、双语书稿编译管线、交互式可视化与实时观测大屏。' }
       },
       galaxies: {
         Combinatorics: '组合数学',
@@ -164,7 +171,7 @@
         Observer: '观察者论',
         Other: '基础公理带'
       },
-      realms: ['练气', '筑基', '金丹', '元婴', '化神', '大乘']
+      realms: ['初凝', '筑基', '结丹', '化神', '渡劫', '大乘']
     },
 
     en: {
@@ -178,7 +185,7 @@
       layer_galaxy_title: 'Grand 3D Truth DAG Starfield Cosmos',
       layer_station_title: 'Focus on 24/7 Orbital Station & Active Research Loop',
       layer_mix_title: '3-Strata Panorama: Mirror Floor · Orbital Station · Truth Cosmos',
-      look_holo: 'Cosmos',
+      look_holo: 'Holo',
       look_matrix: 'Matrix',
       look_light: 'Light',
       look_holo_title: 'Deep-Space Observatory (Default)',
@@ -190,25 +197,35 @@
       follow_fixed: 'Pinned',
       hud_zen: 'Zen',
       hud_expand: 'Panel',
+      hud_zen_title: 'Hide right console for full-bleed 3D space',
       motion_quiet: 'Calm',
+      motion_quiet_title: 'Pause orbital motion / calm mode',
       fullscreen_enter: 'Full',
       fullscreen_exit: 'Exit Full',
+      fullscreen_title: 'Toggle fullscreen',
       back_galaxy: '← Galaxy View',
       back_panorama: '← Panorama',
       home_panorama: 'Panorama',
-      sonar_btn: 'Sonar Sweep',
+      realm_title: 'Driven live by verified Lean theorems across the institute; advances only on real breakthroughs',
+      sonar_btn: 'Sonar',
+      sonar_title: 'Emit 3D sonar pulse (Space) across active decks and celestial rings',
       cinema_btn: 'Cruise',
+      cinema_title: 'Auto-Director camera cruise (C) · drag, scroll or click anywhere to take control',
       genesis_btn: 'Genesis',
+      genesis_title: 'DAG Time Machine · scrub through the evolution from Layer-0 axioms to frontier theorems',
       intro_btn: 'Intro',
+      intro_title: 'Replay opening sequence (Zenith dive + holographic scan + layered DAG genesis)',
+      sound_title: 'Toggle subtle crystalline audio cues',
+      genesis_play_title: 'Play or pause evolution playback',
       intro_skip: 'Skip',
       intro_step1: 'OMEGA OBSERVATORY // 01 CELESTIAL DOME · TRUTH DAG GENESIS',
       intro_step2: 'OMEGA OBSERVATORY // 02 HOLOGRAPHIC SCAN · STATION MATERIALIZING',
       intro_step3: 'OMEGA OBSERVATORY // 03 LIVE AUTOMATED TELEMETRY · ONLINE',
       log_wall_title: 'MATRIX // LIVE DISPATCH',
       log_mode_latest: 'Live',
+      log_mode_latest_title: 'Chronological stream of real observed events',
       log_mode_cycle: 'Cycle',
-      log_rate_cycle: 'HIGH-DENSITY INTEL · CYCLE',
-      log_rate_latest: 'LIVE TIMELINE · LATEST EVENTS',
+      log_mode_cycle_title: 'Continuous cycling dispatch across all departments',
       log_ops_dag: 'DAG Nodes',
       log_ops_growth: 'Recent',
       log_ops_ci: 'CI Engines',
@@ -231,7 +248,9 @@
       rail_04: 'Books',
       rail_05: 'Papers',
       rail_review: 'Review',
+      rail_review_title: 'On-demand red-team review branch serving conjectures, books, verification & papers',
       rail_studio: 'Studio',
+      rail_studio_title: 'On-demand tooling & presentation branch powering build pipelines, books & observatory UI',
       tab_live_ops: 'CI',
       tab_questions: 'Problems',
       tab_conjectures: 'Archive',
@@ -247,7 +266,7 @@
       filter_automation: 'CI Runs',
       q_all: 'All Threads',
       q_research: 'Math Research',
-      q_books: 'Theory Books',
+      q_books: 'Monographs',
       q_more: 'Load More ↓',
       c_all: 'All Verdicts',
       c_proved: '✓ Proved',
@@ -291,25 +310,20 @@
       lean_source_btn: 'View Lean Source ↗',
       genesis_meta: 'DAG Genesis · {pct}% · ~{th} Theorems · ✦ {conj} Conjectures',
       health_connected: 'Live Now',
-      health_summary: '{depts} depts linked · {ci} live automations · {relays} cross-dept relays',
       exec_human: 'Human Direction',
       exec_sessions: 'Research Sessions',
       exec_actions: 'Actions Automation',
       exec_mixed: 'Sessions + CI',
-      rel_now: 'just now',
-      rel_min: '{n}m ago',
-      rel_hour: '{n}h ago',
-      rel_day: '{n}d ago',
       stage_prefix: 'TIER ',
       depts: {
-        direction: { label: 'Direction', role: 'Overseer' },
-        research: { label: 'Math Research', role: 'Conjectures' },
-        review: { label: 'Indep. Review', role: 'Review Rail' },
-        verification: { label: 'Verification', role: 'Lean Core' },
-        books: { label: 'Monographs', role: 'Books' },
-        publication: { label: 'Papers & Wiki', role: 'Mathesis' },
-        outreach: { label: 'Scholar Outreach', role: '{n} Scholars' },
-        studio: { label: 'Tools & Studio', role: 'Tools Rail' }
+        direction:    { label: 'Direction',        role: 'Overseer',     resp: 'Sets open mathematical questions, strategic constraints, and research direction for the institute.' },
+        research:     { label: 'Math Research',    role: 'Proofs',       resp: 'Claims open problems, explores proofs and counterexamples, and submits verifiable arguments.' },
+        review:       { label: 'Indep. Review',    role: 'Red-Team',     resp: 'Runs independent cross-model audits and adversarial boundary checks before formalization.' },
+        verification: { label: 'Verification',     role: 'Lean Core',    resp: 'Formal verification bridge checking proofs from research, monographs, papers & outreach in Lean 4.' },
+        books:        { label: 'Monographs',       role: 'Books',        resp: 'Distills verified theorems into living bilingual monographs and routes new formalization requests.' },
+        publication:  { label: 'Papers & Wiki',    role: 'Mathesis',     resp: 'Compiles certified results into preprints, short notes, and the Mathesis review platform.' },
+        outreach:     { label: 'Scholar Outreach', role: '{n} Scholars', resp: 'Maintains two-way dialogue with external mathematicians, syncing verified proofs and new questions.' },
+        studio:       { label: 'Tools & Studio',   role: 'Tools',        resp: 'Builds Lean tooling, book publication pipelines, interactive visualizations, and the live observatory.' }
       },
       galaxies: {
         Combinatorics: 'Combinatorics',
@@ -321,164 +335,7 @@
         Observer: 'Observer Theory',
         Other: 'Axiom Foundations'
       },
-      realms: ['Spark', 'Foundation', 'Core', 'Synthesis', 'Ascension', 'Sovereign']
-    },
-
-    ja: {
-      page_title: 'TRURETURING // LIVE · 3D AI数学研究所ダッシュボード',
-      skip_link: '3D観測ステーションへ',
-      connecting: '接続中',
-      connecting_stream: 'テレメトリ接続中',
-      layer_galaxy: '星系',
-      layer_station: '基地',
-      layer_mix: '統合',
-      layer_galaxy_title: '壮大な3D星空・真理DAGドーム',
-      layer_station_title: '24/7稼働中の軌道研究基地と循環ループ',
-      layer_mix_title: '鏡面・軌道基地・星空の三層パノラマ',
-      look_holo: '星穹',
-      look_matrix: 'マトリクス',
-      look_light: '白昼',
-      look_holo_title: '深宇宙星穹モード（標準）',
-      look_matrix_title: 'マトリックス蛍光グリーン電脳モード',
-      look_light_title: '高コントラスト白昼建築モデル',
-      mode_org: '3D構造',
-      mode_journey: '連携軌跡',
-      follow_live: '最新追従',
-      follow_fixed: '視点固定',
-      hud_zen: '純粋',
-      hud_expand: '展開',
-      motion_quiet: '静止',
-      fullscreen_enter: '全画面',
-      fullscreen_exit: '解除',
-      back_galaxy: '← 星系へ戻る',
-      back_panorama: '← 全景へ戻る',
-      home_panorama: '全景へ',
-      sonar_btn: 'ソナー走査',
-      cinema_btn: '巡航',
-      genesis_btn: '進化',
-      intro_btn: '序幕',
-      intro_skip: 'スキップ',
-      intro_step1: 'OMEGA OBSERVATORY // ① 周天星海・真理DAG創世',
-      intro_step2: 'OMEGA OBSERVATORY // ② ホログラム走査・研究基地実体化',
-      intro_step3: 'OMEGA OBSERVATORY // ③ リアルタイム自動観測・稼働中',
-      log_wall_title: 'MATRIX // 研究所速報',
-      log_mode_latest: '最新',
-      log_mode_cycle: '循環',
-      log_rate_cycle: 'HIGH-DENSITY INTEL · 循環',
-      log_rate_latest: 'LIVE TIMELINE · 最新イベント',
-      log_ops_dag: 'DAGノード',
-      log_ops_growth: '最近の増加',
-      log_ops_ci: 'CIエンジン',
-      log_jump_latest: '↓ 最新へ戻る',
-      open_lens: '内部へ ⤢',
-      exit_lens: '← 内部を閉じる・3D全景へ',
-      panel_happening: '進行中の活動',
-      panel_realtime: 'リアルタイム推進',
-      panel_waiting: '信号待機中…',
-      panel_relay_links: '前後連携部門',
-      journey_back: '← 3D全景へ戻る',
-      journey_title_default: '進行中の研究課題を選択',
-      journey_desc_default: '公開議論と引用を辿り、証明が部門間で連鎖成長する軌跡を追跡します。',
-      journey_links_head: '関連リンク',
-      journey_events_head: '連携軌跡と公開進捗',
-      rail_01: '研究方針',
-      rail_01_badge: '指針',
-      rail_02: '予想解決',
-      rail_bridge: 'Lean検証',
-      rail_04: '理論書籍',
-      rail_05: '論文・交流',
-      rail_review: '独立査読',
-      rail_studio: '基盤ツール',
-      tab_live_ops: 'CI検証陣',
-      tab_questions: '研究課題',
-      tab_conjectures: '予想記録',
-      tab_publications: '書籍・論文',
-      tab_ecosystem: 'OSS基盤',
-      dock_close: '✕ 閉じる',
-      ops_checker_title: 'Lean CI 検証アレイ',
-      ops_relay_title: '部門間連携ヒートマップ',
-      ops_feed_title: '協働シグナル流',
-      filter_all: 'すべて',
-      filter_discussion: '議論',
-      filter_work: '課題',
-      filter_automation: '検証',
-      q_all: '全課題',
-      q_research: '数学研究',
-      q_books: '理論執筆',
-      q_more: 'さらに表示 ↓',
-      c_all: '全結果',
-      c_proved: '✓ 証明済',
-      c_refuted: '✕ 反証・障害',
-      pub_books: '二言語専門書進捗',
-      pub_books_link: '書庫 ↗',
-      pub_papers: '公開論文・プレプリント',
-      pub_papers_link: '全研究 ↗',
-      eco_repos: '公開研究リポジトリ',
-      eco_tpl_title: 'あらゆる「人＋AI」GitHub組織へ展開可能',
-      eco_tpl_desc: '独立RustエンジンがIssue/PR/Actionsを取得し、3Dホログラム基地へ自動投影します。',
-      eco_tpl_btn: 'Rustテンプレート ↗',
-      eco_atlas_btn: '知識マップ ↗',
-      ib_open_new: '新しいタブで開く ↗',
-      hint_mix: '三層観測ステーション · ドラッグ回転（Wクリックで復帰）· 星空クリックで撥弦 · Spaceでソナー',
-      hint_galaxy: '壮大な星空真理DAG · 星系クリックでノード網へ · Shift+移動で星海ハープ',
-      hint_station: '24/7稼働ループ基地 · シャトル・検証橋・支線レールが常時稼働 · 部門クリックで内部へ',
-      hint_cinema: '◎ 自動巡航カメラ稼働中 · 操作すると直ちに制御を返還します',
-      hud_sec1: 'SEC.01 // 理論生産翼（予想・書籍）',
-      hud_sec2: 'SEC.02 // 論文・Mathesis・{n} 名の協力学者',
-      hud_branch_a: 'BRANCH A // 独立査読レール',
-      hud_branch_b: 'BRANCH B // ツール表現レール',
-      hud_mathesis: 'Mathesis ⇄ {n} 名の学者',
-      hud_left_bridge: '理論生産 ⇄ Lean中枢',
-      hud_right_bridge: 'Lean中枢 ⇄ 自動論文',
-      hud_outreach_detail: '✦ {n} 協力 · {replied} 返信 · {contacted} 連絡 · {joint} 共著論文',
-      hud_rev_tap: '査読支線接続 → {dept}',
-      hud_stu_tap: 'ツール支線接続 → {dept}',
-      hud_station_left_live: '⚡ 理論・書籍 ⇄ Lean中枢 · {run} 件検証中',
-      hud_station_right_live: '✦ 自動論文工場 ⇄ Mathesis · 継続出力',
-      hud_station_loop_tag: '24/7 ACTIVE LOOP // 予想 → Lean検証 → 書籍論文 → {n} 名の学者還流',
-      hud_dag_banner: 'TRUTH DAG COSMOS // L0 公理基盤 → L18 最前線定理 · {n} 検証済ノード',
-      lantern_proved: '✓ 証明済',
-      lantern_refuted: '✕ 反証',
-      lantern_click: 'クリックで証明表示',
-      lantern_badge_proved: '✦ 予想ランタン・証明済',
-      lantern_badge_refuted: '✦ 予想ランタン・反証／障害',
-      lantern_read_btn: '内蔵ブラウザで証明を読む ↗',
-      trace_btn_open: '⟡ 公理ルート遡及 ({n} 本)',
-      trace_btn_close: '✕ 公理光脈を閉じる ({n})',
-      lean_source_btn: 'Lean ソースを見る ↗',
-      genesis_meta: 'DAG進化 · {pct}% · 約{th} 定理 · ✦ {conj} 予想',
-      health_connected: 'たった今更新',
-      health_summary: '{depts} 部門常時連動 · {ci} 件の自動化稼働中 · {relays} 件の部門間連携',
-      exec_human: '人間の方向判断',
-      exec_sessions: '独立研究セッション',
-      exec_actions: 'Actions 自動エンジン',
-      exec_mixed: 'セッション＋自動検査',
-      rel_now: 'たった今',
-      rel_min: '{n} 分前',
-      rel_hour: '{n} 時間前',
-      rel_day: '{n} 日前',
-      stage_prefix: '境·',
-      depts: {
-        direction: { label: '研究方針', role: '全体統括' },
-        research: { label: '数学研究', role: '予想攻略' },
-        review: { label: '独立査読', role: '査読支線' },
-        verification: { label: '形式検証', role: 'Lean中枢' },
-        books: { label: '理論執筆', role: '専門書籍' },
-        publication: { label: '論文・知識', role: 'Mathesis' },
-        outreach: { label: '学術交流', role: '{n} 名の学者' },
-        studio: { label: '基盤ツール', role: 'ツール支線' }
-      },
-      galaxies: {
-        Combinatorics: '組合せ数学',
-        Quantum: '量子構造',
-        Arith: '数論算術',
-        ConceptDynamics: '概念力学',
-        Analytic: '解析学',
-        Weil: 'ヴェイユ理論',
-        Observer: '観測者理論',
-        Other: '公理基盤帯'
-      },
-      realms: ['練気', '築基', '金丹', '元嬰', '化神', '大乗']
+      realms: ['Spark', 'Foundation', 'Core', 'Ascension', 'Transcendence', 'Sovereign']
     }
   };
 
@@ -516,6 +373,11 @@
     return interpolate(raw, vars);
   }
 
+  function deptResp(id, fallback = '') {
+    const d = DICTS[currentLang] || DICTS.zh;
+    return d.depts?.[id]?.resp || fallback || '';
+  }
+
   function galaxyName(cluster) {
     if (!cluster) return '';
     const d = DICTS[currentLang] || DICTS.zh;
@@ -525,12 +387,14 @@
 
   function realmName(idx, fallback = '') {
     const d = DICTS[currentLang] || DICTS.zh;
-    return d.realms?.[idx] || fallback || '';
+    // INSTITUTE_REALMS uses 1-based idx (1..6)
+    const i = Number.isInteger(idx) ? Math.max(0, idx - 1) : 0;
+    return d.realms?.[i] || fallback || '';
   }
 
   function applyDom(doc = document) {
     if (!doc) return;
-    const htmlLang = currentLang === 'en' ? 'en' : currentLang === 'ja' ? 'ja' : 'zh-CN';
+    const htmlLang = currentLang === 'en' ? 'en' : 'zh-CN';
     if (doc.documentElement) {
       doc.documentElement.lang = htmlLang;
       doc.documentElement.dataset.lang = currentLang;
@@ -564,6 +428,7 @@
     t,
     deptLabel,
     deptRole,
+    deptResp,
     galaxyName,
     realmName,
     applyDom

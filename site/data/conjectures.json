@@ -10,6 +10,7 @@
       "zh_title": "有理 Bloch 四面体可实现性障碍（反驳 / 障碍）",
       "area": "量子信息",
       "summary": "形式化证明有理 Bloch 四面体上的精确障碍条件，排除对应有理态构造的全局可行性。",
+      "en_summary": "Formally proves the exact obstruction on the rational Bloch tetrahedron, ruling out global realizability of the proposed rational-state construction.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34103",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -21,6 +22,7 @@
       "zh_title": "对角斐波那契边缘态的两类有理范数障碍",
       "area": "量子信息",
       "summary": "完整刻画对角 Fibonacci 边缘态中导致有理扩展失效的两类精确范数障碍。",
+      "en_summary": "Characterizes two exact rational-norm obstructions that block rational extensions of diagonal Fibonacci marginal states.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/issues/34074",
       "evidence_kind": "Lean 归档",
       "settled_at": "2026-11-25"
@@ -32,6 +34,7 @@
       "zh_title": "分离稠密实上极限类的通有发散性（反例构造）",
       "area": "分析与结构",
       "summary": "证明由分离稠密实上极限类触发的通有发散现象，为收敛性边界提供严格反驳见证。",
+      "en_summary": "Proves generic divergence forced by separated dense real limsup classes, providing a formal refutation witness at the convergence boundary.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34092",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -43,6 +46,7 @@
       "zh_title": "最大混合端点的四平方反例见证",
       "area": "量子信息",
       "summary": "在量子几何最大混合端点处构造显式四平方见证，区分有理保真度与有理坐标。",
+      "en_summary": "Constructs an explicit four-square witness at a maximally mixed quantum-geometry endpoint, separating rational fidelity from rational coordinates.",
       "proof_url": "https://github.com/the-omega-institute/trureturing-books/pull/1300",
       "evidence_kind": "书稿 PR",
       "settled_at": "2026-11-25"
@@ -54,6 +58,7 @@
       "zh_title": "全整数平方根储备常数（Robin 方向）",
       "area": "数论",
       "summary": "在 Lean 中完成 Robin 方向全整数平方根储备常数的严格形式化证明。",
+      "en_summary": "Formally certifies in Lean 4 the all-integer square-root reserve constant along the Robin inequality line.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34105",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -65,6 +70,7 @@
       "zh_title": "四副本 BMV Gram 块的精确一致条件数",
       "area": "代数与结构",
       "summary": "形式化证明四副本 BMV Gram 块的紧致一致条件数上界与奇异三值谱下界。",
+      "en_summary": "Formally proves sharp uniform conditioning upper bounds and singular three-value spectral lower bounds for four-copy BMV Gram blocks.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34099",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -76,6 +82,7 @@
       "zh_title": "完全图精确常数与分离团和的形式化",
       "area": "组合数学",
       "summary": "完成完全图精确极值常数与分离团和结构的 Lean 形式化证明。",
+      "en_summary": "Formalizes exact extremal complete-graph constants and separated clique-sum decompositions in Lean 4.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34096",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -87,6 +94,7 @@
       "zh_title": "Banach 值逐点与 L¹ Birkhoff 遍历极限",
       "area": "分析与结构",
       "summary": "在有限测度空间上完成 Banach 值 Birkhoff 逐点与 L¹ 联合遍历极限的形式化证明。",
+      "en_summary": "Formally proves joint pointwise and L1 Banach-valued Birkhoff ergodic limits over finite measure spaces.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34067",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -98,6 +106,7 @@
       "zh_title": "四阶酉随机矩阵精确相位补全",
       "area": "量子信息",
       "summary": "完成四阶 unistochastic 相位补全问题的精确形式化刻画与证明。",
+      "en_summary": "Formally characterizes and proves exact phase completion for order-four unistochastic matrices.",
       "proof_url": "https://github.com/the-omega-institute/trureturing/pull/34076",
       "evidence_kind": "Lean PR",
       "settled_at": "2026-11-25"
@@ -109,6 +118,7 @@
       "zh_title": "广义 Petersen 图 P(n,3) 与 P(n,4) 的精确零强迫数",
       "area": "组合数学",
       "summary": "确定广义 Petersen 图族 P(n,3) 与 P(n,4) 的精确零强迫数公式并公开预印本。",
+      "en_summary": "Establishes exact zero forcing number formulas for the generalized Petersen graph families P(n,3) and P(n,4).",
       "proof_url": "https://arxiv.org/abs/2610.24059",
       "evidence_kind": "arXiv",
       "settled_at": "2026-10-24"
@@ -120,6 +130,7 @@
       "zh_title": "形成纠缠的离散与连续定义等价性证明",
       "area": "量子信息",
       "summary": "证明量子信息中形成纠缠（Entanglement of Formation）离散与连续定义的严格一致。",
+      "en_summary": "Proves the strict coincidence between the discrete and continuous definitions of Entanglement of Formation in quantum information.",
       "proof_url": "https://arxiv.org/abs/2610.18816",
       "evidence_kind": "arXiv",
       "settled_at": "2026-10-18"
@@ -131,6 +142,7 @@
       "zh_title": "规范 Zeckendorf 归约与 Berstel 加法器的精确迭代深度",
       "area": "数论",
       "summary": "已正式发表于 RAIRO-ITA：给出 Berstel 加法器规范 Zeckendorf 归约的精确迭代深度界。",
+      "en_summary": "Published in RAIRO-ITA: establishes the sharp iteration depth bound for canonical Zeckendorf normalization via the Berstel adder.",
       "proof_url": "https://www.rairo-ita.org/articles/ita/abs/2026/01/ita20260032/ita20260032.html",
       "evidence_kind": "已发表",
       "settled_at": "2026-01-15"

@@ -946,26 +946,75 @@ test('local showcase: DAG axiom path tracing, anonymized upstream outreach stats
   }finally{dom.window.close();}
 });
 
-test('multi-language (zh/en/ja), three distinct visual themes (holo/matrix/light), and layer identities',async()=>{
+test('bilingual (zh/en only, complete English coverage), three distinct visual themes (holo/matrix/light), and layer identities',async()=>{
   const i18nSrc=await readFile(new URL('../site/assets/i18n.js',import.meta.url),'utf8');
   const {dom,win,doc}=await boot();try{
     win.eval(i18nSrc);
     assert.ok(win.TrureI18n,'TrureI18n engine loads cleanly');
-    // 1. Default zh -> en -> ja -> zh instant DOM & dynamic switching
+    assert.deepEqual([...win.TrureI18n.SUPPORTED],['zh','en'],'strictly bilingual zh/en (no Japanese)');
+    assert.equal(doc.querySelector('[data-lang-btn="ja"]'),null,'Japanese toggle button removed');
+
+    const hasHan=s=>/[\u4e00-\u9fff]/.test(String(s||''));
+
+    // 1. Switch to English and assert comprehensive translation across HUD, tooltips, panels, log, drawer, and lens
     doc.querySelector('[data-lang-btn="en"]').click();
     assert.equal(doc.documentElement.lang,'en');
     assert.equal(doc.querySelector('[data-layer="galaxy"]').textContent,'Cosmos');
     assert.equal(doc.querySelector('[data-look="matrix"] span').textContent,'Matrix');
     assert.equal(win.TrureI18n.deptLabel('research'),'Math Research');
+    assert.equal(win.TrureI18n.galaxyName({name:'Combinatorics',zh:'组合数学'}),'Combinatorics');
 
-    doc.querySelector('[data-lang-btn="ja"]').click();
-    assert.equal(doc.documentElement.lang,'ja');
-    assert.equal(doc.querySelector('[data-layer="station"]').textContent,'基地');
-    assert.equal(win.TrureI18n.galaxyName({name:'Combinatorics',zh:'组合数学'}),'組合せ数学');
+    // Tooltips translated via data-i18n-title
+    for(const sel of ['#hud-zen-toggle','#motion-toggle','#realm-pill','#sonar-pulse-btn','#cinema-director-btn','#genesis-scrub-btn','#replay-intro-btn','[data-branch-department="review"]','[data-branch-department="studio"]']){
+      const el=doc.querySelector(sel);
+      assert.ok(el?.getAttribute('title'),`${sel} has title`);
+      assert.equal(hasHan(el.getAttribute('title')),false,`${sel} title has no leaked Chinese: ${el.getAttribute('title')}`);
+    }
 
+    // Dynamic panels, ticker, follow control, hover hint, log wall, and humanTitle
+    assert.equal(hasHan(doc.querySelector('#department-title').textContent),false,'department title is English');
+    assert.equal(hasHan(doc.querySelector('#department-responsibility').textContent),false,'department responsibility is English');
+    assert.equal(hasHan(doc.querySelector('#department-work-title').textContent),false,'department work heading is English');
+    assert.equal(hasHan(doc.querySelector('#department-connections').textContent),false,'department connections are English');
+    assert.equal(hasHan(doc.querySelector('#ticker-text').textContent),false,'ticker text is English');
+    assert.equal(hasHan(doc.querySelector('#ticker-time').textContent),false,'ticker time is English');
+    assert.equal(hasHan(doc.querySelector('#follow-live span').textContent),false,'follow label is English');
+    assert.equal(hasHan(doc.querySelector('#hive-hover-hint').textContent),false,'hover hint is English');
+    assert.equal(hasHan(doc.querySelector('#log-rate-badge').textContent),false,'log rate badge is English');
+    assert.equal(hasHan(doc.querySelector('#scifi-log-stream').textContent),false,'log stream rows rebuilt in English');
+    assert.equal(win.humanTitle('Bound weighted close pairs on cyclic band with positive Fejer weights'),'Bound weighted close pairs on cyclic band with positive Fejer weights','English titles are not rewritten to Chinese in EN mode');
+    assert.equal(win.humanTitle('检验研究提交'),'Verify Research PR','generic Chinese automation labels translate cleanly in EN mode');
+
+    // Open telemetry drawer tabs in EN
+    doc.querySelector('[data-dock-tab="live-ops"]').click();
+    assert.equal(hasHan(doc.querySelector('#dock-drawer-title').textContent),false,'drawer header is English');
+    assert.equal(hasHan(doc.querySelector('#checker-summary').textContent),false,'checker summary is English');
+    assert.equal(hasHan(doc.querySelector('#relay-summary').textContent),false,'relay summary is English');
+    assert.equal(hasHan(doc.querySelector('#live-feed-meta').textContent),false,'live feed meta is English');
+
+    // Open department interior lens in EN
+    doc.querySelector('#open-lens-button').click();
+    assert.equal(hasHan(doc.querySelector('#lens-title').textContent),false,'lens title is English');
+    assert.equal(hasHan(doc.querySelector('#lens-responsibility').textContent),false,'lens responsibility is English');
+    assert.equal(hasHan(doc.querySelector('#lens-input').textContent),false,'lens input is English');
+    assert.equal(hasHan(doc.querySelector('#lens-output').textContent),false,'lens output is English');
+    assert.equal(hasHan(doc.querySelector('#lens-spotlight').textContent),false,'lens spotlight is English');
+    doc.querySelector('#lens-back').click();
+
+    // Galaxy node info in EN
+    const gInfo=win.galaxyNodeInfo(
+      {kind:'star',idx:0,cid:0},
+      {source_commit:'a'.repeat(40),stars:[['D5/S0/Example','Sample Hub Theorem','Summary text.','hub',4,12,3,5,[],[]]]},
+      [{id:0,name:'Combinatorics',zh:'组合数学'}]
+    );
+    assert.equal(gInfo.badge,'Hub Theorem');
+    assert.equal(hasHan(gInfo.meta.join(' · ')),false,'galaxy node meta is English');
+
+    // Switch back to Chinese cleanly (state.follow is false after opening lens -> 已固定视角)
     doc.querySelector('[data-lang-btn="zh"]').click();
     assert.equal(doc.documentElement.lang,'zh-CN');
     assert.equal(doc.querySelector('[data-look="light"] span').textContent,'曜白');
+    assert.equal(doc.querySelector('#follow-live span').textContent,'已固定视角');
 
     // 2. Three distinct themes (holo / matrix / light) + legacy blueprint alias
     doc.querySelector('[data-look="matrix"]').click();

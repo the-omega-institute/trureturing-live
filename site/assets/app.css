@@ -1049,6 +1049,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
+:root[data-lang="en"] .cell-card {
+  max-width: 248px;
+}
+
+:root[data-lang="en"] .cell-meta-row {
+  max-width: 226px;
+}
+
 .cell-head::before {
   content: var(--sec-code, "00");
   font-family: var(--font-mono);
