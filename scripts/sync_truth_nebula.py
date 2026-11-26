@@ -24,9 +24,9 @@ OUT_PATH = pathlib.Path(__file__).resolve().parents[1] / "site" / "data" / "trut
 DETAILS_PATH = OUT_PATH.with_name("truth-nebula-details.v1.json")
 FULL_ATLAS_PATH = OUT_PATH.with_name("truth-atlas-full.v1.json")
 
-MAX_STARS = 3600
-MAX_INTRA_EDGES = 3600
-MAX_CROSS_EDGES = 420
+MAX_STARS = 3000
+MAX_INTRA_EDGES = 1950
+MAX_CROSS_EDGES = 260
 MAX_ATLAS_EDGES = 16000
 MAX_SUMMARY = 240
 MAX_NODE_LINKS = 10
@@ -195,37 +195,47 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
             adj_intra[u].append(v)
             adj_intra[v].append(u)
 
+    def node_reuse(i: int) -> int:
+        n = nodes[i]
+        return int(n[13]) if len(n) > 13 and isinstance(n[13], (int, float)) else 0
+
     selected_set: set[int] = set()
     total_truth = len(truth_indices) or 1
     for cid, pool in sorted(by_cid_all.items()):
-        quota = max(220, int(round(MAX_STARS * (0.28 / len(by_cid_all) + 0.72 * len(pool) / total_truth))))
-        # 1) Seed top connected hubs in this galaxy and expand real multi-hop DAG chains via BFS
-        hubs = sorted(pool, key=lambda i: (-deg[i], i))
+        quota = max(190, int(round(MAX_STARS * (0.28 / len(by_cid_all) + 0.72 * len(pool) / total_truth))))
+        # 1) Prioritize real high-reuse hubs (345+, 64-344) first, then expand real branching DAG chains via BFS
+        hubs = sorted(pool, key=lambda i: (-node_reuse(i), -deg[i], i))
         picked_local: list[int] = []
         picked_set_local: set[int] = set()
-        bfs_target = int(quota * 0.78)
+        # Guarantee every core hub (tier 4) and top pillars (tier 3) in this galaxy are seeded first
+        for h_i in hubs:
+            if len(picked_local) >= int(quota * 0.34):
+                break
+            if reuse_tier(node_reuse(h_i)) >= 3:
+                picked_set_local.add(h_i)
+                picked_local.append(h_i)
+        bfs_target = int(quota * 0.72)
         for root in hubs:
             if len(picked_local) >= bfs_target:
                 break
-            if root in picked_set_local:
+            if root in picked_set_local and not adj_intra.get(root):
                 continue
             q = [root]
             while q and len(picked_local) < bfs_target:
                 cur = q.pop(0)
-                if cur in picked_set_local:
-                    continue
-                picked_set_local.add(cur)
-                picked_local.append(cur)
-                # Follow up to 6 strongest real neighbors to preserve rich branching DAG trees
-                nbrs = sorted(adj_intra.get(cur, []), key=lambda j: (-deg[j], j))
+                if cur not in picked_set_local:
+                    picked_set_local.add(cur)
+                    picked_local.append(cur)
+                # Follow up to 4 strongest real neighbors to preserve clean airy branching arms
+                nbrs = sorted(adj_intra.get(cur, []), key=lambda j: (-node_reuse(j), -deg[j], j))
                 added = 0
                 for nb in nbrs:
                     if nb not in picked_set_local:
                         q.append(nb)
                         added += 1
-                        if added >= 6:
+                        if added >= 4:
                             break
-        # 2) Fill remaining quota evenly across the galaxy to preserve full star-cloud volume
+        # 2) Fill remaining quota evenly across the galaxy to preserve airy outer stardust halo
         rem_pool = [i for i in pool if i not in picked_set_local]
         rem_need = max(0, quota - len(picked_local))
         if rem_pool and rem_need > 0:
@@ -239,11 +249,21 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
     selected = sorted(selected_set)[:MAX_STARS]
     idx_to_star = {orig_i: star_i for star_i, orig_i in enumerate(selected)}
 
-    # Compute each star's panoramic 3D position + local/global topological generation (0..100)
+    # Compute each star's panoramic 3D orbital spiral-galaxy position + real reuse tier (0..4)!
     max_layer = max((int(nodes[i][12]) for i in selected if len(nodes[i]) > 12 and isinstance(nodes[i][12], int)), default=10)
     max_layer = max(1, max_layer)
 
+    # Radial shells keyed by real reuse tier: 345+ hubs form a spacious luminous galactic core -> 0 leaves dust the outer halo!
+    tier_shells = (
+        (0.84, 0.54),  # tier 0 (0 leaves): airy outer galactic halo stardust
+        (0.68, 0.50),  # tier 1 (1-5): outer spiral wings
+        (0.50, 0.46),  # tier 2 (6-63): main sweeping spiral arms
+        (0.30, 0.42),  # tier 3 (64-344): inner spiral backbone
+        (0.10, 0.34),  # tier 4 (345+ core hubs): spacious golden galactic core constellation
+    )
+
     stars = []
+    tier_counts = [0, 0, 0, 0, 0]
     for i in selected:
         cid = dom_to_cid.get(nodes[i][5] or "Other", other_cid)
         mx, my, mz, r90 = local_stats[cid]
@@ -251,33 +271,50 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
         dx = (positions[i][0] - mx) / r90
         dy = (positions[i][1] - my) / r90
         dz = (positions[i][2] - mz) / r90
-        # Preserve authentic branched DAG silhouette (linear scaling clamped softly at outer outliers)
-        r_loc = math.sqrt(dx * dx + dy * dy + dz * dz)
-        if r_loc > 1.38:
-            mult = (1.38 + math.log1p(r_loc - 1.38) * 0.24) / r_loc
-            dx *= mult
-            dy *= mult
-            dz *= mult
-            r_loc = math.sqrt(dx * dx + dy * dy + dz * dz)
+        reuse = node_reuse(i)
+        tier = reuse_tier(reuse)
+        tier_counts[tier] += 1
+
+        r_raw = math.sqrt(dx * dx + dy * dy + dz * dz)
+        r_norm = min(1.0, r_raw / 1.35)
         if cid == other_cid:
-            # Spread Foundations ("Other") airily along the vast outer galactic halo instead of a central clump!
+            # Spread Foundations ("Other") airily along the vast outer orbital star-river belt
             ang = math.atan2(dy, dx)
-            halo_r = 0.84 + 0.34 * min(1.0, r_loc / 1.42)
+            halo_r = 0.86 + 0.32 * r_norm
             sx = int(round(math.cos(ang) * 920 * halo_r))
             sy = int(round(math.sin(ang) * 860 * halo_r))
-            sz = int(round(-220 + dz * 90))
+            sz = int(round(-220 + max(-1.1, min(1.1, dz)) * 85))
+            r_loc = halo_r
         else:
-            sx = int(round(ax + dx * gal_r))
-            sy = int(round(ay + dy * gal_r * 0.78))
-            sz = int(round(az + dz * gal_r * 0.65))
+            # True logarithmic 2-arm astronomical spiral galaxy sculpted from real atlas-branched-dag-v5 bearings & reuse tiers!
+            s_base, s_span = tier_shells[tier]
+            # Spread nodes evenly within their tier shell using deterministic golden-ratio phase jitter for zero clumping
+            jitter = ((i * 2654435761) & 0xFFFF) / 65535.0
+            r_in_shell = 0.65 * math.pow(r_norm, 0.78) + 0.35 * jitter
+            r_target = s_base + s_span * r_in_shell
+            r_blend = 0.30 * min(1.38, r_raw) + 0.70 * r_target
+            # Authentic azimuthal bearing from atlas-branched-dag-v5 -> gently clustered into 2 sweeping logarithmic spiral arms!
+            phi0 = math.atan2(dz, dx) if (abs(dx) + abs(dz)) > 1e-4 else (jitter * math.pi * 2.0)
+            arm_pull = 0.30 * math.sin(2.0 * phi0)
+            twist = 1.38 * math.pow(r_blend, 0.85)
+            phi = phi0 - arm_pull + twist
+            rx_t = math.cos(phi) * r_blend
+            rz_t = math.sin(phi) * r_blend
+            # Natural nuclear bulge tapering into a crisp galactic spiral plane
+            bulge = 0.38 * math.exp(-r_blend * 1.45) + 0.12
+            dy_norm = max(-1.2, min(1.2, dy / max(0.35, r_raw)))
+            ry_t = dy_norm * bulge
+            sx = int(round(ax + rx_t * gal_r * 1.04))
+            sy = int(round(ay + ry_t * gal_r * 0.95))
+            sz = int(round(az + rz_t * gal_r * 1.04))
+            r_loc = r_blend
         layer = int(nodes[i][12]) if len(nodes[i]) > 12 and isinstance(nodes[i][12], int) else 0
-        # Combine local radial distance & real DAG topological layer -> generation 0..100
-        gen = int(round(min(100, max(0, (0.62 * min(1.0, r_loc / 1.15) + 0.38 * min(1.0, layer / max_layer)) * 100))))
-        d_weight = min(10, int(round(math.log1p(deg[i]) * 2.2)))
-        stars.append([sx, sy, sz, cid, gen, d_weight])
+        gen = int(round(min(100, max(0, (0.58 * min(1.0, r_loc / 1.25) + 0.42 * min(1.0, layer / max_layer)) * 100))))
+        d_weight = min(10, int(round(math.log1p(reuse + deg[i]) * 1.45)))
+        stars.append([sx, sy, sz, cid, gen, d_weight, tier])
 
     # Extract REAL directed branching DAG edges:
-    # 1) Clean intra-galaxy branching edges (ordered lower-gen -> higher-gen, max ~85 per galaxy)
+    # 1) Clean uncluttered intra-galaxy spiral constellation bones (max render degree 4 per star)
     # 2) Key real cross-galaxy theorem links
     intra_by_cid: dict[int, list[tuple[int, int, int]]] = defaultdict(list)
     cross_cands: list[tuple[int, int, int]] = []
@@ -292,26 +329,25 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
             continue
         seen_e.add(pair)
         cu, cv = stars[su][3], stars[sv][3]
-        score = deg[u] + deg[v]
+        score = node_reuse(u) + node_reuse(v) + (deg[u] + deg[v]) * 4
         if cu == cv:
-            # Keep rich airy branching DAG edges inside each named galaxy (skip sprawling halo chords for Other)
             du = math.dist(stars[su][:3], stars[sv][:3])
-            if cu != other_cid and 10 < du < 340:
+            if cu != other_cid and 12 < du < 285:
                 intra_by_cid[cu].append((score, su, sv))
-            elif cu == other_cid and 20 < du < 240:
+            elif cu == other_cid and 20 < du < 210:
                 intra_by_cid[cu].append((score, su, sv))
         else:
             cross_cands.append((score, su, sv))
 
     chosen_edges = []
-    per_gal_cap = max(320, MAX_INTRA_EDGES // max(1, len(clusters)))
+    per_gal_cap = max(220, MAX_INTRA_EDGES // max(1, len(clusters)))
     for cid, cands in sorted(intra_by_cid.items()):
         cands.sort(key=lambda item: (-item[0], item[1], item[2]))
-        # Keep rich yet crisp branching degree (at most 6 rendered edges per star) so DAG topology shines!
+        # Airy, structured branching degree (at most 4 rendered edges per star) so galaxy arms read clearly!
         render_deg = Counter()
         added = 0
         for _, u, v in cands:
-            if render_deg[u] >= 6 or render_deg[v] >= 6:
+            if render_deg[u] >= 4 or render_deg[v] >= 4:
                 continue
             render_deg[u] += 1
             render_deg[v] += 1
@@ -353,6 +389,7 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
             "sampled_stars": len(stars),
             "sampled_edges": len(chosen_edges),
             "cluster_links": len(directed_links),
+            "tiers": tier_counts,
         },
         "clusters": clusters,
         "cluster_links": directed_links,

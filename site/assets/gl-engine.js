@@ -83,14 +83,15 @@
   // ---- Map Truth DAG Coordinates into a 3D Celestial Helical Ring (周天星斗大阵) ----
   // Wraps all 7 named mathematical galaxies + the 360° Foundation Star River cleanly BELOW
   // the Supreme Akasha Eye (y = 6.95) and ABOVE the reflective Ground Abyss (y = -1.35)!
+  // Each galaxy is an inclined 3D astronomical spiral disc [az0, wy0, rad0, tiltPitch, tiltRoll]!
   const CELESTIAL_ANCHORS = {
-    6: [ 0.00, 3.55, 10.6], // Observer: rear center below Supreme Akasha Eye
-    0: [-0.56, 3.45, 10.8], // Combinatorics: upper-left orbiting halo
-    2: [ 0.56, 3.45, 10.8], // Arith: upper-right orbiting halo
-    3: [-1.00, 2.45, 10.8], // ConceptDynamics: mid-left helical wing
-    5: [ 1.00, 2.45, 10.8], // Weil: mid-right helical wing
-    1: [-1.26, 1.35, 10.4], // Quantum: lower-left flank above ground
-    4: [ 1.26, 1.35, 10.4]  // Analytic: lower-right flank above ground
+    6: [ 0.00, 3.10, 10.6, 0.56,  0.04], // Observer: rear center cleanly beneath Supreme Akasha Eye's nadir spire
+    0: [-0.56, 3.55, 10.8, 0.60,  0.18], // Combinatorics: upper-left orbiting spiral galaxy
+    2: [ 0.56, 3.55, 10.8, 0.60, -0.18], // Arith: upper-right orbiting spiral galaxy
+    3: [-0.98, 2.55, 10.6, 0.64,  0.22], // ConceptDynamics: mid-left spiral wing
+    5: [ 0.98, 2.55, 10.6, 0.64, -0.22], // Weil: mid-right spiral wing
+    1: [-1.24, 1.55, 10.2, 0.58,  0.16], // Quantum: lower-left foreground spiral flank
+    4: [ 1.24, 1.55, 10.2, 0.58, -0.16]  // Analytic: lower-right foreground spiral flank
   };
 
   function mapStarToCelestialRing(nx, ny, nz, cid, clusterCenters) {
@@ -100,10 +101,28 @@
       const dx = cc ? (nx - cc[0] / 1000) : 0;
       const dy = cc ? (ny - cc[1] / 1000) : 0;
       const dz = cc ? (nz - cc[2] / 1000) : 0;
-      const az = anc[0] + dx * 0.68;
-      const rad = anc[2] + dz * 3.8 + Math.abs(dx) * 0.50;
-      const wy = anc[1] + dy * 1.90;
-      return [Math.sin(az) * rad, wy, -Math.cos(az) * rad - 0.65];
+      const az0 = anc[0], wy0 = anc[1], rad0 = anc[2];
+      const tiltP = anc[3] || 0.60, tiltR = anc[4] || 0.0;
+      // Galaxy anchor center on the orbital ring
+      const sinA = Math.sin(az0), cosA = Math.cos(az0);
+      const cx = sinA * rad0;
+      const cz = -cosA * rad0 - 0.65;
+      // Circular 3D spiral disc coordinates in galaxy local frame (lx, ly, lz)
+      const lx0 = dx * 8.2;
+      const ly0 = dy * 2.4;
+      const lz0 = dz * 8.2;
+      // Apply gentle galactic roll (tiltR) + tilt face toward ring center/observer (tiltP)
+      const cR = Math.cos(tiltR), sR = Math.sin(tiltR);
+      const lx1 = lx0 * cR - ly0 * sR;
+      const ly1 = lx0 * sR + ly0 * cR;
+      const cP = Math.cos(tiltP), sP = Math.sin(tiltP);
+      const ly2 = ly1 * cP + lz0 * sP;
+      const lz2 = -ly1 * sP + lz0 * cP;
+      // Map local tangent (lx1) + radial (lz2) + vertical (ly2) into world space
+      const wx = cx + lx1 * cosA + lz2 * sinA;
+      const wy = wy0 + ly2;
+      const wz = cz + lx1 * sinA - lz2 * cosA;
+      return [wx, wy, wz];
     }
     // Foundations Belt (Other): continuous 360° celestial star river orbiting strictly beneath the Akasha Eye!
     const rawAng = Math.atan2(nx, ny);
@@ -844,25 +863,26 @@
     float isCloud = (1.0 - isAtlasDisc) * step(18.0, baseSize);
     float isLantern = (1.0 - isAtlasDisc) * step(9.5, baseSize) * (1.0 - isCloud);
     float isNode = (1.0 - isAtlasDisc) * (1.0 - step(9.5, baseSize));
-    float nodeSzBoost = aGen < 0.0 ? 1.15 : 1.38;
+    float discBoost = mix(0.84, 1.10, uGalaxyBoost);
+    float nodeSzBoost = aGen < 0.0 ? 1.10 : 1.32;
     float boostSz = isAtlasDisc > 0.5
-      ? 1.0
-      : mix(1.0, isCloud > 0.5 ? 1.0 : (isLantern > 0.5 ? 1.28 : nodeSzBoost), uGalaxyBoost);
+      ? discBoost
+      : mix(1.0, isCloud > 0.5 ? 1.12 : (isLantern > 0.5 ? 1.16 : nodeSzBoost), uGalaxyBoost);
     float boostAl = isAtlasDisc > 0.5
-      ? 1.0
-      : mix(1.0, isLantern > 0.5 ? 1.10 : 1.0, uGalaxyBoost);
+      ? mix(0.88, 1.06, uGalaxyBoost)
+      : mix(1.0, isLantern > 0.5 ? 1.04 : 1.0, uGalaxyBoost);
     float depthScale = isAtlasDisc > 0.5
-      ? clamp(24.0 / max(8.0, clip.w), 0.72, 2.25)
-      : clamp(32.0 / max(9.0, clip.w), 0.82, 2.40);
+      ? clamp(24.5 / max(12.5, clip.w), 0.78, 1.34)
+      : clamp(28.0 / max(9.0, clip.w), 0.76, 2.05);
     float pSize = baseSize * boostSz * uDpr * depthScale;
-    float scaled = pSize * (isAtlasDisc > 0.5 ? 1.0 : pow(g.w, 0.34)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
-    gl_PointSize = min(scaled, 64.0 * uDpr);
+    float scaled = pSize * (isCloud > 0.5 ? pow(g.w, 0.55) : pow(g.w, 0.20)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
+    gl_PointSize = min(scaled, (isCloud > 0.5 ? 140.0 : 28.0) * uDpr);
     vCol = mix(aCol, vec3(1.0, 0.98, 0.90), genBloom * 0.55);
     vAlpha = aAlpha * boostAl * uAlphaMul * uGatherAlpha[gi] * genMask * (1.0 + genBloom * 0.45);
-    // 0 = ring star node, 1 = reserved, 2 = warm conjecture lantern star, 3 = crisp real 18,986-node atlas disc!
+    // 0 = ambient star, 1 = subtle core halo, 2 = warm conjecture lantern star, 3 = crisp dependency-tiered galaxy star!
     vKind = isAtlasDisc > 0.5 ? 3.0 : (isCloud > 0.5 ? 1.0 : (isLantern > 0.5 ? 2.0 : 0.0));
     vSeed = fract(sin(dot(aPos.xy + aPos.z * 0.37, vec2(12.9898, 78.233))) * 43758.5453) * 6.28318;
-    vHub = (isAtlasDisc > 0.5 ? smoothstep(6.2, 9.2, baseSize) : isNode * smoothstep(5.4, 7.6, baseSize));
+    vHub = (isAtlasDisc > 0.5 ? smoothstep(6.2, 8.0, baseSize) : isNode * smoothstep(5.4, 7.6, baseSize));
   }`;
 
   const STAR_FS = `#version 300 es
@@ -882,14 +902,20 @@
     float r = length(d) * 2.0;
     if (r > 1.0) discard;
     if (vKind > 2.5) {
-      // Crisp, high-clarity real Truth DAG circular graph node (matches trureturing-pages scientific atlas!)
-      float disc = smoothstep(0.96, 0.62, r);
-      float rimDark = smoothstep(0.68, 0.94, r) * 0.28;
-      float spec = smoothstep(0.42, 0.05, r) * (0.14 + vHub * 0.34);
+      // Crisp jewel-like dependency-tiered astronomical star (amber-gold 345+ hubs get delicate 4-point star glint!)
+      float disc = smoothstep(0.78, 0.34, r);
+      float softHalo = exp(-r * r * 5.0) * (0.28 + vHub * 0.34);
+      float glint = vHub * (
+        exp(-abs(d.y) * 32.0) * exp(-abs(d.x) * 4.8) +
+        exp(-abs(d.x) * 32.0) * exp(-abs(d.y) * 4.8)
+      ) * 0.62;
+      float alphaOut = clamp(max(disc, softHalo) + glint, 0.0, 1.0);
+      float rimDark = smoothstep(0.56, 0.84, r) * 0.18;
+      float spec = smoothstep(0.36, 0.03, r) * (0.34 + vHub * 0.48);
       vec3 bodyCol = uTheme > 1.5
-        ? mix(vCol, vec3(0.05, 0.09, 0.14), rimDark * 0.5)
-        : mix(vCol * (1.0 - rimDark), vec3(1.0, 0.98, 0.92), spec);
-      fragColor = vec4(bodyCol, disc * vAlpha);
+        ? mix(vCol, vec3(0.05, 0.09, 0.14), rimDark * 0.45)
+        : mix(vCol * (1.0 - rimDark), vec3(1.0, 0.99, 0.94), spec);
+      fragColor = vec4(bodyCol, alphaOut * clamp(vAlpha, 0.0, 1.0));
     } else if (vKind > 1.5) {
       // Radiant Warm Conjecture Lantern Star with crisp 4-point astronomical diffraction spikes
       float core = exp(-r * r * 11.5);
@@ -900,18 +926,17 @@
       vec3 coreTarget = uTheme > 1.5 ? vec3(0.32, 0.14, 0.02) : vec3(1.0, 0.98, 0.92);
       fragColor = vec4(mix(vCol, coreTarget, core * 0.68), lum * vAlpha);
     } else if (vKind > 0.5) {
-      float silk = pow(max(0.0, 1.0 - r * r), 2.2);
+      // Ultra-whisper galactic nucleus starlight glow (soft, natural, zero fog!)
+      float silk = pow(max(0.0, 1.0 - r * r), 2.8);
       fragColor = vec4(vCol, silk * vAlpha);
     } else {
-      // Crisp crystalline Lean verified theorem star node (ring / single-galaxy view)
+      // Crisp deep-space ambient star dot
       if (uTheme > 1.5) {
-        float inkDot = smoothstep(0.68, 0.22, r) * 0.98 + exp(-r * r * 5.0) * 0.22;
-        vec3 inkCol = mix(vCol, vec3(0.04, 0.09, 0.16), smoothstep(0.36, 0.08, r) * 0.40);
-        fragColor = vec4(inkCol, clamp(inkDot, 0.0, 1.0) * clamp(vAlpha * 1.38, 0.0, 0.96));
+        float inkDot = smoothstep(0.68, 0.22, r) * 0.95;
+        fragColor = vec4(vCol, inkDot * clamp(vAlpha, 0.0, 0.90));
       } else {
-        float orbDisc = smoothstep(0.68, 0.24, r) * 0.95 + exp(-r * r * 3.4) * 0.30;
-        float whiteMix = smoothstep(0.30, 0.06, r) * 0.42;
-        fragColor = vec4(mix(vCol, vec3(0.98, 0.99, 1.0), whiteMix), clamp(orbDisc, 0.0, 1.0) * vAlpha);
+        float orbDisc = smoothstep(0.72, 0.22, r) * 0.92 + exp(-r * r * 3.8) * 0.24;
+        fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), smoothstep(0.32, 0.06, r) * 0.36), clamp(orbDisc, 0.0, 1.0) * vAlpha);
       }
     }
   }`;
@@ -1487,6 +1512,9 @@
       });
       if (!gl) throw new Error('WebGL2 unavailable');
       this.gl = gl;
+      this.contextLost = false;
+      canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); this.contextLost = true; }, false);
+      canvas.addEventListener('webglcontextrestored', () => { this.contextLost = false; }, false);
       this.hasFloat = Boolean(gl.getExtension('EXT_color_buffer_float'));
 
       this.skyProg = createProgram(gl, SKY_VS, SKY_FS);
@@ -1597,9 +1625,16 @@
 
     // ndcShiftX shifts optical center cleanly leftward when right-side HUD console is open!
     setCamera(yaw, pitch, dist, targetX, targetY, targetZ, ndcShiftX = 0) {
+      yaw = Number.isFinite(yaw) ? yaw : 0;
+      pitch = Number.isFinite(pitch) ? Math.max(-1.15, Math.min(1.25, pitch)) : 0.23;
+      dist = (Number.isFinite(dist) && dist > 1.0) ? dist : 23.0;
+      targetX = Number.isFinite(targetX) ? targetX : 0;
+      targetY = Number.isFinite(targetY) ? targetY : 2.5;
+      targetZ = Number.isFinite(targetZ) ? targetZ : -0.5;
+      ndcShiftX = Number.isFinite(ndcShiftX) ? Math.max(-0.5, Math.min(0.5, ndcShiftX)) : 0;
       this.yaw = yaw;
       this.pitch = pitch;
-      const aspect = this.cssW / this.cssH;
+      const aspect = Math.max(0.25, this.cssW / Math.max(1, this.cssH));
       this.fovY = (aspect < 1.2 ? 44 : 38.0) * (Math.PI / 180);
       M4.perspective(this.projMat, this.fovY, aspect, 0.35, 160.0, ndcShiftX);
 
@@ -1833,33 +1868,72 @@
         starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, isLight ? 0.24 : (0.18 + rand() * 0.38), 0, -0.1);
       }
 
-      // 2. Real Lean Verified Truth DAG stars (3,600+ sampled from trureturing-pages) — larger jewel-like hierarchical nodes!
+      // 2. Real Lean Verified Truth DAG stars on the 3D Orbital Spiral Galaxies — sized & colored by real dependency tier!
+      // Sorted ascending by tier (Foundations -> tier 0 leaves -> ... -> tier 4 345+ golden hubs on top!)
+      const tierColors = isLight
+        ? [
+            [0.34, 0.45, 0.58], // 0 leaves
+            [0.16, 0.46, 0.62], // 1-5
+            [0.06, 0.54, 0.49], // 6-63
+            [0.03, 0.45, 0.37], // 64-344
+            [0.74, 0.44, 0.06]  // 345+ hubs
+          ]
+        : isMatrixPal
+          ? [
+              [0.08, 0.44, 0.24],
+              [0.14, 0.68, 0.38],
+              [0.20, 0.86, 0.50],
+              [0.46, 0.98, 0.66],
+              [0.88, 1.00, 0.68]
+            ]
+          : [
+              [0.36, 0.54, 0.74], // 0 leaves: quiet slate-blue stardust
+              [0.48, 0.74, 0.88], // 1-5: crisp ice-cyan
+              [0.30, 0.84, 0.75], // 6-63: luminous mint-teal
+              [0.20, 0.92, 0.78], // 64-344: vibrant turquoise
+              [0.98, 0.79, 0.38]  // 345+ core hubs: radiant amber-gold
+            ];
+      const tierSizes  = [1.95, 2.80, 4.10, 5.85, 8.20];
+      const tierAlphas = isLight
+        ? [0.64, 0.80, 0.90, 0.96, 1.00]
+        : [0.60, 0.80, 0.92, 0.98, 1.00];
+
       const worldPts = [];
+      const starBuckets = [[], [], [], [], [], []]; // 0 = Foundations belt, 1..5 = named galaxy tier 0..4
       if (stars && stars.length) {
         for (let i = 0; i < stars.length; i++) {
           const s = stars[i];
           const [wx, wy, wz] = mapStarToCelestialRing(s[0] / 1000, s[1] / 1000, s[2] / 1000, s[3], this.clusterCenters);
           worldPts.push([wx, wy, wz]);
-          const hasG = Boolean(recentByCluster?.get(s[3])?.count);
-          const col = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
-          const deg = s[5] || 1;
           const isOther = s[3] === 7;
-          // Distinct visual hierarchy: sparkling leaves -> glowing branch pearls -> radiant diffraction-glint DAG hubs!
-          const sz = isOther
-            ? 2.75
-            : ((deg >= 8 ? 7.4 : deg >= 4 ? 5.2 : 3.65) * (hasG ? 1.10 : 1.0));
-          const al = (isOther ? 0.40 : (deg >= 7 ? 0.94 : (hasG ? 0.86 : 0.68))) * (isLight ? 0.84 : 1.0);
+          const deg = s[5] || 1;
+          const tier = (s.length > 6 && Number.isFinite(s[6]))
+            ? Math.max(0, Math.min(4, s[6]))
+            : (deg >= 8 ? 4 : deg >= 6 ? 3 : deg >= 4 ? 2 : deg >= 2 ? 1 : 0);
+          const galCol = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
           const gen = Math.max(0.01, Math.min(0.99, (s[4] || 0) / 100));
-          // Gently brighten top DAG hub nodes toward warm pearlescent starlight while keeping jewel hue vivid!
-          const hubMix = (!isOther && !isLight && deg >= 8) ? 0.22 : 0.0;
-          const rS = (col[0] / 255) * (1 - hubMix) + 0.98 * hubMix;
-          const gS = (col[1] / 255) * (1 - hubMix) + 0.98 * hubMix;
-          const bS = (col[2] / 255) * (1 - hubMix) + 1.00 * hubMix;
-          starData.push(wx, wy, wz, rS, gS, bS, sz, al, s[3] + 1, gen);
+          if (isOther) {
+            const cO = isLight ? [0.28, 0.38, 0.48] : (isMatrixPal ? [0.10, 0.56, 0.30] : [0.44, 0.62, 0.78]);
+            const szO = 40.0 + (tier >= 3 ? 2.6 : 1.9);
+            const alO = isLight ? 0.38 : (tier >= 3 ? 0.48 : 0.32);
+            starBuckets[0].push(wx, wy, wz, cO[0], cO[1], cO[2], szO, alO, s[3] + 1, gen);
+          } else {
+            const tc = tierColors[tier];
+            // Gently infuse mid-tier arms (tier 1..2) with 22% of the galaxy's signature hue so every galaxy stays distinct!
+            const galBlend = (tier === 1 || tier === 2) ? 0.22 : 0.0;
+            const rS = tc[0] * (1 - galBlend) + (galCol[0] / 255) * galBlend;
+            const gS = tc[1] * (1 - galBlend) + (galCol[1] / 255) * galBlend;
+            const bS = tc[2] * (1 - galBlend) + (galCol[2] / 255) * galBlend;
+            starBuckets[tier + 1].push(wx, wy, wz, rS, gS, bS, 40.0 + tierSizes[tier], tierAlphas[tier], s[3] + 1, gen);
+          }
+        }
+        for (let b = 0; b < starBuckets.length; b++) {
+          const arr = starBuckets[b];
+          for (let j = 0; j < arr.length; j++) starData.push(arr[j]);
         }
       }
 
-      // 3. Cache 3D celestial ring cluster positions (ZERO fake painted smoke blobs — real DAG stars & edges form the sky!)
+      // 3. Cache 3D celestial ring cluster positions + ONE subtle galactic nucleus glow per galaxy (ZERO smoke/fog!)
       this.skyClusters = [];
       const clusterPosById = new Map();
       if (clusters && clusters.length) {
@@ -1869,6 +1943,10 @@
           const col = (nebPalette && nebPalette[cl.id % nebPalette.length]) || [128, 198, 232];
           this.skyClusters.push({ cl, x: cx3, y: cy3, z: cz3, col });
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
+          if (!isLight) {
+            const cHalo = isMatrixPal ? [0.12, 0.62, 0.34] : [col[0] / 255 * 0.55, col[1] / 255 * 0.68, col[2] / 255 * 0.80];
+            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.085, cl.id + 1, 0.05);
+          }
         }
       }
 
@@ -1903,41 +1981,30 @@
             ? (isRef ? [0.76, 0.38, 0.14] : [0.72, 0.52, 0.16])
             : (isRef ? [0.97, 0.74, 0.54] : [0.98, 0.88, 0.66]);
           const gen = 0.32 + (1 - k / Math.max(1, slice.length)) * 0.64; // chronological emergence along time-scrub!
-          // Size 11.5..14.0 activates the gentle 4-point JWST Lantern Star shader mode!
-          starData.push(lx, ly, lz, lc[0], lc[1], lc[2], isRef ? 12.2 : 13.6, isLight ? 0.72 : 0.86, cid + 1, gen);
+          // Size 9.8..10.8 activates the delicate 4-point JWST Lantern Star shader mode!
+          starData.push(lx, ly, lz, lc[0], lc[1], lc[2], isRef ? 9.8 : 10.8, isLight ? 0.64 : 0.78, cid + 1, gen);
           this.lanternStars.push({ wx: lx, wy: ly, wz: lz, cid, gen, rec });
         }
       }
 
-      // 4. Dense Branched 3D Intra-Galaxy & Subtle Cross-Galaxy Lean Theorem Filaments (matching trureturing-pages DAG topology!)
+      // 4. Clean, Uncluttered Intra-Galaxy Constellation Filaments (cross-galaxy bridges stay as sweeping orbital arcs!)
       if (edges && edges.length && worldPts.length) {
-        let crossAdded = 0;
         for (let i = 0; i < edges.length; i++) {
           const e = edges[i];
+          if (e[2] === 1) continue;
           const u = e[0], v = e[1];
           const pu = worldPts[u], pv = worldPts[v];
           if (!pu || !pv) continue;
           const cu = stars[u][3], cv = stars[v][3];
+          if (cu !== cv) continue;
+          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 2.35) continue;
           const gEdge = Math.max(0.02, Math.min(0.99, Math.max(stars[u][4] || 0, stars[v][4] || 0) / 100));
-          if (e[2] === 1 || cu !== cv) {
-            // Subtle real cross-galaxy theorem filaments locked per-endpoint to their own galaxy gather slot!
-            if (cu === 7 || cv === 7 || crossAdded >= 180) continue;
-            const d3 = Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]);
-            if (d3 > 16.5) continue;
-            const colU = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
-            const colV = (nebPalette && nebPalette[cv % nebPalette.length]) || [128, 198, 232];
-            const alCross = (isLight ? 0.075 : 0.046);
-            edgeData.push(
-              pu[0], pu[1], pu[2], colU[0] / 255, colU[1] / 255, colU[2] / 255, alCross, cu + 1, gEdge,
-              pv[0], pv[1], pv[2], colV[0] / 255, colV[1] / 255, colV[2] / 255, alCross, cv + 1, gEdge
-            );
-            crossAdded++;
-            continue;
-          }
-          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 5.85) continue;
-          const hasG = Boolean(recentByCluster?.get(cu)?.count);
+          const tu = (stars[u].length > 6 ? stars[u][6] : 1), tv = (stars[v].length > 6 ? stars[v][6] : 1);
+          const hi = (tu >= 3 || tv >= 3);
           const col = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
-          const al = (cu === 7 ? 0.065 : (hasG ? 0.165 : 0.130)) * (isLight ? 0.92 : 1.0);
+          const al = cu === 7
+            ? (isLight ? 0.06 : 0.05)
+            : (hi ? (isLight ? 0.19 : 0.15) : (isLight ? 0.10 : 0.08));
           edgeData.push(
             pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge,
             pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge
@@ -2035,6 +2102,7 @@
         genesisRadius = 99.0, genesisCut = 1.05, ciLoad = 0.45, scholarCount = 223
       } = params;
       const gl = this.gl;
+      if (this.contextLost || gl.isContextLost()) return;
       const tAnim = quiet ? 4.2 : t;
       const isLight = themeIdx > 1.5;
       const isMatrix = themeIdx > 0.5 && themeIdx < 1.5;
@@ -2110,9 +2178,13 @@
         lPow[i] = (e.eye ? 0.55 : (e.isSel ? 2.6 : e.running ? 1.55 : 0.78)) * Math.max(stationAlpha, 0.28);
       }
 
-      // 1B. STRATUM 1 — LOWERED REFLECTIVE GROUND ABYSS FLOOR (fades gracefully in epic Galaxy mode!)
-      const floorAlpha = Math.max(stationAlpha, galaxyAlpha * (stationAlpha < 0.08 ? 0.05 : 0.30));
-      if (floorAlpha > 0.04) {
+      // 1B. STRATUM 1 — LOWERED REFLECTIVE GROUND ABYSS FLOOR
+      // CRITICAL: Never draw the floor when stationAlpha is faded out (Cosmos) OR camera is near/below y = -1.35,
+      // and disable depthMask whenever floor is translucent so it can NEVER occlude the 3D scene into a black screen!
+      const camAboveFloor = Math.max(0.0, Math.min(1.0, (this.camPos[1] + 1.15) / 0.85));
+      const floorAlpha = (stationAlpha > 0.06) ? (stationAlpha * camAboveFloor) : 0.0;
+      if (floorAlpha > 0.02) {
+        if (floorAlpha < 0.96) gl.depthMask(false);
         const fp = this.floorProg;
         gl.useProgram(fp.p);
         gl.uniformMatrix4fv(fp.u.uViewProj, false, this.viewProj);
@@ -2136,6 +2208,7 @@
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
         gl.drawArrays(gl.TRIANGLES, 0, this.geo.floor.count);
+        if (floorAlpha < 0.96) gl.depthMask(true);
       }
 
       // 1C. STRATUM 2 — SUSPENDED FLOATING ORBITAL SPACE STATION + AKASHA EYE (y = 0.0..6.95!)
@@ -2292,16 +2365,21 @@
             this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, (0.16 + ciLoad * 0.18) * loadBeat * stationAlpha);
           }
           if (eyeEnt && (!galaxyFocused || stationAlpha > 0.05)) {
-            // Grand translucent downward Global Surveillance Light Cone + Zenith Aura Pillar from Supreme Akasha Eye!
+            // Grand downward Global Surveillance Light Cone in Station/Hybrid; slender regal crown aura in Cosmos (no midair smudge!)
             const ec = isMatrix ? [0.16, 0.92, 0.46] : [0.94, 0.78, 0.44];
             const ic = isMatrix ? [0.28, 0.96, 0.56] : [0.54, 0.84, 0.96];
-            const ea = (galaxyFocused ? stationAlpha : 1.0) * (1.0 + galaxyBoost * 0.24 + stationFocus * 0.45);
+            const ea = (galaxyFocused ? stationAlpha : 1.0) * (1.0 + stationFocus * 0.45);
             const eyeY = eyeEnt.y || 6.95;
-            const coneW = 4.5 + galaxyBoost * 1.05 + stationFocus * 0.65;
-            this.drawVolumetricPillar(eyeEnt.x, 0.35, eyeEnt.z, coneW, eyeY - 0.45, ec, 0.054 * ea, true);
-            this.drawVolumetricPillar(eyeEnt.x, 1.45, eyeEnt.z, 1.95 + stationFocus * 0.35, eyeY - 1.50, ic, 0.042 * ea, true);
+            if (stationAlpha > 0.08) {
+              const coneW = 4.5 + stationFocus * 0.65;
+              this.drawVolumetricPillar(eyeEnt.x, 0.35, eyeEnt.z, coneW, eyeY - 0.45, ec, 0.054 * ea * stationAlpha, true);
+              this.drawVolumetricPillar(eyeEnt.x, 1.45, eyeEnt.z, 1.95 + stationFocus * 0.35, eyeY - 1.50, ic, 0.042 * ea * stationAlpha, true);
+            } else {
+              // Subtle slender zenith & nadir starlight spire strictly hugging the Akasha Eye in Cosmos
+              this.drawVolumetricPillar(eyeEnt.x, eyeY - 2.25, eyeEnt.z, 1.35, 2.10, ec, 0.022 * ea, true);
+            }
             // Soft ascending crown spire above Akasha Eye anchoring its celestial presence
-            this.drawVolumetricPillar(eyeEnt.x, eyeY + 0.55, eyeEnt.z, 0.84, 2.35, ec, 0.036 * ea, false);
+            this.drawVolumetricPillar(eyeEnt.x, eyeY + 0.55, eyeEnt.z, 0.82, 2.35, ec, 0.032 * ea, false);
           }
           if (stationAlpha > 0.05) {
             const pL = isMatrix ? [0.12, 0.94, 0.46] : [0.38, 0.82, 0.78];
@@ -2374,18 +2452,19 @@
           gl.disableVertexAttribArray(5);
         }
 
-        // 1E-B. 3D Celestial Helical Ring (Hybrid / Station / Opened Single-Galaxy Focus!)
+        // 1E-B. 3D Orbital Spiral Galaxies (Unified across Cosmos, Hybrid, Station & Single-Galaxy Focus!)
         if (ringVis > 0.03) {
-          if (!isLight) gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-          // Sacred counter-rotating 3D Astrolabe Meridian Rings & Ascending Double-Helix Qi Ribbons
+          // Sacred counter-rotating 3D Astrolabe Meridian Rings framing the orbital galaxy plane
           if (this.geo.celestialRings && this.geo.celestialRings.count > 0) {
+            if (!isLight) gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
             const dl = this.dagLineProg;
             gl.useProgram(dl.p);
             M4.compose(this.modelMat, 0, 0, 0, 0, tAnim * 0.018, 0, 1, 1, 1);
             gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
             gl.uniformMatrix4fv(dl.u.uModel, false, this.modelMat);
-            gl.uniform1f(dl.u.uAlphaMul, ringVis * (isLight ? 0.42 : 0.90));
+            gl.uniform1f(dl.u.uAlphaMul, ringVis * (isLight ? 0.36 : (0.76 - galaxyBoost * 0.24)));
             gl.uniform1f(dl.u.uGenesisCut, 1.05);
             gl.uniform1f(dl.u.uGalaxyBoost, 0.0);
             gl.uniform1f(dl.u.uTheme, themeIdx);
@@ -2399,15 +2478,40 @@
             gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
             gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
             gl.drawArrays(gl.LINES, 0, this.geo.celestialRings.count);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
           }
 
-          // Crisp 3D intra-galaxy & cross-galaxy DAG constellation edges
+          // Whisper-soft galactic nucleus core halo (1 tiny starlight core glow per galaxy, zero muddy fog!)
+          if (this.geo.nebulaCount > 0 && !isLight) {
+            const sp = this.starProg;
+            gl.useProgram(sp.p);
+            gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
+            gl.uniform1f(sp.u.uDpr, this.dpr);
+            gl.uniform1f(sp.u.uAlphaMul, Math.min(1.0, ringVis));
+            gl.uniform1f(sp.u.uTime, tAnim);
+            gl.uniform1f(sp.u.uGenesisCut, genesisCut);
+            gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
+            gl.uniform1f(sp.u.uTheme, themeIdx);
+            this.bindGather(sp);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.geo.nebulaVbo);
+            gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+            gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+            gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 40, 24);
+            gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 28);
+            gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 40, 32);
+            gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 40, 36);
+            gl.drawArrays(gl.POINTS, 0, this.geo.nebulaCount);
+            gl.disableVertexAttribArray(4);
+            gl.disableVertexAttribArray(5);
+          }
+
+          // Clean, gossamer intra-galaxy DAG constellation skeleton (alpha-blended so arms stay razor-sharp!)
           if (this.geo.dagEdgeCount > 0) {
             const dl = this.dagLineProg;
             gl.useProgram(dl.p);
             gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
             gl.uniformMatrix4fv(dl.u.uModel, false, this.identityMat);
-            gl.uniform1f(dl.u.uAlphaMul, Math.min(1.16, ringVis));
+            gl.uniform1f(dl.u.uAlphaMul, Math.min(1.08, ringVis));
             gl.uniform1f(dl.u.uGenesisCut, genesisCut);
             gl.uniform1f(dl.u.uGalaxyBoost, galaxyBoost);
             gl.uniform1f(dl.u.uTheme, themeIdx);
@@ -2423,13 +2527,13 @@
             gl.disableVertexAttribArray(4);
           }
 
-          // 3,600+ real frozen Truth DAG stars + Warm Conjecture Lantern Stars + Foundation Celestial River
+          // Dependency-tiered orbital galaxy stars (alpha-blended crisp discs sorted tier 0 -> 4 + Conjecture Lanterns!)
           if (this.geo.starCount > 0) {
             const sp = this.starProg;
             gl.useProgram(sp.p);
             gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
             gl.uniform1f(sp.u.uDpr, this.dpr);
-            gl.uniform1f(sp.u.uAlphaMul, Math.min(1.18, ringVis));
+            gl.uniform1f(sp.u.uAlphaMul, Math.min(1.12, ringVis));
             gl.uniform1f(sp.u.uTime, tAnim);
             gl.uniform1f(sp.u.uGenesisCut, genesisCut);
             gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
@@ -2500,8 +2604,8 @@
       }
 
       // ---- PASS 2..5: SELECTIVE GPU BLOOM + ACES FILMIC + CHROMATIC EDGE + VIGNETTE + FILM GRAIN ----
-      // In full 18,986-node real DAG Atlas mode, tighten bloom threshold so every graph node stays razor-sharp!
-      const atlasVisBloom = (this.geo.atlasNodeCount > 0) ? Math.max(0, Math.min(1, fullAtlasAlpha)) : 0.0;
+      // In Cosmos mode, tighten bloom threshold so dependency-tiered star discs stay crisp while golden hubs & Akasha Eye gleam!
+      const cosmosSharp = Math.max(galaxyBoost, (this.geo.atlasNodeCount > 0) ? Math.max(0, Math.min(1, fullAtlasAlpha)) : 0.0);
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
 
@@ -2511,7 +2615,7 @@
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.sceneFBO.tex);
       gl.uniform1i(this.brightProg.u.uTex, 0);
-      gl.uniform1f(this.brightProg.u.uThreshold, isLight ? 0.94 : (0.42 + atlasVisBloom * 0.24));
+      gl.uniform1f(this.brightProg.u.uThreshold, isLight ? 0.94 : (0.42 + cosmosSharp * 0.22));
       drawFullQuad();
 
       gl.useProgram(this.blurProg.p);
@@ -2540,8 +2644,8 @@
       gl.uniform1i(this.compProg.u.uBloom, 1);
       gl.uniform1f(this.compProg.u.uTheme, themeIdx);
       gl.uniform1f(this.compProg.u.uTime, tAnim);
-      const baseBloom = isLight ? 0.10 : (isMatrix ? 0.60 : 0.62);
-      gl.uniform1f(this.compProg.u.uBloomStrength, baseBloom * (1.0 - atlasVisBloom * 0.56));
+      const baseBloom = isLight ? 0.10 : (isMatrix ? 0.58 : 0.60);
+      gl.uniform1f(this.compProg.u.uBloomStrength, baseBloom * (1.0 - cosmosSharp * 0.44));
       drawFullQuad();
     }
   }
