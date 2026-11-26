@@ -1035,3 +1035,53 @@ test('bilingual (zh/en only, complete English coverage), three distinct visual t
     assert.equal(doc.querySelector('#research-room').dataset.layer,'mix');
   }finally{dom.window.close();}
 });
+
+test('a click on a galaxy in the panorama opens it, even over its lanterns and away from its centre',async()=>{
+  const {dom,win}=await boot();try{
+    const projected=new win.Map([[0,{x:500,y:300,lx:500,ly:270,cl:{id:0}}],[2,{x:900,y:300,lx:900,ly:270,cl:{id:2}}]]);
+    const band=[];for(let x=380;x<=620;x+=12)band.push([x,300+((x/12)%3)*6]);
+    const footprints=new win.Map([[0,{x0:380,x1:620,y0:290,y1:312,pts:band}]]);
+    assert.equal(win.galaxyHitAt(505,302,projected,footprints)?.cl.id,0,'the centre opens the galaxy');
+    assert.equal(win.galaxyHitAt(608,306,projected,footprints)?.cl.id,0,'so do its stars away from the centre');
+    assert.equal(win.galaxyHitAt(700,300,projected,footprints),null,'empty sky between galaxies does not');
+    assert.equal(win.galaxyHitAt(612,420,projected,footprints),null,'nor space beside the band');
+    assert.equal(win.galaxyHitAt(880,300,projected,footprints)?.cl.id,2,'the nearest galaxy wins');
+    assert.equal(win.skyClickTarget(false,true,true),'galaxy','in the panorama a galaxy is opened rather than a lantern inside it');
+    assert.equal(win.skyClickTarget(true,true,true),'lantern','inside an opened galaxy its lanterns can be read');
+    assert.equal(win.skyClickTarget(false,false,true),'galaxy','in the panorama a lantern opens the galaxy it belongs to');
+    assert.equal(win.skyClickTarget(false,true,false),'galaxy');
+    assert.equal(win.skyClickTarget(false,false,false),null);
+  }finally{dom.window.close();}
+});
+
+test('a click acts on the galaxy the hover hint just named',async()=>{
+  const {dom,win}=await boot();try{
+    const rec={cid:6,x:540,y:270,t:1000};
+    assert.equal(win.hoveredGalaxyAt(rec,541,271,1800),6,'the galaxy named under a still pointer is the one clicked');
+    assert.equal(win.hoveredGalaxyAt(rec,560,270,1800),null,'not after the pointer moved');
+    assert.equal(win.hoveredGalaxyAt(rec,540,270,3500),null,'not long after the hint');
+    assert.equal(win.hoveredGalaxyAt(null,540,270,1200),null);
+  }finally{dom.window.close();}
+});
+
+test('a clicked popup opens beside the pointer where it hides the least',async()=>{
+  const {dom,win}=await boot();try{
+    const bounds={left:0,top:0,right:1200,bottom:800},size={w:300,h:180},gap=18;
+    const covers=(p,x,y,r=0)=>x>=p.left-r&&x<=p.left+size.w+r&&y>=p.top-r&&y<=p.top+size.h+r;
+    const free=win.placePopupNear({x:500,y:400},size,bounds,[],gap);
+    assert.ok(!covers(free,500,400,8),'the pointer and what it clicked stay visible');
+    const reach=p=>Math.hypot(Math.max(p.left-500,0,500-(p.left+size.w)),Math.max(p.top-400,0,400-(p.top+size.h)));
+    assert.ok(reach(free)<=gap+1,'with nothing in the way it sits right beside the pointer');
+    const edge=win.placePopupNear({x:1150,y:400},size,bounds,[],gap);
+    assert.ok(edge.left+size.w<=1150,'near the right edge it opens to the left');
+    assert.ok(edge.left>=0&&edge.top>=0&&edge.top+size.h<=800,'it stays on the stage');
+    const crowd=[];for(let i=0;i<12;i++)crowd.push({x:560+i*18,y:330+(i%5)*30,r:6,weight:4});
+    const aside=win.placePopupNear({x:500,y:400},size,bounds,crowd,gap);
+    assert.ok(crowd.every(o=>!covers(aside,o.x,o.y)),'it avoids the connections and labels beside the pointer');
+    assert.ok(reach(aside)<=gap+1,'and still sits next to the pointer');
+    const boxed=[];for(const dx of [-200,0,200])for(const dy of [-150,0,150])if(dx||dy)boxed.push({x:500+dx,y:400+dy,r:40,weight:1});
+    boxed.push({x:500+170,y:400,r:60,weight:50});
+    const least=win.placePopupNear({x:500,y:400},size,bounds,boxed,gap);
+    assert.ok(!covers(least,670,400,0),'when something must be covered it is the least important');
+  }finally{dom.window.close();}
+});
