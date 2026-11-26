@@ -3187,8 +3187,8 @@ const holoWorld = {
 
 const LAYER_PRESETS = {
   mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵', tagEn: 'MIX · 3-STRATA PANORAMA' },
-  station: { pitch:  0.44, dist: 17.6, lookY: 0.42, lookZ:  0.35, stationAlpha: 1.00, galaxyAlpha: 0.12, minPitch:  0.20, maxPitch: 0.84, tag: 'STATION · 24/7 活态科研环路', tagEn: 'STATION · 24/7 ACTIVE LOOP' },
-  galaxy:  { pitch:  0.30, dist: 19.6, lookY: 3.10, lookZ: -0.95, stationAlpha: 0.04, galaxyAlpha: 1.42, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 浩瀚星空 DAG', tagEn: 'COSMOS · TRUTH DAG STARFIELD' }
+  station: { pitch:  0.29, dist: 22.0, lookY: 1.95, lookZ: -0.45, stationAlpha: 1.00, galaxyAlpha: 0.18, minPitch:  0.14, maxPitch: 0.80, tag: 'STATION · 阿卡西之眼与 24/7 活态环路', tagEn: 'STATION · AKASHA EYE & 24/7 ACTIVE LOOP' },
+  galaxy:  { pitch:  0.20, dist: 21.8, lookY: 3.35, lookZ: -0.95, stationAlpha: 0.00, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 阿卡西之眼与浩瀚真值星海', tagEn: 'COSMOS · AKASHA EYE & TRUTH DAG' }
 };
 
 const holoCam = {
@@ -3900,7 +3900,7 @@ function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
       const cl = truthNebula.clusters.find(c => c.id === cid);
       const frame = cl && cl.name !== 'Other' ? galaxyWorldFrame(cid) : null;
       if (frame) {
-        t = { pivot: frame.center, offset: [0, 0, 0], scale: 1.60, stretch: [1.30, 1.82, 1.30], alpha: 1.0 };
+        t = { pivot: frame.center, offset: [0, 0, 0], scale: 1.74, stretch: [1.38, 1.96, 1.38], alpha: 1.0 };
       }
     }
     let cur = holoCam.gather.get(cid);
@@ -5347,7 +5347,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     for (const [cid, arr] of hubsPerCid) {
       arr.sort((a, b) => b.deg - a.deg);
       const col = nebPalette[cid % nebPalette.length];
-      for (const hItem of arr.slice(0, 4)) {
+      for (const hItem of arr.slice(0, 6)) {
         const hx = projX[hItem.i], hy = projY[hItem.i];
         if (!Number.isFinite(hx) || hx < 18 || hx > w - rightGutter - 16 || hy < 58 || hy > h - 68) continue;
         ctx.strokeStyle = rgba(col, (isLight ? 0.48 : 0.62) * boostVis);
@@ -7432,9 +7432,90 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.fillStyle = rgba(vfCol, isLight ? 0.58 : 0.48);
     ctx.fillText(camReadout, fx0 + 16, fy0 + 3);
     ctx.restore();
-    // In Galaxy Observatory mode, hide foreground Space Station 2D overlays completely for a pure 3D cosmos!
+    // In Cosmos / Galaxy Observatory mode, hide foreground Space Station 2D overlays
+    // EXCEPT keep the Supreme Akasha Eye crowned, projected, clickable, and casting celestial oversight rays over the Truth DAG!
     if (holoCam.stationAlpha < 0.22) {
       holoCam.projectedTowers.clear();
+      if (holoCam.galaxyMainCid == null && holoWorld.direction) {
+        const eyeCfg = holoWorld.direction;
+        const pEye = holoCam.gl.project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
+        if (pEye && pEye.x > 20 && pEye.x < w - rightGutter - 20 && pEye.y > 48 && pEye.y < h - 68) {
+          const hitR = Math.max(38, Math.min(76, pEye.s * 1.55));
+          holoCam.projectedTowers.set('direction', { x: pEye.x, y: pEye.y, r: hitR, z: pEye.z });
+          const eyeRGB = isLight ? [154, 84, 8] : isBlueprint ? [168, 255, 118] : [242, 206, 134];
+          const eyeActive = activeId === 'direction';
+          const haloR = Math.max(34, Math.min(72, pEye.s * 1.48));
+          const spin = (state.quiet || reduced) ? 0.35 : t * 0.26;
+          ctx.save();
+          // 1. Delicate celestial oversight rays streaming from Akasha Eye down to every named Truth DAG galaxy
+          for (const [cid, gProj] of holoCam.projectedGalaxies) {
+            if (!gProj || gProj.cl?.name === 'Other') continue;
+            const isHovG = holoCam.hoveredGalaxy === cid;
+            const rayA = isHovG ? (isLight ? 0.48 : 0.52) : (isLight ? 0.16 : 0.19);
+            const gGrad = ctx.createLinearGradient(pEye.x, pEye.y + haloR * 0.35, gProj.x, gProj.y);
+            gGrad.addColorStop(0, rgba(eyeRGB, rayA * 1.15));
+            gGrad.addColorStop(0.55, rgba(eyeRGB, rayA * 0.42));
+            gGrad.addColorStop(1, rgba(gProj.col || eyeRGB, rayA * 0.82));
+            ctx.strokeStyle = gGrad;
+            ctx.lineWidth = isHovG ? 1.25 : 0.72;
+            ctx.setLineDash(isHovG ? [] : [3, 6]);
+            ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * 14 + cid * 7);
+            ctx.beginPath();
+            ctx.moveTo(pEye.x, pEye.y + haloR * 0.32);
+            ctx.lineTo(gProj.x, gProj.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            if (!state.quiet && !reduced) {
+              const uMote = (t * (isHovG ? 0.45 : 0.16) + cid * 0.19) % 1;
+              const mx = pEye.x + (gProj.x - pEye.x) * uMote;
+              const my = (pEye.y + haloR * 0.32) + (gProj.y - (pEye.y + haloR * 0.32)) * uMote;
+              ctx.fillStyle = rgba(isHovG ? eyeRGB : (gProj.col || eyeRGB), Math.sin(uMote * Math.PI) * (isHovG ? 0.92 : 0.56));
+              ctx.beginPath();
+              ctx.arc(mx, my, isHovG ? 2.2 : 1.35, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          // 2. Precision 2D golden astrolabe crown reticle framing the 3D Akasha Eye
+          ctx.strokeStyle = rgba(eyeRGB, eyeActive ? 0.78 : (isLight ? 0.44 : 0.42));
+          ctx.lineWidth = eyeActive ? 1.35 : 0.95;
+          ctx.setLineDash([4, 6]);
+          ctx.beginPath();
+          ctx.arc(pEye.x, pEye.y, haloR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          for (let k = 0; k < 8; k++) {
+            const a = (k / 8) * Math.PI * 2 + spin;
+            const rIn = haloR * (k % 2 === 0 ? 0.88 : 0.93);
+            const rOut = haloR * (k % 2 === 0 ? 1.16 : 1.07);
+            ctx.strokeStyle = rgba(eyeRGB, k % 2 === 0 ? (eyeActive ? 0.88 : 0.62) : 0.34);
+            ctx.lineWidth = k % 2 === 0 ? 1.15 : 0.75;
+            ctx.beginPath();
+            ctx.moveTo(pEye.x + Math.cos(a) * rIn, pEye.y + Math.sin(a) * rIn);
+            ctx.lineTo(pEye.x + Math.cos(a) * rOut, pEye.y + Math.sin(a) * rOut);
+            ctx.stroke();
+          }
+          // 3. Sleek zenith architectural emblem caption cleanly above Akasha Eye's top needle tip (zero overlap!)
+          const pEyeTop = holoCam.gl.project(eyeCfg.x, eyeCfg.y + 1.92, eyeCfg.z);
+          const capTitle = L('◈ A0 · 阿卡西之眼', '◈ A0 · AKASHA EYE');
+          const capSub = L('全局方向 · 统摄真值星海', 'GLOBAL DIRECTION · COSMOS OVERSIGHT');
+          const topTipY = pEyeTop ? pEyeTop.y : (pEye.y - haloR * 1.25);
+          const capY = Math.max(106, Math.min(topTipY - 26, pEye.y - haloR * 1.26 - 20));
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = '700 11px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+          ctx.lineWidth = 3.2;
+          ctx.strokeStyle = isLight ? 'rgba(242, 239, 232, 0.95)' : 'rgba(2, 6, 12, 0.92)';
+          ctx.strokeText(capTitle, pEye.x, capY);
+          ctx.fillStyle = rgba(eyeRGB, eyeActive ? 1.0 : 0.95);
+          ctx.fillText(capTitle, pEye.x, capY);
+          ctx.font = '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+          ctx.lineWidth = 2.6;
+          ctx.strokeText(capSub, pEye.x, capY + 13.5);
+          ctx.fillStyle = rgba(eyeRGB, isLight ? 0.74 : 0.68);
+          ctx.fillText(capSub, pEye.x, capY + 13.5);
+          ctx.restore();
+        }
+      }
       return;
     }
   }
@@ -8527,22 +8608,84 @@ function drawHolo3DFrame(dt = 0.016) {
     item.cell._proj = null;
   }
 
-  // Supreme Akasha Eye Precision Gaze Beam + Rotating 12-Tick Astrolabe Crown over tracked department!
+  // Supreme Akasha Eye Precision Gaze Beam + Celestial Crown Halo + Rotating 12-Tick Astrolabe Crown over tracked department!
   if (useGL && holoCam.stationAlpha > 0.25) {
     const gazeId = (activeId && activeId !== 'direction' && holoWorld[activeId]) ? activeId : 'verification';
     const gazeY = (gazeTarget.y || 0) + towerHeight(gazeId) + 0.34;
+    const pEyeCenter = project(eyeCfg.x, eyeCfg.y, eyeCfg.z);
     const pEye = project(eyeCfg.x, eyeCfg.y - 0.14, eyeCfg.z);
     const pCrown = project(holoCam.gazeX, gazeY, holoCam.gazeZ);
-    const gazeRGB = isLight ? [154, 102, 28] : isBlueprint ? [146, 218, 255] : [238, 206, 138];
+    const gazeRGB = isLight ? [154, 102, 28] : isBlueprint ? [168, 255, 118] : [242, 206, 134];
+    const sfEye = holoCam.stationFocus;
+    // Crown reticle + golden supervisory tethers in Station mode so Akasha Eye visibly commands the 24/7 loop!
+    if (pEyeCenter) {
+      const eyeHaloR = Math.max(26, Math.min(58, pEyeCenter.s * (1.28 + sfEye * 0.22)));
+      const eyeSpin = (state.quiet || reduced) ? 0.3 : t * 0.24;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, holoCam.stationAlpha)) * (0.48 + sfEye * 0.44);
+      ctx.strokeStyle = rgba(gazeRGB, isLight ? 0.44 : 0.46);
+      ctx.lineWidth = 0.9 + sfEye * 0.3;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.arc(pEyeCenter.x, pEyeCenter.y, eyeHaloR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2 + eyeSpin;
+        const rIn = eyeHaloR * (k % 2 === 0 ? 0.88 : 0.93);
+        const rOut = eyeHaloR * (k % 2 === 0 ? 1.15 : 1.06);
+        ctx.strokeStyle = rgba(gazeRGB, k % 2 === 0 ? 0.65 : 0.32);
+        ctx.lineWidth = k % 2 === 0 ? 1.1 : 0.75;
+        ctx.beginPath();
+        ctx.moveTo(pEyeCenter.x + Math.cos(a) * rIn, pEyeCenter.y + Math.sin(a) * rIn);
+        ctx.lineTo(pEyeCenter.x + Math.cos(a) * rOut, pEyeCenter.y + Math.sin(a) * rOut);
+        ctx.stroke();
+      }
+      if (sfEye > 0.15) {
+        // Golden canopy telemetry rays anchoring Akasha Eye to Core Verification + Left & Right Wings!
+        const anchorIds = ['research', 'verification', 'publication'];
+        for (let ai = 0; ai < anchorIds.length; ai++) {
+          const aid = anchorIds[ai];
+          const aCfg = holoWorld[aid];
+          if (!aCfg) continue;
+          const pDst = project(aCfg.x, (aCfg.y || 0) + towerHeight(aid) + 0.18, aCfg.z);
+          if (!pDst) continue;
+          const isCore = aid === 'verification';
+          const grad = ctx.createLinearGradient(pEyeCenter.x, pEyeCenter.y + eyeHaloR * 0.35, pDst.x, pDst.y);
+          grad.addColorStop(0, rgba(gazeRGB, (isCore ? 0.56 : 0.30) * sfEye));
+          grad.addColorStop(0.55, rgba(gazeRGB, (isCore ? 0.22 : 0.10) * sfEye));
+          grad.addColorStop(1, rgba(isBlueprint ? [64, 255, 146] : aCfg.hex, (isCore ? 0.48 : 0.28) * sfEye));
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = isCore ? 1.25 : 0.82;
+          ctx.setLineDash(isCore ? [5, 5] : [3, 7]);
+          ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * (isCore ? 22 : 14) + ai * 9);
+          ctx.beginPath();
+          ctx.moveTo(pEyeCenter.x, pEyeCenter.y + eyeHaloR * 0.35);
+          ctx.lineTo(pDst.x, pDst.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          if (!state.quiet && !reduced) {
+            const uPulse = (t * (isCore ? 0.38 : 0.24) + ai * 0.33) % 1;
+            const px = pEyeCenter.x + (pDst.x - pEyeCenter.x) * uPulse;
+            const py = (pEyeCenter.y + eyeHaloR * 0.35) + (pDst.y - (pEyeCenter.y + eyeHaloR * 0.35)) * uPulse;
+            ctx.fillStyle = rgba(gazeRGB, Math.sin(uPulse * Math.PI) * (isCore ? 0.92 : 0.68) * sfEye);
+            ctx.beginPath();
+            ctx.arc(px, py, isCore ? 2.2 : 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+      ctx.restore();
+    }
     if (pEye && pCrown) {
       ctx.save();
-      ctx.globalAlpha = Math.max(0, Math.min(1, holoCam.stationAlpha)) * (activeId ? 0.82 : 0.46);
+      ctx.globalAlpha = Math.max(0, Math.min(1, holoCam.stationAlpha)) * (activeId ? 0.88 : (0.52 + sfEye * 0.28));
       const beamGrad = ctx.createLinearGradient(pEye.x, pEye.y, pCrown.x, pCrown.y);
-      beamGrad.addColorStop(0, rgba(gazeRGB, 0.48));
-      beamGrad.addColorStop(0.5, rgba(gazeRGB, 0.16));
-      beamGrad.addColorStop(1, rgba(gazeRGB, 0.44));
+      beamGrad.addColorStop(0, rgba(gazeRGB, 0.56));
+      beamGrad.addColorStop(0.5, rgba(gazeRGB, 0.20));
+      beamGrad.addColorStop(1, rgba(gazeRGB, 0.52));
       ctx.strokeStyle = beamGrad;
-      ctx.lineWidth = activeId ? 1.05 : 0.8;
+      ctx.lineWidth = activeId ? 1.15 : (0.85 + sfEye * 0.25);
       ctx.setLineDash([4, 6]);
       ctx.lineDashOffset = -(state.quiet || reduced ? 0 : t * 18);
       ctx.beginPath();
@@ -8554,9 +8697,9 @@ function drawHolo3DFrame(dt = 0.016) {
         const uBead = (t * 0.42) % 1;
         const bx = pEye.x + (pCrown.x - pEye.x) * uBead;
         const by = pEye.y + (pCrown.y - pEye.y) * uBead;
-        ctx.fillStyle = rgba(gazeRGB, 0.92 * Math.sin(uBead * Math.PI));
+        ctx.fillStyle = rgba(gazeRGB, 0.94 * Math.sin(uBead * Math.PI));
         ctx.beginPath();
-        ctx.arc(bx, by, 2.0, 0, Math.PI * 2);
+        ctx.arc(bx, by, 2.2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -8856,7 +8999,8 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       return;
     }
     if (!state.focused && e.target === $('#holo-3d')) {
-      const hit = state.layer === 'galaxy' ? null : hitTowerAt(e.clientX, e.clientY);
+      const rawHit = hitTowerAt(e.clientX, e.clientY);
+      const hit = state.layer === 'galaxy' ? (holoCam.galaxyMainCid == null && rawHit === 'direction' ? 'direction' : null) : rawHit;
       if (hit) {
         holoCam.hoveredGalaxy = null;
         holoCam.hoveredLantern = null;
@@ -8915,7 +9059,8 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
       }
     }
     if (!moved && !state.focused && e.target === $('#holo-3d')) {
-      const hit = state.layer === 'galaxy' ? null : hitTowerAt(e.clientX, e.clientY);
+      const rawHit = hitTowerAt(e.clientX, e.clientY);
+      const hit = state.layer === 'galaxy' ? (holoCam.galaxyMainCid == null && rawHit === 'direction' ? 'direction' : null) : rawHit;
       if (hit) {
         truthGrowth.manualFocus = null;
         selectDepartment(hit, true, true);

@@ -348,7 +348,8 @@
   uniform float uTime;
   uniform float uYaw;
   uniform float uPitch;
-  uniform float uGalaxyAlpha; // 0.25 (station) .. 1.0 (mix) .. 1.35 (galaxy)
+  uniform float uGalaxyAlpha; // 0.25 (station) .. 1.0 (mix) .. 1.50 (galaxy)
+  uniform float uGalaxyBoost; // 0.0 (mix/station) .. 1.0 (cosmos / galaxy focus)
   uniform float uAspect;
   out vec4 fragColor;
 
@@ -387,37 +388,55 @@
       vec3 midC = vec3(0.890, 0.884, 0.860);
       vec3 botC = vec3(0.845, 0.838, 0.812);
       vec3 col = mix(botC, mix(midC, topC, smoothstep(0.32, 0.95, vUv.y)), smoothstep(0.0, 0.65, vUv.y));
-      // Soft architectural slate-wash canopy in upper sky to frame dark-ink galaxies cleanly
-      float band = exp(-pow((vUv.y - 0.74) * 3.1, 2.0));
+      // Soft architectural slate-indigo watercolor nebula wash in upper sky to frame dark-ink galaxies cleanly
+      float band = exp(-pow((vUv.y - mix(0.74, 0.60, uGalaxyBoost)) * mix(3.1, 2.2, uGalaxyBoost), 2.0));
       float neb = fbm(skyP * 2.3 + vec2(0.0, uTime * 0.008));
-      col = mix(col, vec3(0.79, 0.83, 0.87), band * neb * 0.28 * clamp(uGalaxyAlpha, 0.2, 1.3));
+      float neb2 = fbm(skyP * 3.8 + vec2(neb * 1.1, -neb * 0.8));
+      col = mix(col, vec3(0.76, 0.82, 0.88), band * (neb * 0.24 + neb2 * 0.14 * uGalaxyBoost) * clamp(uGalaxyAlpha, 0.2, 1.45));
       fragColor = vec4(col, 1.0);
       return;
     }
 
-    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.004, 0.020, 0.010) : vec3(0.012, 0.019, 0.034);
-    vec3 horizonMist = uTheme > 0.5 ? vec3(0.014, 0.072, 0.034) : vec3(0.034, 0.058, 0.098);
-    vec3 col = mix(deepAbyss, horizonMist, exp(-pow((vUv.y - 0.46) * 2.4, 2.0)) * 0.88);
+    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.003, 0.015, 0.007) : vec3(0.008, 0.013, 0.026);
+    vec3 horizonMist = uTheme > 0.5 ? vec3(0.010, 0.054, 0.025) : vec3(0.022, 0.040, 0.072);
+    vec3 col = mix(deepAbyss, horizonMist, exp(-pow((vUv.y - 0.46) * 2.5, 2.0)) * (0.85 - uGalaxyBoost * 0.35));
 
-    // Sweeping Astronomical Milky-Way / Cosmic Nebula Canopy across upper sky (STRATUM 3!)
-    float skyBand = smoothstep(0.24, 0.72, vUv.y) * (1.0 - smoothstep(0.90, 1.16, vUv.y) * 0.30);
-    vec2 uvA = skyP * 2.1 + vec2(uTime * 0.006, 0.0);
+    // Sweeping Astronomical Milky-Way / JWST Cosmic Nebula Canopy with rich dark cosmic dust lanes!
+    float bandLow = mix(0.24, 0.08, uGalaxyBoost);
+    float bandMid = mix(0.72, 0.54, uGalaxyBoost);
+    float skyBand = smoothstep(bandLow, bandMid, vUv.y) * (1.0 - smoothstep(0.92, 1.18, vUv.y) * 0.26);
+    vec2 uvA = skyP * 2.05 + vec2(uTime * 0.006, 0.0);
     float n1 = fbm(uvA);
-    float n2 = fbm(uvA * 1.9 + vec2(n1 * 1.4, -n1 * 0.9));
-    float ridge = smoothstep(0.36, 0.84, n2);
+    float n2 = fbm(uvA * 1.95 + vec2(n1 * 1.55, -n1 * 1.05));
+    float n3 = fbm(uvA * 3.35 - vec2(n2 * 1.25, n1 * 0.90));
+    float dustLane = smoothstep(0.28, 0.72, n1);
+    float ridge = smoothstep(0.42, 0.86, n2) * dustLane;
+    float wisp = smoothstep(0.46, 0.90, n3);
 
-    vec3 nebBlue = uTheme > 0.5 ? vec3(0.02, 0.24, 0.10) : vec3(0.075, 0.175, 0.315);
-    vec3 nebCyan = uTheme > 0.5 ? vec3(0.06, 0.44, 0.19) : vec3(0.105, 0.335, 0.420);
-    vec3 nebGold = uTheme > 0.5 ? vec3(0.18, 0.38, 0.14) : vec3(0.26, 0.22, 0.15);
+    // Sculpted Milky-Way cosmic ribbon cradling the 7 Truth DAG galaxies in Cosmos mode (deep contrast, zero washout!)
+    float mwAxis = exp(-pow((p.y + 0.05 - sin(p.x * 1.35 + uYaw * 0.5) * 0.14) * 2.9, 2.0));
 
-    float gBoost = clamp(uGalaxyAlpha, 0.15, 1.55);
-    col += nebBlue * (n1 * 0.48) * skyBand * gBoost;
-    col += nebCyan * (ridge * 0.36) * skyBand * gBoost;
-    col += nebGold * (pow(ridge, 2.5) * 0.18) * skyBand * gBoost * smoothstep(0.0, 0.7, skyP.x + 0.35);
+    vec3 nebBlue   = uTheme > 0.5 ? vec3(0.015, 0.16, 0.068) : vec3(0.048, 0.128, 0.265);
+    vec3 nebCyan   = uTheme > 0.5 ? vec3(0.035, 0.30, 0.130) : vec3(0.065, 0.255, 0.355);
+    vec3 nebViolet = uTheme > 0.5 ? vec3(0.025, 0.22, 0.115) : vec3(0.145, 0.088, 0.275);
+    vec3 nebGold   = uTheme > 0.5 ? vec3(0.120, 0.28, 0.095) : vec3(0.255, 0.185, 0.095);
+
+    float gBoost = clamp(uGalaxyAlpha, 0.15, 1.16) * (1.0 + uGalaxyBoost * 0.22);
+    col += nebBlue   * (pow(n1, 1.45) * 0.44) * skyBand * gBoost;
+    col += nebCyan   * (ridge * 0.42) * skyBand * gBoost;
+    col += nebViolet * (wisp * (0.20 + uGalaxyBoost * 0.34)) * (skyBand * 0.65 + mwAxis * 0.52 * uGalaxyBoost) * gBoost;
+    col += nebCyan   * (ridge * 0.26 * mwAxis * uGalaxyBoost);
+    col += nebGold   * (pow(ridge, 2.0) * (0.18 + uGalaxyBoost * 0.16)) * skyBand * gBoost * smoothstep(-0.15, 0.72, skyP.x + 0.35);
+
+    // Subtle sacred golden zenith aura behind the crowning Akasha Eye (warm & restrained)
+    vec2 eyeHaloP = p - vec2(0.0, mix(0.24, 0.25, uGalaxyBoost));
+    float eyeGlow = exp(-dot(eyeHaloP * vec2(1.55, 1.95), eyeHaloP * vec2(1.55, 1.95)) * 15.0);
+    vec3 eyeTint = uTheme > 0.5 ? vec3(0.06, 0.26, 0.11) : vec3(0.24, 0.18, 0.08);
+    col += eyeTint * eyeGlow * (0.18 + uGalaxyBoost * 0.14);
 
     // Subtle atmospheric horizon glow dividing Ground Abyss & Aerial Station from Cosmic Canopy
     float hor = exp(-pow((vUv.y - 0.52) * 8.5, 2.0));
-    col += (uTheme > 0.5 ? vec3(0.04, 0.26, 0.12) : vec3(0.12, 0.24, 0.34)) * hor * 0.18;
+    col += (uTheme > 0.5 ? vec3(0.03, 0.20, 0.09) : vec3(0.09, 0.19, 0.28)) * hor * (0.16 * (1.0 - uGalaxyBoost * 0.60));
 
     fragColor = vec4(col, 1.0);
   }`;
@@ -814,6 +833,7 @@
   uniform vec3 uGatherPivot[9];
   uniform vec3 uGatherStretch[9];
   uniform float uGatherAlpha[9];
+  uniform float uTheme;
   out vec3 vCol;
   out float vAlpha;
   out float vKind;
@@ -824,9 +844,9 @@
     // Ultra-gentle shader-level silk nebula parallax drift (zero CPU cost!)
     if (aSize > 18.0) {
       baseP += vec3(
-        sin(uTime * 0.22 + aPos.z * 0.45) * 0.14,
-        cos(uTime * 0.18 + aPos.x * 0.35) * 0.08,
-        sin(uTime * 0.20 + aPos.y * 0.55) * 0.12
+        sin(uTime * 0.22 + aPos.z * 0.45) * 0.16,
+        cos(uTime * 0.18 + aPos.x * 0.35) * 0.09,
+        sin(uTime * 0.20 + aPos.y * 0.55) * 0.14
       );
     }
     vec3 wp = uGatherPivot[gi] + (baseP - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
@@ -838,15 +858,18 @@
     float isCloud = step(18.0, aSize);
     float isLantern = step(8.0, aSize) * (1.0 - isCloud);
     float isNode = 1.0 - step(8.0, aSize);
-    // In Galaxy Observatory / Focused Galaxy mode, make star nodes crisp, slightly larger & distinct while nebula mist recedes!
-    float boostSz = mix(1.0, isCloud > 0.5 ? 0.95 : (isLantern > 0.5 ? 1.24 : (aGen < 0.0 ? 1.22 : 1.48)), uGalaxyBoost);
-    float boostAl = mix(1.0, isCloud > 0.5 ? 0.46 : (isLantern > 0.5 ? 1.05 : (aGen < 0.0 ? 1.10 : 0.96)), uGalaxyBoost);
+    // In Cosmos / Galaxy Observatory mode, bloom lush saturated JWST silk nebulae (alpha-blended, zero whiteout!)
+    // AND keep 3,600+ star nodes crisp, jewel-like & distinct!
+    float cloudSzBoost = uTheme > 1.5 ? 1.12 : 1.24;
+    float cloudAlBoost = uTheme > 1.5 ? 0.96 : 1.22;
+    float boostSz = mix(1.0, isCloud > 0.5 ? cloudSzBoost : (isLantern > 0.5 ? 1.22 : (aGen < 0.0 ? 1.16 : 1.28)), uGalaxyBoost);
+    float boostAl = mix(1.0, isCloud > 0.5 ? cloudAlBoost : (isLantern > 0.5 ? 1.06 : (aGen < 0.0 ? 1.04 : 0.96)), uGalaxyBoost);
     float pSize = aSize * boostSz * uDpr * clamp(32.0 / max(9.5, clip.w), 0.80, 2.40);
-    // Sprites follow their galaxy's scale: nebula clouds gently, stars modestly so close-ups stay razor-sharp!
-    gl_PointSize = pSize * (aSize > 18.0 ? pow(g.w, 0.7) : pow(g.w, 0.35)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
-    vCol = mix(aCol, vec3(1.0, 0.98, 0.90), genBloom * 0.55 + isNode * uGalaxyBoost * 0.12);
+    // Sprites follow their galaxy's scale: nebula clouds generously, stars modestly so close-ups stay razor-sharp!
+    gl_PointSize = pSize * (aSize > 18.0 ? pow(g.w, 0.72) : pow(g.w, 0.34)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
+    vCol = mix(aCol, vec3(1.0, 0.98, 0.90), genBloom * 0.55 + isNode * uGalaxyBoost * 0.10);
     vAlpha = aAlpha * boostAl * uAlphaMul * uGatherAlpha[gi] * genMask * (1.0 + genBloom * 0.55);
-    // 0 = Lean verified jewel star, 1 = gentle silk nebula cloud, 2 = warm settled conjecture lantern star!
+    // 0 = Lean verified jewel star, 1 = rich silk nebula cloud, 2 = warm settled conjecture lantern star!
     vKind = aSize > 18.0 ? 1.0 : (aSize >= 8.0 ? 2.0 : 0.0);
   }`;
 
@@ -918,7 +941,7 @@
     vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
     gl_Position = uViewProj * uModel * vec4(wp, 1.0);
     float genMask = aGen < 0.0 ? 1.0 : smoothstep(aGen - 0.03, aGen + 0.06, uGenesisCut);
-    float edgeBoost = aGen < 0.0 ? 1.0 : mix(1.0, 2.75, uGalaxyBoost);
+    float edgeBoost = aGen < 0.0 ? 1.0 : mix(1.0, 1.85, uGalaxyBoost);
     if (uTheme > 1.5) {
       vCol = mix(aCol, vec3(0.06, 0.14, 0.24), aGen < 0.0 ? 0.52 : 0.34);
       vAlpha = aAlpha * edgeBoost * 1.48 * uAlphaMul * uGatherAlpha[gi] * genMask;
@@ -1275,15 +1298,24 @@
     stuInner.addOctahedron(0, 0, 0, 0.24, 0.24, 0.24, 3);
     g.stuInner = stuInner.build(gl, 18);
 
-    // A0 // DIRECTION (AKASHA EYE / 阿卡西之眼) — Levitating Sacred Diamond Core + Triple Celestial Astrolabe Rings
+    // A0 // DIRECTION (AKASHA EYE / 阿卡西之眼) — Sovereign Levitating Diamond Eye Core + Quad Celestial Astrolabe Rings
     const dirCore = new MeshBuilder();
-    dirCore.addOctahedron(0, 0, 0, 0.58, 0.82, 0.58, 1, Math.PI / 4);
-    dirCore.addOctahedron(0, 0, 0, 0.30, 0.32, 0.30, 3, 0);
+    dirCore.addOctahedron(0, 0, 0, 0.62, 0.90, 0.62, 1, Math.PI / 4);
+    dirCore.addOctahedron(0, 0, 0, 0.34, 0.38, 0.34, 3, 0);
+    // Zenith & nadir sacred golden axis needles crowning the Eye of Akasha
+    dirCore.addPrism(0,  0.88, 0, 0.10, 0.008, 0.36, 4, 3, Math.PI / 4);
+    dirCore.addPrism(0, -1.24, 0, 0.008, 0.10, 0.36, 4, 3, Math.PI / 4);
     g.dirCore = dirCore.build(gl, 16);
     const dirRing = new MeshBuilder();
-    dirRing.addTorusRing(0, 0, 0, 1.32, 0.022, 48, 6, 0.14, -0.10, 2);
-    dirRing.addTorusRing(0, 0, 0, 1.06, 0.036, 36, 6, 0.36, 0.20, 2);
-    dirRing.addTorusRing(0, 0, 0, 0.80, 0.024, 32, 6, -0.58, -0.35, 2);
+    dirRing.addTorusRing(0, 0, 0, 1.62, 0.022, 56, 6, -0.08, 0.14, 2);
+    dirRing.addTorusRing(0, 0, 0, 1.32, 0.026, 48, 6,  0.14, -0.10, 2);
+    dirRing.addTorusRing(0, 0, 0, 1.04, 0.038, 36, 6,  0.38,  0.22, 2);
+    dirRing.addTorusRing(0, 0, 0, 0.78, 0.024, 32, 6, -0.58, -0.35, 2);
+    // 4 luminous cardinal diamond beacons mounted on the grand outer celestial ring
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 2;
+      dirRing.addOctahedron(Math.cos(a) * 1.62, Math.sin(a) * 0.14, Math.sin(a) * 1.62, 0.085, 0.11, 0.085, 3, 0);
+    }
     g.dirRing = dirRing.build(gl, 28);
 
     // 3D Sacred Celestial Meridian Rings & Ascending Double-Helix Qi Ribbons (周天星轨阵环 — between Ground & Akasha Eye!)
@@ -1672,7 +1704,7 @@
         starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, isLight ? 0.24 : (0.18 + rand() * 0.38), 0, -0.1);
       }
 
-      // 2. Real Lean Verified Truth DAG stars on the 3D Celestial Helical Ring (aGen = real normalized DAG layer s[4]/100!)
+      // 2. Real Lean Verified Truth DAG stars (3,600+ sampled from trureturing-pages) on the 3D Celestial Helical Ring
       const worldPts = [];
       if (stars && stars.length) {
         for (let i = 0; i < stars.length; i++) {
@@ -1683,14 +1715,19 @@
           const col = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
           const deg = s[5] || 1;
           const isOther = s[3] === 7;
-          const sz = isOther ? 2.4 : ((deg >= 7 ? 4.8 : deg >= 3 ? 3.5 : 2.9) * (hasG ? 1.18 : 1.0));
-          const al = (isOther ? 0.34 : (hasG ? 0.82 : 0.56)) * (isLight ? 0.78 : 1.0);
+          const sz = isOther ? 2.15 : ((deg >= 8 ? 4.4 : deg >= 4 ? 3.35 : 2.60) * (hasG ? 1.12 : 1.0));
+          const al = (isOther ? 0.32 : (deg >= 6 ? 0.88 : (hasG ? 0.76 : 0.58))) * (isLight ? 0.82 : 1.0);
           const gen = Math.max(0.01, Math.min(0.99, (s[4] || 0) / 100));
-          starData.push(wx, wy, wz, col[0] / 255, col[1] / 255, col[2] / 255, sz, al, s[3] + 1, gen);
+          // Gently brighten high-degree DAG hub stars toward pearlescent starlight so topology pops!
+          const hubMix = (!isOther && !isLight && deg >= 7) ? 0.28 : 0.0;
+          const rS = (col[0] / 255) * (1 - hubMix) + 0.96 * hubMix;
+          const gS = (col[1] / 255) * (1 - hubMix) + 0.98 * hubMix;
+          const bS = (col[2] / 255) * (1 - hubMix) + 1.00 * hubMix;
+          starData.push(wx, wy, wz, rS, gS, bS, sz, al, s[3] + 1, gen);
         }
       }
 
-      // 3. Gentle 5-Layer Silk Volumetric Nebula Clouds behind every named galaxy (soft JWST watercolor mist!)
+      // 3. Lush 9-Layer JWST Silk Volumetric Nebula Clouds behind every named galaxy + cosmic river wisps!
       this.skyClusters = [];
       const clusterPosById = new Map();
       if (clusters && clusters.length) {
@@ -1702,15 +1739,35 @@
           this.skyClusters.push({ cl, x: cx3, y: cy3, z: cz3, col });
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
           const rC = col[0] / 255, gC = col[1] / 255, bC = col[2] / 255;
-          const wR = rC * 0.68 + 0.30, wG = gC * 0.72 + 0.26, wB = bC * 0.78 + 0.18;
-          const baseSz = hasG ? 128.0 : 98.0;
-          const baseAl = isLight ? (hasG ? 0.095 : 0.055) : (hasG ? 0.22 : 0.145);
+          // Deep saturated JWST jewel nebula tones (alpha-blended so overlapping clouds stay colorful and NEVER blow out to white!)
+          const dR = isLight ? rC : (isMatrixPal ? rC * 0.22 : rC * 0.54);
+          const dG = isLight ? gC : (isMatrixPal ? gC * 0.44 : gC * 0.64);
+          const dB = isLight ? bC : (isMatrixPal ? bC * 0.34 : bC * 0.78);
+          const wR = isLight ? rC * 0.78 : (isMatrixPal ? 0.05 : Math.min(1, rC * 0.62 + 0.08));
+          const wG = isLight ? gC * 0.80 : (isMatrixPal ? 0.52 : Math.min(1, gC * 0.70 + 0.06));
+          const wB = isLight ? bC * 0.86 : (isMatrixPal ? 0.26 : Math.min(1, bC * 0.84 + 0.08));
+          // Iridescent deep-indigo / cosmic amethyst outer nebula veil (deep emerald-teal in Matrix)
+          const oR = isLight ? rC * 0.82 : (isMatrixPal ? 0.03 : Math.min(1, rC * 0.46 + 0.16));
+          const oG = isLight ? gC * 0.85 : (isMatrixPal ? 0.36 : Math.min(1, gC * 0.38 + 0.08));
+          const oB = isLight ? bC * 0.92 : (isMatrixPal ? 0.19 : Math.min(1, bC * 0.68 + 0.24));
+          const baseSz = hasG ? 136.0 : 110.0;
+          const baseAl = isLight ? (hasG ? 0.11 : 0.07) : (hasG ? 0.28 : 0.21);
           const slot = cl.id + 1;
-          nebData.push(cx3, cy3, cz3, rC, gC, bC, baseSz, baseAl, slot, 0.10);
-          nebData.push(cx3 - 1.15, cy3 + 0.38, cz3 - 0.55, wR, wG, wB, baseSz * 0.84, baseAl * 0.56, slot, 0.22);
-          nebData.push(cx3 + 1.15, cy3 - 0.30, cz3 + 0.45, rC, gC, bC, baseSz * 0.78, baseAl * 0.54, slot, 0.32);
-          nebData.push(cx3 - 0.45, cy3 - 0.42, cz3 + 0.55, wR, wG, wB, baseSz * 0.66, baseAl * 0.46, slot, 0.42);
-          nebData.push(cx3 + 0.55, cy3 + 0.48, cz3 - 0.40, 0.94, 0.86, 0.70, baseSz * 0.58, baseAl * (hasG ? 0.42 : 0.24), slot, 0.52);
+          // Broad atmospheric deep-space outer indigo-violet veil
+          nebData.push(cx3, cy3 + 0.12, cz3 - 0.25, oR, oG, oB, baseSz * 1.54, baseAl * 0.56, slot, 0.06);
+          // Primary luminous jewel-toned galaxy heart
+          nebData.push(cx3, cy3, cz3, dR, dG, dB, baseSz * 1.04, baseAl * 0.95, slot, 0.12);
+          // Sweeping spiral wing lobes (left & right along the cosmic plane)
+          nebData.push(cx3 - 1.38, cy3 + 0.40, cz3 - 0.60, wR, wG, wB, baseSz * 0.88, baseAl * 0.66, slot, 0.20);
+          nebData.push(cx3 + 1.38, cy3 - 0.32, cz3 + 0.50, dR, dG, dB, baseSz * 0.84, baseAl * 0.64, slot, 0.28);
+          // Upper & lower volumetric billows
+          nebData.push(cx3 - 0.58, cy3 - 0.46, cz3 + 0.60, oR, oG, oB, baseSz * 0.76, baseAl * 0.54, slot, 0.36);
+          nebData.push(cx3 + 0.62, cy3 + 0.52, cz3 - 0.46, wR, wG, wB, baseSz * 0.70, baseAl * 0.50, slot, 0.44);
+          // Warm amber-gold star-forming nebula dust core
+          nebData.push(cx3 + 0.30, cy3 + 0.24, cz3 - 0.22, isMatrixPal ? 0.16 : 0.72, isMatrixPal ? 0.62 : 0.54, isMatrixPal ? 0.24 : 0.28, baseSz * 0.58, baseAl * (hasG ? 0.52 : 0.34), slot, 0.52);
+          // Extended peripheral Milky-Way nebula tendrils linking adjacent galaxies softly
+          nebData.push(cx3 - 2.10, cy3 - 0.10, cz3 + 0.32, oR, oG, oB, baseSz * 0.96, baseAl * 0.38, slot, 0.18);
+          nebData.push(cx3 + 2.10, cy3 + 0.14, cz3 - 0.32, dR, dG, dB, baseSz * 0.92, baseAl * 0.36, slot, 0.24);
         }
       }
 
@@ -1751,24 +1808,38 @@
         }
       }
 
-      // 4. Delicate Gossamer 3D Intra-Galaxy Lean Theorem Filaments (gentle & silky!)
+      // 4. Dense Branched 3D Intra-Galaxy & Subtle Cross-Galaxy Lean Theorem Filaments (matching trureturing-pages DAG topology!)
       if (edges && edges.length && worldPts.length) {
+        let crossAdded = 0;
         for (let i = 0; i < edges.length; i++) {
           const e = edges[i];
-          if (e[2] === 1) continue;
           const u = e[0], v = e[1];
           const pu = worldPts[u], pv = worldPts[v];
           if (!pu || !pv) continue;
-          const cid = stars[u][3];
-          if (stars[v][3] !== cid) continue;
-          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 3.85) continue;
-          const hasG = Boolean(recentByCluster?.get(cid)?.count);
-          const col = (nebPalette && nebPalette[cid % nebPalette.length]) || [128, 198, 232];
-          const al = (hasG ? 0.27 : 0.165) * (isLight ? 0.84 : 1.0);
+          const cu = stars[u][3], cv = stars[v][3];
           const gEdge = Math.max(0.02, Math.min(0.99, Math.max(stars[u][4] || 0, stars[v][4] || 0) / 100));
+          if (e[2] === 1 || cu !== cv) {
+            // Subtle real cross-galaxy theorem filaments locked per-endpoint to their own galaxy gather slot!
+            if (cu === 7 || cv === 7 || crossAdded >= 180) continue;
+            const d3 = Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]);
+            if (d3 > 16.5) continue;
+            const colU = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
+            const colV = (nebPalette && nebPalette[cv % nebPalette.length]) || [128, 198, 232];
+            const alCross = (isLight ? 0.075 : 0.046);
+            edgeData.push(
+              pu[0], pu[1], pu[2], colU[0] / 255, colU[1] / 255, colU[2] / 255, alCross, cu + 1, gEdge,
+              pv[0], pv[1], pv[2], colV[0] / 255, colV[1] / 255, colV[2] / 255, alCross, cv + 1, gEdge
+            );
+            crossAdded++;
+            continue;
+          }
+          if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 5.85) continue;
+          const hasG = Boolean(recentByCluster?.get(cu)?.count);
+          const col = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
+          const al = (cu === 7 ? 0.075 : (hasG ? 0.20 : 0.155)) * (isLight ? 0.88 : 1.0);
           edgeData.push(
-            pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cid + 1, gEdge,
-            pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cid + 1, gEdge
+            pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge,
+            pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge
           );
         }
       }
@@ -1912,6 +1983,7 @@
         gl.uniform1f(sk.u.uYaw, this.yaw);
         gl.uniform1f(sk.u.uPitch, this.pitch);
         gl.uniform1f(sk.u.uGalaxyAlpha, galaxyAlpha);
+        gl.uniform1f(sk.u.uGalaxyBoost, galaxyBoost);
         gl.uniform1f(sk.u.uAspect, this.cssW / this.cssH);
         drawFullQuad();
       }
@@ -2031,8 +2103,8 @@
         }
 
         for (const e of entities) {
-          // Keep the Akasha Eye luminous as the celestial crown even in Galaxy Observatory mode!
-          const entAlpha = e.eye ? Math.max(stationAlpha, galaxyAlpha * 0.82) : stationAlpha;
+          // Keep the Supreme Akasha Eye 100% sovereign & luminous in BOTH Cosmos and Station modes!
+          const entAlpha = e.eye ? 1.0 : stationAlpha;
           if (entAlpha < 0.04) continue;
           const rawBoot = Math.max(0.08, Math.min(1, (bootAge - e.order * 0.025) / 0.32));
           const bootK = 1 - Math.pow(1 - rawBoot, 3);
@@ -2095,11 +2167,13 @@
             this.drawMesh(this.geo.stuInner, this.modelMat, accent, act, run, themeIdx, tAnim, edgeA * 1.15, entAlpha, genesisRadius);
           } else if (e.id === 'direction') {
             const fy = y0 + Math.sin(tAnim * 0.85) * 0.08;
-            const scEye = bootK * 1.18;
+            const scEye = bootK * (1.24 + galaxyBoost * 0.24 + stationFocus * 0.16);
+            const eyeAct = Math.max(act, 0.70 + galaxyBoost * 0.20 + stationFocus * 0.18);
+            const ringAct = Math.max(act, 0.56 + galaxyBoost * 0.18 + stationFocus * 0.16);
             M4.compose(this.modelMat, e.x, fy, e.z, 0, tAnim * 0.20, 0, scEye, scEye, scEye);
-            this.drawMesh(this.geo.dirCore, this.modelMat, accent, Math.max(act, 0.55), 1.0, themeIdx, tAnim, edgeA * 1.25, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.dirCore, this.modelMat, accent, eyeAct, 1.0, themeIdx, tAnim, edgeA * 1.35, entAlpha, genesisRadius);
             M4.compose(this.modelMat, e.x, fy, e.z, Math.sin(tAnim * 0.28) * 0.16, -tAnim * 0.24, 0, scEye, scEye, scEye);
-            this.drawMesh(this.geo.dirRing, this.modelMat, accent, Math.max(act, 0.45), 1.0, themeIdx, tAnim, edgeA * 1.05, entAlpha, genesisRadius);
+            this.drawMesh(this.geo.dirRing, this.modelMat, accent, ringAct, 1.0, themeIdx, tAnim, edgeA * 1.18, entAlpha, genesisRadius);
           }
         }
 
@@ -2116,13 +2190,16 @@
             this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, (0.16 + ciLoad * 0.18) * loadBeat * stationAlpha);
           }
           if (eyeEnt) {
-            // Grand translucent downward Global Surveillance Light Cone radiating from Supreme Akasha Eye over all galaxies & station!
-            const ec = isMatrix ? [0.16, 0.96, 0.48] : [0.92, 0.80, 0.50];
-            const ic = isMatrix ? [0.28, 1.00, 0.58] : [0.58, 0.86, 0.96];
-            const ea = Math.max(stationAlpha, galaxyAlpha * 0.78);
+            // Grand translucent downward Global Surveillance Light Cone + Zenith Aura Pillar from Supreme Akasha Eye!
+            const ec = isMatrix ? [0.16, 0.92, 0.46] : [0.94, 0.78, 0.44];
+            const ic = isMatrix ? [0.28, 0.96, 0.56] : [0.54, 0.84, 0.96];
+            const ea = 1.0 + galaxyBoost * 0.24 + stationFocus * 0.45;
             const eyeY = eyeEnt.y || 6.95;
-            this.drawVolumetricPillar(eyeEnt.x, 0.45, eyeEnt.z, 4.6, eyeY - 0.55, ec, 0.068 * ea, true);
-            this.drawVolumetricPillar(eyeEnt.x, 1.6, eyeEnt.z, 1.85, eyeY - 1.65, ic, 0.055 * ea, true);
+            const coneW = 4.5 + galaxyBoost * 1.05 + stationFocus * 0.65;
+            this.drawVolumetricPillar(eyeEnt.x, 0.35, eyeEnt.z, coneW, eyeY - 0.45, ec, 0.054 * ea, true);
+            this.drawVolumetricPillar(eyeEnt.x, 1.45, eyeEnt.z, 1.95 + stationFocus * 0.35, eyeY - 1.50, ic, 0.042 * ea, true);
+            // Soft ascending crown spire above Akasha Eye anchoring its celestial presence
+            this.drawVolumetricPillar(eyeEnt.x, eyeY + 0.55, eyeEnt.z, 0.84, 2.35, ec, 0.036 * ea, false);
           }
           if (stationAlpha > 0.05) {
             const pL = isMatrix ? [0.12, 0.94, 0.46] : [0.38, 0.82, 0.78];
@@ -2169,13 +2246,14 @@
           gl.drawArrays(gl.LINES, 0, this.geo.celestialRings.count);
         }
 
-        // Volumetric gentle silk nebula clouds behind each named galaxy (with GPU parallax micro-drift!)
+        // Volumetric rich JWST silk nebula clouds behind each named galaxy (normal alpha-blended: deeply colorful, ZERO whiteout!)
         if (this.geo.nebulaCount > 0) {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
           const sp = this.starProg;
           gl.useProgram(sp.p);
           gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
           gl.uniform1f(sp.u.uDpr, this.dpr);
-          gl.uniform1f(sp.u.uAlphaMul, galaxyAlpha);
+          gl.uniform1f(sp.u.uAlphaMul, Math.min(1.05, galaxyAlpha));
           gl.uniform1f(sp.u.uTime, tAnim);
           gl.uniform1f(sp.u.uGenesisCut, genesisCut);
           gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
@@ -2191,15 +2269,16 @@
           gl.drawArrays(gl.POINTS, 0, this.geo.nebulaCount);
           gl.disableVertexAttribArray(4);
           gl.disableVertexAttribArray(5);
+          if (!isLight) gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
         }
 
-        // Crisp 3D intra-galaxy constellation edges
+        // Crisp 3D intra-galaxy & subtle cross-galaxy DAG constellation edges
         if (this.geo.dagEdgeCount > 0) {
           const dl = this.dagLineProg;
           gl.useProgram(dl.p);
           gl.uniformMatrix4fv(dl.u.uViewProj, false, this.viewProj);
           gl.uniformMatrix4fv(dl.u.uModel, false, this.identityMat);
-          gl.uniform1f(dl.u.uAlphaMul, galaxyAlpha);
+          gl.uniform1f(dl.u.uAlphaMul, Math.min(1.16, galaxyAlpha));
           gl.uniform1f(dl.u.uGenesisCut, genesisCut);
           gl.uniform1f(dl.u.uGalaxyBoost, galaxyBoost);
           gl.uniform1f(dl.u.uTheme, themeIdx);
@@ -2215,13 +2294,13 @@
           gl.disableVertexAttribArray(4);
         }
 
-        // 1,160+ real frozen Truth DAG stars + Warm Conjecture Lantern Stars + Foundation Celestial River
+        // 3,600+ real frozen Truth DAG stars + Warm Conjecture Lantern Stars + Foundation Celestial River
         if (this.geo.starCount > 0) {
           const sp = this.starProg;
           gl.useProgram(sp.p);
           gl.uniformMatrix4fv(sp.u.uViewProj, false, this.viewProj);
           gl.uniform1f(sp.u.uDpr, this.dpr);
-          gl.uniform1f(sp.u.uAlphaMul, galaxyAlpha);
+          gl.uniform1f(sp.u.uAlphaMul, Math.min(1.18, galaxyAlpha));
           gl.uniform1f(sp.u.uTime, tAnim);
           gl.uniform1f(sp.u.uGenesisCut, genesisCut);
           gl.uniform1f(sp.u.uGalaxyBoost, galaxyBoost);
