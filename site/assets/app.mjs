@@ -3188,7 +3188,7 @@ const holoWorld = {
 const LAYER_PRESETS = {
   mix:     { pitch:  0.23, dist: 26.2, lookY: 2.55, lookZ: -0.35, stationAlpha: 1.00, galaxyAlpha: 1.00, minPitch: -0.18, maxPitch: 0.80, tag: 'MIX · 天地星阵', tagEn: 'MIX · 3-STRATA PANORAMA' },
   station: { pitch:  0.29, dist: 22.0, lookY: 1.95, lookZ: -0.45, stationAlpha: 1.00, galaxyAlpha: 0.18, minPitch:  0.14, maxPitch: 0.80, tag: 'STATION · 阿卡西之眼与 24/7 活态环路', tagEn: 'STATION · AKASHA EYE & 24/7 ACTIVE LOOP' },
-  galaxy:  { pitch:  0.20, dist: 21.8, lookY: 3.35, lookZ: -0.95, stationAlpha: 0.00, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 阿卡西之眼与浩瀚真值星海', tagEn: 'COSMOS · AKASHA EYE & TRUTH DAG' }
+  galaxy:  { pitch:  0.17, dist: 23.6, lookY: 2.75, lookZ: -0.85, stationAlpha: 0.00, galaxyAlpha: 1.24, minPitch: -0.25, maxPitch: 0.68, tag: 'GALAXY · 阿卡西之眼与浩瀚真值星海', tagEn: 'COSMOS · AKASHA EYE & TRUTH DAG' }
 };
 
 const holoCam = {
@@ -3888,6 +3888,18 @@ function galaxyGatherPlanFor(cid, frame, fovY, aspect) {
   return plan;
 }
 
+// In dedicated Cosmos (星系) mode, unfurl the 7 mathematical galaxies from a flat halo into a
+// grand 3D multi-level cosmic amphitheater filling the full viewport around & beneath the Akasha Eye!
+const COSMOS_UNFURL = {
+  6: { offset: [ 0.00,  0.15, -0.35], scale: 1.85, stretch: [1.45, 2.35, 1.42] }, // Observer: crown center beneath Akasha Eye
+  0: { offset: [-1.10,  0.85,  0.55], scale: 2.08, stretch: [1.50, 2.65, 1.45] }, // Combinatorics: grand upper-left nebula
+  2: { offset: [ 1.10,  0.85,  0.55], scale: 2.08, stretch: [1.50, 2.65, 1.45] }, // Arith: grand upper-right golden nebula
+  3: { offset: [-1.35, -0.55,  1.20], scale: 1.98, stretch: [1.48, 2.55, 1.44] }, // ConceptDynamics: lush mid-left amethyst nebula
+  5: { offset: [ 1.35, -0.55,  1.20], scale: 1.98, stretch: [1.48, 2.55, 1.44] }, // Weil: lush mid-right sapphire nebula
+  1: { offset: [-0.95, -2.15,  2.15], scale: 2.18, stretch: [1.52, 2.75, 1.48] }, // Quantum: massive lower-left cyan nebula
+  4: { offset: [ 0.95, -2.15,  2.15], scale: 2.12, stretch: [1.50, 2.68, 1.46] }  // Analytic: massive lower-right emerald nebula
+};
+
 // Eases every galaxy's gather transform toward the plan (or expanded galaxy observatory / rest) and hands it to the GPU.
 function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
   const gl = holoCam.gl;
@@ -3900,7 +3912,12 @@ function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
       const cl = truthNebula.clusters.find(c => c.id === cid);
       const frame = cl && cl.name !== 'Other' ? galaxyWorldFrame(cid) : null;
       if (frame) {
-        t = { pivot: frame.center, offset: [0, 0, 0], scale: 1.74, stretch: [1.38, 1.96, 1.38], alpha: 1.0 };
+        const u = COSMOS_UNFURL[cid];
+        t = u
+          ? { pivot: frame.center, offset: u.offset, scale: u.scale, stretch: u.stretch, alpha: 1.0 }
+          : { pivot: frame.center, offset: [0, 0, 0], scale: 1.95, stretch: [1.48, 2.50, 1.45], alpha: 1.0 };
+      } else if (cl && cl.name === 'Other') {
+        t = { pivot: [0, 2.0, -0.55], offset: [0, -0.45, 0], scale: 1.18, stretch: [1.14, 1.78, 1.14], alpha: 0.96 };
       }
     }
     let cur = holoCam.gather.get(cid);
@@ -5032,14 +5049,14 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
           [12, 102, 82], [24, 72, 148], [134, 78, 16], [36, 78, 94]
         ]
       : [
-          [112, 218, 216], // 0 Combinatorics: Deep Orbital Teal
-          [116, 212, 242], // 1 Quantum: Cold Starlight Cyan
-          [214, 194, 148], // 2 Arith: Pale Stellar Gold
-          [162, 178, 232], // 3 ConceptDynamics: Astral Silver-Indigo
-          [110, 210, 196], // 4 Analytic: Glacier Mint
-          [144, 194, 242], // 5 Weil: Deep Sky Titanium
-          [206, 194, 158], // 6 Observer: Champagne Dust
-          [128, 188, 216]  // 7 Foundations Belt: Deep Space Mist
+          [76,  228, 218], // 0 Combinatorics: Lagoon Turquoise
+          [86,  198, 255], // 1 Quantum: Electric Sapphire-Cyan
+          [242, 194, 108], // 2 Arith: Carina Gold-Amber
+          [176, 146, 248], // 3 ConceptDynamics: Cosmic Amethyst-Violet
+          [84,  228, 174], // 4 Analytic: Aurora Emerald-Mint
+          [122, 176, 255], // 5 Weil: Astral Periwinkle-Cobalt
+          [244, 186, 162], // 6 Observer: Rose-Champagne Starlight
+          [138, 192, 232]  // 7 Foundations Belt: Milky-Way Silver-Blue
         ];
 
   const quiet = state.quiet || reduced;
@@ -7202,7 +7219,7 @@ function drawHolo3DFrame(dt = 0.016) {
       ? [[34,255,122],[74,255,158],[148,255,114],[26,224,128],[92,255,174],[48,242,136],[168,255,124],[34,192,108]]
       : isLight
         ? [[8,96,92],[10,82,138],[142,74,12],[66,48,146],[12,102,82],[24,72,148],[134,78,16],[36,78,94]]
-        : [[112,218,216],[116,212,242],[214,194,148],[162,178,232],[110,210,196],[144,194,242],[206,194,158],[128,188,216]];
+        : [[76,228,218],[86,198,255],[242,194,108],[176,146,248],[84,228,174],[122,176,255],[244,186,162],[138,192,232]];
     const lightEntityPalette = {
       direction: [154, 84, 8], research: [4, 108, 78], review: [55, 48, 163], verification: [3, 83, 136],
       books: [107, 33, 168], publication: [17, 100, 53], outreach: [180, 60, 12], studio: [45, 67, 86]
@@ -7246,6 +7263,7 @@ function drawHolo3DFrame(dt = 0.016) {
       galaxyAlpha: holoCam.galaxyAlpha,
       galaxyBoost: holoCam.galaxyBoost,
       stationFocus: holoCam.stationFocus,
+      galaxyFocused: Boolean(galaxyFrame),
       sonarRadius: sonarActive ? (sonarU * 22.0) : 0.0,
       sonarAlpha: sonarActive ? (Math.sin(sonarU * Math.PI) * 0.85) : 0.0,
       rheostatRevX: holoCam.rheostatRevX,
@@ -7499,7 +7517,7 @@ function drawHolo3DFrame(dt = 0.016) {
           const capTitle = L('◈ A0 · 阿卡西之眼', '◈ A0 · AKASHA EYE');
           const capSub = L('全局方向 · 统摄真值星海', 'GLOBAL DIRECTION · COSMOS OVERSIGHT');
           const topTipY = pEyeTop ? pEyeTop.y : (pEye.y - haloR * 1.25);
-          const capY = Math.max(106, Math.min(topTipY - 26, pEye.y - haloR * 1.26 - 20));
+          const capY = Math.max(98, Math.min(topTipY - 26, pEye.y - haloR * 1.26 - 20));
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.font = '700 11px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
@@ -9345,6 +9363,7 @@ function applyLanguage(code) {
   updateGalaxyBackBar();
   updateGenesisScrubUI();
   syncFullscreenButton();
+  syncNyxDragTitles();
 
   // Rebuild live dispatch log wall in the newly chosen language (no stale mixed-language rows!)
   scifiLog.history.clear();
@@ -9489,6 +9508,236 @@ if (sceneHeader && sceneFooter && typeof ResizeObserver === 'function') {
 document.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
 const nyxWidget = document.querySelector('nyx-assistant');
 if (nyxWidget?.host) registerDashboardTools(nyxWidget);
+
+const NYX_POS_STORAGE_KEY = 'trureturing-nyx-pos-v1';
+let syncNyxDragTitles = () => {};
+
+function initNyxDraggable(el) {
+  if (!el || el.dataset.nyxDragBound === '1') return;
+  el.dataset.nyxDragBound = '1';
+
+  const defaultPos = () => {
+    const narrow = window.innerWidth <= 980;
+    return { x: narrow ? 12 : 22, y: narrow ? 62 : 86 };
+  };
+
+  let hasCustomPos = false;
+  let curX = defaultPos().x;
+  let curY = defaultPos().y;
+  let suppressClickUntil = 0;
+
+  try {
+    const raw = JSON.parse(localStorage.getItem(NYX_POS_STORAGE_KEY) || 'null');
+    if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) {
+      curX = raw.x;
+      curY = raw.y;
+      hasCustomPos = true;
+    }
+  } catch {}
+
+  const shadowParts = () => {
+    const sr = el.shadowRoot;
+    return {
+      launcher: sr?.querySelector('.launch') || null,
+      header: sr?.querySelector('header') || null,
+      panel: sr?.querySelector('.panel') || null
+    };
+  };
+
+  const clampPos = (x, y) => {
+    const vw = window.innerWidth || 1280;
+    const vh = window.innerHeight || 800;
+    const margin = 10;
+    const topMin = vw <= 980 ? 10 : 56;
+    const hostRect = el.getBoundingClientRect();
+    const hw = hostRect.width || 116;
+    const hh = hostRect.height || 36;
+    const { panel } = shadowParts();
+    if (panel && !panel.hidden) {
+      const pr = panel.getBoundingClientRect();
+      if (pr.width > 20 && pr.height > 20) {
+        const leftExt = Math.max(0, hostRect.left - pr.left);
+        const rightExt = Math.max(hw, pr.right - hostRect.left);
+        const topExt = Math.max(0, hostRect.top - pr.top);
+        const botExt = Math.max(hh, pr.bottom - hostRect.top);
+        const minX = margin + leftExt;
+        const maxX = Math.max(minX, vw - margin - rightExt);
+        const minY = Math.max(topMin, margin + topExt);
+        const maxY = Math.max(minY, vh - margin - botExt);
+        return {
+          x: Math.max(minX, Math.min(maxX, x)),
+          y: Math.max(minY, Math.min(maxY, y))
+        };
+      }
+    }
+    const maxX = Math.max(margin, vw - margin - hw);
+    const maxY = Math.max(topMin, vh - margin - hh);
+    return {
+      x: Math.max(margin, Math.min(maxX, x)),
+      y: Math.max(topMin, Math.min(maxY, y))
+    };
+  };
+
+  const applyPos = (x, y, persist = false) => {
+    const clamped = clampPos(x, y);
+    curX = Math.round(clamped.x);
+    curY = Math.round(clamped.y);
+    el.style.left = `${curX}px`;
+    el.style.top = `${curY}px`;
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    if (persist) {
+      hasCustomPos = true;
+      try {
+        localStorage.setItem(NYX_POS_STORAGE_KEY, JSON.stringify({ x: curX, y: curY }));
+      } catch {}
+    }
+  };
+
+  const syncQuadrant = () => {
+    const vw = window.innerWidth || 1280;
+    const vh = window.innerHeight || 800;
+    const r = el.getBoundingClientRect();
+    const { panel } = shadowParts();
+    const pw = Math.max(360, (panel && !panel.hidden && panel.offsetWidth) || Math.min(448, vw - 32));
+    const ph = Math.max(320, (panel && !panel.hidden && panel.offsetHeight) || Math.min(380, vh - 140));
+    const spaceBelow = vh - r.bottom - 12;
+    const spaceAbove = r.top - 56;
+    const spaceRight = vw - r.left - 12;
+    const spaceLeft = r.right - 12;
+    const vDir = (spaceBelow >= ph || spaceBelow >= spaceAbove) ? 'below' : 'above';
+    const hDir = (spaceRight >= pw || spaceRight >= spaceLeft) ? 'left' : 'right';
+    el.setAttribute('data-nyx-v', vDir);
+    el.setAttribute('data-nyx-h', hDir);
+    el.setAttribute('position', hDir);
+  };
+
+  const resetToDefault = () => {
+    hasCustomPos = false;
+    try { localStorage.removeItem(NYX_POS_STORAGE_KEY); } catch {}
+    const def = defaultPos();
+    el.setAttribute('data-nyx-v', 'below');
+    el.setAttribute('data-nyx-h', 'left');
+    el.setAttribute('position', 'left');
+    applyPos(def.x, def.y, false);
+    syncQuadrant();
+  };
+
+  const bindShadow = () => {
+    const { launcher, header, panel } = shadowParts();
+    if (!launcher || !header || !panel || launcher.dataset.nyxDragReady === '1') return Boolean(launcher);
+    launcher.dataset.nyxDragReady = '1';
+
+    syncNyxDragTitles = () => {
+      const tipLauncher = L('点击打开 Nyx 助手 · 按住可自由拖拽', 'Click to toggle Nyx Assistant · Drag to move');
+      const tipHeader = L('按住标题栏自由拖拽 · 双击复位左上角', 'Drag title bar to move · Double-click to reset to top-left');
+      launcher.title = tipLauncher;
+      header.title = tipHeader;
+    };
+    syncNyxDragTitles();
+
+    let drag = null;
+
+    const beginDrag = (ev, source) => {
+      if (ev.button !== 0) return;
+      if (source === 'header') {
+        const target = ev.composedPath?.()[0] || ev.target;
+        if (target?.closest?.('button, a, input, textarea')) return;
+      }
+      ev.stopPropagation();
+      const rect = el.getBoundingClientRect();
+      curX = rect.left;
+      curY = rect.top;
+      drag = {
+        pointerId: ev.pointerId,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        origX: curX,
+        origY: curY,
+        moved: false,
+        source
+      };
+    };
+
+    launcher.addEventListener('pointerdown', ev => beginDrag(ev, 'launcher'));
+    header.addEventListener('pointerdown', ev => beginDrag(ev, 'header'));
+
+    // Swallow the synthetic click right after dragging the launcher pill so dragging doesn't toggle the panel.
+    launcher.addEventListener('click', ev => {
+      if (performance.now() < suppressClickUntil) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+      }
+    }, true);
+
+    header.addEventListener('dblclick', ev => {
+      const target = ev.composedPath?.()[0] || ev.target;
+      if (target?.closest?.('button, a')) return;
+      resetToDefault();
+    });
+
+    window.addEventListener('pointermove', ev => {
+      if (!drag || ev.pointerId !== drag.pointerId) return;
+      const dx = ev.clientX - drag.startX;
+      const dy = ev.clientY - drag.startY;
+      if (!drag.moved && Math.hypot(dx, dy) >= 5) {
+        drag.moved = true;
+        el.setAttribute('data-nyx-dragging', '');
+      }
+      if (!drag.moved) return;
+      ev.preventDefault();
+      applyPos(drag.origX + dx, drag.origY + dy, false);
+    }, { passive: false });
+
+    const finishDrag = ev => {
+      if (!drag || ev.pointerId !== drag.pointerId) return;
+      const wasMoved = drag.moved;
+      drag = null;
+      el.removeAttribute('data-nyx-dragging');
+      if (wasMoved) {
+        suppressClickUntil = performance.now() + 260;
+        if (panel.hidden) syncQuadrant();
+        applyPos(curX, curY, true);
+      }
+    };
+    window.addEventListener('pointerup', finishDrag);
+    window.addEventListener('pointercancel', finishDrag);
+
+    // Whenever the chat panel opens, orient toward the clearest quadrant and keep the full panel inside the viewport.
+    if (typeof MutationObserver === 'function') {
+      const mo = new MutationObserver(() => {
+        if (!panel.hidden) {
+          syncQuadrant();
+          requestAnimationFrame(() => applyPos(curX, curY, false));
+        }
+      });
+      mo.observe(panel, { attributes: true, attributeFilter: ['hidden'] });
+    }
+
+    applyPos(curX, curY, false);
+    syncQuadrant();
+    return true;
+  };
+
+  if (!bindShadow() && window.customElements?.whenDefined) {
+    window.customElements.whenDefined('nyx-assistant').then(() => {
+      bindShadow();
+    }).catch(() => {});
+  }
+
+  window.addEventListener('resize', () => {
+    const { panel } = shadowParts();
+    if (!hasCustomPos) {
+      const def = defaultPos();
+      applyPos(def.x, def.y, false);
+    } else {
+      applyPos(curX, curY, false);
+    }
+    if (!panel || panel.hidden) syncQuadrant();
+  }, { passive: true });
+}
+
+if (nyxWidget) initNyxDraggable(nyxWidget);
 
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => {

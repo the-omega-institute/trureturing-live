@@ -397,46 +397,49 @@
       return;
     }
 
-    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.003, 0.015, 0.007) : vec3(0.008, 0.013, 0.026);
-    vec3 horizonMist = uTheme > 0.5 ? vec3(0.010, 0.054, 0.025) : vec3(0.022, 0.040, 0.072);
-    vec3 col = mix(deepAbyss, horizonMist, exp(-pow((vUv.y - 0.46) * 2.5, 2.0)) * (0.85 - uGalaxyBoost * 0.35));
+    vec3 deepAbyss = uTheme > 0.5 ? vec3(0.003, 0.015, 0.007) : vec3(0.006, 0.010, 0.022);
+    vec3 horizonMist = uTheme > 0.5 ? vec3(0.010, 0.054, 0.025) : vec3(0.020, 0.036, 0.068);
+    vec3 col = mix(deepAbyss, horizonMist, exp(-pow((vUv.y - 0.46) * 2.5, 2.0)) * (0.84 - uGalaxyBoost * 0.42));
 
-    // Sweeping Astronomical Milky-Way / JWST Cosmic Nebula Canopy with rich dark cosmic dust lanes!
-    float bandLow = mix(0.24, 0.08, uGalaxyBoost);
-    float bandMid = mix(0.72, 0.54, uGalaxyBoost);
-    float skyBand = smoothstep(bandLow, bandMid, vUv.y) * (1.0 - smoothstep(0.92, 1.18, vUv.y) * 0.26);
-    vec2 uvA = skyP * 2.05 + vec2(uTime * 0.006, 0.0);
+    // Sweeping Astronomical Milky-Way / JWST Carina-Style Cosmic Nebula Canopy with sculpted dark cosmic dust rifts!
+    float bandLow = mix(0.24, 0.02, uGalaxyBoost);
+    float bandMid = mix(0.72, 0.42, uGalaxyBoost);
+    float skyBand = smoothstep(bandLow, bandMid, vUv.y) * (1.0 - smoothstep(0.94, 1.18, vUv.y) * 0.22);
+    vec2 uvA = skyP * 2.15 + vec2(uTime * 0.005, 0.0);
     float n1 = fbm(uvA);
-    float n2 = fbm(uvA * 1.95 + vec2(n1 * 1.55, -n1 * 1.05));
-    float n3 = fbm(uvA * 3.35 - vec2(n2 * 1.25, n1 * 0.90));
-    float dustLane = smoothstep(0.28, 0.72, n1);
-    float ridge = smoothstep(0.42, 0.86, n2) * dustLane;
-    float wisp = smoothstep(0.46, 0.90, n3);
+    float n2 = fbm(uvA * 2.05 + vec2(n1 * 1.75, -n1 * 1.15));
+    float n3 = fbm(uvA * 3.65 - vec2(n2 * 1.35, n1 * 0.95));
+    float dustRift = smoothstep(0.26, 0.70, n1) * (1.0 - smoothstep(0.62, 0.88, n3) * 0.38);
+    float ridge = smoothstep(0.38, 0.84, n2) * dustRift;
+    float wisp = smoothstep(0.42, 0.88, n3);
 
-    // Sculpted Milky-Way cosmic ribbon cradling the 7 Truth DAG galaxies in Cosmos mode (deep contrast, zero washout!)
-    float mwAxis = exp(-pow((p.y + 0.05 - sin(p.x * 1.35 + uYaw * 0.5) * 0.14) * 2.9, 2.0));
+    // Grand curving Milky-Way nebula band sweeping diagonally across the entire Cosmos amphitheater!
+    float mwCurve = sin(p.x * 1.25 + uYaw * 0.45) * 0.16 - 0.06;
+    float mwAxis = exp(-pow((p.y - mwCurve) * 2.25, 2.0));
+    float mwCore = exp(-pow((p.y - mwCurve + (n2 - 0.5) * 0.16) * 4.8, 2.0));
 
-    vec3 nebBlue   = uTheme > 0.5 ? vec3(0.015, 0.16, 0.068) : vec3(0.048, 0.128, 0.265);
-    vec3 nebCyan   = uTheme > 0.5 ? vec3(0.035, 0.30, 0.130) : vec3(0.065, 0.255, 0.355);
-    vec3 nebViolet = uTheme > 0.5 ? vec3(0.025, 0.22, 0.115) : vec3(0.145, 0.088, 0.275);
-    vec3 nebGold   = uTheme > 0.5 ? vec3(0.120, 0.28, 0.095) : vec3(0.255, 0.185, 0.095);
+    vec3 nebDeepBlue = uTheme > 0.5 ? vec3(0.014, 0.17, 0.072) : vec3(0.042, 0.118, 0.285);
+    vec3 nebTeal     = uTheme > 0.5 ? vec3(0.032, 0.34, 0.145) : vec3(0.055, 0.285, 0.385);
+    vec3 nebAmethyst = uTheme > 0.5 ? vec3(0.028, 0.25, 0.130) : vec3(0.215, 0.088, 0.335);
+    vec3 nebRose     = uTheme > 0.5 ? vec3(0.060, 0.32, 0.140) : vec3(0.320, 0.115, 0.235);
+    vec3 nebGold     = uTheme > 0.5 ? vec3(0.140, 0.34, 0.105) : vec3(0.340, 0.225, 0.105);
 
-    float gBoost = clamp(uGalaxyAlpha, 0.15, 1.16) * (1.0 + uGalaxyBoost * 0.22);
-    col += nebBlue   * (pow(n1, 1.45) * 0.44) * skyBand * gBoost;
-    col += nebCyan   * (ridge * 0.42) * skyBand * gBoost;
-    col += nebViolet * (wisp * (0.20 + uGalaxyBoost * 0.34)) * (skyBand * 0.65 + mwAxis * 0.52 * uGalaxyBoost) * gBoost;
-    col += nebCyan   * (ridge * 0.26 * mwAxis * uGalaxyBoost);
-    col += nebGold   * (pow(ridge, 2.0) * (0.18 + uGalaxyBoost * 0.16)) * skyBand * gBoost * smoothstep(-0.15, 0.72, skyP.x + 0.35);
+    float gBoost = clamp(uGalaxyAlpha, 0.15, 1.22) * (1.0 + uGalaxyBoost * 0.38);
+    col += nebDeepBlue * (pow(n1, 1.35) * 0.48) * skyBand * gBoost;
+    col += nebTeal     * (ridge * 0.46) * (skyBand * 0.72 + mwAxis * 0.58 * uGalaxyBoost) * gBoost;
+    col += nebAmethyst * (wisp * (0.24 + uGalaxyBoost * 0.46)) * (skyBand * 0.62 + mwAxis * 0.65 * uGalaxyBoost) * gBoost;
+    col += nebRose     * (pow(wisp, 1.8) * 0.34 * mwAxis * uGalaxyBoost) * smoothstep(-0.6, 0.45, -skyP.x + 0.15);
+    col += nebGold     * (pow(ridge, 1.85) * (0.20 + uGalaxyBoost * 0.32)) * (skyBand * 0.55 + mwCore * 0.75 * uGalaxyBoost) * gBoost;
 
     // Subtle sacred golden zenith aura behind the crowning Akasha Eye (warm & restrained)
-    vec2 eyeHaloP = p - vec2(0.0, mix(0.24, 0.25, uGalaxyBoost));
-    float eyeGlow = exp(-dot(eyeHaloP * vec2(1.55, 1.95), eyeHaloP * vec2(1.55, 1.95)) * 15.0);
-    vec3 eyeTint = uTheme > 0.5 ? vec3(0.06, 0.26, 0.11) : vec3(0.24, 0.18, 0.08);
-    col += eyeTint * eyeGlow * (0.18 + uGalaxyBoost * 0.14);
+    vec2 eyeHaloP = p - vec2(0.0, mix(0.24, 0.26, uGalaxyBoost));
+    float eyeGlow = exp(-dot(eyeHaloP * vec2(1.50, 1.90), eyeHaloP * vec2(1.50, 1.90)) * 13.5);
+    vec3 eyeTint = uTheme > 0.5 ? vec3(0.06, 0.26, 0.11) : vec3(0.28, 0.20, 0.09);
+    col += eyeTint * eyeGlow * (0.20 + uGalaxyBoost * 0.18);
 
     // Subtle atmospheric horizon glow dividing Ground Abyss & Aerial Station from Cosmic Canopy
     float hor = exp(-pow((vUv.y - 0.52) * 8.5, 2.0));
-    col += (uTheme > 0.5 ? vec3(0.03, 0.20, 0.09) : vec3(0.09, 0.19, 0.28)) * hor * (0.16 * (1.0 - uGalaxyBoost * 0.60));
+    col += (uTheme > 0.5 ? vec3(0.03, 0.20, 0.09) : vec3(0.09, 0.19, 0.28)) * hor * (0.16 * (1.0 - uGalaxyBoost * 0.70));
 
     fragColor = vec4(col, 1.0);
   }`;
@@ -837,16 +840,18 @@
   out vec3 vCol;
   out float vAlpha;
   out float vKind;
+  out float vSeed;
+  out float vHub;
   void main() {
     int gi = clamp(int(aSlot + 0.5), 0, 8);
     vec4 g = uGather[gi];
     vec3 baseP = aPos;
-    // Ultra-gentle shader-level silk nebula parallax drift (zero CPU cost!)
+    // Gentle shader-level nebula filament drift (zero CPU cost!)
     if (aSize > 18.0) {
       baseP += vec3(
-        sin(uTime * 0.22 + aPos.z * 0.45) * 0.16,
-        cos(uTime * 0.18 + aPos.x * 0.35) * 0.09,
-        sin(uTime * 0.20 + aPos.y * 0.55) * 0.14
+        sin(uTime * 0.20 + aPos.z * 0.45) * 0.18,
+        cos(uTime * 0.16 + aPos.x * 0.35) * 0.10,
+        sin(uTime * 0.18 + aPos.y * 0.55) * 0.16
       );
     }
     vec3 wp = uGatherPivot[gi] + (baseP - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
@@ -856,21 +861,23 @@
     float genMask = aGen < 0.0 ? 1.0 : smoothstep(aGen - 0.04, aGen + 0.06, uGenesisCut);
     float genBloom = (aGen >= 0.0 && uGenesisCut < 1.02) ? exp(-pow((uGenesisCut - aGen) * 14.0, 2.0)) : 0.0;
     float isCloud = step(18.0, aSize);
-    float isLantern = step(8.0, aSize) * (1.0 - isCloud);
-    float isNode = 1.0 - step(8.0, aSize);
-    // In Cosmos / Galaxy Observatory mode, bloom lush saturated JWST silk nebulae (alpha-blended, zero whiteout!)
-    // AND keep 3,600+ star nodes crisp, jewel-like & distinct!
-    float cloudSzBoost = uTheme > 1.5 ? 1.12 : 1.24;
-    float cloudAlBoost = uTheme > 1.5 ? 0.96 : 1.22;
-    float boostSz = mix(1.0, isCloud > 0.5 ? cloudSzBoost : (isLantern > 0.5 ? 1.22 : (aGen < 0.0 ? 1.16 : 1.28)), uGalaxyBoost);
-    float boostAl = mix(1.0, isCloud > 0.5 ? cloudAlBoost : (isLantern > 0.5 ? 1.06 : (aGen < 0.0 ? 1.04 : 0.96)), uGalaxyBoost);
-    float pSize = aSize * boostSz * uDpr * clamp(32.0 / max(9.5, clip.w), 0.80, 2.40);
-    // Sprites follow their galaxy's scale: nebula clouds generously, stars modestly so close-ups stay razor-sharp!
-    gl_PointSize = pSize * (aSize > 18.0 ? pow(g.w, 0.72) : pow(g.w, 0.34)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
-    vCol = mix(aCol, vec3(1.0, 0.98, 0.90), genBloom * 0.55 + isNode * uGalaxyBoost * 0.10);
+    float isLantern = step(9.5, aSize) * (1.0 - isCloud);
+    float isNode = 1.0 - step(9.5, aSize);
+    // In Cosmos / Galaxy Observatory mode, unfurl lush turbulent JWST nebulae AND render larger, unmistakable jewel star nodes!
+    float cloudSzBoost = uTheme > 1.5 ? 1.18 : 1.52;
+    float cloudAlBoost = uTheme > 1.5 ? 1.02 : 1.48;
+    float nodeSzBoost = aGen < 0.0 ? 1.24 : 1.52;
+    float boostSz = mix(1.0, isCloud > 0.5 ? cloudSzBoost : (isLantern > 0.5 ? 1.38 : nodeSzBoost), uGalaxyBoost);
+    float boostAl = mix(1.0, isCloud > 0.5 ? cloudAlBoost : (isLantern > 0.5 ? 1.14 : (aGen < 0.0 ? 1.06 : 1.06)), uGalaxyBoost);
+    float pSize = aSize * boostSz * uDpr * clamp(32.0 / max(9.0, clip.w), 0.85, 2.55);
+    float scaled = pSize * (aSize > 18.0 ? pow(g.w, 0.62) : pow(g.w, 0.36)) * (1.0 + genBloom * 0.65) * step(0.005, genMask);
+    gl_PointSize = min(scaled, 380.0 * uDpr);
+    vCol = mix(aCol, vec3(1.0, 0.98, 0.90), genBloom * 0.55);
     vAlpha = aAlpha * boostAl * uAlphaMul * uGatherAlpha[gi] * genMask * (1.0 + genBloom * 0.55);
-    // 0 = Lean verified jewel star, 1 = rich silk nebula cloud, 2 = warm settled conjecture lantern star!
-    vKind = aSize > 18.0 ? 1.0 : (aSize >= 8.0 ? 2.0 : 0.0);
+    // 0 = Lean verified jewel star, 1 = procedural turbulent JWST nebula cloud, 2 = warm settled conjecture lantern star!
+    vKind = aSize > 18.0 ? 1.0 : (aSize >= 9.5 ? 2.0 : 0.0);
+    vSeed = fract(sin(dot(aPos.xy + aPos.z * 0.37, vec2(12.9898, 78.233))) * 43758.5453) * 6.28318;
+    vHub = isNode * smoothstep(5.4, 7.6, aSize);
   }`;
 
   const STAR_FS = `#version 300 es
@@ -878,38 +885,86 @@
   in vec3 vCol;
   in float vAlpha;
   in float vKind;
+  in float vSeed;
+  in float vHub;
   uniform float uGalaxyBoost;
   uniform float uTheme;
+  uniform float uTime;
   out vec4 fragColor;
+
+  float nHash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+  float nVal(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(nHash(i), nHash(i + vec2(1.0, 0.0)), f.x),
+      mix(nHash(i + vec2(0.0, 1.0)), nHash(i + vec2(1.0, 1.0)), f.x),
+      f.y
+    );
+  }
+  float nebFbm(vec2 p) {
+    float v = 0.0, a = 0.54;
+    mat2 rot = mat2(0.80, 0.60, -0.60, 0.80);
+    for (int i = 0; i < 3; i++) {
+      v += a * nVal(p);
+      p = rot * p * 2.08 + vec2(2.3, 1.7);
+      a *= 0.48;
+    }
+    return v;
+  }
+
   void main() {
     vec2 d = gl_PointCoord - 0.5;
     float r = length(d) * 2.0;
     if (r > 1.0) discard;
     if (vKind > 0.5 && vKind < 1.5) {
-      // Ultra-gentle, velvety JWST silk nebula veil (soft watercolor mist in Daylight!)
-      float silk = pow(max(0.0, 1.0 - r * r), 2.15);
-      fragColor = vec4(vCol, silk * vAlpha);
+      // Real procedural JWST swirling gaseous nebula filament sprite (NOT a flat circular blob!)
+      float ang = vSeed + r * 1.35 + uTime * 0.025;
+      float cs = cos(ang), sn = sin(ang);
+      vec2 uv = mat2(cs, -sn, sn, cs) * d * 2.85 + vec2(vSeed * 1.7, vSeed * 0.9);
+      float f1 = nebFbm(uv);
+      float f2 = nebFbm(uv * 1.85 + vec2(f1 * 1.65, -f1 * 1.25));
+      float filament = smoothstep(0.24, 0.84, f2);
+      float wisp = pow(max(0.0, 1.0 - r * r), 1.65);
+      // Organic gaseous density: luminous core + sculpted filamentary arms + wispy edges
+      float density = wisp * (0.28 + 0.98 * filament) * (0.62 + 0.55 * f1);
+      // Hot ionized nebula ridge shift (subtle magenta/gold/cyan iridescence along dense gas ridges!)
+      vec3 ridgeTint = uTheme > 1.5
+        ? vCol * 0.88
+        : mix(vCol * 1.18, vec3(vCol.b * 0.95 + 0.14, vCol.g * 1.08, vCol.r * 0.85 + 0.22), smoothstep(0.42, 0.88, f2) * 0.48);
+      float coreGlow = exp(-r * r * 5.2) * 0.32;
+      vec3 finalCol = mix(vCol * 0.82, ridgeTint, smoothstep(0.28, 0.78, f2));
+      fragColor = vec4(finalCol, clamp((density + coreGlow * f1) * vAlpha, 0.0, 0.72));
     } else if (vKind > 1.5) {
-      // Gentle warm Conjecture Lantern Star with delicate 4-point astronomical diffraction halo
-      float core = exp(-r * r * 12.5);
-      float glow = pow(max(0.0, 1.0 - r), 2.6) * 0.36;
-      float rayX = exp(-abs(d.y) * 28.0) * exp(-abs(d.x) * 5.0) * 0.52;
-      float rayY = exp(-abs(d.x) * 28.0) * exp(-abs(d.y) * 5.0) * 0.52;
+      // Radiant Warm Conjecture Lantern Star with crisp 4-point JWST astronomical diffraction spikes
+      float core = exp(-r * r * 10.5);
+      float glow = pow(max(0.0, 1.0 - r), 2.3) * 0.44;
+      float rayX = exp(-abs(d.y) * 26.0) * exp(-abs(d.x) * 4.5) * 0.62;
+      float rayY = exp(-abs(d.x) * 26.0) * exp(-abs(d.y) * 4.5) * 0.62;
       float lum = clamp(core + glow + rayX + rayY, 0.0, 1.0);
       vec3 coreTarget = uTheme > 1.5 ? vec3(0.32, 0.14, 0.02) : vec3(1.0, 0.98, 0.92);
-      fragColor = vec4(mix(vCol, coreTarget, core * 0.65), lum * vAlpha);
+      fragColor = vec4(mix(vCol, coreTarget, core * 0.68), lum * vAlpha);
     } else {
-      // Crisp crystalline Lean verified theorem node (dark-ink atlas dot in Daylight, sharp jewel in Dark/Matrix!)
+      // Prominent, jewel-like Lean verified theorem star node (larger tactile pearls + starlight glint on major hubs!)
       if (uTheme > 1.5) {
-        float inkDot = smoothstep(0.58, 0.16, r) * 0.96 + exp(-r * r * 5.5) * 0.24;
-        vec3 inkCol = mix(vCol, vec3(0.04, 0.09, 0.16), smoothstep(0.38, 0.08, r) * 0.45);
+        float inkDot = smoothstep(0.64, 0.18, r) * 0.98 + exp(-r * r * 4.8) * 0.28;
+        vec3 inkCol = mix(vCol, vec3(0.04, 0.09, 0.16), smoothstep(0.36, 0.08, r) * 0.42);
         fragColor = vec4(inkCol, clamp(inkDot, 0.0, 1.0) * clamp(vAlpha * 1.38, 0.0, 0.96));
       } else {
-        float softCore = exp(-r * r * 6.8) + exp(-r * r * 2.1) * 0.34;
-        float jewelDisc = smoothstep(0.46, 0.16, r) * 0.92 + exp(-r * r * 6.2) * 0.26;
-        float lum = mix(softCore, jewelDisc, uGalaxyBoost);
-        float whiteMix = mix(exp(-r * r * 6.8) * 0.38, smoothstep(0.32, 0.08, r) * 0.52, uGalaxyBoost);
-        fragColor = vec4(mix(vCol, vec3(0.96, 0.99, 1.0), whiteMix), clamp(lum, 0.0, 1.0) * vAlpha);
+        float softCore = exp(-r * r * 5.8) + exp(-r * r * 1.9) * 0.40;
+        // Larger crisp glowing orb + rich colored corona halo in Cosmos mode so every theorem node pops!
+        float orbDisc = smoothstep(0.56, 0.20, r) * 0.96 + exp(-r * r * 2.4) * 0.44;
+        float hubCross = vHub * uGalaxyBoost * (
+          exp(-abs(d.y) * 24.0) * exp(-abs(d.x) * 4.2) +
+          exp(-abs(d.x) * 24.0) * exp(-abs(d.y) * 4.2)
+        ) * 0.52;
+        float lum = mix(softCore, orbDisc, uGalaxyBoost) + hubCross;
+        // Keep the orb halo richly tinted in its galaxy jewel color; only the pinpoint nucleus gleams white!
+        float whiteMix = mix(exp(-r * r * 7.5) * 0.34, smoothstep(0.28, 0.06, r) * 0.46, uGalaxyBoost);
+        fragColor = vec4(mix(vCol, vec3(0.98, 0.99, 1.0), whiteMix), clamp(lum, 0.0, 1.0) * vAlpha);
       }
     }
   }`;
@@ -941,12 +996,12 @@
     vec3 wp = uGatherPivot[gi] + (aPos - uGatherPivot[gi]) * g.w * uGatherStretch[gi] + g.xyz;
     gl_Position = uViewProj * uModel * vec4(wp, 1.0);
     float genMask = aGen < 0.0 ? 1.0 : smoothstep(aGen - 0.03, aGen + 0.06, uGenesisCut);
-    float edgeBoost = aGen < 0.0 ? 1.0 : mix(1.0, 1.85, uGalaxyBoost);
+    float edgeBoost = aGen < 0.0 ? 1.0 : mix(1.0, 1.38, uGalaxyBoost);
     if (uTheme > 1.5) {
       vCol = mix(aCol, vec3(0.06, 0.14, 0.24), aGen < 0.0 ? 0.52 : 0.34);
       vAlpha = aAlpha * edgeBoost * 1.48 * uAlphaMul * uGatherAlpha[gi] * genMask;
     } else {
-      vCol = mix(aCol, uTheme > 0.5 ? vec3(0.45, 1.0, 0.68) : vec3(0.92, 0.98, 1.0), (aGen < 0.0 ? 0.0 : 0.34 * uGalaxyBoost));
+      vCol = mix(aCol, uTheme > 0.5 ? vec3(0.45, 1.0, 0.68) : vec3(0.88, 0.96, 1.0), (aGen < 0.0 ? 0.0 : 0.16 * uGalaxyBoost));
       vAlpha = aAlpha * edgeBoost * uAlphaMul * uGatherAlpha[gi] * genMask;
     }
   }`;
@@ -974,6 +1029,8 @@
   out vec3 vCol;
   out float vAlpha;
   out float vKind;
+  out float vSeed;
+  out float vHub;
   void main() {
     float u = fract(aOrb.z + uTime * aOrb.w);
     float wy = -1.1 + u * 7.6; // gently rises from reflective ground abyss (-1.1) up to Akasha crown (+6.5)!
@@ -988,6 +1045,8 @@
     vCol = aCol;
     vAlpha = aStyle.y * env * uAlphaMul;
     vKind = 0.0;
+    vSeed = aOrb.z * 6.28318;
+    vHub = 0.0;
   }`;
 
   const QUAD_VS = `#version 300 es
@@ -1672,7 +1731,7 @@
       const key = `${stars?.length || 0}:${edges?.length || 0}:${recentByCluster?.size || 0}:${conjKey}:${isLight ? 1 : 0}:${palKey}`;
       if (key === this.starHash) return;
       this.starHash = key;
-      const isMatrixPal = !isLight && nebPalette?.[0] && nebPalette[0][1] > 210 && nebPalette[0][0] < 90;
+      const isMatrixPal = !isLight && nebPalette?.[0] && nebPalette[0][1] > 210 && nebPalette[0][0] < 90 && nebPalette[0][2] < 160;
 
       this.clusterCenters = new Map();
       if (clusters && clusters.length) {
@@ -1704,7 +1763,7 @@
         starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, isLight ? 0.24 : (0.18 + rand() * 0.38), 0, -0.1);
       }
 
-      // 2. Real Lean Verified Truth DAG stars (3,600+ sampled from trureturing-pages) on the 3D Celestial Helical Ring
+      // 2. Real Lean Verified Truth DAG stars (3,600+ sampled from trureturing-pages) — larger jewel-like hierarchical nodes!
       const worldPts = [];
       if (stars && stars.length) {
         for (let i = 0; i < stars.length; i++) {
@@ -1715,19 +1774,22 @@
           const col = (nebPalette && nebPalette[s[3] % nebPalette.length]) || [128, 198, 232];
           const deg = s[5] || 1;
           const isOther = s[3] === 7;
-          const sz = isOther ? 2.15 : ((deg >= 8 ? 4.4 : deg >= 4 ? 3.35 : 2.60) * (hasG ? 1.12 : 1.0));
-          const al = (isOther ? 0.32 : (deg >= 6 ? 0.88 : (hasG ? 0.76 : 0.58))) * (isLight ? 0.82 : 1.0);
+          // Distinct visual hierarchy: sparkling leaves -> glowing branch pearls -> radiant diffraction-glint DAG hubs!
+          const sz = isOther
+            ? 2.75
+            : ((deg >= 8 ? 7.4 : deg >= 4 ? 5.2 : 3.65) * (hasG ? 1.10 : 1.0));
+          const al = (isOther ? 0.40 : (deg >= 7 ? 0.94 : (hasG ? 0.86 : 0.68))) * (isLight ? 0.84 : 1.0);
           const gen = Math.max(0.01, Math.min(0.99, (s[4] || 0) / 100));
-          // Gently brighten high-degree DAG hub stars toward pearlescent starlight so topology pops!
-          const hubMix = (!isOther && !isLight && deg >= 7) ? 0.28 : 0.0;
-          const rS = (col[0] / 255) * (1 - hubMix) + 0.96 * hubMix;
+          // Gently brighten top DAG hub nodes toward warm pearlescent starlight while keeping jewel hue vivid!
+          const hubMix = (!isOther && !isLight && deg >= 8) ? 0.22 : 0.0;
+          const rS = (col[0] / 255) * (1 - hubMix) + 0.98 * hubMix;
           const gS = (col[1] / 255) * (1 - hubMix) + 0.98 * hubMix;
           const bS = (col[2] / 255) * (1 - hubMix) + 1.00 * hubMix;
           starData.push(wx, wy, wz, rS, gS, bS, sz, al, s[3] + 1, gen);
         }
       }
 
-      // 3. Lush 9-Layer JWST Silk Volumetric Nebula Clouds behind every named galaxy + cosmic river wisps!
+      // 3. Sculpted 12-Layer Procedural Turbulent JWST Gaseous Nebula Clouds cradling every galaxy!
       this.skyClusters = [];
       const clusterPosById = new Map();
       if (clusters && clusters.length) {
@@ -1739,35 +1801,42 @@
           this.skyClusters.push({ cl, x: cx3, y: cy3, z: cz3, col });
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
           const rC = col[0] / 255, gC = col[1] / 255, bC = col[2] / 255;
-          // Deep saturated JWST jewel nebula tones (alpha-blended so overlapping clouds stay colorful and NEVER blow out to white!)
-          const dR = isLight ? rC : (isMatrixPal ? rC * 0.22 : rC * 0.54);
-          const dG = isLight ? gC : (isMatrixPal ? gC * 0.44 : gC * 0.64);
-          const dB = isLight ? bC : (isMatrixPal ? bC * 0.34 : bC * 0.78);
-          const wR = isLight ? rC * 0.78 : (isMatrixPal ? 0.05 : Math.min(1, rC * 0.62 + 0.08));
-          const wG = isLight ? gC * 0.80 : (isMatrixPal ? 0.52 : Math.min(1, gC * 0.70 + 0.06));
-          const wB = isLight ? bC * 0.86 : (isMatrixPal ? 0.26 : Math.min(1, bC * 0.84 + 0.08));
-          // Iridescent deep-indigo / cosmic amethyst outer nebula veil (deep emerald-teal in Matrix)
-          const oR = isLight ? rC * 0.82 : (isMatrixPal ? 0.03 : Math.min(1, rC * 0.46 + 0.16));
-          const oG = isLight ? gC * 0.85 : (isMatrixPal ? 0.36 : Math.min(1, gC * 0.38 + 0.08));
-          const oB = isLight ? bC * 0.92 : (isMatrixPal ? 0.19 : Math.min(1, bC * 0.68 + 0.24));
-          const baseSz = hasG ? 136.0 : 110.0;
-          const baseAl = isLight ? (hasG ? 0.11 : 0.07) : (hasG ? 0.28 : 0.21);
+          // Rich multi-spectral JWST nebula palette per galaxy: luminous core + ionized turquoise/cyan + royal amethyst/rose + warm golden pillars!
+          const dR = isLight ? rC : (isMatrixPal ? rC * 0.24 : Math.min(1, rC * 0.72 + 0.04));
+          const dG = isLight ? gC : (isMatrixPal ? gC * 0.56 : Math.min(1, gC * 0.80 + 0.04));
+          const dB = isLight ? bC : (isMatrixPal ? bC * 0.42 : Math.min(1, bC * 0.92 + 0.06));
+          const wR = isLight ? rC * 0.78 : (isMatrixPal ? 0.06 : Math.min(1, rC * 0.78 + 0.14));
+          const wG = isLight ? gC * 0.80 : (isMatrixPal ? 0.64 : Math.min(1, gC * 0.86 + 0.08));
+          const wB = isLight ? bC * 0.86 : (isMatrixPal ? 0.30 : Math.min(1, bC * 0.94 + 0.10));
+          // Deep cosmic amethyst-rose ionized outer gas veil (emerald-jade in Matrix)
+          const oR = isLight ? rC * 0.82 : (isMatrixPal ? 0.04 : Math.min(1, rC * 0.52 + 0.28));
+          const oG = isLight ? gC * 0.85 : (isMatrixPal ? 0.46 : Math.min(1, gC * 0.34 + 0.08));
+          const oB = isLight ? bC * 0.92 : (isMatrixPal ? 0.24 : Math.min(1, bC * 0.76 + 0.26));
+          // Warm Carina amber-rose emission filament accent
+          const aR = isLight ? 0.72 : (isMatrixPal ? 0.18 : 0.86);
+          const aG = isLight ? 0.54 : (isMatrixPal ? 0.76 : 0.56);
+          const aB = isLight ? 0.32 : (isMatrixPal ? 0.32 : 0.32);
+          const baseSz = hasG ? 186.0 : 152.0;
+          const baseAl = isLight ? (hasG ? 0.12 : 0.08) : (hasG ? 0.44 : 0.34);
           const slot = cl.id + 1;
-          // Broad atmospheric deep-space outer indigo-violet veil
-          nebData.push(cx3, cy3 + 0.12, cz3 - 0.25, oR, oG, oB, baseSz * 1.54, baseAl * 0.56, slot, 0.06);
-          // Primary luminous jewel-toned galaxy heart
-          nebData.push(cx3, cy3, cz3, dR, dG, dB, baseSz * 1.04, baseAl * 0.95, slot, 0.12);
-          // Sweeping spiral wing lobes (left & right along the cosmic plane)
-          nebData.push(cx3 - 1.38, cy3 + 0.40, cz3 - 0.60, wR, wG, wB, baseSz * 0.88, baseAl * 0.66, slot, 0.20);
-          nebData.push(cx3 + 1.38, cy3 - 0.32, cz3 + 0.50, dR, dG, dB, baseSz * 0.84, baseAl * 0.64, slot, 0.28);
-          // Upper & lower volumetric billows
-          nebData.push(cx3 - 0.58, cy3 - 0.46, cz3 + 0.60, oR, oG, oB, baseSz * 0.76, baseAl * 0.54, slot, 0.36);
-          nebData.push(cx3 + 0.62, cy3 + 0.52, cz3 - 0.46, wR, wG, wB, baseSz * 0.70, baseAl * 0.50, slot, 0.44);
-          // Warm amber-gold star-forming nebula dust core
-          nebData.push(cx3 + 0.30, cy3 + 0.24, cz3 - 0.22, isMatrixPal ? 0.16 : 0.72, isMatrixPal ? 0.62 : 0.54, isMatrixPal ? 0.24 : 0.28, baseSz * 0.58, baseAl * (hasG ? 0.52 : 0.34), slot, 0.52);
-          // Extended peripheral Milky-Way nebula tendrils linking adjacent galaxies softly
-          nebData.push(cx3 - 2.10, cy3 - 0.10, cz3 + 0.32, oR, oG, oB, baseSz * 0.96, baseAl * 0.38, slot, 0.18);
-          nebData.push(cx3 + 2.10, cy3 + 0.14, cz3 - 0.32, dR, dG, dB, baseSz * 0.92, baseAl * 0.36, slot, 0.24);
+          // 1-2. Grand enveloping cosmic amethyst & sapphire outer gaseous envelope
+          nebData.push(cx3, cy3 + 0.18, cz3 - 0.35, oR, oG, oB, baseSz * 1.48, baseAl * 0.64, slot, 0.05);
+          nebData.push(cx3 - 0.85, cy3 - 0.32, cz3 + 0.45, dR * 0.82, dG * 0.88, dB * 1.02, baseSz * 1.34, baseAl * 0.58, slot, 0.08);
+          // 3. Luminous swirling galaxy heart
+          nebData.push(cx3, cy3, cz3, dR, dG, dB, baseSz * 1.06, baseAl * 0.95, slot, 0.12);
+          // 4-5. Sweeping spiral nebula arms (left & right wings)
+          nebData.push(cx3 - 1.52, cy3 + 0.48, cz3 - 0.68, wR, wG, wB, baseSz * 0.96, baseAl * 0.78, slot, 0.18);
+          nebData.push(cx3 + 1.52, cy3 - 0.42, cz3 + 0.58, dR, dG, dB, baseSz * 0.94, baseAl * 0.76, slot, 0.24);
+          // 6-7. Vertical towering ionization plumes ("Pillars of Creation" silhouette!)
+          nebData.push(cx3 - 0.62, cy3 + 0.68, cz3 - 0.42, wR, wG, wB, baseSz * 0.84, baseAl * 0.68, slot, 0.30);
+          nebData.push(cx3 + 0.68, cy3 - 0.64, cz3 + 0.48, oR, oG, oB, baseSz * 0.82, baseAl * 0.66, slot, 0.36);
+          // 8-9. Warm amber-gold & magenta star-forming core filaments
+          nebData.push(cx3 + 0.34, cy3 + 0.28, cz3 - 0.24, aR, aG, aB, baseSz * 0.68, baseAl * (hasG ? 0.72 : 0.48), slot, 0.44);
+          nebData.push(cx3 - 0.42, cy3 - 0.22, cz3 + 0.28, oR * 1.12, oG * 0.92, oB * 1.05, baseSz * 0.64, baseAl * 0.58, slot, 0.50);
+          // 10-12. Extended swirling galactic gas bridges connecting the 7 nebulae into ONE continuous starry Milky Way!
+          nebData.push(cx3 - 2.25, cy3 - 0.14, cz3 + 0.38, oR, oG, oB, baseSz * 1.05, baseAl * 0.48, slot, 0.16);
+          nebData.push(cx3 + 2.25, cy3 + 0.18, cz3 - 0.38, dR, dG, dB, baseSz * 1.02, baseAl * 0.46, slot, 0.22);
+          nebData.push(cx3 + 0.12, cy3 - 0.86, cz3 + 0.72, wR * 0.85, wG * 0.92, wB, baseSz * 0.90, baseAl * 0.44, slot, 0.28);
         }
       }
 
@@ -1836,7 +1905,7 @@
           if (Math.hypot(pu[0] - pv[0], pu[1] - pv[1], pu[2] - pv[2]) > 5.85) continue;
           const hasG = Boolean(recentByCluster?.get(cu)?.count);
           const col = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
-          const al = (cu === 7 ? 0.075 : (hasG ? 0.20 : 0.155)) * (isLight ? 0.88 : 1.0);
+          const al = (cu === 7 ? 0.065 : (hasG ? 0.165 : 0.130)) * (isLight ? 0.92 : 1.0);
           edgeData.push(
             pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge,
             pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge
@@ -1927,7 +1996,7 @@
     render(params) {
       const {
         t, themeIdx, entities, activeId, focusedId, bootAge, quiet,
-        stationAlpha = 1.0, galaxyAlpha = 1.0, galaxyBoost = 0.0, stationFocus = 0.0,
+        stationAlpha = 1.0, galaxyAlpha = 1.0, galaxyBoost = 0.0, stationFocus = 0.0, galaxyFocused = false,
         sonarRadius = 0.0, sonarAlpha = 0.0,
         rheostatRevX = -2.0, rheostatStuX = 2.0,
         genesisRadius = 99.0, genesisCut = 1.05, ciLoad = 0.45, scholarCount = 223
@@ -2103,8 +2172,8 @@
         }
 
         for (const e of entities) {
-          // Keep the Supreme Akasha Eye 100% sovereign & luminous in BOTH Cosmos and Station modes!
-          const entAlpha = e.eye ? 1.0 : stationAlpha;
+          // Keep Supreme Akasha Eye 100% sovereign in Cosmos, Station & Hybrid; gently fade only when flying inside a single galaxy!
+          const entAlpha = e.eye ? (galaxyFocused ? stationAlpha : 1.0) : stationAlpha;
           if (entAlpha < 0.04) continue;
           const rawBoot = Math.max(0.08, Math.min(1, (bootAge - e.order * 0.025) / 0.32));
           const bootK = 1 - Math.pow(1 - rawBoot, 3);
@@ -2189,11 +2258,11 @@
             this.drawVolumetricPillar(ver.x, (ver.y || 0) + 0.15, ver.z, 0.96, 4.4, vc, (0.10 + ciLoad * 0.10) * loadBeat * stationAlpha);
             this.drawVolumetricPillar(ver.x, -1.35, ver.z, 0.56, 1.35, vc, (0.16 + ciLoad * 0.18) * loadBeat * stationAlpha);
           }
-          if (eyeEnt) {
+          if (eyeEnt && (!galaxyFocused || stationAlpha > 0.05)) {
             // Grand translucent downward Global Surveillance Light Cone + Zenith Aura Pillar from Supreme Akasha Eye!
             const ec = isMatrix ? [0.16, 0.92, 0.46] : [0.94, 0.78, 0.44];
             const ic = isMatrix ? [0.28, 0.96, 0.56] : [0.54, 0.84, 0.96];
-            const ea = 1.0 + galaxyBoost * 0.24 + stationFocus * 0.45;
+            const ea = (galaxyFocused ? stationAlpha : 1.0) * (1.0 + galaxyBoost * 0.24 + stationFocus * 0.45);
             const eyeY = eyeEnt.y || 6.95;
             const coneW = 4.5 + galaxyBoost * 1.05 + stationFocus * 0.65;
             this.drawVolumetricPillar(eyeEnt.x, 0.35, eyeEnt.z, coneW, eyeY - 0.45, ec, 0.054 * ea, true);
