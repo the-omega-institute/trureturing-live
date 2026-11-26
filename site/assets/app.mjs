@@ -5787,7 +5787,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, no
       const baseA = isSpot ? 0.58 : hasGrowth ? 0.30 : 0.18;
       const aCore = (baseA + (degW >= 7 ? 0.12 : 0)) * mask * Math.min(1.15, clusterEmphasis(s[3]));
       const sz = (degW >= 7 ? 1.5 : 1.0) * grow;
-      ctx.fillStyle = rgba(degW >= 8 && !isLight ? [214, 224, 236] : col, Math.min(0.72, aCore));
+      ctx.fillStyle = rgba(degW >= 8 && !isLight ? [194, 208, 224] : col, Math.min(0.56, aCore));
       ctx.fillRect(px - sz * 0.5, py - sz * 0.5, sz, sz);
     }
   }

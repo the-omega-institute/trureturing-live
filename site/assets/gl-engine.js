@@ -998,18 +998,20 @@
         return;
       }
       // Crisp jewel-like dependency-tiered astronomical star (amber-gold 345+ hubs get delicate 4-point star glint!)
-      float disc = smoothstep(0.78, 0.34, r);
-      float softHalo = exp(-r * r * 5.0) * (0.28 + vHub * 0.34);
+      float galaxySoft = uTheme < 0.5 ? 0.68 : 1.0;
+      float disc = smoothstep(0.78, 0.34, r) * galaxySoft;
+      float softHalo = exp(-r * r * 5.0) * (0.22 + vHub * 0.26);
       float glint = vHub * (
         exp(-abs(d.y) * 32.0) * exp(-abs(d.x) * 4.8) +
         exp(-abs(d.x) * 32.0) * exp(-abs(d.y) * 4.8)
-      ) * 0.62;
+      ) * (uTheme < 0.5 ? 0.28 : 0.62);
       float alphaOut = clamp(max(disc, softHalo) + glint, 0.0, 1.0);
       float rimDark = smoothstep(0.56, 0.84, r) * 0.18;
-      float spec = smoothstep(0.36, 0.03, r) * (0.34 + vHub * 0.48);
+      float spec = smoothstep(0.36, 0.03, r) * (uTheme < 0.5 ? 0.16 + vHub * 0.26 : 0.34 + vHub * 0.48);
+      vec3 observatoryWhite = vec3(0.80, 0.87, 0.96);
       vec3 bodyCol = uTheme > 1.5
         ? mix(mix(vCol, vec3(0.08, 0.14, 0.22), rimDark * 0.35), vec3(1.0, 0.99, 0.96), smoothstep(0.30, 0.02, r) * (0.22 + vHub * 0.38))
-        : mix(vCol * (1.0 - rimDark), vec3(1.0, 0.99, 0.94), spec);
+        : mix(vCol * (1.0 - rimDark), uTheme < 0.5 ? observatoryWhite : vec3(1.0, 0.99, 0.94), spec);
       fragColor = vec4(bodyCol, alphaOut * clamp(vAlpha, 0.0, 1.0));
     } else if (vKind > 1.5) {
       // Radiant Warm Conjecture Lantern Star with crisp 4-point astronomical diffraction spikes
@@ -2166,7 +2168,7 @@
           : isMatrixPal
             ? (i % 5 === 0 ? [0.48, 0.82, 0.60] : [0.12, 0.68, 0.34])
             : (i % 6 === 0 ? [0.82, 0.86, 0.92] : [0.58, 0.70, 0.82]);
-        const alpha = isLight ? 0.18 : (isMatrixPal ? 0.12 + rand() * 0.22 : 0.10 + rand() * 0.22);
+        const alpha = isLight ? 0.18 : (isMatrixPal ? 0.12 + rand() * 0.22 : 0.06 + rand() * 0.14);
         starData.push(x, y, z, tone[0], tone[1], tone[2], 1.3 + rand() * 1.9, alpha, 0, -0.1);
       }
 
@@ -2198,7 +2200,7 @@
       const tierSizes  = [1.95, 2.80, 4.10, 5.85, 8.20];
       const tierAlphas = isLight
         ? [0.64, 0.80, 0.90, 0.96, 1.00]
-        : [0.44, 0.58, 0.70, 0.80, 0.88];
+        : [0.22, 0.30, 0.40, 0.50, 0.62];
 
       const worldPts = [];
       const starBuckets = [[], [], [], [], [], []]; // 0 = Foundations belt, 1..5 = named galaxy tier 0..4
@@ -2247,7 +2249,7 @@
           clusterPosById.set(cl.id, [cx3, cy3, cz3]);
           if (!isLight) {
             const cHalo = isMatrixPal ? [0.12, 0.62, 0.34] : [col[0] / 255 * 0.55, col[1] / 255 * 0.68, col[2] / 255 * 0.80];
-            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.085, cl.id + 1, 0.05);
+            nebData.push(cx3, cy3, cz3, cHalo[0], cHalo[1], cHalo[2], 78.0, isMatrixPal ? 0.065 : 0.045, cl.id + 1, 0.05);
           }
         }
       }
@@ -2305,8 +2307,8 @@
           const hi = (tu >= 3 || tv >= 3);
           const col = (nebPalette && nebPalette[cu % nebPalette.length]) || [128, 198, 232];
           const al = cu === 7
-            ? (isLight ? 0.06 : 0.035)
-            : (hi ? (isLight ? 0.19 : 0.10) : (isLight ? 0.10 : 0.05));
+            ? (isLight ? 0.06 : 0.025)
+            : (hi ? (isLight ? 0.19 : 0.06) : (isLight ? 0.10 : 0.03));
           edgeData.push(
             pu[0], pu[1], pu[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge,
             pv[0], pv[1], pv[2], col[0] / 255, col[1] / 255, col[2] / 255, al, cu + 1, gEdge
