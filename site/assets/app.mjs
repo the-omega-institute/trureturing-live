@@ -3467,25 +3467,21 @@ async function loadTruthNebula() {
 // ============================================================================
 // LIVE TRUTH DAG GROWTH
 // Newly frozen D5 modules observed on the truth repository grow as new stars in
-// their galaxy. Each galaxy's growth gets a close-up: the sky eases in around
-// it, new edges sprout and the stars light up, then the sky settles before the
-// next galaxy grows.
+// their galaxy. A side window follows the new branches while the source lights
+// the panorama.
 // ============================================================================
-const GROWTH_IN_MS = 1400;
-const GROWTH_HOLD_MS = 5200;
-const GROWTH_END_MS = 7000;
-const GROWTH_CALM_MS = 6000;
-const GROWTH_SPAWN_START_MS = 1100;
-const GROWTH_SPAWN_GAP_MS = 380;
-const GROWTH_EDGE_MS = 900;
+const GROWTH_IN_MS = 460;
+const GROWTH_SPAWN_START_MS = 850;
+const GROWTH_EDGE_MS = 1500;
+const GROWTH_TAIL_MS = 2650;
 const GROWTH_VISIBLE_STARS = 8;
 const GROWTH_LENS = 2.4;
+const MAX_GROWTH_INSETS = 2;
 const truthGrowth = {
   seen: null,
   queue: [],
-  focus: null,
+  active: [],
   manualFocus: null,
-  calmUntil: 0,
   lastCid: null,
   grown: [],
   members: null,
@@ -3520,24 +3516,31 @@ function enqueueGrowth(queue, records, clusters, now) {
   const next = queue.map(item => ({ ...item, modules: item.modules.slice() }));
   for (const record of records) {
     const cid = growthClusterId(record.domain, clusters);
-    const item = next.find(entry => entry.cid === cid);
+    const item = next.find(entry => entry.cid === cid
+      && Boolean(entry.modules[0].preview) === Boolean(record.preview)
+      && (cid >= 0 || entry.modules[0].domain === record.domain));
     if (item) item.modules.push(record);
     else next.push({ cid, modules: [record], queuedAt: now });
   }
   return next;
 }
 
-function nextGrowthFocus(queue, now, calmUntil, lastCid) {
-  if (!queue.length || now < calmUntil) return -1;
-  const elsewhere = queue.findIndex(item => item.cid !== lastCid);
-  return elsewhere >= 0 ? elsewhere : 0;
+function nextGrowthFocus(queue, lastCid, active = []) {
+  const available = item => !active.some(event => event.cid === item.cid);
+  const elsewhere = queue.findIndex(item => item.cid !== lastCid && available(item));
+  return elsewhere >= 0 ? elsewhere : queue.findIndex(available);
 }
 
-function growthFocusAmount(elapsed) {
-  if (elapsed <= 0 || elapsed >= GROWTH_END_MS) return 0;
-  if (elapsed < GROWTH_IN_MS) return growthEase(elapsed / GROWTH_IN_MS);
-  if (elapsed < GROWTH_HOLD_MS) return 1;
-  return growthEase(1 - (elapsed - GROWTH_HOLD_MS) / (GROWTH_END_MS - GROWTH_HOLD_MS));
+function growthTiming(count) {
+  const visible = Math.min(count, GROWTH_VISIBLE_STARS);
+  const gap = Math.min(720, 2500 / Math.max(1, visible - 1));
+  const pulse = GROWTH_SPAWN_START_MS + (visible - 1) * gap + GROWTH_EDGE_MS + 100;
+  return { visible, gap, pulse, end: pulse + GROWTH_TAIL_MS };
+}
+
+function growthFocusAmount(elapsed, timing) {
+  return growthEase(elapsed / GROWTH_IN_MS)
+    * (1 - growthEase((elapsed - timing.pulse - 280) / (GROWTH_TAIL_MS - 280)));
 }
 
 // Fisheye magnifier: points within radius R of (cx, cy) spread outward, most at the
@@ -3739,7 +3742,7 @@ function observeTruthGrowth(feed) {
   return fresh.length;
 }
 
-function commitGrowth(record, cid, born, visible) {
+function commitGrowth(record, cid, born, visible, plannedBranch) {
   const cluster = truthNebula.clusters.find(c => c.id === cid);
   if (!cluster) return;
   if (!record.preview) {
@@ -3747,6 +3750,15 @@ function commitGrowth(record, cid, born, visible) {
     if (truthNebula.counts) truthNebula.counts.truth_nodes = (truthNebula.counts.truth_nodes || 0) + 1;
   }
   if (!visible) return;
+  const branch = plannedBranch ?? growthBranch(record, cluster);
+  if (!branch) return;
+  truthGrowth.grown.push({ ...branch, module: record.module, at: record.at, commit: record.commit,
+    preview: Boolean(record.preview), cid, born });
+  if (truthGrowth.grown.length > 240) truthGrowth.grown.shift();
+}
+
+function growthBranch(record, cluster) {
+  const cid = cluster.id;
   if (!truthGrowth.members) {
     truthGrowth.members = new Map();
     truthNebula.stars.forEach((s, i) => {
@@ -3757,30 +3769,23 @@ function commitGrowth(record, cid, born, visible) {
   const members = truthGrowth.members.get(cid);
   if (!members?.length) return;
   const [a, b, c, d] = growthOffset(record.module);
-  const parentIdx = members[Math.floor(a * members.length)];
+  const recent = truthGrowth.recentSprouts.find(sp => sp.module === record.module);
+  const parentIdx = recent ? recent.parentIdx : members[Math.floor(a * members.length)];
   const p = truthNebula.stars[parentIdx];
   const ctr = cluster.center;
   const dx = p[0] - ctr[0], dy = p[1] - ctr[1], dz = p[2] - ctr[2];
   const len = Math.hypot(dx, dy, dz) || 1;
   const step = 34 + b * 40;
-  truthGrowth.grown.push({
-    module: record.module,
-    at: record.at,
-    commit: record.commit,
-    preview: Boolean(record.preview),
-    cid,
+  return {
     parentIdx,
-    x: p[0] + (dx / len) * step + (c - 0.5) * 30,
-    y: p[1] + (dy / len) * step + (d - 0.5) * 30,
-    z: p[2] + (dz / len) * step * 0.6,
-    born
-  });
-  if (truthGrowth.grown.length > 240) truthGrowth.grown.shift();
+    x: recent ? recent.x : p[0] + (dx / len) * step + (c - 0.5) * 30,
+    y: recent ? recent.y : p[1] + (dy / len) * step + (d - 0.5) * 30,
+    z: recent ? recent.z : p[2] + (dz / len) * step * 0.6
+  };
 }
 
-// Advances the close-up schedule and returns the focus being shown, if any.
 // ---- Galaxy main view -------------------------------------------------------
-// Opening a galaxy, or a galaxy growing, flies the 3D camera to it from the station
+// Opening a galaxy flies the 3D camera to it from the station
 // side so the galaxy becomes the main view; the station and the other galaxies
 // fall back out of frame and return when the view closes.
 const GALAXY_VIEW_FILL = 0.62;
@@ -3809,14 +3814,20 @@ const GATHER_MIN = 3;
 const GATHER_SCALE = 0.5;
 const GATHER_DIM = 0.26;
 
+function galaxyLinkStrengths(cid, links) {
+  const strength = new Map();
+  for (const [u, v, forward = 0, reverse = 0] of links || []) {
+    const other = u === cid ? v : v === cid ? u : null;
+    if (other != null && other !== cid && forward + reverse > 0) {
+      strength.set(other, (strength.get(other) || 0) + forward + reverse);
+    }
+  }
+  return strength;
+}
+
 function galaxyGatherNeighbors(focusCid, clusters, links, frames) {
   const named = (clusters || []).filter(c => c.name !== 'Other' && c.id !== focusCid && frames.has(c.id));
-  const strength = new Map();
-  for (const [u, v, count, rev] of links || []) {
-    const other = u === focusCid ? v : v === focusCid ? u : null;
-    if (other == null) continue;
-    strength.set(other, (strength.get(other) || 0) + (count || 0) + (rev || 0));
-  }
+  const strength = galaxyLinkStrengths(focusCid, links);
   const out = named
     .filter(c => strength.has(c.id))
     .sort((a, b) => strength.get(b.id) - strength.get(a.id))
@@ -3879,16 +3890,10 @@ function galaxyGatherPlan(focusCid, clusters, links, frames, basis, aspect) {
   return { focusCid, neighbors, extentX, extentY };
 }
 
-// Per-galaxy transform targets: gathered galaxies move and shrink about their own
-// centre, the opened one stays, the rest dim in place; a growing galaxy is enlarged
-// about its centre while everything else stays put.
-function galaxyGatherTargets(plan, clusters, swell = null) {
+// Manual exploration gathers related galaxies and dims the rest of the sky.
+function galaxyGatherTargets(plan, clusters) {
   const targets = new Map();
   for (const c of clusters || []) {
-    if (swell && c.id === swell.cid) {
-      targets.set(c.id, { pivot: swell.pivot, offset: swell.offset || [0, 0, 0], scale: swell.scale, stretch: [1, swell.lift || 1, 1], alpha: 1.4 });
-      continue;
-    }
     const n = plan?.neighbors.find(x => x.cid === c.id);
     const active = Boolean(plan);
     targets.set(c.id, n
@@ -3926,14 +3931,14 @@ const COSMOS_UNFURL = {
 };
 
 // Eases every galaxy's gather transform toward the plan (or expanded galaxy observatory / rest) and hands it to the GPU.
-function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
+function stepGalaxyGather(plan, k, expandGalaxies) {
   const gl = holoCam.gl;
   if (!gl || !truthNebula.loaded) return;
   if (!holoCam.gather) holoCam.gather = new Map();
   const entries = [];
-  for (const [cid, baseTarget] of galaxyGatherTargets(plan, truthNebula.clusters, swell)) {
+  for (const [cid, baseTarget] of galaxyGatherTargets(plan, truthNebula.clusters)) {
     let t = baseTarget;
-    if (expandGalaxies && !plan && !swell) {
+    if (expandGalaxies && !plan) {
       const cl = truthNebula.clusters.find(c => c.id === cid);
       const frame = cl && cl.name !== 'Other' ? galaxyWorldFrame(cid) : null;
       if (frame) {
@@ -4020,9 +4025,7 @@ function nodeCameraPose(node, neighbors, fovY, aspect, yaw, pitch) {
   return { yaw, pitch, dist, lookX: x, lookY: y, lookZ: z };
 }
 
-// Only a galaxy the reader opens moves the camera. A growing galaxy keeps the layout and
-// is enlarged where it is, unless the reader is on the station, in a department or has
-// a galaxy open.
+// Only direct navigation takes control of the camera.
 function galaxyCameraAllowed(kind, view) {
   return kind === 'manual' && view.mode === 'organization' && !view.focusedDepartment;
 }
@@ -4033,39 +4036,8 @@ function galaxyCameraFocus() {
   return manual && manual.cluster?.name !== 'Other' && galaxyCameraAllowed('manual', view) ? { cid: manual.cid, kind: 'manual' } : null;
 }
 
-const GROWTH_SWELL = 3.2;
-// A galaxy is a flat band seen from the station; while it grows it also opens up
-// vertically so its new branches separate.
-const GROWTH_SWELL_LIFT = 1.8;
-
-function growthSwellAllowed(view) {
+function growthInsetAllowed(view) {
   return view.mode === 'organization' && !view.focusedDepartment && view.layer !== 'station' && !view.manual;
-}
-
-// Scale of a growing galaxy over its close-up: eases up, holds while it grows, eases back.
-function growthSwellScale(elapsed) {
-  return 1 + (GROWTH_SWELL - 1) * growthFocusAmount(elapsed);
-}
-
-// Screen shift (px) that keeps an enlarged galaxy of the given half size on stage:
-// none when it fits, just enough when it crosses an edge, centred when it is too big.
-function growthSwellShift(center, halfW, halfH, stage) {
-  const axis = (c, half, lo, hi) => {
-    if (2 * half >= hi - lo) return (lo + hi) / 2 - c;
-    if (c - half < lo) return lo - (c - half);
-    if (c + half > hi) return hi - (c + half);
-    return 0;
-  };
-  return [axis(center[0], halfW, stage.left, stage.right), axis(center[1], halfH, stage.top, stage.bottom)];
-}
-
-function growthSwellFocus(now) {
-  const auto = truthGrowth.focus;
-  const manual = truthGrowth.manualFocus && !truthGrowth.manualFocus.closing;
-  const view = { mode: state.mode, layer: state.layer, focusedDepartment: state.focused, manual: Boolean(manual) };
-  if (!auto || auto.cluster?.name === 'Other' || !growthSwellAllowed(view)) return null;
-  const amount = growthFocusAmount(now - auto.start);
-  return amount > 0.001 ? { cid: auto.cid, scale: growthSwellScale(now - auto.start), lift: 1 + (GROWTH_SWELL_LIFT - 1) * amount } : null;
 }
 
 // Trackpad pinch / scroll zoom while inside Galaxy Main View or a focused DAG node:
@@ -4312,13 +4284,17 @@ function galaxyNodeInfo(pick, details, clusters, links = null) {
 // its node, kept only when it overlaps no placed label or blocked area and stays on the stage.
 function planGalaxyLabels(cands, max, bounds, blocked = []) {
   const placed = [];
-  const h = 15;
   const clear = (r, o) => r.lx + r.w <= o.lx || o.lx + o.w <= r.lx || r.ly + r.h <= o.ly || o.ly + o.h <= r.ly;
   const fits = r => r.lx >= bounds.left && r.ly >= bounds.top && r.lx + r.w <= bounds.right && r.ly + r.h <= bounds.bottom
     && placed.every(o => clear(r, o)) && blocked.every(o => clear(r, o));
   for (const c of cands) {
     if (placed.length >= max) break;
+    const h = c.h ?? 15;
     const tries = [[c.x + 9, c.y - h - 3], [c.x - 9 - c.w, c.y - h - 3], [c.x + 9, c.y + 4], [c.x - 9 - c.w, c.y + 4]];
+    if (c.keepInside) {
+      const x = Math.max(bounds.left, Math.min(c.x - c.w / 2, bounds.right - c.w));
+      tries.push([x, c.y - h - 10], [x, c.y + 10]);
+    }
     for (const [lx, ly] of tries) {
       const r = { ...c, lx, ly, h };
       if (fits(r)) {
@@ -4495,14 +4471,8 @@ function keepGalaxyNodeCardClear(selPick, bounds, now) {
 
 // Marks new nodes and hub theorems of the main-view galaxy, labels them and records the
 // projected nodes that the pointer can pick.
-// In 'main' mode the galaxy is opened (gathered group, hub labels, legend); in 'swell'
-// mode it is growing in place and only its new nodes are marked.
-function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGutter, now, mode = 'main') {
-  const main = mode === 'main';
-  const swellNow = holoCam.gather?.get(cid)?.scale || 1;
-  const alpha = main
-    ? Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4))
-    : Math.max(0, Math.min(1, ((swellNow - 1) / (GROWTH_SWELL - 1)) * 1.25));
+function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGutter, now) {
+  const alpha = Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4));
   const right = w - rightGutter - 14;
   galaxyDetail.bounds = { left: 16, top: 116, right, bottom: h - 70 };
   if (alpha < 0.05) {
@@ -4510,7 +4480,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     return;
   }
   const onStage = (x, y) => x > 18 && x < right && y > 70 && y < h - 60;
-  const plan = main && holoCam.gatherPlan?.focusCid === cid ? holoCam.gatherPlan : null;
+  const plan = holoCam.gatherPlan?.focusCid === cid ? holoCam.gatherPlan : null;
   const group = new Set([cid, ...(plan?.neighbors || []).map(n => n.cid)]);
   const picks = [];
   const stars = truthNebula.stars;
@@ -4528,7 +4498,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   for (const g of truthGrowth.grown) {
     if (!group.has(g.cid) || !g.module || now - g.born < GROWTH_EDGE_MS) continue;
     const [x, y] = project(g.x / 1000, g.y / 1000, g.z / 1000, g.cid);
-    if (onStage(x, y)) freshByModule.set(g.module, { kind: 'new', cid: g.cid, module: g.module, at: g.at, commit: g.commit, preview: g.preview, x, y, nx: g.x / 1000, ny: g.y / 1000, nz: g.z / 1000 });
+    if (onStage(x, y)) freshByModule.set(g.module, { kind: 'new', cid: g.cid, module: g.module, at: g.at, commit: g.commit, preview: g.preview, born: g.born, reveal: growthEase((now - g.born - GROWTH_EDGE_MS) / 360), x, y, nx: g.x / 1000, ny: g.y / 1000, nz: g.z / 1000 });
   }
   const fresh = [...freshByModule.values()].sort((a, b) => (timestamp(b.at) || 0) - (timestamp(a.at) || 0));
   picks.push(...fresh);
@@ -4537,7 +4507,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   const details = galaxyDetail.data;
   const col = palette[cid % palette.length];
   const gold = isLight ? [160, 104, 16] : [255, 214, 128];
-  const hubs = details && main ? picks.filter(p => p.kind === 'star' && p.cid === cid).sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
+  const hubs = details ? picks.filter(p => p.kind === 'star' && p.cid === cid).sort((a, b) => b.weight - a.weight).slice(0, 6) : [];
   const sel = galaxyDetail.selectedNode;
   const conn = sel?.kind === 'star' ? nodeConnections(sel.idx, details) : { prereqs: [], dependents: [], other: [] };
   const linked = [...conn.prereqs, ...conn.dependents, ...conn.other];
@@ -4664,18 +4634,18 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   const cands = [];
   const add = (p, kind) => {
     if (!p || cands.some(c => c.key === galaxyNodeKey(p))) return;
-    cands.push({ key: galaxyNodeKey(p), x: p.x, y: p.y, text: textFor(p), kind: p.kind === 'new' ? 'new' : kind });
+    cands.push({ key: galaxyNodeKey(p), reveal: p.reveal, x: p.x, y: p.y, text: textFor(p), kind: p.kind === 'new' ? 'new' : kind });
   };
   add(byKey.get(galaxyDetail.selectedKey), 'focus');
   add(byKey.get(galaxyDetail.hoverKey), 'focus');
   linkedPicks.slice(0, 6).forEach(p => add(p, 'focus'));
-  const growing = !main ? new Set((truthGrowth.focus?.cid === cid ? truthGrowth.focus.modules : []).map(r => r.module)) : null;
-  fresh.filter(p => p.cid === cid && (!growing || growing.has(p.module))).slice(0, 6).forEach(p => add(p, 'new'));
+  fresh.filter(p => p.cid === cid).slice(0, 6).forEach(p => add(p, 'new'));
   hubs.forEach(p => add(p, 'hub'));
 
   ctx.save();
   ctx.globalAlpha = alpha;
   for (const p of fresh) {
+    ctx.globalAlpha = alpha * (p.reveal ?? 1);
     const pulse = 0.5 + 0.5 * Math.sin(now / 520 + (p.x + p.y) * 0.01);
     const r = 5 + 2.2 * pulse;
     ctx.strokeStyle = rgba(gold, 0.55 + 0.4 * pulse);
@@ -4692,6 +4662,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     ctx.arc(p.x, p.y, 1.9, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.globalAlpha = alpha;
   for (const p of hubs) {
     ctx.strokeStyle = rgba(col, 0.7);
     ctx.lineWidth = 1;
@@ -4717,6 +4688,7 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
   ctx.lineJoin = 'round';
   const halo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(4, 7, 12, 0.92)';
   for (const c of placed) {
+    ctx.globalAlpha = alpha * (c.reveal ?? 1);
     const tone = c.kind === 'new' ? gold : c.kind === 'focus' ? (isLight ? [20, 40, 44] : [240, 255, 252]) : col;
     const ax = c.lx < c.x ? c.lx + c.w : c.lx;
     const ay = c.ly < c.y ? c.ly + c.h : c.ly;
@@ -4731,10 +4703,6 @@ function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGut
     ctx.strokeText(c.text, c.lx + 2, c.ly + c.h / 2);
     ctx.fillStyle = rgba(tone, 0.98);
     ctx.fillText(c.text, c.lx + 2, c.ly + c.h / 2);
-  }
-  if (!main) {
-    ctx.restore();
-    return;
   }
   ctx.textAlign = 'center';
   ctx.font = '600 10px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
@@ -4901,9 +4869,16 @@ function galaxyWorldFrame(cid) {
 // can be seen without waiting for a real freeze; preview growth never changes counts.
 function previewGrowthRecords(domains) {
   const at = new Date().toISOString();
-  return domains.flatMap((domain, i) => Array.from({ length: i === 0 ? 3 : 1 }, (_, k) => ({
-    module: `D5/预览/${domain}/示例模块${k + 1}`, domain, stratum: '预览', at, commit: 'preview', preview: true
-  })));
+  return domains.flatMap((domain, i) => {
+    const count = i === 0 ? 3 : 1;
+    const recent = truthGrowth.recentRaw.filter(record => record.domain === domain && record.module);
+    if (recent.length) return recent.slice(0, count).map(record => ({ ...record, preview: true }));
+    const catalog = galaxyDetail.data?.stars.filter(row => row[0].split('/')[2] === domain).slice(0, count);
+    if (catalog?.length) return catalog.map(([module]) => ({ module, domain, at, commit: 'preview', preview: true }));
+    return Array.from({ length: count }, (_, k) => ({
+      module: `D5/预览/${domain}/示例模块${k + 1}`, domain, stratum: '预览', at, commit: 'preview', preview: true
+    }));
+  });
 }
 
 function startGrowthPreview() {
@@ -4913,51 +4888,67 @@ function startGrowthPreview() {
     if (query.get('preview') === 'growth') domains = (query.get('galaxy') || 'Combinatorics,Quantum,Arith').split(',').map(s => s.trim()).filter(Boolean);
   } catch {}
   if (!domains?.length || /jsdom/i.test(navigator.userAgent || '')) return;
-  const timer = setInterval(() => {
+  const timer = setInterval(async () => {
     if (!truthNebula.loaded) return;
     clearInterval(timer);
-    truthGrowth.queue = enqueueGrowth(truthGrowth.queue, previewGrowthRecords(domains), truthNebula.clusters, performance.now());
+    await loadGalaxyDetails();
+    const play = () => {
+      const g = truthGrowth;
+      g.active = g.active.filter(event => !event.modules[0].preview);
+      g.grown = g.grown.filter(star => !star.preview);
+      g.queue = enqueueGrowth(g.queue.filter(item => !item.modules[0].preview),
+        previewGrowthRecords(domains), truthNebula.clusters, performance.now());
+      g.lastCid = null;
+    };
+    const replay = $('#growth-preview-replay');
+    replay.hidden = false;
+    replay.addEventListener('click', play);
+    play();
   }, 500);
 }
 
 function stepTruthGrowth(now) {
-  if (!truthNebula.loaded) return null;
   const g = truthGrowth;
-  if (!g.focus) {
-    if (state.quiet || reduced) {
-      for (const item of g.queue) {
-        item.modules.forEach((record, i) => commitGrowth(record, growthClusterId(record.domain, truthNebula.clusters), now - GROWTH_EDGE_MS, i < GROWTH_VISIBLE_STARS));
-      }
-      g.queue = [];
-      return null;
+  if (!truthNebula.loaded || (!g.queue.length && !g.active.length)) return g.active;
+  const quiet = state.quiet || reduced;
+  if (!g.active.length && introCinema.active && holoCam.gl && !quiet) return g.active;
+  for (const event of g.active) {
+    const { visible, gap } = event.timing;
+    while (event.spawned < event.modules.length) {
+      const due = GROWTH_SPAWN_START_MS + Math.min(event.spawned, visible - 1) * gap;
+      if (!quiet && now - event.start < due) break;
+      const born = quiet ? now - GROWTH_EDGE_MS : event.start + due;
+      commitGrowth(event.modules[event.spawned], event.cid, born, event.spawned < visible, event.branches[event.spawned]);
+      event.spawned++;
     }
-    const idx = nextGrowthFocus(g.queue, now, g.calmUntil, g.lastCid);
-    if (idx < 0) return null;
+  }
+  g.active = g.active.filter(event => !quiet && now - event.start < event.timing.end);
+  if (quiet) {
+    for (const item of g.queue) {
+      item.modules.forEach((record, i) => commitGrowth(record, growthClusterId(record.domain, truthNebula.clusters), now - GROWTH_EDGE_MS, i < GROWTH_VISIBLE_STARS));
+    }
+    g.queue = [];
+    return g.active;
+  }
+  while (g.active.length < MAX_GROWTH_INSETS && g.queue.length) {
+    for (const item of g.queue) {
+      if (item.cid < 0) item.cid = growthClusterId(item.modules[0].domain, truthNebula.clusters);
+    }
+    const idx = nextGrowthFocus(g.queue, g.lastCid, g.active);
+    if (idx < 0) break;
     const item = g.queue.splice(idx, 1)[0];
-    const cid = item.cid >= 0 ? item.cid : growthClusterId(item.modules[0].domain, truthNebula.clusters);
-    const cluster = truthNebula.clusters.find(c => c.id === cid);
-    if (!cluster) return null;
-    g.focus = { cid, cluster, modules: item.modules, start: now, spawned: 0, totalBefore: truthNebula.counts?.truth_nodes || 0 };
+    const cluster = truthNebula.clusters.find(c => c.id === item.cid);
+    if (!cluster) continue;
+    const slot = g.active.some(event => event.slot === 0) ? 1 : 0;
+    g.active.push({ cid: cluster.id, cluster, modules: item.modules, start: now, spawned: 0,
+      timing: growthTiming(item.modules.length),
+      branches: item.modules.slice(0, GROWTH_VISIBLE_STARS).map(record => growthBranch(record, cluster)), slot });
+    g.lastCid = cluster.id;
   }
-  const f = g.focus;
-  const elapsed = now - f.start;
-  while (f.spawned < f.modules.length) {
-    const slot = Math.min(f.spawned, GROWTH_VISIBLE_STARS);
-    const due = GROWTH_SPAWN_START_MS + slot * GROWTH_SPAWN_GAP_MS;
-    if (elapsed < due) break;
-    commitGrowth(f.modules[f.spawned], f.cid, f.start + due, f.spawned < GROWTH_VISIBLE_STARS);
-    f.spawned += 1;
-  }
-  if (elapsed >= GROWTH_END_MS) {
-    g.focus = null;
-    g.lastCid = f.cid;
-    g.calmUntil = now + GROWTH_CALM_MS;
-    return null;
-  }
-  return f;
+  return g.active;
 }
 
-function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, projX, projY, dim) {
+function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, projX, projY, dim, sizeScale = 1) {
   for (const star of truthGrowth.grown) {
     const age = now - star.born;
     if (age < 0) continue;
@@ -4966,25 +4957,31 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
     const col = palette[star.cid % palette.length];
     const d = dim(star.cid);
     const fresh = Math.max(0, 1 - age / 120000);
-    const reach = Math.min(1, age / GROWTH_EDGE_MS);
+    const reach = growthEase(age / GROWTH_EDGE_MS);
     const sx = projX[star.parentIdx], sy = projY[star.parentIdx];
     ctx.strokeStyle = rgba(col, (0.38 + 0.5 * fresh) * mask * d);
-    ctx.lineWidth = 0.9 + 0.9 * fresh;
+    ctx.lineWidth = (0.9 + 0.9 * fresh) / sizeScale;
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     ctx.lineTo(sx + (px - sx) * reach, sy + (py - sy) * reach);
     ctx.stroke();
-    if (reach < 1) continue;
-    const lit = age - GROWTH_EDGE_MS;
-    if (lit < 1500) {
-      const e = lit / 1500;
-      ctx.strokeStyle = rgba(col, (1 - e) * 0.9 * d);
-      ctx.lineWidth = 1.6 * (1 - e) + 0.4;
+    const ignition = growthEase((age - GROWTH_EDGE_MS * 0.73) / (GROWTH_EDGE_MS * 0.48));
+    if (ignition < 1) {
+      const tx = sx + (px - sx) * reach, ty = sy + (py - sy) * reach;
+      ctx.save();
+      ctx.globalAlpha *= growthEase(age / 240) * (1 - ignition);
+      ctx.shadowColor = rgba(col, 1);
+      ctx.shadowBlur = 9;
+      ctx.fillStyle = isLight ? rgba(col, 1) : '#fff4cd';
       ctx.beginPath();
-      ctx.arc(px, py, 3 + 26 * e, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.arc(tx, ty, 2.8 / sizeScale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
-    const halo = 6 + 7 * fresh;
+    if (ignition <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha *= ignition;
+    const halo = (6 + 7 * fresh) / (sizeScale * sizeScale);
     const glow = ctx.createRadialGradient(px, py, 0, px, py, halo);
     glow.addColorStop(0, rgba(col, (0.35 + 0.45 * fresh) * mask * d));
     glow.addColorStop(1, rgba(col, 0));
@@ -4994,62 +4991,382 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
     ctx.fill();
     ctx.fillStyle = isLight ? rgba(col, Math.min(1, (0.75 + 0.25 * fresh) * d)) : rgba([240, 255, 248], Math.min(1, (0.7 + 0.3 * fresh) * mask * d));
     ctx.beginPath();
-    ctx.arc(px, py, 1.5 + 0.9 * fresh, 0, Math.PI * 2);
+    ctx.arc(px, py, (1.5 + 0.9 * fresh) / sizeScale, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 
-// The close-up caption takes the sky header's place at the top centre, clear of
-// the side panels, with a leader to the growing galaxy so the galaxy stays unobstructed.
-function drawTruthGrowthFocus(ctx, f, k, now, gx, gy, lensR, w, col, halo) {
-  if (k <= 0) return;
-  const shown = Math.min(f.spawned, f.modules.length);
-  const name = f.cluster.name === 'Other' ? (f.modules[0]?.domain || L('其他领域', 'Other Domains')) : langGalaxyName(f.cluster);
-  const recent = f.modules.slice(Math.max(0, shown - 2), shown).map(record => record.module.split('/').slice(-2).join(' / '));
-  const cx = w * 0.5;
-  const preview = f.modules.some(record => record.preview);
-  const title = isEn()
-    ? `⟡ Truth DAG Growth · ${name} +${shown} newly frozen${preview ? ' (Preview)' : ''}`
-    : `⟡ 真值图谱生长 · ${name} +${shown} 新冻结模块${preview ? '（预览）' : ''}`;
-  const detail = preview
-    ? L('预览演示 · 不计入真值图谱', 'Preview demo · not counted in live Truth DAG')
-    : isEn()
-      ? `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} modules${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`
-      : `${f.totalBefore.toLocaleString()} → ${(f.totalBefore + shown).toLocaleString()} 模块${recent.length ? '  ·  ' + recent.join('  ·  ') : ''}`;
+// Reserve the two upper corners of the usable canvas. Keep an existing window
+// in its corner when its neighbour finishes or another galaxy enters.
+function growthInsetLayout(points, w, h, headroom = 0) {
+  const compact = w < 550;
+  const margin = compact ? 8 : 18;
+  const y = compact || h > w ? 8 - headroom : Math.min(62, h * 0.12);
+  const width = Math.round(Math.min(419, (w - 3 * margin) / 2, w * (compact ? 0.49 : 0.42)));
+  const height = Math.round(Math.min(width * (compact ? 1.22 : 0.74), h * (compact ? 0.61 : 0.40)));
+  const corners = [margin, w - margin - width].map((x, placement) => {
+    // A high galaxy can pass behind a corner during an orbit. Leave room for
+    // its arrow by trimming the window or docking just below the high source.
+    const gap = compact ? 14 : 22;
+    const column = points.filter(p => p.x > x - gap && p.x < x + width + gap)
+      .sort((a, b) => a.y - b.y);
+    let top = y, available = height;
+    for (const point of column) {
+      if (point.y < top - gap || point.y > top + available + gap) continue;
+      const above = point.y - gap - top;
+      if (above >= Math.min(height, compact ? 95 : 110)) {
+        available = above;
+        break;
+      }
+      top = point.y + gap;
+    }
+    return { x, y: top, width, height: available, placement };
+  });
+  if (!points.length) return [];
+  const [first, second] = points;
+  const nearest = first.x < w / 2 ? 0 : 1;
+  if (!second) return [corners[first.placement ?? nearest]];
+  const side = first.placement ?? (second.placement !== undefined ? 1 - second.placement : Number(first.x > second.x));
+  return [corners[side], corners[1 - side]];
+}
+
+// Clip the leader to the usable scene when an orbit carries its source off screen.
+function growthPointer(box, point, w, h) {
+  const x = Math.max(box.x, Math.min(box.x + box.width, point.x));
+  const y = Math.max(box.y, Math.min(box.y + box.height, point.y));
+  const dx = point.x - x, dy = point.y - y;
+  const tx = dx > 0 ? (w - 4 - x) / dx : dx < 0 ? (4 - x) / dx : Infinity;
+  const ty = dy > 0 ? (h - 4 - y) / dy : dy < 0 ? (4 - y) / dy : Infinity;
+  return { x, y, angle: Math.atan2(dy, dx), length: Math.max(0, Math.hypot(dx, dy) * Math.min(1, tx, ty) - 2) };
+}
+
+// Wrap identifiers at word boundaries when possible. A long unbroken word can
+// still use the full width of a phone lens.
+function growthNameLines(ctx, name, width) {
+  if (ctx.measureText(name).width <= width) return [name];
+  const words = name.split(/(?<=[a-z0-9])(?=[A-Z])/);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    if (line && ctx.measureText(line + word).width > width) {
+      lines.push(line);
+      line = '';
+    }
+    if (ctx.measureText(word).width <= width) {
+      line += word;
+      continue;
+    }
+    for (const ch of word) {
+      if (line && ctx.measureText(line + ch).width > width) {
+        lines.push(line);
+        line = '';
+      }
+      line += ch;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawGrowthMarks(ctx, branches, bounds, isLight, detail) {
+  const visible = branches.filter(b => b.progress > 0);
+  if (!visible.length) return;
+  const gold = isLight ? '#835209' : '#ffcf72';
+  const halo = isLight ? '#f8f2e7' : '#0c1623';
   ctx.save();
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = k;
-  ctx.strokeStyle = rgba(col, 0.5);
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 7]);
-  ctx.lineDashOffset = -now / 50;
-  const [ex, ey] = growthLensRim(gx, gy, lensR, cx, 92);
   ctx.beginPath();
-  ctx.moveTo(cx, 92);
-  ctx.quadraticCurveTo(cx + (ex - cx) * 0.2, ey * 0.45 + 50, ex, ey);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+  ctx.clip();
+  ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 3.6;
-  ctx.strokeStyle = halo;
-  ctx.font = '800 15px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-  ctx.strokeText(title, cx, 60);
-  ctx.fillStyle = rgba(col, 1);
-  ctx.fillText(title, cx, 60);
-  ctx.font = '700 11px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-  ctx.strokeText(detail, cx, 80);
-  ctx.fillStyle = rgba(col, 0.86);
-  ctx.fillText(detail, cx, 80);
+  ctx.font = detail ? '600 12px system-ui, sans-serif' : '600 10px ui-monospace, sans-serif';
+  const labels = [];
+  for (const b of visible) {
+    const x = b.sx + (b.ex - b.sx) * b.progress, y = b.sy + (b.ey - b.sy) * b.progress;
+    ctx.globalAlpha = b.opacity;
+    ctx.beginPath();
+    ctx.moveTo(b.sx, b.sy); ctx.lineTo(x, y);
+    ctx.strokeStyle = halo; ctx.lineWidth = detail ? 3.6 : 2.8; ctx.stroke();
+    ctx.strokeStyle = gold; ctx.lineWidth = detail ? 1.8 : 1.3; ctx.stroke();
+    const r = detail ? 4.3 : 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+    ctx.fillStyle = halo; ctx.fill(); ctx.stroke();
+    const full = shortModuleName(b.module);
+    const lines = detail ? growthNameLines(ctx, full, Math.min(220, bounds.right - bounds.left - 16))
+      : [L('新 · ', 'New · ') + (full.length > 16 ? full.slice(0, 15) + '…' : full)];
+    if (!lines.length) continue;
+    labels.unshift({ x, y, lines, opacity: b.opacity, keepInside: detail,
+      w: Math.max(...lines.map(s => ctx.measureText(s).width)) + 5, h: 15 * lines.length });
+  }
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  const tips = detail ? labels.map(({ x, y }) => ({ lx: x - 4, ly: y - 4, w: 8, h: 8 })) : [];
+  for (const label of planGalaxyLabels(labels, detail ? 3 : 1, bounds, tips)) {
+    ctx.globalAlpha = label.opacity;
+    const tx = label.lx + 2;
+    ctx.beginPath(); ctx.moveTo(label.x, label.y);
+    ctx.lineTo(Math.max(label.lx, Math.min(label.x, label.lx + label.w)),
+      Math.max(label.ly, Math.min(label.y, label.ly + label.h)));
+    ctx.strokeStyle = gold; ctx.lineWidth = 0.7; ctx.stroke();
+    ctx.strokeStyle = halo; ctx.lineWidth = 3; ctx.fillStyle = gold;
+    label.lines.forEach((line, i) => {
+      const ty = label.ly + 15 * (i + 0.5);
+      ctx.strokeText(line, tx, ty);
+      ctx.fillText(line, tx, ty);
+    });
+  }
   ctx.restore();
 }
 
-function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
+// Take only the broad sky colours from the main frame. All identifiable stars,
+// filaments, growing branches and light rays are drawn from geometry in each lens.
+let growthSkyWash;
+function sampleGrowthSky(layers, w, h) {
+  growthSkyWash ??= document.createElement('canvas');
+  const width = Math.max(1, Math.ceil(w / 16)), height = Math.max(1, Math.ceil(h / 16));
+  if (growthSkyWash.width !== width || growthSkyWash.height !== height) {
+    growthSkyWash.width = width;
+    growthSkyWash.height = height;
+  }
+  const ctx = growthSkyWash.getContext('2d');
+  ctx.clearRect(0, 0, width, height);
+  ctx.imageSmoothingQuality = 'high';
+  for (const layer of layers) ctx.drawImage(layer, 0, 0, width, height);
+  return growthSkyWash;
+}
+
+function drawMagnifiedStars(ctx, scene, x, y, width, height, zoom, isLight) {
+  const { stars, edges, projX, projY, projZ } = scene.nebula;
+  const right = x + width, bottom = y + height;
+  const scale = Math.sqrt(zoom);
+  ctx.lineWidth = 0.55 / scale;
+  for (const [u, v, bridge] of edges) {
+    if (bridge || projZ[u] === 999 || projZ[v] === 999 || stars[u][3] !== stars[v][3]) continue;
+    const ax = projX[u], ay = projY[u], bx = projX[v], by = projY[v];
+    if (Math.max(ax, bx) < x || Math.min(ax, bx) > right || Math.max(ay, by) < y || Math.min(ay, by) > bottom) continue;
+    ctx.strokeStyle = rgba(scene.palette[stars[u][3] % scene.palette.length], 0.27);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+  for (let i = 0; i < stars.length; i++) {
+    const px = projX[i], py = projY[i];
+    if (projZ[i] === 999 || px < x - 4 || px > right + 4 || py < y - 4 || py > bottom + 4) continue;
+    const [, , , cid, generation, degree] = stars[i];
+    const col = scene.palette[cid % scene.palette.length];
+    const r = (degree >= 7 ? 0.95 : degree >= 3 ? 0.68 : 0.47) / scale;
+    ctx.fillStyle = rgba(col, 0.10);
+    ctx.beginPath(); ctx.arc(px, py, r * 2.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = rgba(!isLight && degree >= 7 ? [222, 240, 250] : col, 0.59 + 0.28 * generation / 100);
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawGrowthDetail(canvas, box, point, footprint, scene, emissions, branches = [], isLight = false) {
+  const { width, height } = box;
+  const dpr = window.devicePixelRatio || 1;
+  const pw = Math.round(width * dpr), ph = Math.round(height * dpr);
+  if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(pw / width, 0, 0, ph / height, 0, 0);
+  ctx.fillStyle = isLight ? '#eff2ee' : '#081321';
+  ctx.fillRect(0, 0, width, height);
+  const span = footprint ? Math.hypot(footprint.x1 - footprint.x0, footprint.y1 - footprint.y0) : 50;
+  let cx = point.x, cy = point.y;
+  let zoom = Math.max(1.8, Math.min(width < 200 ? 2.2 : 2.8, width / Math.max(36, span * 1.4)));
+  if (branches.length) {
+    const xs = branches.flatMap(b => [b.sx, b.ex]), ys = branches.flatMap(b => [b.sy, b.ey]);
+    const left = Math.min(...xs), right = Math.max(...xs), topEdge = Math.min(...ys), low = Math.max(...ys);
+    cx = (left + right) / 2;
+    cy = (topEdge + low) / 2;
+    zoom = Math.min(5, (width - 26) / Math.max(1, right - left), Math.max(14, height - 28) / Math.max(1, low - topEdge));
+  }
+  const sw = width / zoom, sh = height / zoom;
+  const sx = cx - sw / 2, sy = cy - sh / 2;
+  ctx.save();
+  ctx.scale(zoom, zoom);
+  ctx.translate(-sx, -sy);
+  ctx.globalAlpha = isLight ? 0.34 : 0.52;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(scene.skyWash, 0, 0, scene.width, scene.height);
+  ctx.globalAlpha = 1;
+  drawMagnifiedStars(ctx, scene, sx, sy, sw, sh, zoom, isLight);
+  scene.paintGrowth(ctx, zoom);
+  for (const light of emissions) {
+    if (light.p.x + light.size / 2 < sx || light.p.x - light.size / 2 > sx + sw ||
+        light.p.y + light.size / 2 < sy || light.p.y - light.size / 2 > sy + sh) continue;
+    paintGrowthLight(ctx, light, isLight, zoom);
+  }
+  ctx.restore();
+  const inLens = branches.map(b => ({ ...b,
+    sx: (b.sx - sx) * zoom, sy: (b.sy - sy) * zoom,
+    ex: (b.ex - sx) * zoom, ey: (b.ey - sy) * zoom }));
+  drawGrowthMarks(ctx, inLens, { left: 0, right: width, top: 0, bottom: height }, isLight, true);
+}
+
+// The glow uses the projected star band as its aperture, including its tilt when
+// the observer orbits. Keep a small core for sparse or edge-on galaxies.
+function drawGrowthLight(canvas, p, footprint, age, timing, w, isLight) {
+  const size = w < 550 ? 204 : 336;
+  const x = p.x - size / 2, y = p.y - size / 2;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const pixels = Math.round(size * dpr);
+  if (canvas.width !== pixels || canvas.height !== pixels) { canvas.width = pixels; canvas.height = pixels; }
+  Object.assign(canvas.style, { width: size + 'px', height: size + 'px', left: x + 'px', top: y + 'px' });
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, -x * dpr, -y * dpr);
+  ctx.clearRect(x, y, size, size);
+  const light = { p, footprint, age, timing, size };
+  paintGrowthLight(ctx, light, isLight);
+  return light;
+}
+
+function paintGrowthLight(ctx, { p, footprint, age, timing, size }, isLight, zoom = 1) {
+  const crest = growthEase((age - timing.pulse + 1200) / 850)
+    * (1 - growthEase((age - timing.pulse - 650) / 1200));
+  const strength = growthFocusAmount(age, timing) * (0.76 + 0.24 * crest);
+  if (strength < 0.002) return;
+  const stars = footprint?.pts || [];
+  let xx = 0, yy = 0, xy = 0, count = 0;
+  for (const [x, y] of stars) {
+    if (x < footprint.x0 || x > footprint.x1 || y < footprint.y0 || y > footprint.y1) continue;
+    const dx = x - p.x, dy = y - p.y;
+    xx += dx * dx;
+    yy += dy * dy;
+    xy += dx * dy;
+    count++;
+  }
+  const tilt = 0.5 * Math.atan2(2 * xy, xx - yy);
+  const spread = Math.hypot(xx - yy, 2 * xy);
+  const major = Math.min(116, 27 + 2.9 * Math.sqrt((xx + yy + spread) / (2 * (count || 1))));
+  const minor = Math.min(42, 14 + 2.9 * Math.sqrt(Math.max(0, xx + yy - spread) / (2 * (count || 1))));
+
+  ctx.save();
+  ctx.globalCompositeOperation = isLight ? 'source-over' : 'screen';
+  ctx.translate(p.x, p.y);
+  ctx.rotate(tilt);
+  const hot = isLight ? rgba(p.col, 1) : rgba(p.col.map((c, i) => Math.round(c * 0.68 + [216, 210, 205][i] * 0.32)), 1);
+  const beam = Math.min(size * 0.46, Math.max(major * 1.5, size * 0.30)) * (0.77 + 0.23 * crest);
+
+  ctx.save();
+  ctx.scale(major, minor * 0.68);
+  const haze = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  // Preserve the gaps between star cores even over the sky's existing bloom.
+  const backdrop = isLight ? [245, 247, 244] : [5, 15, 25];
+  haze.addColorStop(0, rgba(backdrop, 0.29));
+  haze.addColorStop(0.45, rgba(backdrop, 0.18));
+  haze.addColorStop(1, rgba(backdrop, 0));
+  ctx.globalAlpha = strength;
+  ctx.fillStyle = haze;
+  ctx.fillRect(-1, -1, 2, 2);
+  ctx.restore();
+
+  // Keep the ray transparent through the crowded core. The bright tips travel
+  // along its wings where they can signal growth without covering the nodes.
+  const travel = growthEase((age - GROWTH_SPAWN_START_MS) / Math.max(1, timing.pulse - GROWTH_SPAWN_START_MS));
+  const tip = 0.18 + 0.20 * travel;
+  const ray = ctx.createLinearGradient(-beam, 0, beam, 0);
+  ray.addColorStop(0, rgba(p.col, 0));
+  ray.addColorStop(0.46 - tip, rgba(p.col, 0.12));
+  ray.addColorStop(0.5 - tip, hot);
+  ray.addColorStop(0.57 - tip, rgba(p.col, 0.38));
+  ray.addColorStop(0.5, rgba(p.col, 0.18));
+  ray.addColorStop(0.43 + tip, rgba(p.col, 0.38));
+  ray.addColorStop(0.5 + tip, hot);
+  ray.addColorStop(0.54 + tip, rgba(p.col, 0.12));
+  ray.addColorStop(1, rgba(p.col, 0));
+  ctx.strokeStyle = ray;
+  ctx.globalAlpha = strength * 0.62;
+  ctx.lineWidth = (0.9 + 0.35 * crest) / Math.sqrt(zoom);
+  ctx.beginPath();
+  ctx.moveTo(-beam, 0);
+  ctx.lineTo(beam, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  // Each star catches the light once, with a delay set by its distance from the core.
+  ctx.save();
+  ctx.globalCompositeOperation = isLight ? 'source-over' : 'screen';
+  ctx.fillStyle = hot;
+  for (const [x, y] of stars) {
+    const distance = Math.hypot(x - p.x, y - p.y) / major;
+    if (distance > 1.1) continue;
+    const delay = timing.pulse - 520 + 900 * distance;
+    const flash = Math.exp(-Math.pow((age - delay) / 350, 2));
+    const light = strength * (0.25 + 0.34 * flash) * (1 - distance / 1.2);
+    if (light < 0.03) continue;
+    ctx.globalAlpha = light;
+    ctx.beginPath();
+    ctx.arc(x, y, (0.65 + 0.45 * flash) / Math.sqrt(zoom), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function growthInsetOpacity(age, timing) {
+  return growthEase(age / 520) * (1 - growthEase((age - timing.end + 650) / 650));
+}
+
+function drawGrowthObservations(events, projected, w, h, now, isLight, scene) {
+  const layer = $('#growth-observations');
+  const visible = events.filter(event => {
+    const point = projected.get(event.cid);
+    return point && point.z !== 999;
+  });
+  layer.hidden = !visible.length;
+  if (layer.hidden) return;
+  if (!layer.children.length) {
+    const template = $('#growth-observation-template');
+    for (let i = 0; i < MAX_GROWTH_INSETS; i++) layer.append(template.content.cloneNode(true));
+  }
+  const sources = visible.map(event => ({ ...projected.get(event.cid), placement: event.placement }));
+  const headroom = w < 550 ? parseFloat(getComputedStyle(layer.parentElement).marginTop) || 0 : 0;
+  const boxes = growthInsetLayout(sources, w, h, headroom);
+  for (let i = 0; i < layer.children.length; i++) {
+    layer.children[i].hidden = !visible.some(event => event.slot === i);
+  }
+  const emissions = visible.map((event, i) => drawGrowthLight(
+    layer.children[event.slot].querySelector('.growth-emission'), sources[i], holoCam.galaxyFootprints.get(event.cid),
+    now - event.start, event.timing, w, isLight));
+  const mapMarks = [];
+  visible.forEach((event, i) => {
+    const point = sources[i], box = boxes[i];
+    const age = now - event.start;
+    event.placement = box.placement;
+    const opacity = growthInsetOpacity(age, event.timing);
+    const view = layer.children[event.slot];
+    const panel = view.querySelector('.growth-inset');
+    Object.assign(panel.style, { width: box.width + 'px', height: box.height + 'px',
+      left: box.x + 'px', top: box.y + 'px', opacity: opacity.toFixed(3) });
+    const arrow = growthPointer(box, point, w, h);
+    const pointer = view.querySelector('.growth-pointer');
+    Object.assign(pointer.style, { left: arrow.x + 'px', top: (arrow.y - 0.75) + 'px',
+      width: arrow.length + 'px', transform: 'rotate(' + arrow.angle + 'rad)', opacity: opacity.toFixed(3) });
+    const title = event.cluster.name === 'Other' ? event.modules[0].domain : langGalaxyName(event.cluster);
+    const latest = event.modules[event.spawned - 1];
+    const description = event.modules[0].preview ? L('增长预览', 'Growth preview') : L('星系增长', 'Galaxy growth');
+    panel.setAttribute('aria-label', [title, description, latest && shortModuleName(latest.module)].filter(Boolean).join(' · '));
+    const branches = [];
+    event.branches.forEach((b, k) => {
+      if (!b) return;
+      const [ex, ey] = scene.project(b.x / 1000, b.y / 1000, b.z / 1000, event.cid);
+      const elapsed = age - GROWTH_SPAWN_START_MS - k * event.timing.gap;
+      branches.push({ sx: truthNebula.projX[b.parentIdx], sy: truthNebula.projY[b.parentIdx], ex, ey,
+        progress: growthEase(elapsed / GROWTH_EDGE_MS), opacity: opacity * growthEase(elapsed / 200), module: event.modules[k].module });
+    });
+    drawGrowthDetail(panel, box, point, holoCam.galaxyFootprints.get(event.cid), scene, emissions, branches, isLight);
+    mapMarks.push(branches);
+  });
+  for (const branches of mapMarks) drawGrowthMarks(scene.ctx, branches,
+    { left: 1, right: w, top: 4, bottom: h - 40 }, isLight, false);
+}
+
+function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, nowMs) {
   if (!truthNebula.loaded || !truthNebula.stars.length) return;
   const useGLSky = Boolean(holoCam.gl);
   const skyVis = useGLSky ? Math.max(0, Math.min(1.15, holoCam.galaxyAlpha)) : 1.0;
   if (useGLSky && skyVis < 0.06) {
+    $('#growth-observations').hidden = true;
     holoCam.projectedGalaxies.clear();
     return;
   }
@@ -5116,24 +5433,16 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
         return [cx + x1 * scaleX * inv, cy - y2 * scaleY * inv, z2, inv];
       };
 
-  // Close-up on a growing galaxy (or interactive user-clicked galaxy): the sky eases toward it and magnifies around it.
-  const growthNow = performance.now();
-  const autoFocus = stepTruthGrowth(growthNow);
-  const manual = !autoFocus && truthGrowth.manualFocus ? truthGrowth.manualFocus : null;
-  const growthFocus = autoFocus || manual;
-  const focusK = autoFocus
-    ? growthFocusAmount(growthNow - autoFocus.start)
-    : manual
-      ? (manual.closing
-          ? growthEase(1 - Math.min(1, (growthNow - manual.closeStart) / 480))
-          : growthEase(Math.min(1, (growthNow - manual.start) / 650)))
-      : 0;
+  const growthNow = nowMs;
+  const manual = truthGrowth.manualFocus;
+  const growthFocus = manual;
+  const focusK = !manual ? 0 : manual.closing ? 1 - growthEase((growthNow - manual.closeStart) / 480)
+    : growthEase((growthNow - manual.start) / 650);
   if (manual?.closing && focusK <= 0.001) {
     truthGrowth.manualFocus = null;
   }
-  // The close-up is a local magnifying lens over the focused galaxy; the rest of the sky stays put.
   let focusTx = 0, focusTy = 0, lensR = 0;
-  // With WebGL the camera flies to the galaxy instead; the lens serves the 2D fallback.
+  // Only manual exploration in the software renderer needs a magnifying lens.
   const lensD = useGLSky ? 0 : GROWTH_LENS * focusK;
   if (focusK > 0) {
     const c = growthFocus.cluster.center;
@@ -5142,7 +5451,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const [edgeX, edgeY] = projectBase(c[0] / 1000 + rim, c[1] / 1000, c[2] / 1000, growthFocus.cid);
     lensR = Math.max(105, Math.min(Math.min(w, h) * 0.25, Math.hypot(edgeX - focusTx, edgeY - focusTy) * 1.75));
   }
-  const projectNeb = focusK > 0
+  const projectNeb = lensD > 0
     ? (nx, ny, nz, cid = null) => {
         const p = projectBase(nx, ny, nz, cid);
         const [x, y, m] = growthLensWarp(p[0], p[1], focusTx, focusTy, lensR, lensD);
@@ -5195,9 +5504,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   const focusCid = focusK > 0.05 ? growthFocus?.cid : holoCam.hoveredGalaxy;
-  // A growth close-up stays local: sky-wide arcs keep their resting state. Hovering or
-  // opening a galaxy still lights its connections.
-  const webCid = (autoFocus && focusK > 0.05) || (useGLSky && holoCam.galaxyMainCid != null) ? null : focusCid;
+  const webCid = useGLSky && holoCam.galaxyMainCid != null ? null : focusCid;
   const recentBucket = cid => truthGrowth.recentByCluster.get(cid);
   const clusterEmphasis = cid => {
     if (focusK > 0.05 && cid === growthFocus?.cid) return 1.50;
@@ -5247,7 +5554,9 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       const swell = (hasGrowth && !quiet) ? (1.0 + 0.055 * Math.sin(tEff * 0.45 + cl.id * 1.3)) : 1.0;
       const rad = Math.min(w, h) * (hasGrowth ? 0.21 : 0.15) * weight * inv * swell;
       const g = ctx.createRadialGradient(px, py, 6, px, py, rad);
-      const baseA = (isLight ? (hasGrowth ? 0.048 : 0.018) : (hasGrowth ? 0.072 : 0.028)) * maskFor(cl.id, px, py) * Math.min(1.25, clusterEmphasis(cl.id));
+      const event = growthEvents.find(item => item.cid === cl.id);
+      const cloudOpacity = event ? 1 - 0.945 * growthInsetOpacity(growthNow - event.start, event.timing) : 1;
+      const baseA = cloudOpacity * (isLight ? (hasGrowth ? 0.048 : 0.018) : (hasGrowth ? 0.072 : 0.028)) * maskFor(cl.id, px, py) * Math.min(1.25, clusterEmphasis(cl.id));
       g.addColorStop(0, rgba(col, baseA));
       g.addColorStop(0.50, rgba(col, baseA * 0.42));
       g.addColorStop(1, rgba(col, 0));
@@ -5299,6 +5608,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   // PASS 3: INTER-GALAXY PERIMETER ARCS — illuminate on hover/close-up in ring mode (omitted in full 18,986-node DAG where real edges shine!)
+  const bridgeLabels = [];
   const isPureGalaxyView = state.layer === 'galaxy' && holoCam.galaxyMainCid == null && focusK < 0.05;
   if (!inFullAtlas && (webCid != null || isPureGalaxyView)) {
     const ringRx = w * 0.35;
@@ -5356,96 +5666,10 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
       if (webCid != null && i < 6 && pts.length > 10 && count >= 34) {
         const midPt = pts[Math.floor(pts.length / 2)];
         if (midPt[0] > 40 && midPt[0] < w - rightGutter - 40 && midPt[1] > 80 && midPt[1] < h - 90) {
-          ctx.save();
-          ctx.font = '600 8px "Geist Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.lineWidth = 2.6;
-          ctx.strokeStyle = isLight ? 'rgba(242, 239, 232, 0.94)' : 'rgba(2, 6, 12, 0.92)';
-          const tag = `${count}`;
-          ctx.strokeText(tag, midPt[0], midPt[1]);
-          ctx.fillStyle = isLight ? rgba(a.col, 0.92) : rgba([208, 234, 248], 0.82);
-          ctx.fillText(tag, midPt[0], midPt[1]);
-          ctx.restore();
+          bridgeLabels.push({ midPt, count, col: a.col });
         }
       }
     }
-  }
-
-  // Grand cosmic DAG banner + proportional-size dependency-tier legend in dedicated 星系 Observatory mode
-  if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
-    const dagTotal = truthNebula.counts?.truth_nodes || 19022;
-    const isCompactHud = w <= 700;
-    const bVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
-    ctx.save();
-    if (!isCompactHud) {
-      const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L84 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
-        n: dagTotal.toLocaleString()
-      });
-      ctx.globalAlpha = bVis * 0.88;
-      ctx.font = '600 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.lineWidth = 3.0;
-      ctx.strokeStyle = isLight ? 'rgba(240, 237, 230, 0.95)' : 'rgba(2, 6, 12, 0.90)';
-      const bx = (w - rightGutter) * 0.5;
-      ctx.strokeText(banner, bx, 78);
-      ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.90)');
-      ctx.fillText(banner, bx, 78);
-    }
-
-    // Compact scientific reuse-tier size+color legend cleanly positioned above #human-console!
-    const items = isLight
-      ? [
-          { col: [188, 112, 16], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
-          { col: [8, 115, 95],   r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
-          { col: [15, 138, 124], r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
-          { col: [40, 118, 158], r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
-          { col: [86, 114, 148], r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
-        ]
-      : isBlueprint
-        ? [
-            { col: [224, 255, 174], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
-            { col: [118, 255, 168], r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
-            { col: [52, 224, 128],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
-            { col: [36, 174, 96],   r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
-            { col: [20, 112, 62],   r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
-          ]
-        : [
-            { col: [248, 200, 96],  r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
-            { col: [52, 232, 196],  r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
-            { col: [76, 214, 189],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
-            { col: [122, 188, 224], r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
-            { col: [92, 138, 191],  r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
-          ];
-    ctx.font = isCompactHud
-      ? '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif'
-      : '500 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.globalAlpha = bVis * 0.86;
-    const prefix = isCompactHud ? L('依赖度:', 'Deps:') : L('按被依赖度分大小：', 'Sized by dependents: ');
-    const gapAfterDot = isCompactHud ? 3.5 : 5;
-    const gapBetween = isCompactHud ? 8 : 13;
-    const totalLegendW = ctx.measureText(prefix).width + 6 + items.reduce((acc, it) => acc + it.r * 2 + gapAfterDot + ctx.measureText(it.label).width + gapBetween, -gapBetween);
-    const ly = isCompactHud ? (h - 52) : (h - 118);
-    let lx = isCompactHud ? Math.max(10, (w - totalLegendW) * 0.5) : 26;
-    if (w > 760 || isCompactHud) {
-      ctx.fillStyle = isLight ? 'rgba(24, 42, 58, 0.72)' : 'rgba(156, 188, 212, 0.76)';
-      ctx.fillText(prefix, lx, ly);
-      lx += ctx.measureText(prefix).width + 6;
-      for (const it of items) {
-        ctx.fillStyle = rgba(it.col, 0.96);
-        ctx.beginPath();
-        ctx.arc(lx + it.r, ly, it.r, 0, Math.PI * 2);
-        ctx.fill();
-        lx += it.r * 2 + gapAfterDot;
-        ctx.fillStyle = isLight ? 'rgba(20, 36, 52, 0.84)' : 'rgba(206, 228, 244, 0.88)';
-        ctx.fillText(it.label, lx, ly);
-        lx += ctx.measureText(it.label).width + gapBetween;
-      }
-    }
-    ctx.restore();
   }
 
   // Skip extra 2D hub circles in Cosmos since Tier 4 345+ hubs already render larger with 4-point star glint natively in WebGL2!
@@ -5530,89 +5754,90 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
   }
 
-  // PASS 6B: Live arriving growth animation
-  drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
-  if (focusK > 0) {
-    if (!useGLSky) drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
-  }
+  function paintGrowth(ctx, zoom = 1) {
+    const sizeScale = Math.sqrt(zoom);
+    drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim, sizeScale);
+    if (zoom === 1 && focusK > 0 && manual && !useGLSky) {
+      drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
+    }
 
-  // PASS 7: FINE-LINE ASTRONOMICAL OUTER-RIM FRONTIER CRYSTALLIZATION (real newly-frozen D5 modules! Ring/focus mode only)
-  for (let k = 0; !inFullAtlas && k < truthGrowth.recentSprouts.length; k++) {
-    const sp = truthGrowth.recentSprouts[k];
-    const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000, sp.cid);
-    const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000, sp.cid);
-    if (pxEnd < -24 || pxEnd > w + 24 || pyEnd < -24 || pyEnd > h + 24) continue;
-    const mask = maskFor(sp.cid, pxEnd, pyEnd);
-    if (mask < 0.22) continue;
-    const col = nebPalette[sp.cid % nebPalette.length];
-    const isSpot = focusCid != null && sp.cid === focusCid;
-    const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.38 : 1.0);
-    const parentX = projX[sp.parentIdx], parentY = projY[sp.parentIdx];
+    // Recent growth follows the same projected paths in the panorama and its close-ups.
+    for (let k = 0; !inFullAtlas && k < truthGrowth.recentSprouts.length; k++) {
+      const sp = truthGrowth.recentSprouts[k];
+      const [pxEnd, pyEnd] = projectNeb(sp.x / 1000, sp.y / 1000, sp.z / 1000, sp.cid);
+      const [mx, my] = projectNeb(sp.mx / 1000, sp.my / 1000, sp.mz / 1000, sp.cid);
+      if (pxEnd < -24 || pxEnd > w + 24 || pyEnd < -24 || pyEnd > h + 24) continue;
+      const mask = maskFor(sp.cid, pxEnd, pyEnd);
+      if (mask < 0.22) continue;
+      const col = nebPalette[sp.cid % nebPalette.length];
+      const isSpot = focusCid != null && sp.cid === focusCid;
+      const dim = focusK > 0.05 ? growthDim(sp.cid) : (holoCam.hoveredGalaxy != null && !isSpot ? 0.38 : 1.0);
+      const parentX = projX[sp.parentIdx], parentY = projY[sp.parentIdx];
 
-    // Whisper-thin permanent outer crown filament
-    ctx.strokeStyle = rgba(col, (isLight ? 0.24 : 0.24) * mask * Math.min(1.15, dim));
-    ctx.lineWidth = isSpot ? 0.85 : 0.60;
-    ctx.beginPath();
-    ctx.moveTo(parentX, parentY);
-    ctx.quadraticCurveTo(mx, my, pxEnd, pyEnd);
-    ctx.stroke();
+      // Whisper-thin permanent outer crown filament
+      ctx.strokeStyle = rgba(col, (isLight ? 0.24 : 0.24) * mask * Math.min(1.15, dim));
+      ctx.lineWidth = (isSpot ? 0.85 : 0.60) / sizeScale;
+      ctx.beginPath();
+      ctx.moveTo(parentX, parentY);
+      ctx.quadraticCurveTo(mx, my, pxEnd, pyEnd);
+      ctx.stroke();
 
-    ctx.fillStyle = rgba(isLight ? col : [220, 242, 255], (isLight ? 0.58 : 0.52) * mask * Math.min(1.15, dim));
-    ctx.beginPath();
-    ctx.arc(pxEnd, pyEnd, isSpot ? 1.5 : 1.1, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.fillStyle = rgba(isLight ? col : [220, 242, 255], (isLight ? 0.58 : 0.52) * mask * Math.min(1.15, dim));
+      ctx.beginPath();
+      ctx.arc(pxEnd, pyEnd, (isSpot ? 1.5 : 1.1) / sizeScale, 0, Math.PI * 2);
+      ctx.fill();
 
-    // Calm slow-motion outer crystallization cycle (9–13s, staggered, zero flashiness)
-    if (!quiet) {
-      const cyc = (tEff / (sp.period || 10.5) + (sp.phase || 0)) % 1;
-      if (cyc < 0.22) {
-        const u = cyc / 0.22;
-        const bud = Math.sin(u * Math.PI);
-        ctx.fillStyle = rgba(isLight ? col : [225, 244, 255], bud * 0.55 * mask * dim);
-        ctx.beginPath();
-        ctx.arc(parentX, parentY, 1.4 + bud * 2.2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (cyc < 0.68) {
-        const u = growthEase((cyc - 0.22) / 0.46);
-        const steps = 10;
-        ctx.strokeStyle = rgba(isLight ? col : [210, 238, 252], (isLight ? 0.62 : 0.66) * mask * Math.min(1.15, dim));
-        ctx.lineWidth = isSpot ? 1.15 : 0.85;
-        ctx.beginPath();
-        let tipX = parentX, tipY = parentY;
-        for (let s = 0; s <= steps; s++) {
-          const f = (s / steps) * u;
-          const invF = 1 - f;
-          const qx = invF * invF * parentX + 2 * invF * f * mx + f * f * pxEnd;
-          const qy = invF * invF * parentY + 2 * invF * f * my + f * f * pyEnd;
-          if (s === 0) ctx.moveTo(qx, qy);
-          else ctx.lineTo(qx, qy);
-          tipX = qx;
-          tipY = qy;
+      // Calm slow-motion outer crystallization cycle (9–13s, staggered, zero flashiness)
+      if (!quiet) {
+        const cyc = (tEff / (sp.period || 10.5) + (sp.phase || 0)) % 1;
+        if (cyc < 0.22) {
+          const u = cyc / 0.22;
+          const bud = Math.sin(u * Math.PI);
+          ctx.fillStyle = rgba(isLight ? col : [225, 244, 255], bud * 0.55 * mask * dim);
+          ctx.beginPath();
+          ctx.arc(parentX, parentY, (1.4 + bud * 2.2) / sizeScale, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (cyc < 0.68) {
+          const u = growthEase((cyc - 0.22) / 0.46);
+          const steps = 10;
+          ctx.strokeStyle = rgba(isLight ? col : [210, 238, 252], (isLight ? 0.62 : 0.66) * mask * Math.min(1.15, dim));
+          ctx.lineWidth = (isSpot ? 1.15 : 0.85) / sizeScale;
+          ctx.beginPath();
+          let tipX = parentX, tipY = parentY;
+          for (let s = 0; s <= steps; s++) {
+            const f = (s / steps) * u;
+            const invF = 1 - f;
+            const qx = invF * invF * parentX + 2 * invF * f * mx + f * f * pxEnd;
+            const qy = invF * invF * parentY + 2 * invF * f * my + f * f * pyEnd;
+            if (s === 0) ctx.moveTo(qx, qy);
+            else ctx.lineTo(qx, qy);
+            tipX = qx;
+            tipY = qy;
+          }
+          ctx.stroke();
+
+          ctx.fillStyle = rgba(isLight ? col : [240, 250, 255], 0.85 * mask * dim);
+          ctx.beginPath();
+          ctx.arc(tipX, tipY, 1.7 / sizeScale, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          const u = (cyc - 0.68) / 0.32;
+          const fade = Math.sin(u * Math.PI);
+          ctx.strokeStyle = rgba(col, fade * (isLight ? 0.42 : 0.48) * mask * dim);
+          ctx.lineWidth = 0.70 / sizeScale;
+          ctx.beginPath();
+          ctx.arc(pxEnd, pyEnd, (2.2 + u * 6.8) / sizeScale, 0, Math.PI * 2);
+          ctx.stroke();
         }
-        ctx.stroke();
-
-        ctx.fillStyle = rgba(isLight ? col : [240, 250, 255], 0.85 * mask * dim);
-        ctx.beginPath();
-        ctx.arc(tipX, tipY, 1.7, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        const u = (cyc - 0.68) / 0.32;
-        const fade = Math.sin(u * Math.PI);
-        ctx.strokeStyle = rgba(col, fade * (isLight ? 0.42 : 0.48) * mask * dim);
-        ctx.lineWidth = 0.70;
-        ctx.beginPath();
-        ctx.arc(pxEnd, pyEnd, 2.2 + u * 6.8, 0, Math.PI * 2);
-        ctx.stroke();
       }
     }
   }
+  paintGrowth(ctx);
 
   ctx.restore();
 
   if (useGLSky && holoCam.galaxyMainCid != null) {
-    drawGalaxyNodeLayer(ctx, holoCam.galaxyMainCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow, 'main');
-  } else if (useGLSky && holoCam.swellCid != null) {
-    drawGalaxyNodeLayer(ctx, holoCam.swellCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow, 'swell');
+    drawGalaxyNodeLayer(ctx, holoCam.galaxyMainCid, projectNeb, nebPalette, isLight, w, h, rightGutter, growthNow);
   } else if (galaxyDetail.picks.length) {
     galaxyDetail.picks = [];
   }
@@ -5621,6 +5846,104 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
   const strokeHalo = isLight ? 'rgba(247, 244, 236, 0.94)' : 'rgba(4, 7, 12, 0.92)';
+
+  if (growthEvents.length) {
+    const layers = useGLSky ? [$('#holo-gl'), ctx.canvas] : [ctx.canvas];
+    drawGrowthObservations(growthEvents, clProj, w - rightGutter, h, nowMs, isLight, {
+      ctx, skyWash: sampleGrowthSky(layers, w, h), width: w, height: h, nebula: truthNebula,
+      project: projectNeb, palette: nebPalette, paintGrowth
+    });
+  }
+
+  for (const { midPt, count, col } of bridgeLabels) {
+    ctx.save();
+    ctx.font = '600 8px "Geist Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = isLight ? 'rgba(242, 239, 232, 0.94)' : 'rgba(2, 6, 12, 0.92)';
+    const tag = `${count}`;
+    ctx.strokeText(tag, midPt[0], midPt[1]);
+    ctx.fillStyle = isLight ? rgba(col, 0.92) : rgba([208, 234, 248], 0.78);
+    ctx.fillText(tag, midPt[0], midPt[1]);
+    ctx.restore();
+  }
+
+  // Grand cosmic DAG banner + proportional-size dependency-tier legend in dedicated 星系 Observatory mode
+  if (useGLSky && isPureGalaxyView && holoCam.galaxyBoost > 0.35) {
+    const dagTotal = truthNebula.counts?.truth_nodes || 19022;
+    const isCompactHud = w <= 700;
+    const bVis = Math.min(1, (holoCam.galaxyBoost - 0.35) / 0.65);
+    ctx.save();
+    if (!isCompactHud) {
+      const banner = tr('hud_dag_banner', `TRUTH DAG COSMOS // L0 公理底座 → L84 前沿定理 · ${dagTotal.toLocaleString()} 冻结节点`, {
+        n: dagTotal.toLocaleString()
+      });
+      ctx.globalAlpha = bVis * 0.88;
+      ctx.font = '600 9.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3.0;
+      ctx.strokeStyle = isLight ? 'rgba(240, 237, 230, 0.95)' : 'rgba(2, 6, 12, 0.90)';
+      const bx = (w - rightGutter) * 0.5;
+      ctx.strokeText(banner, bx, 78);
+      ctx.fillStyle = isLight ? 'rgba(15, 31, 46, 0.88)' : (isBlueprint ? 'rgba(86, 255, 160, 0.92)' : 'rgba(166, 218, 244, 0.90)');
+      ctx.fillText(banner, bx, 78);
+    }
+
+    // Compact scientific reuse-tier size+color legend cleanly positioned above #human-console!
+    const items = isLight
+      ? [
+          { col: [188, 112, 16], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+          { col: [8, 115, 95],   r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+          { col: [15, 138, 124], r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+          { col: [40, 118, 158], r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+          { col: [86, 114, 148], r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
+        ]
+      : isBlueprint
+        ? [
+            { col: [224, 255, 174], r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [118, 255, 168], r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+            { col: [52, 224, 128],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+            { col: [36, 174, 96],   r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+            { col: [20, 112, 62],   r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
+          ]
+        : [
+            { col: [248, 200, 96],  r: isCompactHud ? 4.2 : 5.2, label: isCompactHud ? '345+' : L('345+ 核心枢纽', '345+ Hubs') },
+            { col: [52, 232, 196],  r: isCompactHud ? 3.4 : 4.1, label: '64–344' },
+            { col: [76, 214, 189],  r: isCompactHud ? 2.7 : 3.2, label: '6–63' },
+            { col: [122, 188, 224], r: isCompactHud ? 2.1 : 2.4, label: '1–5' },
+            { col: [92, 138, 191],  r: isCompactHud ? 1.5 : 1.7, label: isCompactHud ? '0' : L('0 叶节点', '0 Leaves') }
+          ];
+    ctx.font = isCompactHud
+      ? '500 8.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif'
+      : '500 9px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = bVis * 0.86;
+    const prefix = isCompactHud ? L('依赖度:', 'Deps:') : L('按被依赖度分大小：', 'Sized by dependents: ');
+    const gapAfterDot = isCompactHud ? 3.5 : 5;
+    const gapBetween = isCompactHud ? 8 : 13;
+    const totalLegendW = ctx.measureText(prefix).width + 6 + items.reduce((acc, it) => acc + it.r * 2 + gapAfterDot + ctx.measureText(it.label).width + gapBetween, -gapBetween);
+    const ly = isCompactHud ? (h - 52) : (h - 118);
+    let lx = isCompactHud ? Math.max(10, (w - totalLegendW) * 0.5) : 26;
+    if (w > 760 || isCompactHud) {
+      ctx.fillStyle = isLight ? 'rgba(24, 42, 58, 0.72)' : 'rgba(156, 188, 212, 0.76)';
+      ctx.fillText(prefix, lx, ly);
+      lx += ctx.measureText(prefix).width + 6;
+      for (const it of items) {
+        ctx.fillStyle = rgba(it.col, 0.96);
+        ctx.beginPath();
+        ctx.arc(lx + it.r, ly, it.r, 0, Math.PI * 2);
+        ctx.fill();
+        lx += it.r * 2 + gapAfterDot;
+        ctx.fillStyle = isLight ? 'rgba(20, 36, 52, 0.84)' : 'rgba(206, 228, 244, 0.88)';
+        ctx.fillText(it.label, lx, ly);
+        lx += ctx.measureText(it.label).width + gapBetween;
+      }
+    }
+    ctx.restore();
+  }
 
   const topGrowingIds = new Set(
     [...truthGrowth.recentByCluster.entries()]
@@ -5670,7 +5993,7 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     const baseLabelA = focusK > 0.05
       ? Math.min(1, growthDim(cl.id))
       : (isHovered ? 1.0 : (delta > 0 || conjCount > 0) ? 0.90 : (state.layer === 'galaxy' ? 0.76 : 0.56));
-    ctx.globalAlpha = Math.max(0, Math.min(1, baseLabelA * Math.min(1, skyVis)));
+    ctx.globalAlpha = baseLabelA * Math.min(1, skyVis);
     const starMark = conjCount > 0 ? ' ✦' : '';
     const gTitle = langGalaxyName(cl);
     const mainLabel = isCompactMobile
@@ -5714,59 +6037,55 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
     }
     ctx.globalAlpha = 1;
   }
-  if (growthFocus && focusK > 0) {
-    if (autoFocus) {
-      drawTruthGrowthFocus(ctx, autoFocus, focusK, growthNow, focusTx, focusTy, lensR, w, nebPalette[autoFocus.cid % nebPalette.length], strokeHalo);
-    } else if (manual) {
-      const col = nebPalette[manual.cid % nebPalette.length];
-      const name = langGalaxyName(manual.cluster);
-      const bucket = recentBucket(manual.cid);
-      const delta = bucket?.count || 0;
-      const recentNames = (bucket?.events || []).slice(0, 2).map(ev => isEn()
-        ? `${shortModuleName(ev.module)} (${relative(ev.at)})`
-        : `${shortModuleName(ev.module)}（${relative(ev.at)}）`);
-      const cxTop = w * 0.5;
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = focusK;
-      ctx.strokeStyle = rgba(col, 0.58);
-      ctx.lineWidth = 1.1;
-      ctx.setLineDash([5, 7]);
-      const [rimX, rimY] = growthLensRim(focusTx, focusTy, lensR, cxTop, 92);
-      ctx.beginPath();
-      ctx.moveTo(cxTop, 92);
-      ctx.quadraticCurveTo(cxTop + (rimX - cxTop) * 0.2, rimY * 0.45 + 50, rimX, rimY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.lineJoin = 'round';
-      ctx.lineWidth = 3.6;
-      ctx.strokeStyle = strokeHalo;
-      ctx.font = '800 14px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-      const ttl = delta > 0
-        ? (isEn()
-            ? `⟡ Truth Galaxy Growth · ${name} (${(manual.cluster.count || 0).toLocaleString()} modules · +${delta} recent)`
-            : `⟡ 真值星系生长 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 模块 · 近期 +${delta}）`)
-        : (isEn()
-            ? `⟡ Truth Galaxy · ${name} (${(manual.cluster.count || 0).toLocaleString()} verified theorems)`
-            : `⟡ 真值星系 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`);
-      ctx.strokeText(ttl, cxTop, 60);
-      ctx.fillStyle = rgba(col, 1);
-      ctx.fillText(ttl, cxTop, 60);
-      ctx.font = '700 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
-      const sub = recentNames.length
-        ? (isEn()
-            ? `Recently frozen: ${recentNames.join(' · ')} (Click empty space or Esc for panorama)`
-            : `最新冻结：${recentNames.join(' · ')}  （点击或 Esc 返回全景）`)
-        : (isEn()
-            ? `${manual.cluster.en || manual.cluster.name.toUpperCase()} · Click empty space or Esc for panorama`
-            : `${manual.cluster.en || manual.cluster.name.toUpperCase()} · 暂无新冻结模块 · 点击或 Esc 返回全景`);
-      ctx.strokeText(sub, cxTop, 80);
-      ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba([220, 255, 240], 0.88);
-      ctx.fillText(sub, cxTop, 80);
-      ctx.restore();
-    }
+  if (manual && focusK > 0) {
+    const col = nebPalette[manual.cid % nebPalette.length];
+    const name = langGalaxyName(manual.cluster);
+    const bucket = recentBucket(manual.cid);
+    const delta = bucket?.count || 0;
+    const recentNames = (bucket?.events || []).slice(0, 2).map(ev => isEn()
+      ? `${shortModuleName(ev.module)} (${relative(ev.at)})`
+      : `${shortModuleName(ev.module)}（${relative(ev.at)}）`);
+    const cxTop = w * 0.5;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = focusK;
+    ctx.strokeStyle = rgba(col, 0.58);
+    ctx.lineWidth = 1.1;
+    ctx.setLineDash([5, 7]);
+    const [rimX, rimY] = growthLensRim(focusTx, focusTy, lensR, cxTop, 92);
+    ctx.beginPath();
+    ctx.moveTo(cxTop, 92);
+    ctx.quadraticCurveTo(cxTop + (rimX - cxTop) * 0.2, rimY * 0.45 + 50, rimX, rimY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3.6;
+    ctx.strokeStyle = strokeHalo;
+    ctx.font = '800 14px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    const ttl = delta > 0
+      ? (isEn()
+          ? `⟡ Truth Galaxy Growth · ${name} (${(manual.cluster.count || 0).toLocaleString()} modules · +${delta} recent)`
+          : `⟡ 真值星系生长 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 模块 · 近期 +${delta}）`)
+      : (isEn()
+          ? `⟡ Truth Galaxy · ${name} (${(manual.cluster.count || 0).toLocaleString()} verified theorems)`
+          : `⟡ 真值星系 · ${name}（${(manual.cluster.count || 0).toLocaleString()} 冻结定理）`);
+    ctx.strokeText(ttl, cxTop, 60);
+    ctx.fillStyle = rgba(col, 1);
+    ctx.fillText(ttl, cxTop, 60);
+    ctx.font = '700 10.5px "Geist Mono", -apple-system, "PingFang SC", sans-serif';
+    const sub = recentNames.length
+      ? (isEn()
+          ? `Recently frozen: ${recentNames.join(' · ')} (Click empty space or Esc for panorama)`
+          : `最新冻结：${recentNames.join(' · ')}  （点击或 Esc 返回全景）`)
+      : (isEn()
+          ? `${manual.cluster.en || manual.cluster.name.toUpperCase()} · Click empty space or Esc for panorama`
+          : `${manual.cluster.en || manual.cluster.name.toUpperCase()} · 暂无新冻结模块 · 点击或 Esc 返回全景`);
+    ctx.strokeText(sub, cxTop, 80);
+    ctx.fillStyle = isLight ? rgba(col, 0.90) : rgba([220, 255, 240], 0.88);
+    ctx.fillText(sub, cxTop, 80);
+    ctx.restore();
   }
   ctx.restore();
 }
@@ -7065,7 +7384,7 @@ function drawHolo3DFrame(dt = 0.016) {
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const stepDt = Math.min(0.05, dt);
+  const stepDt = Math.max(0, Math.min(0.05, dt));
   if (!state.quiet && !reduced) {
     holoCam.time += stepDt;
     holoCam.bootAge += stepDt;
@@ -7090,6 +7409,7 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   }
   const useGL = Boolean(holoCam.gl);
+  if (!useGL && introCinema.active) skipIntroCinema();
   const activeId = state.hovered || state.selected;
   const isZenHud = $('#research-room')?.classList.contains('is-hud-zen');
   const rightGutter = (w >= 1120 && !isZenHud && !state.focused) ? (w <= 1320 ? 274 : 298) : 0;
@@ -7108,27 +7428,12 @@ function drawHolo3DFrame(dt = 0.016) {
   const fovY = holoCam.gl?.fovY || (40 * Math.PI / 180);
   const stageAspect = Math.max(0.4, (w - rightGutter) / Math.max(1, h));
   const gatherPlan = galaxyFrame ? galaxyGatherPlanFor(galaxyCam.cid, galaxyFrame, fovY, stageAspect) : null;
-  const swell = useGL && !galaxyFrame && truthNebula.loaded ? growthSwellFocus(performance.now()) : null;
-  const swellFrame = swell ? galaxyWorldFrame(swell.cid) : null;
-  holoCam.swellCid = swellFrame ? swell.cid : null;
-  if (swellFrame) loadGalaxyDetails();
-  let swellOffset = [0, 0, 0];
-  const swellAt = swellFrame ? holoCam.gl.project(...swellFrame.center) : null;
-  if (swellAt) {
-    // Plan the shift for the full enlargement so the galaxy moves once, smoothly with the swell.
-    const half = swellFrame.radius * GROWTH_SWELL * swellAt.s;
-    const [dx, dy] = growthSwellShift([swellAt.x, swellAt.y], half, half * 0.45 * GROWTH_SWELL_LIFT, { left: 30, right: w - rightGutter - 30, top: 110, bottom: h * 0.56 });
-    const amount = (swell.scale - 1) / (GROWTH_SWELL - 1);
-    const b = galaxyViewBasis(holoCam.yaw, holoCam.pitch);
-    swellOffset = [0, 1, 2].map(i => ((b.right[i] * dx - b.up[i] * dy) / swellAt.s) * amount);
-  }
   const nowMs = performance.now();
-  if (useGL) stepGalaxyGather(
-    gatherPlan,
-    fly,
-    swellFrame ? { cid: swell.cid, pivot: swellFrame.center, scale: swell.scale, lift: swell.lift, offset: swellOffset } : null,
-    state.layer === 'galaxy' && !introCinema.active
-  );
+  const eligible = growthInsetAllowed({ mode: state.mode, layer: state.layer,
+    focusedDepartment: state.focused, manual: Boolean(truthGrowth.manualFocus) });
+  const activeGrowth = stepTruthGrowth(nowMs);
+  const growthEvents = eligible ? activeGrowth : [];
+  if (!growthEvents.length) $('#growth-observations').hidden = true;
 
   // Step DAG Genesis Time-Scrub playback when open
   if (genesisScrub.open && genesisScrub.playing && !state.quiet && !reduced) {
@@ -7247,7 +7552,7 @@ function drawHolo3DFrame(dt = 0.016) {
   const effectiveGenesisCut = (introCinema.active && useGL)
     ? introGenCut
     : (genesisScrub.open ? genesisScrub.value : 1.05);
-  const targetGalaxyBoost = (state.layer === 'galaxy' || Boolean(galaxyFrame)) ? 1.0 : 0.0;
+  const targetGalaxyBoost = state.layer === 'galaxy' || galaxyFrame ? 1.0 : 0.0;
   holoCam.galaxyBoost += (targetGalaxyBoost - holoCam.galaxyBoost) * damp;
   // Use our unified orbital spiral-galaxy DAG (sized & colored by real dependency count) across all views!
   holoCam.fullAtlasAlpha = 0.0;
@@ -7319,6 +7624,40 @@ function drawHolo3DFrame(dt = 0.016) {
   holoCam.rheostatRevX += (targetRevX - holoCam.rheostatRevX) * Math.min(1, damp * 0.85);
   holoCam.rheostatStuX += (targetStuX - holoCam.rheostatStuX) * Math.min(1, damp * 0.85);
 
+  const yaw = holoCam.yaw;
+  const pitch = holoCam.pitch;
+  if (useGL) {
+    holoCam.gl.ensureSize(w, h, dpr);
+    holoCam.gl.setCamera(yaw, pitch, holoCam.dist,
+      holoCam.lookX, holoCam.lookY, holoCam.lookZ, holoCam.ndcShiftX);
+  }
+
+  // Exact shared 3D -> 2D projection (sub-pixel locked to WebGL2 camera when active!)
+  const cx = w * 0.5;
+  const cy = state.focused ? h * 0.52 : h * 0.535;
+  const fov = Math.min(Math.min(w, h) * (w > 1360 ? 1.08 : w > 980 ? 0.98 : 0.92), w * 0.84);
+  const cosY = Math.cos(holoCam.yaw);
+  const sinY = Math.sin(holoCam.yaw);
+  const cosP = Math.cos(holoCam.pitch);
+  const sinP = Math.sin(holoCam.pitch);
+  const lookY = 0.55;
+  const lookZ = 0.45;
+
+  const project = useGL
+    ? (wx, wy, wz) => holoCam.gl.project(wx, wy, wz)
+    : (wx, wy, wz) => {
+        const x0 = wx;
+        const y0 = wy - lookY;
+        const z0 = wz - lookZ;
+        const x1 = x0 * cosY - z0 * sinY;
+        const z1 = x0 * sinY + z0 * cosY;
+        const y2 = y0 * cosP - z1 * sinP;
+        const z2 = y0 * sinP + z1 * cosP + holoCam.dist;
+        if (z2 < 0.8) return null;
+        const s = fov / z2;
+        return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s };
+      };
+
   if (useGL) {
     // 1. REAL WEBGL2 3-STRATA GPU SCENE: Ground Abyss + Floating Space Station + Overhead 3D Truth DAG Cosmos!
     const themeIdx = isLight ? 2 : isBlueprint ? 1 : 0;
@@ -7331,8 +7670,6 @@ function drawHolo3DFrame(dt = 0.016) {
       direction: [154, 84, 8], research: [4, 108, 78], review: [55, 48, 163], verification: [3, 83, 136],
       books: [107, 33, 168], publication: [17, 100, 53], outreach: [180, 60, 12], studio: [45, 67, 86]
     };
-    holoCam.gl.ensureSize(w, h, dpr);
-    holoCam.gl.setCamera(holoCam.yaw, holoCam.pitch, holoCam.dist, holoCam.lookX, holoCam.lookY, holoCam.lookZ, holoCam.ndcShiftX);
     if (truthNebula.loaded) {
       const settledConjs = state.settledConjectures || conjectureRecords();
       holoCam.gl.syncTruthDag(truthNebula.stars, truthNebula.edges, truthNebula.clusters, glNebPalette, truthGrowth.recentByCluster, isLight, settledConjs);
@@ -7340,6 +7677,7 @@ function drawHolo3DFrame(dt = 0.016) {
     if (truthAtlasFull.loaded && holoCam.gl.syncFullAtlas) {
       holoCam.gl.syncFullAtlas(truthAtlasFull.data, themeIdx);
     }
+    stepGalaxyGather(gatherPlan, fly, state.layer === 'galaxy' && !introCinema.active);
     const glEntities = departments().map(d => {
       const cfg = holoWorld[d.id] || { x: 0, y: 0, z: 0, r: 0.7, baseH: 1.2, order: 0, hex: [116, 224, 244] };
       return {
@@ -7361,6 +7699,9 @@ function drawHolo3DFrame(dt = 0.016) {
     const sonarU = sonarActive ? sonarAge / 2.2 : 0;
     const totalRunning = departments().reduce((acc, d) => acc + (countRunning(d) || 0), 0);
     const ciLoad = Math.max(0.18, Math.min(1.0, (totalRunning + 2) / 14));
+    const detail = holoCam.gl.growthDetail;
+    detail.fill(0);
+    for (const event of growthEvents) detail[event.cid + 1] = growthInsetOpacity(nowMs - event.start, event.timing);
     holoCam.gl.render({
       t,
       themeIdx,
@@ -7440,7 +7781,7 @@ function drawHolo3DFrame(dt = 0.016) {
   initHoloParticles();
 
   // 1B. PURE BACKGROUND TRUTH DAG OUTER-RIM CRYSTALLIZATION & ASTRONOMICAL STAR-TRACKER LABELS
-  drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint);
+  drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint, growthEvents, nowMs);
 
   // 1C. INTERACTIVE CONJECTURE LANTERN STARS (sub-pixel hover reticle + click-to-read proof! Ring/focus modes only)
   holoCam.projectedLanterns = [];
@@ -7671,31 +8012,6 @@ function drawHolo3DFrame(dt = 0.016) {
     }
   }
 
-  // Exact shared 3D -> 2D projection (sub-pixel locked to WebGL2 camera when active!)
-  const cx = w * 0.5;
-  const cy = state.focused ? h * 0.52 : h * 0.535;
-  const fov = Math.min(Math.min(w, h) * (w > 1360 ? 1.08 : w > 980 ? 0.98 : 0.92), w * 0.84);
-  const cosY = Math.cos(holoCam.yaw);
-  const sinY = Math.sin(holoCam.yaw);
-  const cosP = Math.cos(holoCam.pitch);
-  const sinP = Math.sin(holoCam.pitch);
-  const lookY = 0.55;
-  const lookZ = 0.45;
-
-  const project = useGL
-    ? (wx, wy, wz) => holoCam.gl.project(wx, wy, wz)
-    : (wx, wy, wz) => {
-        const x0 = wx;
-        const y0 = wy - lookY;
-        const z0 = wz - lookZ;
-        const x1 = x0 * cosY - z0 * sinY;
-        const z1 = x0 * sinY + z0 * cosY;
-        const y2 = y0 * cosP - z1 * sinP;
-        const z2 = y0 * sinP + z1 * cosP + holoCam.dist;
-        if (z2 < 0.8) return null;
-        const s = fov / z2;
-        return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s };
-      };
 
   const draw3DRing = (rx, ry, rz, radX, radZ, segs, stroke, lw = 1, dash = null, rot = 0) => {
     ctx.save();
@@ -7762,6 +8078,8 @@ function drawHolo3DFrame(dt = 0.016) {
     ctx.restore();
     return;
   }
+
+  ctx.save();
 
   // ==========================================================================
   // 4. MATRIX ARCHITECTURAL CAMPUS: 4 SOVEREIGN SECTORS + CENTRAL LEAN BRIDGE
@@ -9023,6 +9341,7 @@ function drawHolo3DFrame(dt = 0.016) {
     if (sec3Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_rev_tap', `评审支路接入 → ${langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚')}`, { dept: langDeptLabel(holoCam.rheostatRevTargetId, '数学攻坚') }), isBlueprint ? [64, 255, 146] : revBranchRGB, true, 8.5);
     if (sec4Hot)        drawHoloText( 0.0,  0.10,  5.24, tr('hud_stu_tap', `工具支路接入 → ${langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识')}`, { dept: langDeptLabel(holoCam.rheostatStuTargetId, '论文与知识') }), isBlueprint ? [96, 255, 178] : stuBranchRGB, true, 8.5);
   }
+  ctx.restore();
 }
 
 function startHoloLoop() {

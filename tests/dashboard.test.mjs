@@ -442,7 +442,7 @@ test('a new matrix entry carries its importance, and 轮播 shows the real entry
   }finally{dom.window.close();}
 });
 
-test('truth DAG growth is grouped by galaxy and brought into close-up one place at a time',async()=>{
+test('truth DAG growth is grouped by galaxy with separate close-ups for distinct galaxies',async()=>{
   const {dom,win}=await boot();try{
     const clusters=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'},{id:7,name:'Other'}];
     assert.equal(win.growthClusterId('Combinatorics',clusters),0);
@@ -460,24 +460,103 @@ test('truth DAG growth is grouped by galaxy and brought into close-up one place 
     q=win.enqueueGrowth(q,[ev('E','Quantum')],clusters,1200);
     assert.equal(q.length,2);
     assert.equal(q[1].modules.length,2,'later growth joins the waiting galaxy');
-    assert.equal(win.nextGrowthFocus(q,1000,0,null),0);
-    assert.equal(win.nextGrowthFocus(q,1000,5000,null),-1,'calm keeps the sky still');
-    assert.equal(win.nextGrowthFocus(q,9000,5000,0),1,'the next close-up prefers another galaxy');
-    assert.equal(win.nextGrowthFocus([q[0]],9000,5000,0),0,'the same galaxy grows again when nothing else waits');
-    assert.equal(win.nextGrowthFocus([],9000,0,null),-1);
-    assert.equal(win.growthFocusAmount(0),0);
-    const rising=win.growthFocusAmount(700);
-    assert.ok(rising>0&&rising<1,'the close-up eases in');
-    assert.equal(win.growthFocusAmount(3000),1,'the close-up holds while the galaxy grows');
-    const settling=win.growthFocusAmount(6400);
-    assert.ok(settling>0&&settling<1,'the close-up eases back');
-    assert.equal(win.growthFocusAmount(8000),0,'then the sky is calm');
+    assert.equal(win.nextGrowthFocus(q,null),0);
+    assert.equal(win.nextGrowthFocus(q,0),1,'the next close-up prefers another galaxy');
+    assert.equal(win.nextGrowthFocus([q[0]],0),0,'the same galaxy grows again when nothing else waits');
+    assert.equal(win.nextGrowthFocus([],null),-1);
+    for(const count of [1,3,12]){
+      const timing=win.growthTiming(count);
+      const amount=t=>win.growthFocusAmount(t,timing);
+      assert.equal(amount(0),0);
+      assert.ok(amount(200)>0 && amount(200)<1,'the core comes into view as the inset opens');
+      assert.equal(amount(500),1,'the core is lit before the first new branch');
+      assert.equal(amount(timing.pulse),1,'the last star ignites at the centre');
+      assert.ok(amount(timing.pulse+1300)>0 && amount(timing.pulse+1300)<1,'return overlaps the expanding pulse');
+      assert.equal(amount(timing.end),0);
+    }
     assert.deepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/X'),'a module always grows at the same place');
     assert.notDeepEqual(win.growthOffset('D5/S3/Quantum/X'),win.growthOffset('D5/S3/Quantum/Y'));
   }finally{dom.window.close();}
 });
 
-test('a growing galaxy is magnified locally while the rest of the sky stays put',async()=>{
+test('a full live batch completes its visible branches before the pulse and a replay preserves totals',async()=>{
+  const {dom,win}=await boot();try{
+    const nebula=JSON.parse(await readFile(new URL('../site/data/truth-nebula.v1.json',import.meta.url),'utf8'));
+    win.initTruthNebulaData(nebula);
+    const events=Array.from({length:12},(_,i)=>({domain:'Quantum',module:`D5/S1/Quantum/Q${i}`}));
+    const before=nebula.counts.truth_nodes;
+    win.observeTruthGrowth({events:[]});
+    win.observeTruthGrowth({events});
+    const [focus]=win.stepTruthGrowth(1000);
+    assert.equal(focus.cluster.name,'Quantum');
+    assert.equal(focus.spawned,0);
+    assert.equal(win.stepTruthGrowth(2000)[0].spawned,1,'the first branch starts during approach');
+    assert.ok(win.stepTruthGrowth(2900)[0].spawned>1);
+    assert.equal(win.stepTruthGrowth(5800)[0].spawned,12);
+    assert.equal(nebula.counts.truth_nodes,before+12);
+    win.observeTruthGrowth({events:win.previewGrowthRecords(['Arith','Weil'])});
+    const pair=win.stepTruthGrowth(5801);
+    assert.deepEqual(Array.from(pair,f=>f.cluster.name),['Quantum','Arith']);
+    const turnover=focus.start+focus.timing.end+1;
+    const next=win.stepTruthGrowth(turnover);
+    assert.deepEqual(Array.from(next,f=>f.cluster.name),['Arith','Weil']);
+    assert.equal(next[1].slot,focus.slot,'the waiting third galaxy uses the released window');
+    assert.equal(win.stepTruthGrowth(turnover+next[1].timing.end+1).length,0);
+    assert.equal(nebula.counts.truth_nodes,before+12);
+  }finally{dom.window.close();}
+});
+
+test('the magnifier draws projected stars, filaments and pulse rays at the device resolution',async()=>{
+  const {dom,win}=await boot();try{
+    win.devicePixelRatio=3;
+    const images=[],arcs=[],lines=[],moves=[],palette=[[108,196,215]];
+    const grad=()=>({addColorStop(){}});
+    const ctx={setTransform(){},fillRect(){},save(){},restore(){},fill(){},beginPath(){},stroke(){},
+      translate(){},scale(){},rotate(){},createRadialGradient:grad,createLinearGradient:grad,
+      drawImage(image){images.push(image);},arc(x,y){arcs.push([x,y]);},
+      moveTo(x,y){moves.push([x,y]);},lineTo(x,y){lines.push([x,y]);}};
+    const canvas={getContext:()=>ctx}, skyWash={};
+    const nebula={stars:[[0,0,0,0,25,1],[0,0,0,0,50,4],[0,0,0,0,30,2]],edges:[[0,1,0],[0,2,0]],
+      projX:[197,211,900],projY:[168,170,900],projZ:[4,4,999]};
+    const p={x:204,y:168,col:palette[0]},timing=win.growthTiming(1);
+    let growthZoom;
+    win.drawGrowthDetail(canvas,{width:260,height:184},p,null,
+      {skyWash,nebula,palette,width:800,height:600,paintGrowth(_,zoom){growthZoom=zoom;}},
+      [{p,age:timing.pulse,timing,size:336}]);
+    assert.deepEqual([canvas.width,canvas.height],[780,552]);
+    assert.ok(growthZoom>1);
+    assert.deepEqual(images,[skyWash],'only the atmospheric colour is sampled');
+    assert.deepEqual([...new Set(arcs.map(a=>a.join(',')))],['197,168','211,170']);
+    assert.deepEqual(moves[0],[197,168]);
+    assert.deepEqual(lines[0],[211,170]);
+    assert.ok(moves[1][0]<0 && lines[1][0]===-moves[1][0],'pulse is painted through the same lens transform');
+  }finally{dom.window.close();}
+});
+
+test('a growing branch is named at its gold tip in both views, including narrow lenses',async()=>{
+  const {dom,win}=await boot();try{
+    const points=[],labels=[],colors=[];
+    const ctx={save(){},restore(){},beginPath(){},rect(){},clip(){},moveTo(){},closePath(){},fill(){},
+      lineTo(x,y){points.push([x,y]);},stroke(){colors.push(this.strokeStyle);},
+      measureText(t){return {width:t.length*6};},strokeText(){},fillText(t){labels.push(t);}};
+    const branch={sx:40,sy:30,ex:100,ey:50,progress:0.5,opacity:1,number:2,module:'D5/Quantum/Branch'};
+    const bounds={left:0,top:0,right:200,bottom:120};
+    win.drawGrowthMarks(ctx,[branch],bounds,false,true);
+    assert.deepEqual(points[0],[70,40]);
+    assert.ok(colors.includes('#ffcf72'));
+    assert.deepEqual(labels,['Branch']);
+    labels.length=0;
+    const longName='LeftStripGeometricComparisonBoundary';
+    win.drawGrowthMarks(ctx,[{...branch,module:'D5/Quantum/'+longName}],{...bounds,right:132},false,true);
+    assert.ok(labels.length>1);
+    assert.equal(labels.join(''),longName,'the label wraps inside the lens without losing its module name');
+    labels.length=0;
+    win.drawGrowthMarks(ctx,[{...branch,progress:1}],{...bounds,right:400},false,false);
+    assert.deepEqual(labels,['新 · Branch']);
+  }finally{dom.window.close();}
+});
+
+test('a manually opened galaxy uses a local lens in the software renderer',async()=>{
   const {dom,win}=await boot();try{
     const warp=(x,y,d=2.4)=>[...win.growthLensWarp(x,y,500,300,100,d)];
     assert.deepEqual(warp(700,300),[700,300,1],'a point outside the lens does not move');
@@ -597,7 +676,7 @@ test('independent embedded review and studio branch pills select each branch cle
   }finally{dom.window.close();}
 });
 
-test('opening a galaxy flies the camera to it as the main view; growth enlarges the galaxy in place',async()=>{
+test('opening a galaxy flies the camera to it as the main view; growth details use a side window',async()=>{
   const {dom,win}=await boot();try{
     const fov=38*Math.PI/180;
     const pose=win.galaxyCameraPose([-5.6,3.45,-9.9],1.4,fov);
@@ -610,36 +689,35 @@ test('opening a galaxy flies the camera to it as the main view; growth enlarges 
     assert.ok(win.galaxyCameraPose([0,3.5,-10.6],0.05,fov).dist>=3,'tiny galaxies are not approached too closely');
     const view=(o={})=>({mode:'organization',layer:'mix',focusedDepartment:null,manual:false,...o});
     assert.equal(win.galaxyCameraAllowed('manual',view()),true);
-    assert.equal(win.galaxyCameraAllowed('growth',view()),false,'growth keeps the layout: the camera stays');
+    assert.equal(win.galaxyCameraAllowed('growth',view()),false,'growth leaves the camera under reader control');
     assert.equal(win.galaxyCameraAllowed('manual',view({focusedDepartment:'research'})),false);
     assert.equal(win.galaxyCameraAllowed('manual',view({mode:'journey'})),false);
-    assert.equal(win.growthSwellAllowed(view()),true,'a growing galaxy is enlarged in the normal view');
-    assert.equal(win.growthSwellAllowed(view({layer:'galaxy'})),true);
-    assert.equal(win.growthSwellAllowed(view({layer:'station'})),false,'the station view is left alone');
-    assert.equal(win.growthSwellAllowed(view({manual:true})),false,'an opened galaxy is not disturbed');
-    assert.equal(win.growthSwellAllowed(view({focusedDepartment:'research'})),false);
-    assert.equal(win.growthSwellScale(0),1);
-    assert.ok(win.growthSwellScale(600)>1&&win.growthSwellScale(600)<win.growthSwellScale(1300),'the galaxy grows in smoothly');
-    assert.ok(win.growthSwellScale(3000)>=1.8,'and is clearly enlarged while it grows');
-    assert.ok(win.growthSwellScale(6400)<win.growthSwellScale(3000),'it shrinks back when growth ends');
-    assert.equal(win.growthSwellScale(7000),1,'and returns to its size');
-    const cl=[{id:0,name:'Combinatorics'},{id:1,name:'Quantum'}];
-    const sw=win.galaxyGatherTargets(null,cl,{cid:1,pivot:[-9.9,1.35,-3.9],scale:2.1,lift:1.8});
-    assert.equal(sw.get(1).scale,2.1);assert.deepEqual([...sw.get(1).pivot],[-9.9,1.35,-3.9]);assert.deepEqual([...sw.get(1).offset],[0,0,0],'it is enlarged where it is');
-    assert.ok(sw.get(1).alpha>=1);
-    assert.ok(sw.get(1).stretch[1]>1&&sw.get(1).stretch[0]===1,'its flat band opens up vertically while it grows');
-    assert.deepEqual([...sw.get(0).stretch],[1,1,1]);
-    assert.ok(win.growthSwellScale(3000)>=3,'the growing galaxy is enlarged enough to read');
-    const stage={left:30,right:1100,top:110,bottom:500};
-    assert.deepEqual([...win.growthSwellShift([600,300],120,80,stage)],[0,0],'a galaxy with room is enlarged exactly where it is');
-    const [lx]=win.growthSwellShift([60,300],120,80,stage);
-    assert.equal(lx,90,'a galaxy at the edge moves just far enough to stay on stage');
-    const [,ty]=win.growthSwellShift([600,150],120,80,stage);
-    assert.equal(ty,40);
-    const [bx,by]=win.growthSwellShift([1080,480],120,80,stage);
-    assert.equal(bx,-100);assert.equal(by,-60);
-    assert.deepEqual([...win.growthSwellShift([500,300],700,80,stage)],[65,0],'a galaxy wider than the stage is centred');
-    assert.equal(sw.get(0).scale,1);assert.equal(sw.get(0).alpha,1);assert.deepEqual([...sw.get(0).offset],[0,0,0],'the rest of the layout stays');
+    assert.equal(win.growthInsetAllowed(view()),true,'the panorama supports the side window');
+    assert.equal(win.growthInsetAllowed(view({layer:'galaxy'})),true);
+    assert.equal(win.growthInsetAllowed(view({layer:'station'})),false,'the station view is left alone');
+    assert.equal(win.growthInsetAllowed(view({manual:true})),false,'an opened galaxy is not disturbed');
+    assert.equal(win.growthInsetAllowed(view({focusedDepartment:'research'})),false);
+    for(const [w,h] of [[1140,900],[390,420]]){
+      for(const xs of [[0.16,0.82],[0.50,0.52],[0.11,0.15]]){
+        const points=xs.map(x=>({x:x*w,y:h*0.46}));
+        const boxes=win.growthInsetLayout(points,w,h,w<550?100:0);
+        const [a,b]=boxes;
+        assert.equal(a.y,b.y,'both windows occupy the top row');
+        assert.ok(a.y<h*0.10 && a.y+a.height<h*0.47);
+        assert.ok(a.width*a.height >= (w<550 ? 156*130 : 296*219)*1.95);
+        assert.ok(a.x+a.width<=b.x || b.x+b.width<=a.x);
+        assert.equal(win.growthInsetLayout([{...points[1],placement:b.placement}],w,h)[0].x,b.x,
+          'a window keeps its corner when the other one closes');
+        boxes.forEach((box,i)=>{
+          assert.ok(box.x>=0 && box.y>=(w<550?-100:0) && box.x+box.width<=w && box.y+box.height<=h);
+          const arrow=win.growthPointer(box,points[i],w,h);
+          assert.ok(arrow.length>6);
+          assert.ok(Math.abs(arrow.x+(arrow.length+2)*Math.cos(arrow.angle)-points[i].x)<0.001);
+          assert.ok(Math.abs(arrow.y+(arrow.length+2)*Math.sin(arrow.angle)-points[i].y)<0.001);
+          if(xs[1]-xs[0]>0.5) assert.equal(box.x+box.width/2<w/2,points[i].x<w/2);
+        });
+      }
+    }
     const preview=[...win.previewGrowthRecords(['Quantum','Arith'])];
     assert.ok(preview.length>=2&&preview.every(r=>r.preview===true),'preview growth is marked as preview');
     assert.deepEqual([...new Set(preview.map(r=>r.domain))],['Quantum','Arith']);
