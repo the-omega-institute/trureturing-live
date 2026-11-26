@@ -999,16 +999,29 @@ function renderMetrics() {
   }
 }
 
+// A new arrival extends an active notice. A brief pointer handoff cannot shorten it.
+function showStationLabel(cell, duration) {
+  if (!cell) return;
+  const until = performance.now() + duration;
+  if (cell.noticeUntil >= until) return;
+  clearTimeout(cell.noticeTimer);
+  cell.noticeUntil = until;
+  cell.button.classList.add('is-label-notice');
+  cell.noticeTimer = setTimeout(() => {
+    cell.button.classList.remove('is-label-notice');
+    cell.noticeUntil = 0;
+  }, duration);
+}
+
 function createCell(d, index) {
   const pos = positions[d.id] || [200 + (index % 3) * 260, 180 + Math.floor(index / 3) * 200];
-  const button = element('button', '', 'hive-cell is-boot-flash');
+  const button = element('button', '', 'hive-cell');
   button.type = 'button';
   button.dataset.department = d.id;
   button.dataset.execution = d.execution;
   button.dataset.focusKey = `department:${d.id}`;
   button.style.setProperty('--x', `${(pos[0] / 10).toFixed(2)}%`);
   button.style.setProperty('--y', `${(pos[1] / 7.4).toFixed(2)}%`);
-  button.style.setProperty('--stagger', String(index));
 
   const pin = element('span', '', 'cell-pin');
   pin.setAttribute('aria-hidden', 'true');
@@ -1147,6 +1160,7 @@ function renderHive() {
       const cell = createCell(d, i);
       state.cells.set(d.id, cell);
       container.append(cell.button);
+      showStationLabel(cell, 4000);
     }
     const cell = state.cells.get(d.id);
     const missions = departmentMissions(d);
@@ -3157,6 +3171,7 @@ async function refreshLive() {
     }
     renderLive();
     if (arrivals.length) {
+      for (const id of new Set(arrivals.map(a => a.department))) showStationLabel(state.cells.get(id), 5000);
       const dLabel = langDeptLabel(department(arrivals[0].department) || arrivals[0].department, L('研究院', 'Institute'));
       $('#live-announcement').textContent = isEn() ? `New update in ${dLabel}.` : `${dLabel}有新的进展。`;
     }
@@ -9466,6 +9481,20 @@ function startHoloLoop() {
 // Disciplined 3D Camera Drag (Clamped within tasteful command arc — never tangled!) & Direct 3D Entity Picking
 const boardEl = $('#hive-board');
 if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
+  let hoveredLabel = null;
+  function setHoveredLabel(id) {
+    const cell = state.cells.get(id) || null;
+    if (cell === hoveredLabel) return;
+    if (hoveredLabel) {
+      // Leave enough time to move from the model to its callout.
+      showStationLabel(hoveredLabel, 350);
+      hoveredLabel.button.classList.remove('is-label-hover');
+    }
+    hoveredLabel = cell;
+    cell?.button.classList.add('is-label-hover');
+  }
+  boardEl.addEventListener('pointerleave', () => setHoveredLabel(null));
+  window.addEventListener('blur', () => setHoveredLabel(null));
   const hitTowerAt = (clientX, clientY) => {
     const rect = boardEl.getBoundingClientRect();
     const lx = clientX - rect.left;
@@ -9513,6 +9542,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
 
   boardEl.addEventListener('pointerdown', e => {
     if (e.button !== 0 || state.focused || e.target.closest('nyx-assistant, button, a, .department-lens, .scifi-log-wall, .department-panel, .galaxy-node-card, .genesis-scrub-bar, .intro-cinema-pill')) return;
+    setHoveredLabel(null);
     skipIntroCinema();
     stopCinemaDirector();
     holoCam.dragging = true;
@@ -9523,6 +9553,9 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
   });
 
   window.addEventListener('pointermove', e => {
+    if (e.target !== $('#holo-3d') || state.focused || galaxyDetail.picks.length || e.pointerType === 'touch') {
+      setHoveredLabel(null);
+    }
     // Active Theory / Igloo subtle living cursor parallax
     if (window.innerWidth > 0 && window.innerHeight > 0) {
       holoCam.mouseNormX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -9588,6 +9621,7 @@ if (boardEl && !/jsdom/i.test(navigator.userAgent || '')) {
     if (!state.focused && e.target === $('#holo-3d')) {
       const rawHit = hitTowerAt(e.clientX, e.clientY);
       const hit = state.layer === 'galaxy' ? (holoCam.galaxyMainCid == null && rawHit === 'direction' ? 'direction' : null) : rawHit;
+      if (e.pointerType !== 'touch') setHoveredLabel(hit);
       if (hit) {
         holoCam.hoveredGalaxy = null;
         holoCam.hoveredLantern = null;
@@ -9831,7 +9865,10 @@ function applyLayer(layer) {
         ? tr('hint_station', '24/7 活态轨道空间站 · 实时循环产线与滑轨支路 · 点击部门飞入舱内')
         : tr('hint_mix', '周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频');
   }
-  if (changed) sciFiAudio.playLayer(next);
+  if (changed) {
+    if (next !== 'galaxy') for (const cell of state.cells.values()) showStationLabel(cell, 4000);
+    sciFiAudio.playLayer(next);
+  }
 }
 
 for (const layerBtn of document.querySelectorAll('[data-layer]')) {
