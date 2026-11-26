@@ -2967,3 +2967,56 @@ body.quiet *, body.quiet *::before, body.quiet *::after {
 @media (max-width: 980px) and (orientation: landscape) {
   .hive-board { position: relative; height: 64vh; min-height: 320px; }
 }
+
+/* Phone view: the toggle appears on narrow screens only; the simple view keeps the 3D
+   main view alone on one screen under a slim header, and takes every touch gesture. */
+.mobile-view-toggle { display: none; }
+@media (max-width: 700px) {
+  .mobile-view-toggle {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    height: 28px;
+    margin-inline-start: auto;
+    padding: 0 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--ink);
+    font: 600 12px/1 var(--font-mono);
+    cursor: pointer;
+  }
+  .mobile-view-toggle[aria-pressed="true"] { color: var(--accent); }
+  html:has(#institute[data-mobile-view="simple"]),
+  html:has(#institute[data-mobile-view="simple"]) body { height: 100%; overflow: hidden; }
+  #institute[data-mobile-view="simple"] {
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #institute[data-mobile-view="simple"] .fui-top-right,
+  #institute[data-mobile-view="simple"] .institute-metrics,
+  #institute[data-mobile-view="simple"] .department-panel,
+  #institute[data-mobile-view="simple"] .scifi-log-wall,
+  #institute[data-mobile-view="simple"] .fui-bottom-shell,
+  #institute[data-mobile-view="simple"] .scene-controls { display: none !important; }
+  #institute[data-mobile-view="simple"] .fui-top { flex-wrap: nowrap; padding: 8px 12px; }
+  #institute[data-mobile-view="simple"] .fui-top-left { flex: 1 1 auto; flex-wrap: nowrap; min-width: 0; }
+  #institute[data-mobile-view="simple"] .research-room {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+  }
+  #institute[data-mobile-view="simple"] .hive-board {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    touch-action: none;
+  }
+}

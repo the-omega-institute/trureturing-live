@@ -7117,7 +7117,7 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.lookZ += (preset.lookZ - holoCam.lookZ) * damp;
     holoCam.yaw += (holoCam.targetYaw + idleDrift + parallaxX - holoCam.yaw) * damp;
     holoCam.pitch += (Math.max(preset.minPitch, Math.min(preset.maxPitch, holoCam.targetPitch + parallaxY)) - holoCam.pitch) * damp;
-    holoCam.dist += (holoCam.targetDist - holoCam.dist) * damp;
+    holoCam.dist += (holoCam.targetDist * portraitFitScale(stageAspect) - holoCam.dist) * damp;
     holoCam.stationAlpha += (preset.stationAlpha - holoCam.stationAlpha) * damp;
     holoCam.galaxyAlpha += (preset.galaxyAlpha - holoCam.galaxyAlpha) * damp;
   }
@@ -9135,6 +9135,52 @@ $('#hud-zen-toggle')?.addEventListener('click', e => {
   e.currentTarget.textContent = zen ? tr('hud_expand', '展开') : tr('hud_zen', '纯净');
 });
 
+// ---- Phone view ---------------------------------------------------------------
+// Narrow screens open on the 3D main view alone; one control brings back the panels,
+// toolbars and rails, and the choice is remembered.
+const MOBILE_VIEW_KEY = 'trureturing.mobileView';
+const MOBILE_VIEW_QUERY = '(max-width: 700px)';
+
+// How much further back the resting camera stands on a stage narrower than it is tall,
+// so the station fits across a phone held upright.
+function portraitFitScale(aspect) {
+  if (!(aspect > 0) || aspect >= 1) return 1;
+  return Math.min(1.8, Math.pow(aspect, -0.75));
+}
+
+function mobileViewMode(narrow, saved) {
+  if (!narrow) return 'full';
+  return saved === 'full' ? 'full' : 'simple';
+}
+
+function applyMobileView(mode) {
+  const stage = document.querySelector('#institute');
+  if (!stage) return;
+  stage.dataset.mobileView = mode;
+  const toggle = document.querySelector('#mobile-view-toggle');
+  if (toggle) {
+    const simple = mode === 'simple';
+    toggle.setAttribute('aria-pressed', String(!simple));
+    toggle.textContent = simple ? L('更多', 'More') : L('简洁', 'Simple');
+    toggle.title = simple ? L('显示全部面板与工具', 'Show all panels and tools') : L('只显示主视图', 'Show the main view only');
+  }
+}
+
+function initMobileView() {
+  const query = window.matchMedia?.(MOBILE_VIEW_QUERY);
+  const saved = () => {
+    try { return localStorage.getItem(MOBILE_VIEW_KEY); } catch { return null; }
+  };
+  applyMobileView(mobileViewMode(Boolean(query?.matches), saved()));
+  query?.addEventListener?.('change', e => applyMobileView(mobileViewMode(e.matches, saved())));
+  $('#mobile-view-toggle')?.addEventListener('click', () => {
+    const next = $('#institute')?.dataset.mobileView === 'simple' ? 'full' : 'simple';
+    try { localStorage.setItem(MOBILE_VIEW_KEY, next); } catch {}
+    applyMobileView(next);
+    window.dispatchEvent(new Event('resize'));
+  });
+}
+
 function applyLook(look) {
   const docEl = document.documentElement;
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -9229,6 +9275,8 @@ function applyLanguage(code) {
     const map = isEn() ? dockTitlesEn : dockTitles;
     if (map[activeTab]) titleEl.textContent = map[activeTab];
   }
+
+  applyMobileView($('#institute')?.dataset.mobileView || 'full');
 
   // Re-render open galaxy node card if visible
   if (galaxyDetail.selectedNode && !$('#galaxy-node-card')?.hidden) {
@@ -9934,6 +9982,7 @@ try {
   renderHoloSky();
   triggerScanSweep();
 }
+initMobileView();
 startHoloLoop();
 startGrowthPreview();
 

@@ -1085,3 +1085,32 @@ test('a clicked popup opens beside the pointer where it hides the least',async()
     assert.ok(!covers(least,670,400,0),'when something must be covered it is the least important');
   }finally{dom.window.close();}
 });
+
+test('phones open on the main view alone, and the rest is one tap away',async()=>{
+  assert.equal((await (async()=>{const {dom,win}=await boot();try{return win.mobileViewMode(true,null);}finally{dom.window.close();}})()),'simple');
+  const {dom,win,doc}=await boot({mobile:true});try{
+    assert.equal(win.mobileViewMode(true,'full'),'full','a phone keeps the full layout once chosen');
+    assert.equal(win.mobileViewMode(false,null),'full','wider screens always show everything');
+    const stage=doc.querySelector('#institute');
+    assert.equal(stage.dataset.mobileView,'simple','a phone starts with only the main view');
+    const toggle=doc.querySelector('#mobile-view-toggle');
+    assert.ok(toggle,'a single control brings back the panels');
+    assert.equal(toggle.getAttribute('aria-pressed'),'false');
+    toggle.click();
+    assert.equal(stage.dataset.mobileView,'full');
+    assert.equal(toggle.getAttribute('aria-pressed'),'true');
+    assert.equal(win.localStorage.getItem('trureturing.mobileView'),'full','the choice is remembered');
+    toggle.click();
+    assert.equal(stage.dataset.mobileView,'simple');
+    assert.equal(win.localStorage.getItem('trureturing.mobileView'),'simple');
+  }finally{dom.window.close();}
+  const desk=await boot();try{
+    assert.equal(desk.doc.querySelector('#institute').dataset.mobileView,'full','a desktop is not simplified');
+    const fit=desk.win.portraitFitScale;
+    assert.equal(fit(1.27),1,'a landscape stage keeps its framing');
+    assert.equal(fit(1),1);
+    assert.ok(fit(0.49)>1.5&&fit(0.49)<=1.8,'a phone in portrait steps back so the station fits across');
+    assert.ok(fit(0.7)<fit(0.49)&&fit(0.7)>1,'the narrower the stage the further back');
+    assert.equal(fit(0.1),1.8,'within a limit');
+  }finally{desk.dom.window.close();}
+});
