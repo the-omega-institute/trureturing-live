@@ -23,11 +23,11 @@ MANIFEST_URL = BASE_URL + "data/atlas-startup.v1.json"
 OUT_PATH = pathlib.Path(__file__).resolve().parents[1] / "site" / "data" / "truth-nebula.v1.json"
 DETAILS_PATH = OUT_PATH.with_name("truth-nebula-details.v1.json")
 
-MAX_STARS = 1160
-MAX_INTRA_EDGES = 640
-MAX_CROSS_EDGES = 120
+MAX_STARS = 3600
+MAX_INTRA_EDGES = 3600
+MAX_CROSS_EDGES = 420
 MAX_SUMMARY = 240
-MAX_NODE_LINKS = 8
+MAX_NODE_LINKS = 10
 USER_AGENT = "Mozilla/5.0 (compatible; trureturing-live-nebula-sync/1.0; +https://live.trureturing.org)"
 
 # Wide outer cosmic perimeter anchors framing the ENTIRE widescreen sky AROUND
@@ -196,12 +196,12 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
     selected_set: set[int] = set()
     total_truth = len(truth_indices) or 1
     for cid, pool in sorted(by_cid_all.items()):
-        quota = max(85, int(round(MAX_STARS * (0.35 / len(by_cid_all) + 0.65 * len(pool) / total_truth))))
-        # 1) Seed top connected hubs in this galaxy and expand 1-hop real DAG chains via BFS
+        quota = max(220, int(round(MAX_STARS * (0.28 / len(by_cid_all) + 0.72 * len(pool) / total_truth))))
+        # 1) Seed top connected hubs in this galaxy and expand real multi-hop DAG chains via BFS
         hubs = sorted(pool, key=lambda i: (-deg[i], i))
         picked_local: list[int] = []
         picked_set_local: set[int] = set()
-        bfs_target = int(quota * 0.68)
+        bfs_target = int(quota * 0.78)
         for root in hubs:
             if len(picked_local) >= bfs_target:
                 break
@@ -214,14 +214,14 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
                     continue
                 picked_set_local.add(cur)
                 picked_local.append(cur)
-                # Follow up to 4 strongest real neighbors to preserve clean branching DAG trees
+                # Follow up to 6 strongest real neighbors to preserve rich branching DAG trees
                 nbrs = sorted(adj_intra.get(cur, []), key=lambda j: (-deg[j], j))
                 added = 0
                 for nb in nbrs:
                     if nb not in picked_set_local:
                         q.append(nb)
                         added += 1
-                        if added >= 4:
+                        if added >= 6:
                             break
         # 2) Fill remaining quota evenly across the galaxy to preserve full star-cloud volume
         rem_pool = [i for i in pool if i not in picked_set_local]
@@ -293,24 +293,24 @@ def build_nebula(manifest: dict, layout: dict, graph: dict) -> tuple[dict, dict]
         cu, cv = stars[su][3], stars[sv][3]
         score = deg[u] + deg[v]
         if cu == cv:
-            # Keep clean airy branching edges inside each named galaxy (skip sprawling halo ring chords for Other)
+            # Keep rich airy branching DAG edges inside each named galaxy (skip sprawling halo chords for Other)
             du = math.dist(stars[su][:3], stars[sv][:3])
-            if cu != other_cid and 24 < du < 245:
+            if cu != other_cid and 10 < du < 340:
                 intra_by_cid[cu].append((score, su, sv))
-            elif cu == other_cid and 30 < du < 180:
+            elif cu == other_cid and 20 < du < 240:
                 intra_by_cid[cu].append((score, su, sv))
         else:
             cross_cands.append((score, su, sv))
 
     chosen_edges = []
-    per_gal_cap = max(55, MAX_INTRA_EDGES // max(1, len(clusters)))
+    per_gal_cap = max(320, MAX_INTRA_EDGES // max(1, len(clusters)))
     for cid, cands in sorted(intra_by_cid.items()):
         cands.sort(key=lambda item: (-item[0], item[1], item[2]))
-        # Keep clean branching degree (at most 4 rendered edges per star) so DAG tree branches stay super legible!
+        # Keep rich yet crisp branching degree (at most 6 rendered edges per star) so DAG topology shines!
         render_deg = Counter()
         added = 0
         for _, u, v in cands:
-            if render_deg[u] >= 4 or render_deg[v] >= 4:
+            if render_deg[u] >= 6 or render_deg[v] >= 6:
                 continue
             render_deg[u] += 1
             render_deg[v] += 1
