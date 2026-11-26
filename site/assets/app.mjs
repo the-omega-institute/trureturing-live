@@ -3447,10 +3447,10 @@ async function loadTruthNebula() {
 // next galaxy grows.
 // ============================================================================
 const GROWTH_IN_MS = 1400;
-const GROWTH_HOLD_MS = 5200;
-const GROWTH_END_MS = 7000;
+const GROWTH_HOLD_MS = 7400;
+const GROWTH_END_MS = 9200;
 const GROWTH_CALM_MS = 6000;
-const GROWTH_SPAWN_START_MS = 1100;
+const GROWTH_SPAWN_START_MS = 1900;
 const GROWTH_SPAWN_GAP_MS = 380;
 const GROWTH_EDGE_MS = 900;
 const GROWTH_VISIBLE_STARS = 8;
@@ -3857,13 +3857,9 @@ function galaxyGatherPlan(focusCid, clusters, links, frames, basis, aspect) {
 // Per-galaxy transform targets: gathered galaxies move and shrink about their own
 // centre, the opened one stays, the rest dim in place; a growing galaxy is enlarged
 // about its centre while everything else stays put.
-function galaxyGatherTargets(plan, clusters, swell = null) {
+function galaxyGatherTargets(plan, clusters) {
   const targets = new Map();
   for (const c of clusters || []) {
-    if (swell && c.id === swell.cid) {
-      targets.set(c.id, { pivot: swell.pivot, offset: swell.offset || [0, 0, 0], scale: swell.scale, stretch: [1, swell.lift || 1, 1], alpha: 1.4 });
-      continue;
-    }
     const n = plan?.neighbors.find(x => x.cid === c.id);
     const active = Boolean(plan);
     targets.set(c.id, n
@@ -3889,14 +3885,14 @@ function galaxyGatherPlanFor(cid, frame, fovY, aspect) {
 }
 
 // Eases every galaxy's gather transform toward the plan (or expanded galaxy observatory / rest) and hands it to the GPU.
-function stepGalaxyGather(plan, k, swell = null, expandGalaxies = false) {
+function stepGalaxyGather(plan, k, override = null, expandGalaxies = false) {
   const gl = holoCam.gl;
   if (!gl || !truthNebula.loaded) return;
   if (!holoCam.gather) holoCam.gather = new Map();
   const entries = [];
-  for (const [cid, baseTarget] of galaxyGatherTargets(plan, truthNebula.clusters, swell)) {
-    let t = baseTarget;
-    if (expandGalaxies && !plan && !swell) {
+  for (const [cid, baseTarget] of galaxyGatherTargets(plan, truthNebula.clusters)) {
+    let t = override?.get(cid) || baseTarget;
+    if (expandGalaxies && !plan && !override) {
       const cl = truthNebula.clusters.find(c => c.id === cid);
       const frame = cl && cl.name !== 'Other' ? galaxyWorldFrame(cid) : null;
       if (frame) {
@@ -3991,39 +3987,211 @@ function galaxyCameraFocus() {
   return manual && manual.cluster?.name !== 'Other' && galaxyCameraAllowed('manual', view) ? { cid: manual.cid, kind: 'manual' } : null;
 }
 
-const GROWTH_SWELL = 3.2;
-// A galaxy is a flat band seen from the station; while it grows it also opens up
-// vertically so its new branches separate.
-const GROWTH_SWELL_LIFT = 1.8;
+// ---- Growth showcase -------------------------------------------------------------
+// A growing galaxy comes to the middle of the sky, close to the viewer and enlarged, while
+// the other galaxies line up evenly around it in the order they lie; its new stars are
+// born there with a supernova and pulse broadcasts; then everything returns to its place.
+// The camera stays; the station dims while the galaxy is on stage.
+const SHOWCASE_LIFT = 1.15;
+const SHOWCASE_TOP_GAP = (70 * Math.PI) / 180;
 
-function growthSwellAllowed(view) {
-  return view.mode === 'organization' && !view.focusedDepartment && view.layer !== 'station' && !view.manual;
+function growthShowcaseAllowed(view) {
+  return view.mode === 'organization' && !view.focusedDepartment && view.layer !== 'station' && !view.manual && !view.intro && !view.cinema;
 }
 
-// Scale of a growing galaxy over its close-up: eases up, holds while it grows, eases back.
-function growthSwellScale(elapsed) {
-  return 1 + (GROWTH_SWELL - 1) * growthFocusAmount(elapsed);
-}
-
-// Screen shift (px) that keeps an enlarged galaxy of the given half size on stage:
-// none when it fits, just enough when it crosses an edge, centred when it is too big.
-function growthSwellShift(center, halfW, halfH, stage) {
-  const axis = (c, half, lo, hi) => {
-    if (2 * half >= hi - lo) return (lo + hi) / 2 - c;
-    if (c - half < lo) return lo - (c - half);
-    if (c + half > hi) return hi - (c + half);
-    return 0;
-  };
-  return [axis(center[0], halfW, stage.left, stage.right), axis(center[1], halfH, stage.top, stage.bottom)];
-}
-
-function growthSwellFocus(now) {
+function growthShowcaseFocus(now) {
   const auto = truthGrowth.focus;
   const manual = truthGrowth.manualFocus && !truthGrowth.manualFocus.closing;
-  const view = { mode: state.mode, layer: state.layer, focusedDepartment: state.focused, manual: Boolean(manual) };
-  if (!auto || auto.cluster?.name === 'Other' || !growthSwellAllowed(view)) return null;
+  const view = { mode: state.mode, layer: state.layer, focusedDepartment: state.focused, manual: Boolean(manual), intro: introCinema.active, cinema: cinemaDirector.active };
+  if (!auto || auto.cluster?.name === 'Other' || !growthShowcaseAllowed(view)) return null;
   const amount = growthFocusAmount(now - auto.start);
-  return amount > 0.001 ? { cid: auto.cid, scale: growthSwellScale(now - auto.start), lift: 1 + (GROWTH_SWELL_LIFT - 1) * amount } : null;
+  return amount > 0.001 ? { cid: auto.cid, start: auto.start, amount } : null;
+}
+
+// Stage positions for a showcase, from the camera at its start: the growing galaxy at
+// 45% of its distance (8-18 units) a little above the middle, sized to 46% of the half
+// height; the others at 9%, in the order they lie around it, evenly along an ellipse
+// that leaves a 70 degree gap at the top for the caption.
+function growthShowcasePlan(cid, clusters, frames, cam, aspect) {
+  const f = frames.get(cid);
+  if (!f) return null;
+  const sub = (a, b) => a.map((v, i) => v - b[i]);
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const toLook = sub(cam.look, cam.pos);
+  const fwd = toLook.map(v => v / (Math.hypot(...toLook) || 1));
+  const { right, up } = galaxyViewBasis(cam.yaw, cam.pitch);
+  const depth = Math.max(8, Math.min(18, Math.hypot(...sub(f.center, cam.pos)) * 0.45));
+  const halfH = depth * cam.tanHalf;
+  const halfW = halfH * Math.max(0.6, aspect || 1);
+  const center = cam.pos.map((v, i) => v + fwd[i] * depth + up[i] * halfH * 0.12);
+  const scale = Math.max(1, Math.min(4, (halfH * 0.46) / f.radius));
+  const others = (clusters || []).filter(c => c.name !== 'Other' && c.id !== cid && frames.has(c.id));
+  const TAU = Math.PI * 2;
+  const order = others.map((c, k) => {
+    const d = sub(frames.get(c.id).center, f.center);
+    return { k, phi: (((Math.atan2(dot(d, up), dot(d, right)) - Math.PI / 2) % TAU) + TAU) % TAU };
+  }).sort((p, q) => p.phi - q.phi);
+  const slots = new Array(others.length);
+  const first = Math.PI / 2 + SHOWCASE_TOP_GAP / 2, span = TAU - SHOWCASE_TOP_GAP;
+  order.forEach((o, j) => { slots[o.k] = others.length > 1 ? first + (j * span) / (others.length - 1) : (3 * Math.PI) / 2; });
+  const rx = halfW * 0.84, ry = halfH * 0.66;
+  return {
+    focusCid: cid,
+    center,
+    scale,
+    lift: SHOWCASE_LIFT,
+    depth,
+    rx,
+    ry,
+    others: others.map((c, k) => ({
+      cid: c.id,
+      target: center.map((v, i) => v + right[i] * Math.cos(slots[k]) * rx + up[i] * Math.sin(slots[k]) * ry),
+      scale: Math.max(0.25, Math.min(1, (halfH * 0.09) / frames.get(c.id).radius))
+    }))
+  };
+}
+
+// Per-galaxy transforms part way (amount 0..1) from rest to the showcase.
+function growthShowcaseTargets(plan, clusters, frames, amount) {
+  const a = Math.max(0, Math.min(1, amount));
+  const targets = new Map();
+  for (const c of clusters || []) {
+    const fr = frames.get(c.id);
+    const pivot = fr ? fr.center : [0, 0, 0];
+    if (plan && fr && c.id === plan.focusCid) {
+      targets.set(c.id, { pivot, offset: plan.center.map((v, i) => (v - pivot[i]) * a), scale: 1 + (plan.scale - 1) * a, stretch: [1, 1 + (SHOWCASE_LIFT - 1) * a, 1], alpha: 1 + 0.4 * a });
+      continue;
+    }
+    const o = plan?.others.find(x => x.cid === c.id);
+    if (o && fr) {
+      targets.set(c.id, { pivot, offset: o.target.map((v, i) => (v - pivot[i]) * a), scale: 1 + (o.scale - 1) * a, stretch: [1, 1, 1], alpha: 1 });
+      continue;
+    }
+    targets.set(c.id, { pivot, offset: [0, 0, 0], scale: 1, stretch: [1, 1, 1], alpha: plan ? 1 - 0.7 * a : 1 });
+  }
+  return targets;
+}
+
+function showcaseCamera() {
+  const cp = Math.cos(holoCam.pitch), sp = Math.sin(holoCam.pitch), cy = Math.cos(holoCam.yaw), sy = Math.sin(holoCam.yaw);
+  const look = [holoCam.lookX, holoCam.lookY, holoCam.lookZ];
+  return {
+    pos: [look[0] + holoCam.dist * cp * sy, look[1] + holoCam.dist * sp, look[2] + holoCam.dist * cp * cy],
+    look,
+    yaw: holoCam.yaw,
+    pitch: holoCam.pitch,
+    tanHalf: Math.tan((holoCam.gl?.fovY || (40 * Math.PI / 180)) / 2)
+  };
+}
+
+function syncGrowthShowcase(active) {
+  const room = document.querySelector('#research-room');
+  if (room && room.classList.contains('is-growth-showcase') !== Boolean(active)) room.classList.toggle('is-growth-showcase', Boolean(active));
+}
+
+// When the i-th new star of a growth starts to sprout: after the galaxy has arrived.
+function growthSpawnDue(slot) {
+  return GROWTH_SPAWN_START_MS + slot * GROWTH_SPAWN_GAP_MS;
+}
+
+// A new star's birth, by age in ms: a supernova (flash, star spikes, shock wave and ejecta,
+// 1.2 s), then three pulse broadcasts (from 0.3, 0.9 and 1.5 s, 1.8 s each), then quiet.
+// The ejecta pattern follows the module name.
+function birthFx(age, seed) {
+  if (!(age >= 0)) return null;
+  const [a, b] = growthOffset(String(seed || ''));
+  const u = Math.min(1, age / 1200);
+  const flash = age < 120 ? age / 120 : age < 1200 ? Math.pow(1 - (age - 120) / 1080, 2) : 0;
+  const shock = age < 1200 ? { r: 4 + 74 * (1 - Math.pow(1 - u, 3)), a: 0.9 * (1 - u), w: 2.4 - 1.8 * u } : null;
+  const spikes = age < 900 ? { len: 12 + 42 * Math.sin((age / 900) * Math.PI), a: 0.85 * (1 - age / 900), turn: a * Math.PI } : null;
+  const pu = Math.min(1, age / 1400);
+  const particles = age < 1400 ? Array.from({ length: 12 }, (_, k) => {
+    const ang = (k / 12) * Math.PI * 2 + a * Math.PI * 2 + (k % 3) * 0.17;
+    const reach = (34 + 30 * (((k * 7 + Math.floor(b * 13)) % 5) / 5)) * (1 - Math.pow(1 - pu, 2));
+    return { dx: Math.cos(ang) * reach, dy: Math.sin(ang) * reach, a: 1 - pu, s: 1.8 - 1.2 * pu };
+  }) : [];
+  const pulses = [300, 900, 1500].map(t0 => age - t0).filter(p => p >= 0 && p < 1800).map(p => ({ r: 10 + 150 * (p / 1800), a: 0.55 * (1 - p / 1800) }));
+  return { flash, shock, spikes, particles, pulses };
+}
+
+function drawBirthFx(ctx, x, y, fx, col, isLight) {
+  if (!fx) return;
+  ctx.save();
+  if (!isLight) ctx.globalCompositeOperation = 'lighter';
+  const hot = isLight ? col : [255, 250, 236];
+  for (const p of fx.pulses) {
+    ctx.strokeStyle = rgba(col, p.a);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(x, y, p.r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (fx.shock) {
+    ctx.strokeStyle = rgba(hot, fx.shock.a);
+    ctx.lineWidth = fx.shock.w;
+    ctx.beginPath();
+    ctx.arc(x, y, fx.shock.r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (fx.spikes) {
+    ctx.strokeStyle = rgba(hot, fx.spikes.a);
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    for (let k = 0; k < 4; k++) {
+      const ang = fx.spikes.turn + (k * Math.PI) / 4;
+      const len = k % 2 ? fx.spikes.len * 0.55 : fx.spikes.len;
+      ctx.moveTo(x - Math.cos(ang) * len, y - Math.sin(ang) * len);
+      ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    }
+    ctx.stroke();
+  }
+  for (const p of fx.particles) {
+    ctx.fillStyle = rgba(p.a > 0.5 ? hot : col, p.a);
+    ctx.beginPath();
+    ctx.arc(x + p.dx, y + p.dy, Math.max(0.3, p.s), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (fx.flash > 0) {
+    const r = 5 + 17 * fx.flash;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+    glow.addColorStop(0, rgba(hot, Math.min(1, fx.flash)));
+    glow.addColorStop(0.35, rgba(col, 0.6 * fx.flash));
+    glow.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// The galaxy lights up as it arrives on stage and a broadcast wave sweeps the sky.
+function drawShowcaseIgnition(ctx, x, y, R, t, col, w, h, isLight) {
+  ctx.save();
+  if (!isLight) ctx.globalCompositeOperation = 'lighter';
+  const bloomU = (t - 900) / 1700;
+  if (bloomU > 0 && bloomU < 1) {
+    const a = Math.sin(bloomU * Math.PI) * 0.55;
+    const r = R * (1.3 + 0.9 * bloomU);
+    const glow = ctx.createRadialGradient(x, y, R * 0.2, x, y, r);
+    glow.addColorStop(0, rgba(col, a));
+    glow.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const reach = Math.hypot(w, h);
+  for (const t0 of [1200, 1700]) {
+    const u = (t - t0) / 2400;
+    if (u <= 0 || u >= 1) continue;
+    ctx.strokeStyle = rgba(col, 0.42 * (1 - u));
+    ctx.lineWidth = 2.2 - 1.6 * u;
+    ctx.beginPath();
+    ctx.arc(x, y, R + (reach - R) * (1 - Math.pow(1 - u, 2)), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 // Trackpad pinch / scroll zoom while inside Galaxy Main View or a focused DAG node:
@@ -4457,10 +4625,10 @@ function keepGalaxyNodeCardClear(selPick, bounds, now) {
 // mode it is growing in place and only its new nodes are marked.
 function drawGalaxyNodeLayer(ctx, cid, project, palette, isLight, w, h, rightGutter, now, mode = 'main') {
   const main = mode === 'main';
-  const swellNow = holoCam.gather?.get(cid)?.scale || 1;
+
   const alpha = main
     ? Math.max(0, Math.min(1, (0.62 - holoCam.stationAlpha) / 0.4))
-    : Math.max(0, Math.min(1, ((swellNow - 1) / (GROWTH_SWELL - 1)) * 1.25));
+    : Math.max(0, Math.min(1, (holoCam.showcaseAmount || 0) * 1.25));
   const right = w - rightGutter - 14;
   galaxyDetail.bounds = { left: 16, top: 116, right, bottom: h - 70 };
   if (alpha < 0.05) {
@@ -4900,8 +5068,7 @@ function stepTruthGrowth(now) {
   const f = g.focus;
   const elapsed = now - f.start;
   while (f.spawned < f.modules.length) {
-    const slot = Math.min(f.spawned, GROWTH_VISIBLE_STARS);
-    const due = GROWTH_SPAWN_START_MS + slot * GROWTH_SPAWN_GAP_MS;
+    const due = growthSpawnDue(Math.min(f.spawned, GROWTH_VISIBLE_STARS));
     if (elapsed < due) break;
     commitGrowth(f.modules[f.spawned], f.cid, f.start + due, f.spawned < GROWTH_VISIBLE_STARS);
     f.spawned += 1;
@@ -4934,14 +5101,7 @@ function drawTruthGrowthStars(ctx, project, now, palette, isLight, coreClear, pr
     ctx.stroke();
     if (reach < 1) continue;
     const lit = age - GROWTH_EDGE_MS;
-    if (lit < 1500) {
-      const e = lit / 1500;
-      ctx.strokeStyle = rgba(col, (1 - e) * 0.9 * d);
-      ctx.lineWidth = 1.6 * (1 - e) + 0.4;
-      ctx.beginPath();
-      ctx.arc(px, py, 3 + 26 * e, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    if (lit < 3400) drawBirthFx(ctx, px, py, birthFx(lit, star.module), col, isLight);
     const halo = 6 + 7 * fresh;
     const glow = ctx.createRadialGradient(px, py, 0, px, py, halo);
     glow.addColorStop(0, rgba(col, (0.35 + 0.45 * fresh) * mask * d));
@@ -5414,6 +5574,15 @@ function drawTruthDagNebula(ctx, w, h, t, isLight, isBlueprint) {
   }
 
   // PASS 6B: Live arriving growth animation
+  if (useGLSky && holoCam.swellCid != null && autoFocus?.cid === holoCam.swellCid) {
+    const sc = clProj.get(holoCam.swellCid);
+    const cl = sc?.cl;
+    if (cl) {
+      const [ex, ey] = projectNeb(cl.center[0] / 1000 + (cl.radius || 200) / 1000, cl.center[1] / 1000, cl.center[2] / 1000, cl.id);
+      const R = Math.max(40, Math.hypot(ex - sc.x, ey - sc.y));
+      drawShowcaseIgnition(ctx, sc.x, sc.y, R, growthNow - autoFocus.start, sc.col, w, h, isLight);
+    }
+  }
   drawTruthGrowthStars(ctx, projectNeb, growthNow, nebPalette, isLight, coreClear, projX, projY, growthDim);
   if (focusK > 0) {
     if (!useGLSky) drawGrowthLens(ctx, focusTx, focusTy, lensR, focusK, growthNow, growthFocus.start, nebPalette[growthFocus.cid % nebPalette.length]);
@@ -6986,25 +7155,29 @@ function drawHolo3DFrame(dt = 0.016) {
   const fovY = holoCam.gl?.fovY || (40 * Math.PI / 180);
   const stageAspect = Math.max(0.4, (w - rightGutter) / Math.max(1, h));
   const gatherPlan = galaxyFrame ? galaxyGatherPlanFor(galaxyCam.cid, galaxyFrame, fovY, stageAspect) : null;
-  const swell = useGL && !galaxyFrame && truthNebula.loaded ? growthSwellFocus(performance.now()) : null;
-  const swellFrame = swell ? galaxyWorldFrame(swell.cid) : null;
-  holoCam.swellCid = swellFrame ? swell.cid : null;
-  if (swellFrame) loadGalaxyDetails();
-  let swellOffset = [0, 0, 0];
-  const swellAt = swellFrame ? holoCam.gl.project(...swellFrame.center) : null;
-  if (swellAt) {
-    // Plan the shift for the full enlargement so the galaxy moves once, smoothly with the swell.
-    const half = swellFrame.radius * GROWTH_SWELL * swellAt.s;
-    const [dx, dy] = growthSwellShift([swellAt.x, swellAt.y], half, half * 0.45 * GROWTH_SWELL_LIFT, { left: 30, right: w - rightGutter - 30, top: 110, bottom: h * 0.56 });
-    const amount = (swell.scale - 1) / (GROWTH_SWELL - 1);
-    const b = galaxyViewBasis(holoCam.yaw, holoCam.pitch);
-    swellOffset = [0, 1, 2].map(i => ((b.right[i] * dx - b.up[i] * dy) / swellAt.s) * amount);
+  const showcase = useGL && !galaxyFrame && truthNebula.loaded ? growthShowcaseFocus(performance.now()) : null;
+  let showcaseTargets = null;
+  if (showcase) {
+    const frames = new Map();
+    for (const c of truthNebula.clusters) {
+      const f = galaxyWorldFrame(c.id);
+      if (f) frames.set(c.id, f);
+    }
+    const key = `${showcase.cid}:${showcase.start}`;
+    if (holoCam.showcase?.key !== key) {
+      holoCam.showcase = { key, plan: growthShowcasePlan(showcase.cid, truthNebula.clusters, frames, showcaseCamera(), stageAspect) };
+    }
+    showcaseTargets = growthShowcaseTargets(holoCam.showcase.plan, truthNebula.clusters, frames, showcase.amount);
+    loadGalaxyDetails();
   }
+  holoCam.swellCid = showcase ? showcase.cid : null;
+  holoCam.showcaseAmount = showcase ? showcase.amount : 0;
+  syncGrowthShowcase(showcase && showcase.amount > 0.3);
   const nowMs = performance.now();
   if (useGL) stepGalaxyGather(
     gatherPlan,
-    fly,
-    swellFrame ? { cid: swell.cid, pivot: swellFrame.center, scale: swell.scale, lift: swell.lift, offset: swellOffset } : null,
+    showcase ? 1 - Math.exp(-Math.max(0.008, stepDt) * 7) : fly,
+    showcaseTargets,
     state.layer === 'galaxy' && !introCinema.active
   );
 
@@ -7118,7 +7291,7 @@ function drawHolo3DFrame(dt = 0.016) {
     holoCam.yaw += (holoCam.targetYaw + idleDrift + parallaxX - holoCam.yaw) * damp;
     holoCam.pitch += (Math.max(preset.minPitch, Math.min(preset.maxPitch, holoCam.targetPitch + parallaxY)) - holoCam.pitch) * damp;
     holoCam.dist += (holoCam.targetDist - holoCam.dist) * damp;
-    holoCam.stationAlpha += (preset.stationAlpha - holoCam.stationAlpha) * damp;
+    holoCam.stationAlpha += (preset.stationAlpha * (1 - 0.75 * (holoCam.showcaseAmount || 0)) - holoCam.stationAlpha) * damp;
     holoCam.galaxyAlpha += (preset.galaxyAlpha - holoCam.galaxyAlpha) * damp;
   }
 
