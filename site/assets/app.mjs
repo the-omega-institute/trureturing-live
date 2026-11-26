@@ -7391,8 +7391,8 @@ try {
 // ============================================================================
 // MAIN 3D BIOMIMETIC RENDER FRAME
 // ============================================================================
-// Place wing labels just outside and below their plinth. If two cards meet
-// during an orbit, use the nearest clear position inside the visible stage.
+// Use the space around the projected models. The rear pair prefers the inner
+// gaps, and the other wings prefer the outer shoulders of the station.
 function placeStationLabels(labels, bounds) {
   const { left, right, top, bottom } = bounds;
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -7400,10 +7400,21 @@ function placeStationLabels(labels, bounds) {
   const gap = 6;
   const axisX = labels.find(label => label.id === 'verification')?.body.x ?? (left + right) / 2;
 
-  // Batch layout reads before moving any buttons.
+  const upper = [null, null];
+  const silhouettes = [];
+  // Batch layout reads before moving any buttons. Use projected body extents
+  // rather than the much larger radius reserved for pointer picking.
   for (const label of labels) {
     label.width = label.cell.button.offsetWidth;
     label.height = label.cell.button.offsetHeight;
+    const { x, y } = label.body;
+    const radius = label.radius * (label.id === 'verification' || label.apex ? 1.8 : 1.45);
+    silhouettes.push({ left: x - radius, right: x + radius, top: y - radius,
+      bottom: Math.max(label.anchor.y, y + radius * 0.7) });
+    if (label.cell.leader) {
+      const side = x < axisX ? 0 : 1;
+      if (!upper[side] || y < upper[side].body.y) upper[side] = label;
+    }
   }
 
   // Central labels have fixed attachment points. Place the wings in a stable
@@ -7416,39 +7427,50 @@ function placeStationLabels(labels, bounds) {
     const hh = label.height * (leader ? 1 : scale) / 2;
     let x, cy;
     if (leader) {
-      const side = body.x < axisX ? -1 : 1;
-      // Leave the inner edge of the card just beyond the plinth on wide views.
-      // On a phone the narrower shoulder still leaves room for the model.
+      const isUpper = upper.includes(label);
+      const outward = body.x < axisX ? -1 : 1;
+      const direction = isUpper ? -outward : outward;
       const shoulder = clamp((right - left) / 760, 0.6, 1);
       const offset = hw * shoulder + clamp(label.radius * 0.7, 10, 34);
       const drop = clamp(label.radius * (label.branch ? 0.66 : 0.32), 8, label.branch ? 34 : 18);
-      const preferredX = clamp(anchor.x + side * offset, left + hw, right - hw);
-      const preferredY = clamp(anchor.y + hh + drop, top + hh, bottom - hh);
+      const limitX = v => clamp(v, left + hw, right - hw);
+      const limitY = v => clamp(v, top + hh, bottom - hh);
+      const preferredX = limitX(anchor.x + direction * offset);
+      const preferredY = limitY(isUpper ? body.y : anchor.y + hh + drop);
+      const intersects = (cx, y, r) => cx + hw > r.left - gap && cx - hw < r.right + gap &&
+        y + hh > r.top - gap && y - hh < r.bottom + gap;
       x = preferredX;
       cy = preferredY;
-
-      const overlaps = (cx, y, rect) =>
-        cx + hw + gap > rect.left && cx - hw - gap < rect.right &&
-        y + hh + gap > rect.top && y - hh - gap < rect.bottom;
-      if (occupied.some(rect => overlaps(x, cy, rect))) {
-        const xs = [x], ys = [cy];
-        for (const rect of occupied) {
-          xs.push(clamp(rect.left - hw - gap, left + hw, right - hw), clamp(rect.right + hw + gap, left + hw, right - hw));
-          ys.push(clamp(rect.top - hh - gap, top + hh, bottom - hh), clamp(rect.bottom + hh + gap, top + hh, bottom - hh));
+      const obstacles = silhouettes.concat(occupied);
+      if (obstacles.some(r => intersects(x, cy, r))) {
+        // The nearest free point touches a side of an obstacle or the stage.
+        // Test those coordinates, with a slight preference for the previous
+        // offset when two openings are equally close during a slow orbit.
+        const xs = new Set([x]), ys = new Set([cy]);
+        for (const r of obstacles) {
+          xs.add(limitX(r.left - hw - gap - 0.5));
+          xs.add(limitX(r.right + hw + gap + 0.5));
+          ys.add(limitY(r.top - hh - gap - 0.5));
+          ys.add(limitY(r.bottom + hh + gap + 0.5));
         }
         let best = Infinity;
         for (const cx of xs) {
           for (const y of ys) {
             const dx = cx - preferredX, dy = y - preferredY;
-            const cost = dx * dx + dy * dy * (dy < 0 ? 1.4 : 1);
-            if (cost < best && !occupied.some(rect => overlaps(cx, y, rect))) {
-              best = cost;
-              x = cx;
-              cy = y;
+            let cost = dx * dx + dy * dy;
+            const prev = cell.labelOffset;
+            if (prev) cost += 0.12 * ((cx - anchor.x - prev.x) ** 2 + (y - anchor.y - prev.y) ** 2);
+            if (cost >= best || occupied.some(r => intersects(cx, y, r))) continue;
+            for (const r of silhouettes) {
+              const overlapW = Math.min(cx + hw, r.right) - Math.max(cx - hw, r.left);
+              const overlapH = Math.min(y + hh, r.bottom) - Math.max(y - hh, r.top);
+              if (overlapW > 0 && overlapH > 0) cost += 16 * overlapW * overlapH;
             }
+            if (cost < best) { best = cost; x = cx; cy = y; }
           }
         }
       }
+      cell.labelOffset = { x: x - anchor.x, y: cy - anchor.y };
       const endX = anchor.x - x + hw, endY = anchor.y - cy + hh;
       const startX = clamp(endX, 0, 2 * hw), startY = clamp(endY, 0, 2 * hh);
       leader.setAttribute('d', `M${startX.toFixed(1)},${startY.toFixed(1)} L${endX.toFixed(1)},${endY.toFixed(1)}`);
