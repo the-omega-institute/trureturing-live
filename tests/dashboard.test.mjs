@@ -1286,3 +1286,72 @@ test('tour digests coalesce new arrivals and page stable records only while the 
     resumed.abort();
   } finally { dom.window.close(); }
 });
+
+test('sky tools distinguish release data, sampled dependency directions, freezes and lanterns', async () => {
+  const atlas = JSON.parse(await readFile(new URL('../site/data/truth-nebula.v1.json', import.meta.url)));
+  const details = JSON.parse(await readFile(new URL('../site/data/truth-nebula-details.v1.json', import.meta.url)));
+  const feed = live();
+  const frozen = {module: 'D5/S2/Quantum/Example', domain: 'Quantum', commit: details.source_commit, at: stamp};
+  feed.truth_growth = {events: [frozen, {...frozen, module:'Demo', preview:true}]};
+  const ledger = JSON.parse(await readFile(new URL('../site/data/conjectures.json', import.meta.url)));
+  const {dom, win, doc} = await boot({live:feed, reduced:true, conjectures:ledger});
+  try {
+    win.structuredClone = structuredClone;
+    win.AbortController = AbortController;
+    Object.defineProperty(win.navigator, 'userAgent', {value:'sky-tool-test'});
+    let mismatch = true, detailReads = 0;
+    win.fetch = async url => {
+      if (String(url).includes('nebula-details')) {
+        detailReads++;
+        return Response.json(mismatch ? {...details, truth_release_digest:'wrong-release'} : details);
+      }
+      assert.match(String(url), /truth-nebula\.v1\.json/);
+      return Response.json(atlas);
+    };
+    const widget = doc.querySelector('nyx-assistant');
+    win.eval(await readFile(new URL('../site/assets/nyx-widget.js', import.meta.url), 'utf8'));
+    widget.bind({request: () => assert.fail('unexpected service request')});
+    const voice = widget.host.captureTools();
+    const invoke = (name, args) => voice.invoke(name, args, new AbortController().signal);
+    const sky = (section, args = {}) => invoke('read_starfield', {section, ...args});
+    const overview = (await sky('overview')).value;
+    assert.equal(overview.releaseModules, atlas.counts.truth_nodes);
+    assert.equal(overview.inspectableSample, atlas.stars.length);
+    assert.equal(overview.domains.find(c => c.name === 'Other').target, null);
+    assert.equal((await sky('modules')).ok, false);
+    mismatch = false;
+    const idx = details.stars.findIndex((r,i) => atlas.stars[i][3] === 0 && r[8].length && r[9].length);
+    const row = details.stars[idx];
+    const [list, record] = await Promise.all([sky('modules', {domainId:0, query:row[0]}), invoke('read_star_module', {module:row[0]})]);
+    assert.equal(detailReads, 2);
+    assert.equal(list.value.items[0].module, row[0]);
+    assert.equal(record.value.theoremCount, row[5]);
+    assert.equal(record.value.sampledPrerequisites[0].module, details.stars[row[8][0]][0]);
+    assert.equal(record.value.sampledDependents[0].module, details.stars[row[9][0]][0]);
+    assert.ok(record.value.source.endsWith('/' + details.source_commit + '/' + row[0] + '.lean'));
+    const opened = await invoke('show_scene', {target:record.value.target});
+    assert.equal(opened.ok, true, JSON.stringify(opened));
+    assert.equal(doc.querySelector('#galaxy-node-card').hidden, false);
+    assert.ok(doc.querySelector('#galaxy-node-card').textContent.includes(row[1]));
+    const first = (await sky('modules', {query:'hub'})).value;
+    assert.equal(first.items.length, 4);
+    assert.ok(first.items.every(r => r.role === 'hub' || /hub/i.test(r.module + r.title)));
+    assert.notEqual((await sky('modules', {query:'hub', offset:first.nextOffset})).value.items[0].module, first.items[0].module);
+    const link = atlas.cluster_links[0];
+    const bundle = (await sky('bundles')).value.items[0];
+    assert.equal(bundle.prerequisitesFromTo, link[2]);
+    assert.equal(bundle.prerequisitesToFrom, link[3]);
+    const lanterns = (await sky('lanterns')).value;
+    const lantern = lanterns.items.find(r => r.provenance === 'curated ledger');
+    assert.ok(lantern);
+    const openedLantern = await invoke('show_scene', {target:lantern.target});
+    assert.equal(openedLantern.value.verdict, lantern.verdict);
+    assert.ok(doc.querySelector('#galaxy-node-card').textContent.includes(lantern.title));
+    const growth = (await sky('growth')).value;
+    assert.equal(growth.total, 1);
+    assert.equal(growth.items[0].module, frozen.module);
+    assert.equal((await sky('modules', {domainId:999})).ok, false);
+    assert.equal((await invoke('read_star_module', {module:'missing'})).ok, false);
+    assert.equal((await invoke('show_scene', {target:'module:missing'})).ok, false);
+  } finally { dom.window.close(); }
+});

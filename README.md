@@ -33,6 +33,8 @@ During an active tour the dashboard groups new organization activity into a dige
 
 Alexandra greets visitors in English and waits. Say “开始讲解” or “Start the tour” to begin a continuous tour of the space station and theorem starfield. Visitors can switch languages or ask her to pause. The host sets her name with `data-voice-name`. In a supported desktop browser, select **Share this tab** in the call and choose the dashboard. The guide can take compressed stills of that tab during the call. Stop sharing or hang up to end capture.
 
+Visitors can ask Alexandra to inspect a module star, follow a prerequisite, open a conjecture lantern, or explain a connection between domains. She can query the released atlas and recent freeze observations separately. The guide tools return four search results at a time and link module details to the source revision.
+
 The voice guide uses OpenAI `gpt-realtime-2.1`. Its tour instructions adapt a guide’s opening question, visual cue, pacing and interpretation of a significant detail to the live research dashboard. [Tour Guide Pro](https://github.com/aiunlocked1412/claude-skill-unlock/blob/f40e6c332784b7bd66999dd52aafa58cfd4c3816/skills/08-hospitality/tour-guide-pro/SKILL.md) · [National Park Service interpretive planning](https://www.nps.gov/subjects/hfc/interpretive-planning.htm)
 
 ## Run locally
