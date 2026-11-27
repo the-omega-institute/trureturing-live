@@ -13,7 +13,7 @@
   <script defer src="assets/station-models.js?v=4"></script>
   <script defer src="assets/gl-engine.js?v=station-geometry1"></script>
   <script type="module" src="assets/app.mjs?v=station-label-visibility1"></script>
-  <script defer src="assets/nyx-widget.js?v=a71d7093"></script>
+  <script defer src="assets/nyx-widget.js?v=0.2.0"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute" data-i18n="skip_link">进入 3D 全息指挥大屏</a>
@@ -148,7 +148,7 @@
           </div>
         </div>
 
-        <nyx-assistant id="nyx-assistant" appearance="console" layout="anchored" position="left" data-nyx-v="below" data-nyx-h="left" data-nyxid="https://nyx-assistant-sdk-chronoai.apps.nyxid.ai" data-verification-origin="https://nyxid.ai" data-storage="local" data-services="llm-nyx,chrono-llm-public" data-key-source="new">
+        <nyx-assistant id="nyx-assistant" appearance="console" layout="anchored" position="left" data-nyx-v="below" data-nyx-h="left" data-nyxid="https://nyx-assistant-sdk-chronoai.apps.nyxid.ai" data-verification-origin="https://nyxid.ai" data-storage="local" data-voice="true" data-key-source="new">
           <button slot="prompt" type="button" data-i18n="assistant_read">读取当前视图</button>
           <button slot="prompt" type="button" data-i18n="assistant_journey">查看接力轨迹</button>
         </nyx-assistant>
