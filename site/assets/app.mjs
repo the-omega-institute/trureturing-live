@@ -10302,7 +10302,7 @@ function skyModuleRef(index) {
     target: domain.name === 'Other' ? null : 'module:' + row[0]};
 }
 
-async function readStarfield({section, domainId, query = '', offset = 0}) {
+async function readStarfield({section, domainId, query = '', connected = false, offset = 0}) {
   await loadTruthNebula();
   if (!truthNebula.loaded) return skyUnavailable('The starfield atlas is unavailable.');
   const domain = skyDomain(domainId);
@@ -10344,6 +10344,12 @@ async function readStarfield({section, domainId, query = '', offset = 0}) {
   const indices = [];
   for (let i = 0; i < rows.length; i++) {
     const [module, title, , role] = rows[i];
+    if (connected) {
+      // The ordinary module reader offers the first three examples in either direction.
+      const neighbors = [...(rows[i][8] || []).slice(0, 3), ...(rows[i][9] || []).slice(0, 3)];
+      if (!neighbors.some(j => skyDomain(truthNebula.stars[j][3])?.name !== 'Other')) continue;
+      if (skyDomain(truthNebula.stars[i][3])?.name === 'Other') continue;
+    }
     if (inDomain(truthNebula.stars[i][3]) && (!term || [module, title, role].some(s => s.toLowerCase().includes(term)))) indices.push(i);
   }
   return skyPage(indices, offset, skyModuleRef);
@@ -10385,9 +10391,9 @@ async function showSkyRecord(target, signal) {
 function registerDashboardTools({ host, z }) {
   nyxWidget.context = dashboardContext;
   host.registerTool({
-    name: 'read_starfield', description: 'Read the sky legend and domains, or browse module stars, directed domain bundles, recent freezes, or conjecture lanterns. domainId filters lists. For modules, query matches a module path, title or topology role. Four matches per page.',
+    name: 'read_starfield', description: 'Read the sky legend and domains, or browse module stars, directed domain bundles, recent freezes, or conjecture lanterns. domainId filters lists. For modules, query matches a module path, title or topology role. Set connected to true for a pair of module cards you can visit along a verified edge. Four matches per page.',
     parameters: z.object({section: z.enum(['overview','modules','bundles','growth','lanterns']),
-      domainId: z.number().int().nonnegative().optional(), query: z.string().optional(), offset: z.number().int().nonnegative().optional()}),
+      domainId: z.number().int().nonnegative().optional(), query: z.string().optional(), connected: z.boolean().optional(), offset: z.number().int().nonnegative().optional()}),
     execute: readStarfield,
   });
   host.registerTool({

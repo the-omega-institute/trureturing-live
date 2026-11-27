@@ -1337,6 +1337,12 @@ test('sky tools distinguish release data, sampled dependency directions, freezes
     assert.equal(first.items.length, 4);
     assert.ok(first.items.every(r => r.role === 'hub' || /hub/i.test(r.module + r.title)));
     assert.notEqual((await sky('modules', {query:'hub', offset:first.nextOffset})).value.items[0].module, first.items[0].module);
+    const connected = (await sky('modules', {domainId:0, connected:true})).value;
+    assert.equal(connected.items.length, 4);
+    for (const star of connected.items) {
+      const linked = (await invoke('read_star_module', {module:star.module})).value;
+      assert.ok(star.target && [...linked.sampledPrerequisites, ...linked.sampledDependents].some(other => other.target));
+    }
     const link = atlas.cluster_links[0];
     const bundle = (await sky('bundles')).value.items[0];
     assert.equal(bundle.prerequisitesFromTo, link[2]);
