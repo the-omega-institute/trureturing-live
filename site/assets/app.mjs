@@ -3409,6 +3409,7 @@ const truthNebula = {
 
 function initTruthNebulaData(data) {
   if (!data || !Array.isArray(data.stars) || !data.stars.length) return;
+  truthNebula.releaseModuleCount = data.counts?.truth_nodes;
   truthNebula.counts = data.counts || null;
   truthNebula.clusters = Array.isArray(data.clusters) ? data.clusters : [];
   truthNebula.clusterLinks = Array.isArray(data.cluster_links) ? data.cluster_links : [];
@@ -3485,9 +3486,12 @@ async function loadFullTruthAtlas() {
   }
 }
 
-async function loadTruthNebula() {
-  if (truthNebula.loaded || truthNebula.loading || /jsdom/i.test(navigator.userAgent || '')) return;
-  truthNebula.loading = true;
+function loadTruthNebula() {
+  if (truthNebula.loaded || /jsdom/i.test(navigator.userAgent || '')) return;
+  return truthNebula.loading ||= fetchTruthNebula();
+}
+
+async function fetchTruthNebula() {
   try {
     const resp = await fetch('data/truth-nebula.v1.json', { cache: 'force-cache' });
     if (!resp.ok) return;
@@ -4780,9 +4784,15 @@ function closeGalaxyNodeCard() {
   updateGalaxyBackBar();
 }
 
-async function loadGalaxyDetails() {
-  if (galaxyDetail.status !== 'idle' || /jsdom/i.test(navigator.userAgent || '')) return;
+function loadGalaxyDetails(retry = false) {
+  if (!truthNebula.release || galaxyDetail.data || /jsdom/i.test(navigator.userAgent || '')) return;
+  if (galaxyDetail.status === 'loading') return galaxyDetail.request;
+  if (galaxyDetail.status === 'failed' && !retry) return;
   galaxyDetail.status = 'loading';
+  return galaxyDetail.request = fetchGalaxyDetails();
+}
+
+async function fetchGalaxyDetails() {
   try {
     const release = truthNebula.release || '';
     const resp = await fetch(`data/truth-nebula-details.v1.json?r=${encodeURIComponent(release.slice(-16))}`);
@@ -10176,7 +10186,7 @@ function dashboardContext() {
     mainView: {layer: state.layer,
       station: departments().map(d => ({target: 'department:' + d.id, department: langDeptLabel(d),
         responsibility: langDeptResp(d), model: stationGuideModels[d.id]})),
-      starfield: {meaning: 'Truth DAG: theorem stars grouped by mathematical domain, with dependency links.',
+      starfield: {meaning: 'Stars represent Lean modules grouped by domain. A module may contain multiple theorems. Use read_starfield for the legend and individual records.',
         clusters: truthNebula.clusters.filter(c => c.name !== 'Other').map(c => ({target: 'galaxy:' + c.id, name: langGalaxyName(c), nodes: c.count}))}},
     guideTargets: guideTargets(),
     selectedDepartment: department(state.selected) ? langDeptLabel(department(state.selected)) : null,
@@ -10277,8 +10287,113 @@ function readEventBatch(batch, offset) {
     nextOffset: end < records.recent.length ? end : null}};
 }
 
+const skyUnavailable = message => ({ok: false, code: 'unavailable', message});
+const skyDomain = cid => truthNebula.clusters.find(c => c.id === cid);
+function skyPage(rows, offset, describe) {
+  const end = offset + 4;
+  return {ok: true, value: {total: rows.length, items: rows.slice(offset, end).map(describe),
+    nextOffset: end < rows.length ? end : null}};
+}
+
+function skyModuleRef(index) {
+  const row = galaxyDetail.data.stars[index];
+  const domain = skyDomain(truthNebula.stars[index][3]);
+  return {module: row[0], title: row[1], role: row[3], domain: domain.name,
+    target: domain.name === 'Other' ? null : 'module:' + row[0]};
+}
+
+async function readStarfield({section, domainId, query = '', offset = 0}) {
+  await loadTruthNebula();
+  if (!truthNebula.loaded) return skyUnavailable('The starfield atlas is unavailable.');
+  const domain = skyDomain(domainId);
+  if (domainId !== undefined && !domain) return skyUnavailable('Unknown domain ID. Read the overview for available domains.');
+  if (section === 'overview') {
+    return {ok: true, value: {release: truthNebula.release, releaseModules: truthNebula.releaseModuleCount,
+      releaseDependencies: truthNebula.counts?.truth_edges, inspectableSample: truthNebula.baseCount,
+      sampleDrawnEdges: truthNebula.edges.length, domains: truthNebula.clusters.map(c => ({
+        id: c.id, name: c.name, displayedModules: c.count, target: c.name === 'Other' ? null : 'galaxy:' + c.id})),
+      legend: {star: 'One verified Lean module can contain several theorems. Its topology role, DAG layer and reuse tier describe different properties.',
+        galaxy: 'The seven largest mathematical domains have named galaxies. Remaining domains share the Other belt.',
+        dependency: 'A directed edge runs from a prerequisite to the module using it. Bundles aggregate connections between domains in each direction.',
+        reuseTier: 'Higher tiers mark modules with more downstream reuse. Brightness or proximity alone cannot establish a dependency.',
+        growth: 'Newly frozen D5 modules come from the live dev feed. Their animated branches illustrate arrival. Preview stars are demonstrations.',
+        lantern: 'Settled conjecture records carry a verdict and evidence source. Some are curated, others are inferred from closed or merged public activity.'}}};
+  }
+  const inDomain = cid => !domain || cid === domain.id;
+  if (section === 'bundles') {
+    const links = truthNebula.clusterLinks.filter(([u,v]) => !domain || u === domain.id || v === domain.id);
+    return skyPage(links, offset, ([u,v,forward,reverse]) => ({from: skyDomain(u).name, to: skyDomain(v).name,
+      prerequisitesFromTo: forward, prerequisitesToFrom: reverse}));
+  }
+  if (section === 'growth') {
+    if (!state.stream?.truth_growth) return skyUnavailable('No live freeze observations available.');
+    const events = truthGrowth.recentRaw.filter(ev => !ev.preview && inDomain(growthClusterId(ev.domain, truthNebula.clusters)));
+    return skyPage(events, offset, ev => ({module: ev.module, domain: ev.domain, frozenAt: ev.at,
+      source: galaxyNodeSourceUrl(ev.module, ev.commit)}));
+  }
+  if (section === 'lanterns') {
+    const records = conjectureRecords().filter(rec => inDomain(matchGalaxyCidForText([rec.area, rec.title, rec.enTitle].join(' '))));
+    return skyPage(records, offset, rec => ({title: rec.enTitle || rec.title, verdict: rec.verdict,
+      provenance: rec.live ? 'inferred from public activity' : 'curated ledger', evidence: rec.evidenceKind,
+      source: safeURL(rec.url), target: 'lantern:' + rec.id}));
+  }
+  await loadGalaxyDetails(true);
+  const rows = galaxyDetail.data?.stars;
+  if (!rows) return skyUnavailable('Matching module details are unavailable for this release.');
+  const term = query.trim().toLowerCase();
+  const indices = [];
+  for (let i = 0; i < rows.length; i++) {
+    const [module, title, , role] = rows[i];
+    if (inDomain(truthNebula.stars[i][3]) && (!term || [module, title, role].some(s => s.toLowerCase().includes(term)))) indices.push(i);
+  }
+  return skyPage(indices, offset, skyModuleRef);
+}
+
+async function readStarModule(module) {
+  await loadTruthNebula();
+  await loadGalaxyDetails(true);
+  const details = galaxyDetail.data;
+  const index = details?.stars.findIndex(row => row[0] === module) ?? -1;
+  if (index < 0) return skyUnavailable('Module unavailable in the inspectable sample. Use read_starfield with section modules.');
+  const [, , summary, , layer, theoremCount, prerequisiteCount, dependentCount, prereqs = [], uses = []] = details.stars[index];
+  return {ok: true, value: {...skyModuleRef(index), summary, layer, theoremCount, prerequisiteCount, dependentCount,
+    reuseTier: truthNebula.stars[index][6], sampledPrerequisites: prereqs.slice(0,3).map(skyModuleRef),
+    sampledDependents: uses.slice(0,3).map(skyModuleRef), source: galaxyNodeSourceUrl(module, details.source_commit)}};
+}
+
+async function showSkyRecord(target, signal) {
+  if (target.startsWith('module:')) {
+    const module = target.slice(7);
+    const record = await readStarModule(module);
+    signal.throwIfAborted();
+    if (!record.ok || !record.value.target) return skyUnavailable('This module has no focusable star in the named galaxies.');
+    const idx = galaxyDetail.data.stars.findIndex(row => row[0] === module);
+    const [x,y,z,cid] = truthNebula.stars[idx];
+    if (!showGuideScene('galaxy:' + cid)) return skyUnavailable('The galaxy could not be opened.');
+    openGalaxyNode({kind: 'star', idx, cid, nx: x / 1000, ny: y / 1000, nz: z / 1000,
+      x: window.innerWidth * 0.5, y: window.innerHeight * 0.5});
+    return {ok: true, value: {opened: target, title: record.value.title, summary: record.value.summary, source: record.value.source}};
+  }
+  const rec = conjectureRecords().find(r => 'lantern:' + r.id === target);
+  if (!rec) return skyUnavailable('This conjecture record is unavailable.');
+  const cid = matchGalaxyCidForText([rec.area, rec.title, rec.enTitle].join(' '));
+  if (!showGuideScene('galaxy:' + cid)) return skyUnavailable('The galaxy could not be opened.');
+  openLanternConjectureCard({rec, x: window.innerWidth * 0.5, y: window.innerHeight * 0.5});
+  return {ok: true, value: {opened: target, verdict: rec.verdict, title: rec.enTitle || rec.title, source: safeURL(rec.url)}};
+}
+
 function registerDashboardTools({ host, z }) {
   nyxWidget.context = dashboardContext;
+  host.registerTool({
+    name: 'read_starfield', description: 'Read the sky legend and domains, or browse module stars, directed domain bundles, recent freezes, or conjecture lanterns. domainId filters lists. For modules, query matches a module path, title or topology role. Four matches per page.',
+    parameters: z.object({section: z.enum(['overview','modules','bundles','growth','lanterns']),
+      domainId: z.number().int().nonnegative().optional(), query: z.string().optional(), offset: z.number().int().nonnegative().optional()}),
+    execute: readStarfield,
+  });
+  host.registerTool({
+    name: 'read_star_module', description: 'Inspect an exact module path returned by read_starfield. Returns the theorem count, role, directed prerequisite and dependent examples, and its Lean source.',
+    parameters: z.object({module: z.string()}), execute: ({module}) => readStarModule(module),
+  });
   host.registerTool({
     name: 'read_event_batch', description: 'Look up a guide digest by its batch ID. Returns up to three public activities and sources. Use nextOffset for more.',
     parameters: z.object({batch: z.string(), offset: z.number().int().nonnegative().optional()}),
@@ -10291,10 +10406,11 @@ function registerDashboardTools({ host, z }) {
     execute: ({section, offset}) => ({ ok: true, value: section ? readDashboardSection(section, offset) : dashboardContext() }),
   });
   host.registerTool({
-    name: 'show_scene', description: 'Show the named guideTargets entry from the current page context. Use it to illustrate the topic you are explaining.',
+    name: 'show_scene', description: 'Show a guideTargets entry or open a module or lantern target returned by read_starfield. Use it to illustrate your topic.',
     parameters: z.object({target: z.string()}),
     execute: ({target}, signal) => {
       signal.throwIfAborted();
+      if (target.startsWith('module:') || target.startsWith('lantern:')) return showSkyRecord(target, signal);
       return showGuideScene(target) ? {ok: true, value: dashboardContext()} :
         {ok: false, code: 'unavailable', message: 'Choose a currently available guide target.'};
     },
