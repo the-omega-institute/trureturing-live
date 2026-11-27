@@ -1318,12 +1318,29 @@ test('sky tools distinguish release data, sampled dependency directions, freezes
     assert.equal(overview.releaseModules, atlas.counts.truth_nodes);
     assert.equal(overview.inspectableSample, atlas.stars.length);
     assert.equal(overview.domains.find(c => c.name === 'Other').target, null);
+    assert.equal(overview.moduleDetailsStatus, 'failed');
+    assert.equal(overview.exampleDependency, undefined);
+    assert.ok(overview.exampleBundle.prerequisitesFromTo > 0);
     assert.equal((await sky('modules')).ok, false);
+    const attemptsBeforeRecovery = detailReads;
     mismatch = false;
     const idx = details.stars.findIndex((r,i) => atlas.stars[i][3] === 0 && r[8].length && r[9].length);
     const row = details.stars[idx];
     const [list, record] = await Promise.all([sky('modules', {domainId:0, query:row[0]}), invoke('read_star_module', {module:row[0]})]);
-    assert.equal(detailReads, 2);
+    assert.equal(detailReads, attemptsBeforeRecovery + 1);
+    const generic = (await invoke('read_view', {section:'starfield'})).value;
+    const scene = (await invoke('show_scene', {target:'starfield'})).value.mainView.starfield;
+    assert.deepEqual(scene.exampleDependency, generic.exampleDependency);
+    assert.deepEqual(scene.exampleBundle, generic.exampleBundle);
+    assert.deepEqual(structuredClone(voice.context().mainView.starfield.exampleDependency), structuredClone(generic.exampleDependency));
+    const {prerequisite, dependent} = generic.exampleDependency;
+    const findIndex = ref => details.stars.findIndex(row => row[0] === ref.module);
+    assert.ok(atlas.edges.some(([u, v]) => u === findIndex(prerequisite) && v === findIndex(dependent)));
+    for (const ref of [prerequisite, dependent]) {
+      const selected = await invoke('show_scene', {target:ref.target});
+      assert.ok(selected.ok && !doc.querySelector('#galaxy-node-card').hidden);
+      assert.equal(selected.value.title, ref.title);
+    }
     assert.equal(list.value.items[0].module, row[0]);
     assert.equal(record.value.theoremCount, row[5]);
     assert.equal(record.value.sampledPrerequisites[0].module, details.stars[row[8][0]][0]);
