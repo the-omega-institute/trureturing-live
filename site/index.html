@@ -12,8 +12,8 @@
   <script defer src="assets/i18n.js?v=growth-stage1"></script>
   <script defer src="assets/station-models.js?v=4"></script>
   <script defer src="assets/gl-engine.js?v=station-geometry1"></script>
-  <script type="module" src="assets/app.mjs?v=station-tour2"></script>
-  <script defer src="assets/nyx-widget.js?v=0.2.2"></script>
+  <script type="module" src="assets/app.mjs?v=guide-digests"></script>
+  <script defer src="assets/nyx-widget.js?v=0.2.3"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute" data-i18n="skip_link">进入 3D 全息指挥大屏</a>
@@ -154,6 +154,8 @@
 Opening route: Begin in the 3D main view. Call _page_context for the mainView legend and show_scene with station as you introduce the space station. Stay on the station for the first explanation. Point to one model from the legend, name its department and connect its shape with that department’s actual responsibility. Speak that explanation before changing layers. When moving to the sky, tell visitors how to read it in the same spoken transition and call show_scene with starfield: clusters group mathematical domains, and the theorem graph shows dependencies. Then focus on a named department or galaxy. Keep drawers for later unless the visitor requests one. Each successful show_scene can provide the current tab image. Use _page_screenshot when you need a fresh view. Look at the actual frame before describing appearance; use the legend for meaning. If sharing is off, continue with the page context. Never claim to see pixels that were unavailable.
 
 Choose a theme: Silently call _page_context and read_view. Choose one question worth answering from today’s evidence and two connected views that illuminate it. At each stop pick one revealing detail: a changed result, an unexpected comparison, or an open question. Omit routine counts, timestamps, IDs and unrelated rows. Open with the subject itself. Paraphrase long technical titles in the visitor’s language. Use plain language and preserve the research status. Explain why this detail matters only as far as the evidence supports.
+
+Occasionally a host update lists a batch ID and activity counts. Keep guiding visitors through the scene. Silently skip an unrelated batch. When an update could illuminate the point you are making, use read_event_batch to check the record and its status first. Finish your point, weave in at most one verified detail in a sentence, then return to your route. Keep batch IDs and counts to yourself.
 
 Choreograph speech and navigation: Give a short spoken cue that draws attention to the evidence and immediately call show_scene with an available guideTargets entry. This is one response containing both the spoken cue and the tool call. As soon as the view is confirmed, point out the detail the visitor can see. Explain it in one or two sentences. If the tool fails, recover before referring to the view.
 

@@ -3161,20 +3161,20 @@ async function refreshLive() {
     for (const a of view()?.recent || []) {
       watermarks.set(a.source, Math.max(watermarks.get(a.source) || 0, timestamp(a.at) || 0));
     }
-    const arrivals = first
-      ? []
-      : data.organization.recent.filter(a =>
-          !state.seen.has(eventKey(a))
-          && timestamp(a.at) >= (watermarks.get(a.source) || 0)
-          && Date.now() - timestamp(a.at) < 900000
-        );
+    const arrivals = [];
+    for (const a of data.organization.recent) {
+      const id = eventKey(a);
+      if (!first && !state.seen.has(id) && timestamp(a.at) >= (watermarks.get(a.source) || 0)
+          && Date.now() - timestamp(a.at) < 900000) arrivals.push(a);
+      state.seen.add(id);
+    }
     state.stream = data;
     try {
       localStorage.setItem(streamCacheKey, JSON.stringify(data));
     } catch {}
     observeTruthGrowth(data.truth_growth);
     state.arrivals = arrivals.slice(0, 8);
-    for (const a of data.organization.recent) state.seen.add(eventKey(a));
+    if (arrivals.length) guideEvents?.collect(arrivals);
     if (state.seen.size > 1600) state.seen = new Set([...state.seen].slice(-1000));
     if (state.animated.size > 800) state.animated = new Set([...state.animated].slice(-400));
     if (state.follow && state.mode === 'organization' && arrivals.length) {
@@ -10224,8 +10224,66 @@ function showGuideScene(target) {
   return true;
 }
 
+// A batch belongs to one period of active narration. Only its digest leaves the page automatically.
+let guideEvents;
+let guideBatchNumber = 0;
+function beginGuideBriefings(signal) {
+  let lastDigest = performance.now();
+  let counts = {work: 0, reviews: 0, checks: 0, publishing: 0};
+  let recent = [];
+  const batches = new Map();
+  const period = {
+    batches,
+    collect(arrivals) {
+      for (const event of arrivals) {
+        const group = event.kind === 'automation' ? 'checks' : event.department === 'review' ? 'reviews'
+          : ['books', 'publication'].includes(event.department) ? 'publishing' : 'work';
+        counts[group]++;
+      }
+      recent = [...arrivals.slice(0, 48), ...recent].slice(0, 48);
+    }
+  };
+  guideEvents = period;
+  signal.addEventListener('abort', () => {
+    if (guideEvents === period) guideEvents = undefined;
+    recent = [];
+    batches.clear();
+  }, {once: true});
+  return () => {
+    const now = performance.now();
+    if (guideEvents !== period || !recent.length || now - lastDigest < 180000) return;
+    lastDigest = now;
+    const batch = 'B' + (++guideBatchNumber);
+    const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+    batches.set(batch, {total, recent});
+    if (batches.size > 3) batches.delete(batches.keys().next().value);
+    const digest = `batch=${batch} work=${counts.work} reviews=${counts.reviews} checks=${counts.checks} publishing=${counts.publishing}`;
+    counts = {work: 0, reviews: 0, checks: 0, publishing: 0};
+    recent = [];
+    return digest;
+  };
+}
+
+function readEventBatch(batch, offset) {
+  const records = guideEvents?.batches.get(batch);
+  if (!records) return {ok: false, code: 'unavailable', message: 'This event batch is no longer available.'};
+  const items = records.recent.slice(offset, offset + 3).map(a => {
+    const url = safeURL(a.url);
+    return {at: a.at, department: a.department, status: a.status, kind: a.kind,
+      title: String(a.label || '').slice(0, 160), source: url !== '#' && url.length <= 512 ? url : null};
+  });
+  const end = offset + items.length;
+  return {ok: true, value: {batch, total: records.total, retained: records.recent.length, items,
+    nextOffset: end < records.recent.length ? end : null}};
+}
+
 function registerDashboardTools({ host, z }) {
   nyxWidget.context = dashboardContext;
+  host.registerTool({
+    name: 'read_event_batch', description: 'Look up a guide digest by its batch ID. Returns up to three public activities and sources. Use nextOffset for more.',
+    parameters: z.object({batch: z.string(), offset: z.number().int().nonnegative().optional()}),
+    execute: ({batch, offset = 0}) => readEventBatch(batch, offset),
+  });
   host.registerTool({
     name: 'read_view',
     description: 'Read this tab’s current research dashboard. Specify a section for its rendered records and source links. Use nextOffset as offset for more records.',
@@ -10269,6 +10327,7 @@ if (sceneHeader && sceneFooter && typeof ResizeObserver === 'function') {
 }
 
 const nyxWidget = document.querySelector('nyx-assistant');
+if (nyxWidget) nyxWidget.tourBriefings = beginGuideBriefings;
 nyxWidget?.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
 if (nyxWidget?.host) registerDashboardTools(nyxWidget);
 

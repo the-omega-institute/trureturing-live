@@ -27,7 +27,9 @@ The public dashboard loads without a frontend build, runtime CDN, or browser log
 
 The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors approve a scoped browser credential on NyxID. The SDK encrypts the child credential with a non-exportable key in the site's IndexedDB and revalidates it after reload. The dedicated chrono-cd service forwards requests to NyxID. Text chat and voice can read the current tab’s observation time, selected view, research questions and activity. They can look up the dashboard’s public records and source links by section and switch between organization and journey views. Disconnecting revokes the child credential across that site's tabs.
 Voice calls are enabled by default. Connect NyxID with the requested OpenAI service (`llm-openai`), then select the call button beside the empty message field and allow microphone access. Visitors with a previous text-only grant need to authorize the additional service.
-[SDK v0.2.2](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.2.2)
+[SDK v0.2.3](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.2.3)
+
+During an active tour the dashboard groups new organization activity into a digest with a batch ID and four counts. Alexandra can receive one digest at a natural pause at most every three minutes and look up relevant records three at a time. The tab keeps up to 48 records per batch for the three latest digests. Pausing or ending the tour clears the batches.
 
 Alexandra greets visitors in English and waits. Say “开始讲解” or “Start the tour” to begin a continuous tour of the space station and theorem starfield. Visitors can switch languages or ask her to pause. The host sets her name with `data-voice-name`. In a supported desktop browser, select **Share this tab** in the call and choose the dashboard. The guide can take compressed stills of that tab during the call. Stop sharing or hang up to end capture.
 
