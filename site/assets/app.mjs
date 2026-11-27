@@ -10305,7 +10305,8 @@ function skyModuleRef(index) {
 }
 
 function describeBundle([u, v, forward, reverse]) {
-  return {from: skyDomain(u).name, to: skyDomain(v).name,
+  const from = skyDomain(u).name, to = skyDomain(v).name;
+  return {from, to, target: 'bundle:' + from + '->' + to,
     prerequisitesFromTo: forward, prerequisitesToFrom: reverse};
 }
 
@@ -10393,6 +10394,22 @@ async function readStarModule(module) {
 }
 
 async function showSkyRecord(target, signal) {
+  if (target.startsWith('bundle:')) {
+    await loadTruthNebula();
+    signal.throwIfAborted();
+    const link = truthNebula.clusterLinks.find(row => describeBundle(row).target === target);
+    if (!link) return skyUnavailable('Choose a bundle target returned by read_starfield.');
+    const [u, v, forward, reverse] = link;
+    const focus = skyDomain(v).name === 'Other' ? u : v;
+    if (!showGuideScene('galaxy:' + focus)) return skyUnavailable('The galaxy could not be opened.');
+    const from = langGalaxyName(skyDomain(u)), to = langGalaxyName(skyDomain(v));
+    renderGalaxyNodeCard({badge: L('域间依赖', 'Domain dependencies'), title: from + ' ↔ ' + to,
+      summary: L('箭头从提供前提的域指向使用该前提的域。', 'Each arrow runs from the domain providing the prerequisite to the domain using it.'),
+      meta: [from + ' → ' + to + ' (' + forward + ')', to + ' → ' + from + ' (' + reverse + ')']},
+      window.innerWidth * 0.5, window.innerHeight * 0.5, galaxyDetail.bounds || {
+        left: 12, top: 116, right: window.innerWidth - 12, bottom: window.innerHeight - 80});
+    return {ok: true, value: {opened: target, ...describeBundle(link)}};
+  }
   if (target.startsWith('module:')) {
     const module = target.slice(7);
     const record = await readStarModule(module);
@@ -10441,12 +10458,12 @@ function registerDashboardTools({ host, z }) {
     },
   });
   host.registerTool({
-    name: 'show_scene', description: 'Show a guideTargets entry or open a module or lantern target returned by read_starfield. Use it to illustrate your topic.',
+    name: 'show_scene', description: 'Show a guideTargets entry or open the exact target returned for a module, domain bundle or lantern.',
     parameters: z.object({target: z.string()}),
     execute: async ({target}, signal) => {
       if (target === 'starfield' || target.startsWith('galaxy:')) await loadStarfieldEvidence();
       signal.throwIfAborted();
-      if (target.startsWith('module:') || target.startsWith('lantern:')) return showSkyRecord(target, signal);
+      if (/^(module|bundle|lantern):/.test(target)) return showSkyRecord(target, signal);
       return showGuideScene(target) ? {ok: true, value: dashboardContext()} :
         {ok: false, code: 'unavailable', message: 'Choose a currently available guide target.'};
     },

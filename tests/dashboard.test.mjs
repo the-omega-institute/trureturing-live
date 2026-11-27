@@ -1364,6 +1364,10 @@ test('sky tools distinguish release data, sampled dependency directions, freezes
     const bundle = (await sky('bundles')).value.items[0];
     assert.equal(bundle.prerequisitesFromTo, link[2]);
     assert.equal(bundle.prerequisitesToFrom, link[3]);
+    assert.equal((await invoke('show_scene', {target:bundle.target})).value.opened, bundle.target);
+    const card = doc.querySelector('#galaxy-node-card');
+    assert.ok(!card.hidden && card.textContent.includes('(' + link[2] + ')') && card.textContent.includes('(' + link[3] + ')'));
+    assert.equal((await invoke('show_scene', {target:'bundle:missing'})).ok, false);
     const lanterns = (await sky('lanterns')).value;
     const lantern = lanterns.items.find(r => r.provenance === 'curated ledger');
     assert.ok(lantern);
