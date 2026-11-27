@@ -1192,6 +1192,12 @@ test('Nyx text turns and voice tools read the dashboard as the visitor changes p
     const voice = widget.host.captureTools();
     const show = target => voice.invoke('show_scene', {target}, new AbortController().signal);
     assert.equal((await show('unregistered')).ok, false);
+    const station = await show('station');
+    assert.equal(station.value.mainView.layer, 'station');
+    assert.equal(station.value.mainView.station.find(d => d.target === 'department:research').model, 'wireframe polyhedron');
+    const sky = await show('starfield');
+    assert.equal(sky.value.mainView.layer, 'galaxy');
+    assert.equal(doc.querySelector('[data-layer="galaxy"]').getAttribute('aria-pressed'), 'true');
     assert.equal((await show('department:verification')).ok, true);
     assert.equal(doc.querySelector('#department-lens').hidden, false);
     assert.equal(doc.querySelector('#lens-title').textContent, '形式验证');

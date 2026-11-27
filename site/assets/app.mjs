@@ -10156,6 +10156,12 @@ function readDashboardSection(section, offset = 0, count = 6) {
     nextOffset: end < cards.length ? end : null };
 }
 
+// The eight department models drawn by the station Canvas and WebGL renderers.
+const stationGuideModels = {
+  direction: 'orbital optical aperture', research: 'wireframe polyhedron', review: 'breathing surface',
+  verification: 'Hopf station', books: 'glass codex', publication: 'folded page',
+  outreach: 'consensus lens', studio: 'gears and cube'
+};
 function dashboardContext() {
   const drawer = $('[data-dock-tab][aria-selected="true"]')?.dataset.dockTab;
   const section = drawer || (state.mode === 'journey' ? 'journey' : 'department');
@@ -10167,6 +10173,11 @@ function dashboardContext() {
     liveStatus: view() ? (isStale() ? 'delayed' : 'current') : 'unavailable',
     metrics: dashboardCard($('#institute-metrics')).text,
     dagNodes: $('#log-ops-dag').textContent, recentGrowth: $('#log-ops-growth').textContent,
+    mainView: {layer: state.layer,
+      station: departments().map(d => ({target: 'department:' + d.id, department: langDeptLabel(d),
+        responsibility: langDeptResp(d), model: stationGuideModels[d.id]})),
+      starfield: {meaning: 'Truth DAG: theorem stars grouped by mathematical domain, with dependency links.',
+        clusters: truthNebula.clusters.filter(c => c.name !== 'Other').map(c => ({target: 'galaxy:' + c.id, name: langGalaxyName(c), nodes: c.count}))}},
     guideTargets: guideTargets(),
     selectedDepartment: department(state.selected) ? langDeptLabel(department(state.selected)) : null,
     journeyTitle: state.mode === 'journey' && state.topic ? $('#journey-title').textContent : null,
@@ -10178,7 +10189,7 @@ function dashboardContext() {
 }
 
 function guideTargets() {
-  return ['overview', 'questions', 'journey', 'live-ops', 'conjectures', 'publications', 'ecosystem',
+  return ['overview', 'station', 'starfield', 'questions', 'journey', 'live-ops', 'conjectures', 'publications', 'ecosystem',
     ...departments().map(d => 'department:' + d.id),
     ...truthNebula.clusters.filter(c => c.name !== 'Other').map(c => 'galaxy:' + c.id)];
 }
@@ -10207,8 +10218,8 @@ function showGuideScene(target) {
     holoCam.galaxyZoomScale = 1;
     truthGrowth.manualFocus = {cid: cluster.id, cluster, start: performance.now(), closing: false};
     updateGalaxyBackBar();
-  } else if (target === 'overview') {
-    applyLayer('mix');
+  } else if (target === 'overview' || target === 'station' || target === 'starfield') {
+    applyLayer(target === 'starfield' ? 'galaxy' : target === 'station' ? 'station' : 'mix');
   }
   return true;
 }
