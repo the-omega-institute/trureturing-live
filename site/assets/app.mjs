@@ -10289,9 +10289,10 @@ function beginGuideBriefings(signal) {
     batches.set(batch, {total, recent});
     if (batches.size > 3) batches.delete(batches.keys().next().value);
     const digest = `batch=${batch} research=${counts.research} frozen=${counts.frozen} work=${counts.work} reviews=${counts.reviews} checks=${counts.checks} publishing=${counts.publishing}`;
+    const briefing = counts.research || counts.frozen ? {summary: digest, lookupTool: 'read_event_batch'} : digest;
     counts = emptyCounts();
     recent = [];
-    return digest;
+    return briefing;
   };
 }
 
