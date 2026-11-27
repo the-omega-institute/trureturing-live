@@ -120,11 +120,11 @@ test('keyboard navigation freezes the viewpoint; follow resumes only on newly ob
     assert.equal(doc.activeElement.dataset.department,'review');
     assert.equal(doc.querySelector('#follow-live').getAttribute('aria-pressed'),'false');
     const update=structuredClone(responses.live);update.organization.observed_at=new Date(Date.now()+1000).toISOString();
-    update.organization.recent=[activity('new-book','books','discussion',{at:new Date(Date.now()+500).toISOString()})];responses.live=update;await tick(15000);
+    update.organization.recent=[activity('new-book','books','discussion',{at:new Date(Date.now()+500).toISOString()})];responses.live=update;await tick(8000);
     assert.equal(doc.querySelector('#department-title').textContent,'独立评审');
     assert.equal(doc.activeElement.dataset.department,'review');
     doc.querySelector('#follow-live').click();assert.equal(doc.querySelector('#department-title').textContent,'理论书写');
-    const newer=structuredClone(update);newer.organization.observed_at=new Date(Date.now()+3000).toISOString();newer.organization.recent=[activity('new-outreach','outreach','automation',{at:new Date(Date.now()+2000).toISOString(),status:'working'})];responses.live=newer;await tick(15000);
+    const newer=structuredClone(update);newer.organization.observed_at=new Date(Date.now()+3000).toISOString();newer.organization.recent=[activity('new-outreach','outreach','automation',{at:new Date(Date.now()+2000).toISOString(),status:'working'})];responses.live=newer;await tick(8000);
     assert.equal(doc.querySelector('#department-title').textContent,'学术交流');
   }finally{dom.window.close();}
 });
@@ -180,10 +180,10 @@ test('history classifies the exact public message rather than another comment by
 
 test('stale observations lose live execution claims; failed and older refreshes preserve readable work',async()=>{
   const {dom,doc,responses,tick}=await boot();try{
-    const old=live();old.organization.observed_at='2020-01-01T00:00:00Z';old.organization.departments=[];responses.live=old;await tick(15000);
+    const old=live();old.organization.observed_at='2020-01-01T00:00:00Z';old.organization.departments=[];responses.live=old;await tick(8000);
     assert.equal(doc.querySelectorAll('.hive-cell').length,8);
     assert.match(doc.querySelector('#institute-metrics').textContent,/4项自动化/);
-    responses.offline=true;await tick(15000);
+    responses.offline=true;await tick(8000);
     assert.equal(doc.querySelectorAll('.question-card').length,2);
   }finally{dom.window.close();}
   const data=live();data.organization.observed_at=new Date(Date.now()-600000).toISOString();
@@ -197,7 +197,7 @@ test('stale observations lose live execution claims; failed and older refreshes 
 
 test('a different organization cannot replace the observed research institute',async()=>{
   const {dom,doc,responses,tick}=await boot();try{
-    const wrong=live();wrong.organization.organization.id='another-organization';wrong.organization.observed_at=new Date(Date.now()+10000).toISOString();wrong.organization.departments=[];responses.live=wrong;await tick(15000);
+    const wrong=live();wrong.organization.organization.id='another-organization';wrong.organization.observed_at=new Date(Date.now()+10000).toISOString();wrong.organization.departments=[];responses.live=wrong;await tick(8000);
     assert.equal(doc.querySelectorAll('.hive-cell').length,8);
     assert.equal(doc.querySelector('#department-title').textContent,'数学攻坚');
   }finally{dom.window.close();}
@@ -220,12 +220,12 @@ test('public strings stay text and hostile links cannot execute; publications re
 test('arrival signals require a new observation and do not replay after department selection',async()=>{
   const {dom,doc,responses,tick}=await boot();try{
     assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
-    const next=structuredClone(responses.live),ci=activity('ci-new','verification','automation',{status:'working',at:new Date(Date.now()+500).toISOString()});next.organization.observed_at=new Date(Date.now()+1000).toISOString();next.organization.recent=[ci];next.organization.handoffs=[{kind:'reference',from:'research',to:'verification',activity:ci.id}];responses.live=next;await tick(15000);
+    const next=structuredClone(responses.live),ci=activity('ci-new','verification','automation',{status:'working',at:new Date(Date.now()+500).toISOString()});next.organization.observed_at=new Date(Date.now()+1000).toISOString();next.organization.recent=[ci];next.organization.handoffs=[{kind:'reference',from:'research',to:'verification',activity:ci.id}];responses.live=next;await tick(8000);
     assert.equal(doc.querySelectorAll('.arrival-particle').length,1);
     assert.equal(doc.querySelectorAll('.activity-card.has-arrival').length,1);
     doc.querySelector('[data-department="research"]').click();
     assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
-    await tick(15000);assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
+    await tick(8000);assert.equal(doc.querySelectorAll('.arrival-particle').length,0);
     doc.querySelector('#follow-live').click();
     assert.equal(doc.querySelectorAll('.activity-card.has-arrival').length,0);
   }finally{dom.window.close();}
@@ -284,11 +284,11 @@ test('the war-room log opens rolling; 最新 is a scrollable terminal of real ev
     const early=activity('book-early','books','contribution',{at:new Date(Date.now()+200).toISOString(),task:task(11,bookRepository),url:`https://github.com/${bookRepository}/pull/11`});
     first.organization.observed_at=new Date(Date.now()+300).toISOString();
     first.organization.recent=[...first.organization.recent,early];
-    responses.live=first;await tick(15000);
+    responses.live=first;await tick(8000);
     const later=structuredClone(responses.live);
     later.organization.observed_at=new Date(Date.now()+400).toISOString();
     later.organization.recent=later.organization.recent.filter(a=>a.id!=='book-early');
-    responses.live=later;await tick(15000);
+    responses.live=later;await tick(8000);
     doc.querySelector('[data-log-mode="latest"]').click();
     assert.equal(pressed('latest'),'true');
     assert.equal(pressed('cycle'),'false');
@@ -300,7 +300,7 @@ test('the war-room log opens rolling; 最新 is a scrollable terminal of real ev
     const newest=activity('book-new','books','contribution',{label:'A fresh chapter on spectral gaps',at:at.toISOString(),task:task(10,bookRepository),url:`https://github.com/${bookRepository}/pull/10`});
     next.organization.observed_at=new Date(Date.now()+1000).toISOString();
     next.organization.recent=[...next.organization.recent,newest];
-    responses.live=next;await tick(15000);
+    responses.live=next;await tick(8000);
     const rows=lines();
     assert.equal(rows.length,before+1);
     assert.match(rows.at(-1).querySelector('.log-msg').textContent,/^理论书写 ▸ /);
@@ -308,14 +308,14 @@ test('the war-room log opens rolling; 最新 is a scrollable terminal of real ev
     assert.ok(rows.slice(0,-1).every(row=>!row.classList.contains('is-fresh')));
     const pad=n=>String(n).padStart(2,'0');
     assert.equal(rows.at(-1).querySelector('.log-ts').textContent,`${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}`);
-    await tick(15000);
+    await tick(8000);
     assert.equal(lines().length,before+1);
     // A repeated event on the same work is its own terminal line.
     const again=structuredClone(responses.live),rerun=structuredClone(again.organization.recent[0]);
     rerun.id='ci-rerun';rerun.at=new Date(Date.now()+1500).toISOString();
     again.organization.observed_at=new Date(Date.now()+2000).toISOString();
     again.organization.recent=[...again.organization.recent,rerun];
-    responses.live=again;await tick(15000);
+    responses.live=again;await tick(8000);
     assert.equal(lines().length,before+2);
     const original=rows.find(row=>row.dataset.logKey.startsWith(`${rerun.id.replace('-rerun','')}/`));
     assert.ok(original);
@@ -324,7 +324,7 @@ test('the war-room log opens rolling; 最新 is a scrollable terminal of real ev
     const many=structuredClone(responses.live),base=Date.now()+3000;
     many.organization.observed_at=new Date(base+60000).toISOString();
     many.organization.recent=Array.from({length:45},(_,i)=>activity(`ci-batch-${i}`,'verification','automation',{status:'working',at:new Date(base+i*1000).toISOString()}));
-    responses.live=many;await tick(15000);
+    responses.live=many;await tick(8000);
     assert.equal(lines().length,before+2+45);
     doc.querySelector('[data-log-mode="cycle"]').click();
     assert.equal(pressed('cycle'),'true');
@@ -424,7 +424,7 @@ test('a new matrix entry carries its importance, and 轮播 shows the real entry
     const merged=activity('merged-1','research','contribution',{status:'merged',at,task:task(77),url:`https://github.com/${repository}/pull/77`});
     next.organization.observed_at=new Date(Date.now()+1000).toISOString();
     next.organization.recent=[...next.organization.recent,merged];
-    responses.live=next;await tick(15000);
+    responses.live=next;await tick(8000);
     const real=stream.querySelector('[data-log-key^="merged-1/"]');
     assert.ok(real,'the real entry is inserted into the rolling log');
     assert.ok(real.classList.contains('is-real'));
@@ -434,7 +434,7 @@ test('a new matrix entry carries its importance, and 轮播 shows the real entry
     const ci=activity('ci-xp','verification','automation',{status:'succeeded',at:new Date(Date.now()+1500).toISOString()});
     again.organization.observed_at=new Date(Date.now()+2000).toISOString();
     again.organization.recent=[...again.organization.recent,ci];
-    responses.live=again;await tick(15000);
+    responses.live=again;await tick(8000);
     const last=[...stream.querySelectorAll('.scifi-log-line')].at(-1);
     assert.ok(last.dataset.logKey.startsWith('ci-xp/'));
     assert.equal(last.dataset.xpTier,'1');

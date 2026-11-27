@@ -1938,22 +1938,30 @@ function renderDepartmentLens(d) {
     room.classList.remove('is-department-focused');
     return;
   }
+  const switchedDept = lens.hidden || lens.dataset.department !== d.id;
   lens.hidden = false;
   lens.dataset.department = d.id;
   room.classList.add('is-department-focused');
+  if (switchedDept) lens.scrollTop = 0;
 
   // 1. Top 8-department quick switcher
   const switcher = $('#lens-switcher');
   if (switcher) {
     switcher.replaceChildren();
+    let activePill = null;
     for (const dept of departments()) {
       const pill = element('button', '', 'lens-switch-pill' + (countRunning(dept) ? ' has-running' : ''));
       pill.type = 'button';
       pill.setAttribute('role', 'tab');
-      pill.setAttribute('aria-selected', String(dept.id === d.id));
+      const isSelected = dept.id === d.id;
+      pill.setAttribute('aria-selected', String(isSelected));
       pill.append(element('i', '', 'lens-switch-dot'), document.createTextNode(langDeptLabel(dept)));
       pill.addEventListener('click', () => selectDepartment(dept.id, true, true));
       switcher.append(pill);
+      if (isSelected) activePill = pill;
+    }
+    if (switchedDept && activePill && typeof activePill.scrollIntoView === 'function') {
+      try { activePill.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } catch {}
     }
   }
 
@@ -3134,6 +3142,7 @@ async function refreshSnapshot() {
 async function refreshLive() {
   if (state.liveBusy) return;
   state.liveBusy = true;
+  state.lastLiveFetchAt = Date.now();
   try {
     const response = await fetch(liveURL, {
       cache: 'no-store',
@@ -11214,10 +11223,16 @@ refreshConjectures();
 refreshOutreachStats();
 refreshLive();
 setInterval(() => { if (!document.hidden) refreshSnapshot(); }, 60000);
-setInterval(() => { if (!document.hidden) refreshLive(); }, 15000);
+setInterval(() => { if (!document.hidden) refreshLive(); }, 8000);
 setInterval(() => {
   if (!document.hidden) {
     renderHealth();
     if (isStale()) renderLive();
   }
-}, 30000);
+}, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    renderHealth();
+    if (!state.lastLiveFetchAt || Date.now() - state.lastLiveFetchAt >= 4000) refreshLive();
+  }
+});

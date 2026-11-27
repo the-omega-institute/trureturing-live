@@ -21,7 +21,7 @@ export default async function handler(req,res){
   if(!['GET','HEAD'].includes(req.method)){res.status(405).json({error:'read-only endpoint'});return;}
   try{
     const data=await readObservation();
-    res.setHeader('Cache-Control','public, max-age=0, s-maxage=10, stale-while-revalidate=10');
+    res.setHeader('Cache-Control','public, max-age=0, s-maxage=3, stale-while-revalidate=5');
     res.status(200).json(data);
   }catch{
     res.setHeader('Cache-Control','no-store');
