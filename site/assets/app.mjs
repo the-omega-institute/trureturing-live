@@ -10263,6 +10263,7 @@ function guideActivity(a) {
 const guidePriority = {research: 2, frozen: 1, work: 0, reviews: 0, checks: 0, publishing: 0};
 function beginGuideBriefings(signal) {
   let lastDigest = performance.now();
+  let resumeScene = false;
   const emptyCounts = () => ({research: 0, frozen: 0, work: 0, reviews: 0, checks: 0, publishing: 0});
   let counts = emptyCounts();
   let recent = [];
@@ -10282,14 +10283,20 @@ function beginGuideBriefings(signal) {
   }, {once: true});
   return () => {
     const now = performance.now();
-    if (guideEvents !== period || !recent.length || now - lastDigest < 180000) return;
+    if (guideEvents !== period) return;
+    if (resumeScene) {
+      resumeScene = false;
+      return {summary: 'Return to the current scene. Pick a fresh visible detail for the next stop.', lookupTool: 'read_view'};
+    }
+    if (!recent.length || now - lastDigest < 180000) return;
     lastDigest = now;
     const batch = 'B' + (++guideBatchNumber);
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
     batches.set(batch, {total, recent});
     if (batches.size > 3) batches.delete(batches.keys().next().value);
     const digest = `batch=${batch} research=${counts.research} frozen=${counts.frozen} work=${counts.work} reviews=${counts.reviews} checks=${counts.checks} publishing=${counts.publishing}`;
-    const briefing = counts.research || counts.frozen ? {summary: digest, lookupTool: 'read_event_batch'} : digest;
+    resumeScene = counts.research + counts.frozen > 0;
+    const briefing = resumeScene ? {summary: digest, lookupTool: 'read_event_batch'} : digest;
     counts = emptyCounts();
     recent = [];
     return briefing;

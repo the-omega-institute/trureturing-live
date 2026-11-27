@@ -1415,6 +1415,8 @@ test('the guide can find a sourced research change in a busy batch and receive a
     assert.equal(first.items[0].title, change.label);
     assert.equal(first.items[0].summary, change.summary);
     assert.equal(first.items[0].source, change.url);
+    assert.equal(digest().lookupTool, 'read_view');
+    assert.equal(digest(), undefined);
     const frozen = record('D5/S2/Quantum/NewModule');
     responses.live.truth_growth = {head:'new', events:[...stream.truth_growth.events, frozen, frozen,
       {...record('demo'), preview:true}, {...record('old-update'), at:'2020-01-01T00:00:00Z'}]};
@@ -1423,6 +1425,7 @@ test('the guide can find a sourced research change in a busy batch and receive a
     assert.deepEqual(structuredClone(digest()),{summary:'batch=B2 research=0 frozen=1 work=0 reviews=0 checks=0 publishing=0', lookupTool:'read_event_batch'});
     const second = (await read('B2')).value;
     assert.equal(second.items[0].module,frozen.module);
+    assert.equal(digest().lookupTool, 'read_view');
     assert.ok(second.items[0].source.endsWith('/'+frozen.commit+'/'+frozen.module+'.lean'));
     await tick(8000);
     now += 180000;
