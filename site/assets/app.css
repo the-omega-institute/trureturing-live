@@ -3026,8 +3026,8 @@ nyx-assistant {
   --nyx-border: var(--border-strong);
   --nyx-control-surface: color-mix(in srgb, var(--accent) 6%, var(--surface-solid));
   --nyx-control-text: var(--ink);
-  --nyx-action-surface: var(--accent-soft);
-  --nyx-accent-text: var(--accent);
+  --nyx-action-surface: var(--accent);
+  --nyx-accent-text: var(--surface-solid);
   --nyx-radius: 3px;
 }
 nyx-assistant[data-nyx-v="below"]::part(panel) {
