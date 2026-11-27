@@ -1163,3 +1163,43 @@ test('a clicked popup opens beside the pointer where it hides the least',async()
     assert.ok(!covers(least,670,400,0),'when something must be covered it is the least important');
   }finally{dom.window.close();}
 });
+
+test('Nyx text turns and voice tools read the dashboard as the visitor changes panels', async () => {
+  const {dom, win, doc} = await boot();
+  try {
+    win.structuredClone = structuredClone;
+    win.AbortController = AbortController;
+    const widget = doc.querySelector('nyx-assistant');
+    const scriptUrl = new URL([...doc.scripts].find(s => s.src.includes('nyx-widget.js')).src);
+    win.eval(await readFile(new URL('../site' + scriptUrl.pathname, import.meta.url), 'utf8'));
+    let turn;
+    widget.bind({request: async (service, path, init) => {
+      assert.equal(service, 'llm-nyx');
+      assert.equal(path.join('/'), 'v1/responses');
+      turn = JSON.parse(JSON.parse(init.body).input);
+      return Response.json({ id: 'r1', conversation: {id: 'c1'}, status: 'completed',
+        output: [{type: 'message', role: 'assistant', content: [{type: 'output_text', text: 'ok'}]}] });
+    }});
+    await widget.host.send('当前有什么在研课题？');
+    const title = doc.querySelector('.question-title').textContent;
+    assert.ok(turn.context.researchQuestions.includes(title));
+    assert.equal(turn.context.observedAt, stamp);
+    assert.equal(turn.context.liveStatus, 'current');
+    assert.equal(turn.context.mode, 'organization');
+    assert.ok(turn.tools.some(tool => tool.name === 'read_view'));
+
+    // Realtime voice captures this binding once and reads it throughout the call.
+    const voice = widget.host.captureTools();
+    doc.querySelector('[data-dock-tab="publications"]').click();
+    const page = voice.context();
+    assert.equal(page.currentPanel.section, 'publications');
+    const read = await voice.invoke('read_view', {section: 'publications'}, new AbortController().signal);
+    assert.equal(read.ok, true);
+    assert.ok(read.value.items.some(row => row.text.includes(doc.querySelector('.paper-title').textContent) &&
+      row.sources.includes(doc.querySelector('.paper-title').href)));
+    doc.querySelector('#dock-close-btn').click();
+    doc.querySelector('.question-title').click();
+    assert.equal(voice.context().journeyTitle, doc.querySelector('#journey-title').textContent);
+    assert.equal(voice.context().mode, 'journey');
+  } finally { dom.window.close(); }
+});

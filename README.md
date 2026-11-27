@@ -25,7 +25,7 @@ The dashboard is plain HTML, CSS and JavaScript. The panorama collector uses Pyt
 standard library; continuous organization observations use a pinned Rust foundation.
 The public dashboard loads without a frontend build, runtime CDN, or browser login.
 
-The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors approve a scoped browser credential on NyxID. The SDK encrypts the child credential with a non-exportable key in the site's IndexedDB and revalidates it after reload. The dedicated chrono-cd service forwards requests to NyxID. Each tab can read its current view and switch between organization and journey. Disconnecting revokes the child credential across that site's tabs.
+The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors approve a scoped browser credential on NyxID. The SDK encrypts the child credential with a non-exportable key in the site's IndexedDB and revalidates it after reload. The dedicated chrono-cd service forwards requests to NyxID. Text chat and voice can read the current tab’s observation time, selected view, research questions and activity. They can look up the dashboard’s public records and source links by section and switch between organization and journey views. Disconnecting revokes the child credential across that site's tabs.
 Voice calls are enabled by default. Connect NyxID with the requested OpenAI service (`llm-openai`), then select the call button beside the empty message field and allow microphone access. Visitors with a previous text-only grant need to authorize the additional service.
 [SDK v0.2.0](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.2.0)
 

@@ -1764,6 +1764,7 @@ function renderDepartment() {
     const card = task ? element('button', '', 'work-item') : external('', a.url, 'work-item');
     if (task) card.type = 'button';
     card.dataset.focusKey = `work:${a.id}`;
+    if (task) card.dataset.source = safeURL(a.url);
     card.classList.toggle('is-active', active(a));
     const meta = element('div', '', 'work-meta');
     const timeEl = element('time', relative(a.at));
@@ -2755,6 +2756,7 @@ function renderQuestions() {
   for (const topic of topics.slice(0, state.limit)) {
     const a = topic.activity;
     const card = element('article', '', 'question-card');
+    card.dataset.source = safeURL(a.url);
     const top = element('div', '', 'question-card-top');
     top.append(element('span', topic.book ? L('理论书写', 'Monographs') : topic.copy.area), element('span', phase(a), 'phase'));
     const title = element('button', topic.copy.title, 'question-title');
@@ -10108,12 +10110,70 @@ for (const tab of document.querySelectorAll('[data-dock-tab]')) {
 
 $('#dock-close-btn')?.addEventListener('click', closeDockDrawer);
 
-// Event bindings
+// Read the same localized cards and source links that the dashboard renders.
+const dashboardSections = {
+  overview: '#hive-cells > *, #log-ops-strip > *',
+  log: '#scifi-log-stream > *',
+  department: '#department-title, #department-responsibility, #department-work > *, #lens-metrics > *, #lens-agents > *, #lens-spotlight > *',
+  journey: '#journey-stages > *, #journey-links > *, #journey-events > *',
+  'live-ops': '#checker-runs > *, #relay-bridges > *, #live-feed > *',
+  questions: '#question-cards > *',
+  conjectures: '#conjecture-summary, #conjecture-cards > *',
+  publications: '#book-updates > *, #paper-cards > *',
+  ecosystem: '#repo-matrix > *'
+};
+
+function dashboardCard(el) {
+  // Preserve the boundaries between adjacent title, status and date elements.
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const parts = [];
+  while (walker.nextNode()) {
+    const text = walker.currentNode.textContent.trim();
+    if (text) parts.push(text);
+  }
+  const links = el.matches('a[href]') ? [el] : el.querySelectorAll('a[href]');
+  const sources = [...links].map(a => a.getAttribute('href'));
+  if (el.dataset.source) sources.unshift(el.dataset.source);
+  return {
+    text: parts.join(' ').replace(/\s+/g, ' ').slice(0, 900),
+    sources: sources.map(safeURL).filter(url => url !== '#').slice(0, 4)
+  };
+}
+
+function readDashboardSection(section, offset = 0, count = 6) {
+  const cards = [...document.querySelectorAll(dashboardSections[section])].filter(card => !card.closest('[hidden]'));
+  const end = offset + count;
+  return { section, items: cards.slice(offset, end).map(dashboardCard), total: cards.length,
+    nextOffset: end < cards.length ? end : null };
+}
+
+function dashboardContext() {
+  const drawer = $('[data-dock-tab][aria-selected="true"]')?.dataset.dockTab;
+  const section = drawer || (state.mode === 'journey' ? 'journey' : 'department');
+  const node = $('#galaxy-node-card');
+  const galaxy = !$('#galaxy-back-bar').hidden && truthNebula.clusters.find(c => c.id === truthGrowth.manualFocus?.cid);
+  return {
+    title: document.title, language: document.documentElement.lang, mode: state.mode, following: state.follow,
+    observedAt: view()?.observed_at ?? null, snapshotAt: state.snapshot?.collected_at ?? null,
+    liveStatus: view() ? (isStale() ? 'delayed' : 'current') : 'unavailable',
+    metrics: dashboardCard($('#institute-metrics')).text,
+    dagNodes: $('#log-ops-dag').textContent, recentGrowth: $('#log-ops-growth').textContent,
+    selectedDepartment: department(state.selected) ? langDeptLabel(department(state.selected)) : null,
+    journeyTitle: state.mode === 'journey' && state.topic ? $('#journey-title').textContent : null,
+    selectedGalaxy: galaxy ? langGalaxyName(galaxy) : null, selectedNode: node.hidden ? null : dashboardCard(node),
+    currentPanel: readDashboardSection(section, 0, 3),
+    researchQuestions: [...document.querySelectorAll('.question-title')].slice(0, 3).map(el => el.textContent),
+    latestActivity: $('#live-feed').firstElementChild ? dashboardCard($('#live-feed').firstElementChild) : null
+  };
+}
+
 function registerDashboardTools({ host, z }) {
-  const currentView = () => ({ mode: state.mode, following: state.follow });
+  nyxWidget.context = dashboardContext;
   host.registerTool({
-    name: 'read_view', description: 'Read the current dashboard view and live-follow state in this tab.',
-    parameters: z.object({}), execute: () => ({ ok: true, value: currentView() }),
+    name: 'read_view',
+    description: 'Read this tab’s current research dashboard. Specify a section for its rendered records and source links. Use nextOffset as offset for more records.',
+    parameters: z.object({ section: z.enum(Object.keys(dashboardSections)).optional(), offset: z.number().int().nonnegative().optional() }),
+    execute: ({section, offset}) => ({ ok: true, value: section ? readDashboardSection(section, offset) : dashboardContext() }),
   });
   host.registerTool({
     name: 'switch_view', description: 'Switch this tab to the organization overview or the journey view.',
@@ -10124,7 +10184,7 @@ function registerDashboardTools({ host, z }) {
       if (!button || button.disabled) return { ok: false, code: 'unavailable', message: L('当前视图无法切换。', 'Cannot switch view right now.') };
       button.click();
       if (state.mode !== mode) return { ok: false, code: 'unavailable', message: L('页面尚未切换视图。', 'View did not switch as requested.') };
-      return { ok: true, value: currentView() };
+      return { ok: true, value: dashboardContext() };
     },
   });
 }
@@ -10142,8 +10202,8 @@ if (sceneHeader && sceneFooter && typeof ResizeObserver === 'function') {
   sizeScene();
 }
 
-document.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
 const nyxWidget = document.querySelector('nyx-assistant');
+nyxWidget?.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
 if (nyxWidget?.host) registerDashboardTools(nyxWidget);
 
 const NYX_POS_STORAGE_KEY = 'trureturing-nyx-pos-v1';
