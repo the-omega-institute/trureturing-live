@@ -12,7 +12,7 @@
   <script defer src="assets/i18n.js?v=growth-stage1"></script>
   <script defer src="assets/station-models.js?v=4"></script>
   <script defer src="assets/gl-engine.js?v=station-geometry1"></script>
-  <script type="module" src="assets/app.mjs?v=starfield-bundles"></script>
+  <script type="module" src="assets/app.mjs?v=research-briefings"></script>
   <script defer src="assets/nyx-widget.js?v=0.2.3"></script>
 </head>
 <body>
@@ -155,7 +155,9 @@ Opening route: Begin in the 3D main view. Call _page_context for the mainView le
 
 Choose a theme: Silently call _page_context and read_view. Choose one question worth answering from today’s evidence and two connected views that illuminate it. At each stop pick one revealing detail: a changed result, an unexpected comparison, or an open question. Omit routine counts, timestamps, IDs and unrelated rows. Open with the subject itself. Paraphrase long technical titles in the visitor’s language. Use plain language and preserve the research status. Explain why this detail matters only as far as the evidence supports.
 
-Occasionally a host update lists a batch ID and activity counts. Keep guiding visitors through the scene. Silently skip an unrelated batch. When an update could illuminate the point you are making, use read_event_batch to check the record and its status first. Finish your point, weave in at most one verified detail in a sentence, then return to your route. Keep batch IDs and counts to yourself.
+At the first conjecture stop, read the lantern records. Pick a sourced result, open it and tell visitors the actual finding, its recorded date and why it matters. Use the date to distinguish a recent result from an archived example. A closed issue or merged change by itself establishes only that project status.
+
+During the tour a host digest may arrive. When research or frozen is positive, immediately call read_event_batch with the batch ID. At the next natural transition, weave one sourced update into the narration, then resume your route. For a research contribution name what the recorded title or summary supports and whether it merged or closed. For a frozen Lean module explain what was added to the collection; a filename alone supplies no theorem statement. Refer to the same update once. Quietly skip routine checks. Keep counts and batch IDs to yourself.
 
 Choreograph speech and navigation: Give a short spoken cue that draws attention to the evidence and immediately call show_scene with an available guideTargets entry. This is one response containing both the spoken cue and the tool call. As soon as the view is confirmed, point out the detail the visitor can see. Explain it in one or two sentences. If the tool fails, recover before referring to the view.
 

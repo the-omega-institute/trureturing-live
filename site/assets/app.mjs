@@ -3152,7 +3152,9 @@ async function refreshLive() {
     const data = await response.json();
     if (!validStream(data) || (state.stream && timestamp(data.organization.observed_at) < timestamp(view().observed_at))) return;
     const changed = state.stream?.organization.observed_at !== data.organization.observed_at;
-    if (!changed) {
+    const growthChanged = data.truth_growth?.head && data.truth_growth.head !== state.stream?.truth_growth?.head
+      && timestamp(data.observed_at) >= timestamp(state.stream?.observed_at);
+    if (!changed && !growthChanged) {
       renderHealth();
       return;
     }
@@ -3174,7 +3176,7 @@ async function refreshLive() {
     } catch {}
     observeTruthGrowth(data.truth_growth);
     state.arrivals = arrivals.slice(0, 8);
-    if (arrivals.length) guideEvents?.collect(arrivals);
+    if (arrivals.length) guideEvents?.collect(arrivals.map(guideActivity));
     if (state.seen.size > 1600) state.seen = new Set([...state.seen].slice(-1000));
     if (state.animated.size > 800) state.animated = new Set([...state.animated].slice(-400));
     if (state.follow && state.mode === 'organization' && arrivals.length) {
@@ -3780,7 +3782,14 @@ function observeTruthGrowth(feed) {
   rebuildRecentTruthGrowth();
   const { seen, fresh } = freshTruthGrowth(truthGrowth.seen, feed.events);
   truthGrowth.seen = seen;
-  if (fresh.length) truthGrowth.queue = enqueueGrowth(truthGrowth.queue, fresh, truthNebula.clusters, performance.now());
+  if (fresh.length) {
+    truthGrowth.queue = enqueueGrowth(truthGrowth.queue, fresh, truthNebula.clusters, performance.now());
+    if (guideEvents) {
+      const freezes = fresh.filter(ev => !ev.preview && Date.now() - timestamp(ev.at) < 900000 && galaxyNodeSourceUrl(ev.module, ev.commit));
+      guideEvents.collect(freezes.map(ev => ({category: 'frozen', at: ev.at, module: ev.module,
+        domain: ev.domain, source: galaxyNodeSourceUrl(ev.module, ev.commit)})));
+    }
+  }
   return fresh.length;
 }
 
@@ -10239,20 +10248,30 @@ function showGuideScene(target) {
 // A batch belongs to one period of active narration. Only its digest leaves the page automatically.
 let guideEvents;
 let guideBatchNumber = 0;
+function guideActivity(a) {
+  const url = safeURL(a.url);
+  const source = url !== '#' && url.length <= 512 ? url : null;
+  let category = 'work';
+  if (source && isSettledMathRecord(a)) category = 'research';
+  else if (a.kind === 'automation') category = 'checks';
+  else if (a.department === 'review') category = 'reviews';
+  else if (['books', 'publication'].includes(a.department)) category = 'publishing';
+  return {category, at: a.at, department: a.department, status: a.status, kind: a.kind,
+    title: String(a.label || '').slice(0, 160), summary: String(a.summary || '').slice(0, 280), source};
+}
+
+const guidePriority = {research: 2, frozen: 1, work: 0, reviews: 0, checks: 0, publishing: 0};
 function beginGuideBriefings(signal) {
   let lastDigest = performance.now();
-  let counts = {work: 0, reviews: 0, checks: 0, publishing: 0};
+  const emptyCounts = () => ({research: 0, frozen: 0, work: 0, reviews: 0, checks: 0, publishing: 0});
+  let counts = emptyCounts();
   let recent = [];
   const batches = new Map();
   const period = {
     batches,
     collect(arrivals) {
-      for (const event of arrivals) {
-        const group = event.kind === 'automation' ? 'checks' : event.department === 'review' ? 'reviews'
-          : ['books', 'publication'].includes(event.department) ? 'publishing' : 'work';
-        counts[group]++;
-      }
-      recent = [...arrivals.slice(0, 48), ...recent].slice(0, 48);
+      for (const event of arrivals) counts[event.category]++;
+      recent = [...arrivals, ...recent].sort((a, b) => guidePriority[b.category] - guidePriority[a.category]).slice(0, 48);
     }
   };
   guideEvents = period;
@@ -10269,8 +10288,8 @@ function beginGuideBriefings(signal) {
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
     batches.set(batch, {total, recent});
     if (batches.size > 3) batches.delete(batches.keys().next().value);
-    const digest = `batch=${batch} work=${counts.work} reviews=${counts.reviews} checks=${counts.checks} publishing=${counts.publishing}`;
-    counts = {work: 0, reviews: 0, checks: 0, publishing: 0};
+    const digest = `batch=${batch} research=${counts.research} frozen=${counts.frozen} work=${counts.work} reviews=${counts.reviews} checks=${counts.checks} publishing=${counts.publishing}`;
+    counts = emptyCounts();
     recent = [];
     return digest;
   };
@@ -10279,11 +10298,7 @@ function beginGuideBriefings(signal) {
 function readEventBatch(batch, offset) {
   const records = guideEvents?.batches.get(batch);
   if (!records) return {ok: false, code: 'unavailable', message: 'This event batch is no longer available.'};
-  const items = records.recent.slice(offset, offset + 3).map(a => {
-    const url = safeURL(a.url);
-    return {at: a.at, department: a.department, status: a.status, kind: a.kind,
-      title: String(a.label || '').slice(0, 160), source: url !== '#' && url.length <= 512 ? url : null};
-  });
+  const items = records.recent.slice(offset, offset + 3);
   const end = offset + items.length;
   return {ok: true, value: {batch, total: records.total, retained: records.recent.length, items,
     nextOffset: end < records.recent.length ? end : null}};
@@ -10361,6 +10376,7 @@ async function readStarfield({section, domainId, query = '', connected = false, 
     const records = conjectureRecords().filter(rec => inDomain(matchGalaxyCidForText([rec.area, rec.title, rec.enTitle].join(' '))));
     return skyPage(records, offset, rec => ({title: rec.enTitle || rec.title, verdict: rec.verdict,
       provenance: rec.live ? 'inferred from public activity' : 'curated ledger', evidence: rec.evidenceKind,
+      recordedAt: rec.settledAt, ...(rec.live ? {} : {summary: rec.summary.slice(0, 260)}),
       source: safeURL(rec.url), target: 'lantern:' + rec.id}));
   }
   await loadGalaxyDetails(true);
@@ -11366,7 +11382,7 @@ refreshConjectures();
 refreshOutreachStats();
 refreshLive();
 setInterval(() => { if (!document.hidden) refreshSnapshot(); }, 60000);
-setInterval(() => { if (!document.hidden) refreshLive(); }, 8000);
+setInterval(() => { if (!document.hidden || guideEvents) refreshLive(); }, 8000);
 setInterval(() => {
   if (!document.hidden) {
     renderHealth();
