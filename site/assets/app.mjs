@@ -10296,7 +10296,15 @@ function beginGuideBriefings(signal) {
     if (batches.size > 3) batches.delete(batches.keys().next().value);
     const digest = `batch=${batch} research=${counts.research} frozen=${counts.frozen} work=${counts.work} reviews=${counts.reviews} checks=${counts.checks} publishing=${counts.publishing}`;
     resumeScene = counts.research + counts.frozen > 0;
-    const briefing = resumeScene ? {summary: digest, lookupTool: 'read_event_batch'} : digest;
+    const lead = recent[0];
+    let briefing = digest;
+    if (resumeScene) {
+      const fact = lead.category === 'frozen'
+        ? {domain: lead.domain, status: 'module frozen', module: lead.module}
+        : {status: lead.status, title: lead.title};
+      const text = JSON.stringify(fact);
+      if (text.length <= 220) briefing += ' update=' + text;
+    }
     counts = emptyCounts();
     recent = [];
     return briefing;

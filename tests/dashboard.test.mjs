@@ -1408,7 +1408,10 @@ test('the guide can find a sourced research change in a busy batch and receive a
     responses.live.observed_at = responses.live.organization.observed_at = new Date(Date.now()+1000).toISOString();
     await tick(8000);
     now = 180000;
-    assert.deepEqual(structuredClone(digest()),{summary:'batch=B1 research=1 frozen=0 work=1 reviews=0 checks=55 publishing=0', lookupTool:'read_event_batch'});
+    const brief = digest();
+    assert.ok(brief.startsWith('batch=B1 research=1 frozen=0 work=1 reviews=0 checks=55 publishing=0 update='));
+    assert.deepEqual(JSON.parse(brief.split(' update=')[1]), {status:'merged', title:change.label});
+    assert.ok(brief.length < 384 && !brief.includes(change.url));
     const first = (await read('B1')).value;
     assert.equal(first.total, 57);
     assert.equal(first.retained, 48);
@@ -1422,7 +1425,7 @@ test('the guide can find a sourced research change in a busy batch and receive a
       {...record('demo'), preview:true}, {...record('old-update'), at:'2020-01-01T00:00:00Z'}]};
     await tick(8000);
     now += 180000;
-    assert.deepEqual(structuredClone(digest()),{summary:'batch=B2 research=0 frozen=1 work=0 reviews=0 checks=0 publishing=0', lookupTool:'read_event_batch'});
+    assert.deepEqual(JSON.parse(digest().split(' update=')[1]), {domain:'Quantum', status:'module frozen', module:frozen.module});
     const second = (await read('B2')).value;
     assert.equal(second.items[0].module,frozen.module);
     assert.equal(digest().lookupTool, 'read_view');
