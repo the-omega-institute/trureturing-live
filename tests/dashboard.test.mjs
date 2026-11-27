@@ -1190,6 +1190,17 @@ test('Nyx text turns and voice tools read the dashboard as the visitor changes p
 
     // Realtime voice captures this binding once and reads it throughout the call.
     const voice = widget.host.captureTools();
+    const show = target => voice.invoke('show_scene', {target}, new AbortController().signal);
+    assert.equal((await show('unregistered')).ok, false);
+    assert.equal((await show('department:verification')).ok, true);
+    assert.equal(doc.querySelector('#department-lens').hidden, false);
+    assert.equal(doc.querySelector('#lens-title').textContent, '形式验证');
+    assert.equal((await show('questions')).ok, true);
+    assert.equal((await show('questions')).ok, true);
+    assert.equal(doc.querySelector('[data-dock-tab="questions"]').getAttribute('aria-selected'), 'true');
+    assert.equal((await show('overview')).ok, true);
+    assert.equal(doc.querySelector('#department-lens').hidden, true);
+    assert.ok(!doc.querySelector('#telemetry-dock').classList.contains('is-open'));
     doc.querySelector('[data-dock-tab="publications"]').click();
     const page = voice.context();
     assert.equal(page.currentPanel.section, 'publications');

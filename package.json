@@ -2,6 +2,13 @@
   "name": "trureturing-live",
   "private": true,
   "type": "module",
-  "scripts": {"test": "node --test tests/*.test.mjs"},
-  "devDependencies": {"jsdom": "31.0.1"}
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build:guide": "node tools/build-guide.mjs"
+  },
+  "devDependencies": {
+    "@chronoai/nyx-assistant-sdk": "https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/download/v0.2.0/chronoai-nyx-assistant-sdk-0.2.0.tgz",
+    "esbuild": "0.27.2",
+    "jsdom": "31.0.1"
+  }
 }
