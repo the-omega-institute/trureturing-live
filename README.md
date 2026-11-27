@@ -29,14 +29,6 @@ The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors ap
 Voice calls are enabled by default. Connect NyxID with the requested OpenAI service (`llm-openai`), then select the call button beside the empty message field and allow microphone access. Visitors with a previous text-only grant need to authorize the additional service.
 [SDK v0.2.0](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.2.0)
 
-### Continuous tour
-
-Connect NyxID and select **Continuous tour** in the dashboard header. Nyx chooses a stop from current observations and writes a short commentary segment. The page opens that drawer, department or galaxy, displays the caption and reads it with the device’s speech voice. Text chat and interactive voice calls can also show a scene when a visitor asks for a guided explanation.
-
-The tour keeps running while the tab is open and the device is awake. It requests a screen wake lock when supported. Each segment uses a fresh Nyx request under the visitor’s authorization and starts after the preceding narration finishes. A temporary network failure waits and retries. **Stop tour**, disconnecting NyxID or leaving the page ends playback. The continuous tour uses no microphone.
-
-The static site ships its guide client locally. After changing `client/guide-model.mjs`, run `npm ci --ignore-scripts` and `npm run build:guide` to rebuild `site/assets/guide-model.mjs` from the pinned SDK release.
-
 ## Run locally
 
 The organization event foundation is a pinned source dependency at
