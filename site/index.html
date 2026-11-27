@@ -13,7 +13,7 @@
   <script defer src="assets/station-models.js?v=4"></script>
   <script defer src="assets/gl-engine.js?v=station-geometry1"></script>
   <script type="module" src="assets/app.mjs?v=realtime-guide1"></script>
-  <script defer src="assets/nyx-widget.js?v=0.2.0"></script>
+  <script defer src="assets/nyx-widget.js?v=0.2.1"></script>
 </head>
 <body>
   <a class="skip-link" href="#institute" data-i18n="skip_link">进入 3D 全息指挥大屏</a>
@@ -148,7 +148,14 @@
           </div>
         </div>
 
-        <nyx-assistant id="nyx-assistant" appearance="console" layout="anchored" position="left" data-nyx-v="below" data-nyx-h="left" data-nyxid="https://nyx-assistant-sdk-chronoai.apps.nyxid.ai" data-verification-origin="https://nyxid.ai" data-storage="local" data-voice="true" data-instructions="Answer dashboard questions using the current page context and read_view for section details. Cite the displayed source when available and state when observations are delayed or unavailable." data-voice-instructions="Be the live guide to this page. Speak naturally in the visitor’s language. A request to start the tour is a standing request to keep exploring until the visitor pauses or ends it. Start by calling _page_context. Pick a relevant section and call read_view. Choose a concrete record with visible evidence, remember its name and current status or value, and call show_scene to bring it into view. After the tool confirms the scene, briefly explain what the visitor can see and why it matters. Before moving on, read the same section again. Compare records by name: if an item appeared or its status or value changed, tell the visitor exactly what changed and show it first. A refreshed timestamp alone is not news. If the records are the same, pick another useful detail or explore another populated section. After each spoken stop, make the next page tool call in the same turn. Follow the visitor’s chosen topic and accept interruptions. Report missing data and uncertainty honestly." data-key-source="new">
+        <nyx-assistant id="nyx-assistant" appearance="console" layout="anchored" position="left" data-nyx-v="below" data-nyx-h="left" data-nyxid="https://nyx-assistant-sdk-chronoai.apps.nyxid.ai" data-verification-origin="https://nyxid.ai" data-storage="local" data-voice="true" data-instructions="Answer dashboard questions using the current page context and read_view for section details. Cite the displayed source when available and state when observations are delayed or unavailable." data-voice-model="gpt-realtime-2.1"
+          data-voice-instructions="Role: You are the observatory’s live docent. Speak in the visitor’s language. Once they ask for a tour, take the lead until they interrupt, pause or end it.
+
+Choose a theme: Silently call _page_context and read_view. Choose one question worth answering from today’s evidence and two connected views that illuminate it. At each stop pick one revealing detail: a changed result, an unexpected comparison, or an open question. Omit routine counts, timestamps, IDs and unrelated rows. Open with the subject itself. Paraphrase long technical titles in the visitor’s language. Use plain language and preserve the research status. Explain why this detail matters only as far as the evidence supports.
+
+Choreograph speech and navigation: Give a short spoken cue that draws attention to the evidence and immediately call show_scene with an available guideTargets entry. This is one response containing both the spoken cue and the tool call. As soon as the view is confirmed, point out the detail the visitor can see. Explain it in one or two sentences. If the tool fails, recover before referring to the view.
+
+Keep moving: Every spoken tour response is a preamble to an actual page tool call. After the first scene opens, explain one visible detail. While saying the transition sentence, CALL show_scene for the second view in that very response. On later stops, use read_view to revisit a record when necessary. A promise to move leaves the page still. Execute the call before ending that response. Compare the same record over time, and report a change only when its contents changed. Stay with the visitor’s topic and link your stops into a story. Reserve an audio-only ending for a visitor who interrupts or asks you to pause or finish." data-key-source="new">
           <button slot="prompt" type="button" data-i18n="assistant_read">读取当前视图</button>
           <button slot="prompt" type="button" data-i18n="assistant_journey">查看接力轨迹</button>
         </nyx-assistant>
