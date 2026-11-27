@@ -10213,28 +10213,6 @@ function showGuideScene(target) {
   return true;
 }
 
-function guideSample(index, previous) {
-  const targets = guideTargets();
-  const lap = Math.floor(index * 2 / targets.length);
-  const stops = [0, 1].map(n => {
-    const target = targets[(index * 2 + n) % targets.length];
-    if (target.startsWith('department:')) {
-      const d = department(target.slice(11));
-      return {target, name: langDeptLabel(d), role: langDeptResp(d), work: primaryWork(d).slice(0, 3).map(a => cleanWorkTitle(a, d))};
-    }
-    if (target.startsWith('galaxy:')) {
-      const galaxy = truthNebula.clusters.find(c => 'galaxy:' + c.id === target);
-      return {target, name: langGalaxyName(galaxy), nodes: galaxy.count};
-    }
-    if (target === 'journey') return {target, topic: state.topic?.activity ? copyFor(state.topic.activity).title : questionTopics()[0]?.copy.title};
-    const section = readDashboardSection(target, 0, 3);
-    if (section.total > 3 && lap) return {target, ...readDashboardSection(target, (lap * 3) % section.total, 3)};
-    return {target, ...section};
-  });
-  return {language: document.documentElement.lang, observedAt: view()?.observed_at ?? null,
-    liveStatus: view() ? (isStale() ? 'delayed' : 'current') : 'unavailable', previous, stops};
-}
-
 function registerDashboardTools({ host, z }) {
   nyxWidget.context = dashboardContext;
   host.registerTool({
@@ -10282,80 +10260,6 @@ if (sceneHeader && sceneFooter && typeof ResizeObserver === 'function') {
 const nyxWidget = document.querySelector('nyx-assistant');
 nyxWidget?.addEventListener('nyx-ready', event => registerDashboardTools(event.detail));
 if (nyxWidget?.host) registerDashboardTools(nyxWidget);
-
-const guideButton = $('#narrator-toggle');
-let guideRun;
-function guideCaption(text) {
-  const caption = $('#narrator-caption');
-  caption.textContent = text;
-  caption.hidden = !text;
-}
-function stopGuide() {
-  guideRun?.abort();
-  guideRun = undefined;
-  guideButton.setAttribute('aria-pressed', 'false');
-  const label = guideButton.firstElementChild;
-  label.dataset.i18n = 'narrator_start';
-  label.textContent = L('连续讲解', 'Continuous tour');
-  guideCaption('');
-}
-async function startGuide() {
-  if (guideRun) { stopGuide(); return; }
-  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
-    guideCaption(L('此浏览器没有可用的语音朗读功能。', 'Speech playback is unavailable in this browser.'));
-    return;
-  }
-  if (!nyxWidget?.host) {
-    nyxWidget?.connect?.();
-    guideCaption(L('请连接 NyxID，授权后点「连续讲解」开始。', 'Connect NyxID, then select Continuous tour to begin.'));
-    return;
-  }
-  const controller = new AbortController();
-  const {signal} = controller;
-  guideRun = controller;
-  const host = nyxWidget.host;
-  const release = () => { if (nyxWidget.host !== host && guideRun === controller) stopGuide(); };
-  nyxWidget.addEventListener('nyx-state', release, {signal});
-  guideButton.setAttribute('aria-pressed', 'true');
-  const label = guideButton.firstElementChild;
-  label.dataset.i18n = 'narrator_stop';
-  label.textContent = L('停止讲解', 'Stop tour');
-  const welcome = L('开始看板导览。', 'Starting the observatory tour.');
-  guideCaption(welcome);
-  // Initiate speech in the visitor's click handler on browsers with autoplay restrictions.
-  const greeting = new SpeechSynthesisUtterance(welcome);
-  greeting.lang = document.documentElement.lang;
-  speechSynthesis.speak(greeting);
-  signal.addEventListener('abort', () => speechSynthesis.cancel(), {once:true});
-  let wakeLock;
-  const keepAwake = async () => {
-    if (document.visibilityState !== 'visible' || !navigator.wakeLock) return;
-    try {
-      const lock = await navigator.wakeLock.request('screen');
-      if (signal.aborted) await lock.release(); else wakeLock = lock;
-    } catch { /* Playback can continue when screen wake lock is unavailable. */ }
-  };
-  void keepAwake();
-  document.addEventListener('visibilitychange', keepAwake, {signal});
-  try {
-    const [{narrate, speakSegment}, {guideWriter}] = await Promise.all([
-      import('./narrator.mjs?v=1'), import('./guide-model.mjs?v=2'),
-    ]);
-    const write = await guideWriter(nyxWidget, AbortSignal.any([signal, AbortSignal.timeout(15000)]));
-    await narrate({sample: guideSample, write, show: showGuideScene, speak: speakSegment, caption: guideCaption,
-      retrying: () => guideCaption(L('讲解暂时中断，正在重连…', 'Tour interrupted. Reconnecting…'))}, signal);
-  } catch (error) {
-    if (!signal.aborted) {
-      stopGuide();
-      guideCaption(L('讲解已停止，请核对 NyxID 连接和设备语音后重试。', 'Tour stopped. Check NyxID and device speech, then try again.') + ' ' + error.message);
-    }
-  } finally {
-    if (guideRun === controller) stopGuide();
-    if (wakeLock && !wakeLock.released) await wakeLock.release().catch(() => {});
-  }
-}
-guideButton.addEventListener('click', startGuide);
-window.addEventListener('pagehide', stopGuide);
 
 const NYX_POS_STORAGE_KEY = 'trureturing-nyx-pos-v1';
 let syncNyxDragTitles = () => {};
