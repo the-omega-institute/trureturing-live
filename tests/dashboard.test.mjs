@@ -1244,7 +1244,7 @@ test('tour digests coalesce new arrivals and page stable records only while the 
     burst.push(make('review', 'review'), make('check', 'review', 'automation'), make('book', 'books'));
     await publish([...burst, burst[0]]);
     const summary = digest();
-    assert.equal(summary, 'batch=B1 work=50 reviews=1 checks=1 publishing=1');
+    assert.equal(summary, 'batch=B1 research=0 frozen=0 work=50 reviews=1 checks=1 publishing=1');
     assert.equal(digest(), undefined);
     win.structuredClone = structuredClone;
     win.AbortController = AbortController;
@@ -1265,7 +1265,7 @@ test('tour digests coalesce new arrivals and page stable records only while the 
     now += 179999;
     assert.equal(digest(), undefined);
     now++;
-    assert.equal(digest(), 'batch=B2 work=1 reviews=0 checks=0 publishing=0');
+    assert.equal(digest(), 'batch=B2 research=0 frozen=0 work=1 reviews=0 checks=0 publishing=0');
     for (const id of ['third', 'fourth']) {
       await publish([make(id)]);
       now += 180000;
@@ -1380,5 +1380,53 @@ test('sky tools distinguish release data, sampled dependency directions, freezes
     assert.equal((await sky('modules', {domainId:999})).ok, false);
     assert.equal((await invoke('read_star_module', {module:'missing'})).ok, false);
     assert.equal((await invoke('show_scene', {target:'module:missing'})).ok, false);
+  } finally { dom.window.close(); }
+});
+
+test('the guide can find a sourced research change in a busy batch and receive a growth-only update', async () => {
+  const at = new Date().toISOString();
+  const record = module => ({module, domain:'Quantum', at, commit:'a'.repeat(40)});
+  const stream = live();
+  stream.truth_growth = {head:'old', events:[record('D5/S2/Quantum/Earlier')]};
+  const {dom, win, doc, responses, tick} = await boot({live:stream});
+  try {
+    win.structuredClone = structuredClone;
+    win.AbortController = AbortController;
+    win.eval(await readFile(new URL('../site/assets/nyx-widget.js', import.meta.url), 'utf8'));
+    const widget = doc.querySelector('nyx-assistant');
+    widget.bind({request: () => assert.fail('unexpected service request')});
+    const tools = widget.host.captureTools(), active = new AbortController();
+    const read = batch => tools.invoke('read_event_batch', {batch}, active.signal);
+    let now = 0;
+    win.performance.now = () => now;
+    const digest = widget.tourBriefings(active.signal);
+    const incoming = Array.from({length:55}, (_,i)=>activity('run-'+i, 'verification', 'automation', {at}));
+    const change = activity('quaternion', 'research', 'contribution', {status:'merged', at,
+      label:'Prove the oriented axis identity for quaternion maps', summary:'The result assumes integer quaternions.'});
+    incoming.push({...change, id:'unmerged', status:'open'}, change);
+    responses.live.organization.recent = incoming;
+    responses.live.observed_at = responses.live.organization.observed_at = new Date(Date.now()+1000).toISOString();
+    await tick(8000);
+    now = 180000;
+    assert.deepEqual(structuredClone(digest()),{summary:'batch=B1 research=1 frozen=0 work=1 reviews=0 checks=55 publishing=0', lookupTool:'read_event_batch'});
+    const first = (await read('B1')).value;
+    assert.equal(first.total, 57);
+    assert.equal(first.retained, 48);
+    assert.equal(first.items[0].title, change.label);
+    assert.equal(first.items[0].summary, change.summary);
+    assert.equal(first.items[0].source, change.url);
+    const frozen = record('D5/S2/Quantum/NewModule');
+    responses.live.truth_growth = {head:'new', events:[...stream.truth_growth.events, frozen, frozen,
+      {...record('demo'), preview:true}, {...record('old-update'), at:'2020-01-01T00:00:00Z'}]};
+    await tick(8000);
+    now += 180000;
+    assert.deepEqual(structuredClone(digest()),{summary:'batch=B2 research=0 frozen=1 work=0 reviews=0 checks=0 publishing=0', lookupTool:'read_event_batch'});
+    const second = (await read('B2')).value;
+    assert.equal(second.items[0].module,frozen.module);
+    assert.ok(second.items[0].source.endsWith('/'+frozen.commit+'/'+frozen.module+'.lean'));
+    await tick(8000);
+    now += 180000;
+    assert.equal(digest(), undefined);
+    active.abort();
   } finally { dom.window.close(); }
 });
