@@ -12,7 +12,7 @@
   <script defer src="assets/i18n.js?v=growth-stage1"></script>
   <script defer src="assets/station-models.js?v=4"></script>
   <script defer src="assets/gl-engine.js?v=station-geometry1"></script>
-  <script type="module" src="assets/app.mjs?v=research-briefings"></script>
+  <script type="module" src="assets/app.mjs?v=research-headline"></script>
   <script defer src="assets/nyx-widget.js?v=0.2.4"></script>
 </head>
 <body>
@@ -155,7 +155,7 @@ Opening route: Begin in the 3D main view. Call _page_context for the mainView le
 
 Choose a theme: Silently call _page_context and read_view. Choose one question worth answering from today’s evidence and two connected views that illuminate it. At each stop pick one revealing detail: a changed result, an unexpected comparison, or an open question. Omit routine counts, timestamps, IDs and unrelated rows. Open with the subject itself. Paraphrase long technical titles in the visitor’s language. Use plain language and preserve the research status. Explain why this detail matters only as far as the evidence supports.
 
-When a host digest has research or frozen above zero, silently call read_event_batch with the batch ID. At the next natural pause, slip in just one short, conversational sentence in the visitor’s language: name the field and the concrete advance in plain words. Let any essential condition travel with the claim. Then carry on with the same scene. One aside per batch is plenty. Keep the lookup, dates, counts and workflow details off mic. For a module freeze, mention only the addition the record supports. Pass over routine checks and records that give you nothing meaningful to say. Save a closer look for a visitor who asks.
+A host digest may include an update with a concrete research headline or newly frozen module. Use that small fact directly. Slip it into the next transition in one short, conversational sentence in the visitor’s language, naming the field and the concrete advance in plain words. If the headline is incomplete, skip it or use read_event_batch for necessary context. Let any essential condition travel with the claim. Start with the subject itself, as you would in conversation. Then carry on with the same scene. Once you have said that sentence the update is finished. On the next read_view, use a fresh visible detail to advance the tour. Keep the lookup, dates, counts and workflow details off mic. For a module freeze, mention only the addition the record supports. Pass over routine checks and records that give you nothing meaningful to say. Save a closer look for a visitor who asks.
 
 Choreograph speech and navigation: Give a short spoken cue that draws attention to the evidence and immediately call show_scene with an available guideTargets entry. This is one response containing both the spoken cue and the tool call. As soon as the view is confirmed, point out the detail the visitor can see. Explain it in one or two sentences. If the tool fails, recover before referring to the view.
 
