@@ -61,7 +61,7 @@
       "department": "research",
       "label": "提出与认领研究问题",
       "repository": "the-omega-institute/trureturing",
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -70,7 +70,7 @@
       "department": "research",
       "label": "提交新的研究论证",
       "repository": "the-omega-institute/trureturing",
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -79,7 +79,7 @@
       "department": "research",
       "label": "推进问题与交换思路",
       "repository": "the-omega-institute/trureturing",
-      "poll_seconds": 60,
+      "poll_seconds": 25,
       "freshness_seconds": 180
     },
     {
@@ -88,7 +88,7 @@
       "department": "review",
       "label": "提出论证复核意见",
       "repository": "the-omega-institute/trureturing",
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -100,7 +100,7 @@
       "workflow_paths": [
         ".github/workflows/ci-current.yml"
       ],
-      "poll_seconds": 60,
+      "poll_seconds": 25,
       "freshness_seconds": 180
     },
     {
@@ -112,7 +112,7 @@
       "workflow_paths": [
         ".github/workflows/truth-release-publish.yml"
       ],
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -121,7 +121,7 @@
       "department": "books",
       "label": "整理新的理论章节",
       "repository": "the-omega-institute/trureturing-books",
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -130,7 +130,7 @@
       "department": "books",
       "label": "讨论与完善书稿",
       "repository": "the-omega-institute/trureturing-books",
-      "poll_seconds": 60,
+      "poll_seconds": 25,
       "freshness_seconds": 180
     },
     {
@@ -139,7 +139,7 @@
       "department": "review",
       "label": "复核书稿中的论证",
       "repository": "the-omega-institute/trureturing-books",
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -151,7 +151,7 @@
       "workflow_paths": [
         ".github/workflows/ci.yml"
       ],
-      "poll_seconds": 60,
+      "poll_seconds": 25,
       "freshness_seconds": 180
     },
     {
@@ -163,7 +163,7 @@
       "workflow_paths": [
         ".github/workflows/pages.yml"
       ],
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -175,7 +175,7 @@
       "workflow_paths": [
         ".github/workflows/refresh-presentation.yml"
       ],
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -187,7 +187,7 @@
       "workflow_paths": [
         ".github/workflows/outreach-control.yml"
       ],
-      "poll_seconds": 60,
+      "poll_seconds": 25,
       "freshness_seconds": 180
     },
     {
@@ -199,7 +199,7 @@
       "workflow_paths": [
         ".github/workflows/short-notes.yml"
       ],
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -208,7 +208,7 @@
       "department": "verification",
       "label": "接收新的形式化验证请求",
       "repository": "the-omega-institute/trureturing-requests",
-      "poll_seconds": 300,
+      "poll_seconds": 90,
       "freshness_seconds": 900
     },
     {
@@ -217,7 +217,7 @@
       "department": "publication",
       "label": "完善公开评议平台",
       "repository": "the-omega-institute/mathesis",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -226,7 +226,7 @@
       "department": "studio",
       "label": "完善书稿出版工具",
       "repository": "the-omega-institute/trureturing-books-template",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -235,7 +235,7 @@
       "department": "studio",
       "label": "构建交互数学表达",
       "repository": "the-omega-institute/trureturing-visualize",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -244,7 +244,7 @@
       "department": "studio",
       "label": "组织研究影像表达",
       "repository": "the-omega-institute/trureturing-film",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -253,7 +253,7 @@
       "department": "studio",
       "label": "维护研究工具",
       "repository": "the-omega-institute/trureturing-tools",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -262,7 +262,7 @@
       "department": "studio",
       "label": "完善在线阅读体验",
       "repository": "the-omega-institute/trureturing-mdbook",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -271,7 +271,7 @@
       "department": "verification",
       "label": "完善形式化研究检验",
       "repository": "the-omega-institute/trureturing-lean-eval",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -280,7 +280,7 @@
       "department": "research",
       "label": "推进数学实验",
       "repository": "the-omega-institute/trureturing-experiments",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -289,7 +289,7 @@
       "department": "research",
       "label": "组织数学直觉与构造",
       "repository": "the-omega-institute/trureturing-intuition",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -298,7 +298,7 @@
       "department": "research",
       "label": "整理理论来源",
       "repository": "the-omega-institute/trureturing-source-theories",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -307,7 +307,7 @@
       "department": "studio",
       "label": "完善研究组织的实时展示",
       "repository": "the-omega-institute/trureturing-live",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     },
     {
@@ -316,7 +316,7 @@
       "department": "studio",
       "label": "完善可复用的组织事件底层",
       "repository": "the-omega-institute/trureturing-live-template",
-      "poll_seconds": 300,
+      "poll_seconds": 180,
       "freshness_seconds": 900
     }
   ],

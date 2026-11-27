@@ -20,6 +20,7 @@ BRANCH = "live-data"
 MARKER = "Live data: "
 STATE_REPO = "the-omega-institute/trureturing-live"
 SCHEMA = "trureturing-live-stream.v1"
+INTERVAL_SECONDS = 25
 README = "# Current public observation\n\nThis machine-owned branch contains only the latest public observation. Its orphan commit is replaced by the single live observer. Do not place source or human work here. Original discussions and reviews remain on their linked GitHub sources.\n"
 
 
@@ -221,7 +222,7 @@ class Observer:
                 self.growth.observe()
         except (SourceError, KeyError, TypeError) as exc:
             errors.append('truth-growth: ' + (str(exc) if isinstance(exc, SourceError) else 'unexpected response'))
-        return {'schema': SCHEMA, 'observed_at': view['observed_at'], 'interval_seconds': 60,
+        return {'schema': SCHEMA, 'observed_at': view['observed_at'], 'interval_seconds': INTERVAL_SECONDS,
                 'messages': list(self.messages.values()), 'focus_runs': self.runs,
                 'coverage': self.coverage,
                 'organization': view,
@@ -236,7 +237,7 @@ def main():
     parser.add_argument('--once', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
-    api = GitHub(os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN') or '', budget=900)
+    api = GitHub(os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN') or '', budget=1600)
     allowance, _ = api.get('/rate_limit')
     core = allowance['resources']['core']
     print(f"GitHub observation allowance: {core['remaining']} of {core['limit']} remaining; reset {core['reset']}", flush=True)
@@ -259,9 +260,9 @@ def main():
                 if args.once or 'writer' in str(exc) or 'owned' in str(exc):
                     raise
                 print('Observation retained after a source/publication failure: ' + str(exc), flush=True)
-            if args.once or time.monotonic() + 60 >= end:
+            if args.once or time.monotonic() + INTERVAL_SECONDS >= end:
                 break
-            time.sleep(max(0, 60 - (time.monotonic() - started)))
+            time.sleep(max(0, INTERVAL_SECONDS - (time.monotonic() - started)))
     finally:
         foundation.close()
 
