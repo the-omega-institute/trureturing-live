@@ -1220,3 +1220,69 @@ test('Nyx text turns and voice tools read the dashboard as the visitor changes p
     assert.equal(voice.context().mode, 'journey');
   } finally { dom.window.close(); }
 });
+
+test('tour digests coalesce new arrivals and page stable records only while the tour is active', async () => {
+  const {dom, win, doc, responses, tick} = await boot();
+  try {
+    const widget = doc.querySelector('nyx-assistant');
+    let now = 0, observed = Date.now();
+    win.performance.now = () => now;
+    const publish = async rows => {
+      const at = new Date(++observed).toISOString();
+      responses.live.organization.observed_at = at;
+      responses.live.organization.recent = rows;
+      await tick(8000);
+    };
+    const make = (id, department = 'research', kind = 'task') =>
+      activity(id, department, kind, {at: new Date(observed).toISOString(), label: 'Exact title ' + id});
+    await publish([make('before-tour')]);
+    const active = new AbortController();
+    const digest = widget.tourBriefings(active.signal);
+    now = 180000;
+    assert.equal(digest(), undefined);
+    const burst = Array.from({length: 50}, (_, i) => make('item-' + i));
+    burst.push(make('review', 'review'), make('check', 'review', 'automation'), make('book', 'books'));
+    await publish([...burst, burst[0]]);
+    const summary = digest();
+    assert.equal(summary, 'batch=B1 work=50 reviews=1 checks=1 publishing=1');
+    assert.equal(digest(), undefined);
+    win.structuredClone = structuredClone;
+    win.AbortController = AbortController;
+    win.eval(await readFile(new URL('../site/assets/nyx-widget.js', import.meta.url), 'utf8'));
+    widget.bind({request: () => assert.fail('unexpected service request')});
+    const voice = widget.host.captureTools();
+    const read = (batch, offset) => voice.invoke('read_event_batch', {batch, offset}, active.signal);
+    const page = (await read('B1', 0)).value;
+    assert.equal(page.total, 53);
+    assert.equal(page.retained, 48);
+    assert.equal(page.items.length, 3);
+    assert.equal(page.nextOffset, 3);
+    assert.equal(page.items[0].title, 'Exact title item-0');
+    assert.match(page.items[0].source, /^https:/);
+    await publish([make('later'), ...burst]);
+    assert.equal((await read('B1', 3)).value.items[0].title, 'Exact title item-3');
+    assert.equal((await read('B1', 45)).value.nextOffset, null);
+    now += 179999;
+    assert.equal(digest(), undefined);
+    now++;
+    assert.equal(digest(), 'batch=B2 work=1 reviews=0 checks=0 publishing=0');
+    for (const id of ['third', 'fourth']) {
+      await publish([make(id)]);
+      now += 180000;
+      assert.ok(digest());
+    }
+    assert.equal((await read('B1', 0)).ok, false);
+    assert.equal((await read('B2', 0)).ok, true);
+    await publish([make('unsent')]);
+    active.abort();
+    await publish([make('paused')]);
+    now += 180000;
+    assert.equal(digest(), undefined);
+    const resumed = new AbortController();
+    const nextDigest = widget.tourBriefings(resumed.signal);
+    assert.equal((await voice.invoke('read_event_batch', {batch:'B4'}, resumed.signal)).ok, false);
+    now += 180000;
+    assert.equal(nextDigest(), undefined);
+    resumed.abort();
+  } finally { dom.window.close(); }
+});
