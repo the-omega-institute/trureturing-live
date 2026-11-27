@@ -3493,7 +3493,7 @@ function loadTruthNebula() {
 
 async function fetchTruthNebula() {
   try {
-    const resp = await fetch('data/truth-nebula.v1.json', { cache: 'force-cache' });
+    const resp = await fetch('data/truth-nebula.v1.json', { cache: 'no-cache' });
     if (!resp.ok) return;
     const data = await resp.json();
     if (data?.schema_version === 'trureturing-truth-nebula.v1') {
@@ -9887,6 +9887,7 @@ function applyLayer(layer) {
         : tr('hint_mix', '周天星阵环绕天地 · 拖拽环视（双击复位） · 点击星海拨弦 · 按 Space 灵识扫频');
   }
   if (changed) {
+    if (next === 'galaxy') void loadStarfieldEvidence();
     if (next !== 'galaxy') for (const cell of state.cells.values()) showStationLabel(cell, 4000);
     sciFiAudio.playLayer(next);
   }
@@ -10187,6 +10188,7 @@ function dashboardContext() {
       station: departments().map(d => ({target: 'department:' + d.id, department: langDeptLabel(d),
         responsibility: langDeptResp(d), model: stationGuideModels[d.id]})),
       starfield: {meaning: 'Stars represent Lean modules grouped by domain. A module may contain multiple theorems. Use read_starfield for the legend and individual records.',
+        ...(state.layer === 'galaxy' && starfieldEvidence(galaxy?.id)),
         clusters: truthNebula.clusters.filter(c => c.name !== 'Other').map(c => ({target: 'galaxy:' + c.id, name: langGalaxyName(c), nodes: c.count}))}},
     guideTargets: guideTargets(),
     selectedDepartment: department(state.selected) ? langDeptLabel(department(state.selected)) : null,
@@ -10302,13 +10304,37 @@ function skyModuleRef(index) {
     target: domain.name === 'Other' ? null : 'module:' + row[0]};
 }
 
+function describeBundle([u, v, forward, reverse]) {
+  return {from: skyDomain(u).name, to: skyDomain(v).name,
+    prerequisitesFromTo: forward, prerequisitesToFrom: reverse};
+}
+
+function starfieldEvidence(domainId) {
+  const inDomain = (from, to) => domainId === undefined || from === domainId || to === domainId;
+  const bundle = truthNebula.clusterLinks.find(([from, to]) => inDomain(from, to));
+  const evidence = {moduleDetailsStatus: galaxyDetail.status, ...(bundle && {exampleBundle: describeBundle(bundle)})};
+  if (!galaxyDetail.data) return evidence;
+  const edge = truthNebula.edges.find(([u, v]) => {
+    const from = truthNebula.stars[u][3], to = truthNebula.stars[v][3];
+    return inDomain(from, to) && skyDomain(from).name !== 'Other' && skyDomain(to).name !== 'Other';
+  });
+  if (edge) evidence.exampleDependency = {prerequisite: skyModuleRef(edge[0]), dependent: skyModuleRef(edge[1])};
+  return evidence;
+}
+
+async function loadStarfieldEvidence() {
+  await loadTruthNebula();
+  await loadGalaxyDetails(true);
+}
+
 async function readStarfield({section, domainId, query = '', connected = false, offset = 0}) {
   await loadTruthNebula();
   if (!truthNebula.loaded) return skyUnavailable('The starfield atlas is unavailable.');
   const domain = skyDomain(domainId);
   if (domainId !== undefined && !domain) return skyUnavailable('Unknown domain ID. Read the overview for available domains.');
   if (section === 'overview') {
-    return {ok: true, value: {release: truthNebula.release, releaseModules: truthNebula.releaseModuleCount,
+    await loadGalaxyDetails(true);
+    return {ok: true, value: {...starfieldEvidence(domainId), release: truthNebula.release, releaseModules: truthNebula.releaseModuleCount,
       releaseDependencies: truthNebula.counts?.truth_edges, inspectableSample: truthNebula.baseCount,
       sampleDrawnEdges: truthNebula.edges.length, domains: truthNebula.clusters.map(c => ({
         id: c.id, name: c.name, displayedModules: c.count, target: c.name === 'Other' ? null : 'galaxy:' + c.id})),
@@ -10322,8 +10348,7 @@ async function readStarfield({section, domainId, query = '', connected = false, 
   const inDomain = cid => !domain || cid === domain.id;
   if (section === 'bundles') {
     const links = truthNebula.clusterLinks.filter(([u,v]) => !domain || u === domain.id || v === domain.id);
-    return skyPage(links, offset, ([u,v,forward,reverse]) => ({from: skyDomain(u).name, to: skyDomain(v).name,
-      prerequisitesFromTo: forward, prerequisitesToFrom: reverse}));
+    return skyPage(links, offset, describeBundle);
   }
   if (section === 'growth') {
     if (!state.stream?.truth_growth) return skyUnavailable('No live freeze observations available.');
@@ -10407,14 +10432,19 @@ function registerDashboardTools({ host, z }) {
   });
   host.registerTool({
     name: 'read_view',
-    description: 'Read this tab’s current research dashboard. Specify a section for its rendered records and source links. Use nextOffset as offset for more records.',
-    parameters: z.object({ section: z.enum(Object.keys(dashboardSections)).optional(), offset: z.number().int().nonnegative().optional() }),
-    execute: ({section, offset}) => ({ ok: true, value: section ? readDashboardSection(section, offset) : dashboardContext() }),
+    description: 'Read this tab’s current research dashboard. Choose starfield for a real module dependency and a domain bundle, or another section for rendered records and sources.',
+    parameters: z.object({ section: z.enum([...Object.keys(dashboardSections), 'starfield']).optional(), offset: z.number().int().nonnegative().optional() }),
+    execute: async ({section, offset}) => {
+      if (section === 'starfield') return readStarfield({section: 'overview'});
+      if (!section && state.layer === 'galaxy') await loadStarfieldEvidence();
+      return {ok: true, value: section ? readDashboardSection(section, offset) : dashboardContext()};
+    },
   });
   host.registerTool({
     name: 'show_scene', description: 'Show a guideTargets entry or open a module or lantern target returned by read_starfield. Use it to illustrate your topic.',
     parameters: z.object({target: z.string()}),
-    execute: ({target}, signal) => {
+    execute: async ({target}, signal) => {
+      if (target === 'starfield' || target.startsWith('galaxy:')) await loadStarfieldEvidence();
       signal.throwIfAborted();
       if (target.startsWith('module:') || target.startsWith('lantern:')) return showSkyRecord(target, signal);
       return showGuideScene(target) ? {ok: true, value: dashboardContext()} :
