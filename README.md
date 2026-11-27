@@ -27,7 +27,9 @@ The public dashboard loads without a frontend build, runtime CDN, or browser log
 
 The live dashboard serves a pinned copy of the Nyx assistant widget. Visitors approve a scoped browser credential on NyxID. The SDK encrypts the child credential with a non-exportable key in the site's IndexedDB and revalidates it after reload. The dedicated chrono-cd service forwards requests to NyxID. Text chat and voice can read the current tab’s observation time, selected view, research questions and activity. They can look up the dashboard’s public records and source links by section and switch between organization and journey views. Disconnecting revokes the child credential across that site's tabs.
 Voice calls are enabled by default. Connect NyxID with the requested OpenAI service (`llm-openai`), then select the call button beside the empty message field and allow microphone access. Visitors with a previous text-only grant need to authorize the additional service.
-[SDK v0.2.0](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.2.0)
+[SDK v0.2.1](https://github.com/ChronoAIProject/nyx-assistant-sdk/releases/tag/v0.2.1)
+
+The voice guide uses OpenAI `gpt-realtime-2.1`. Its tour instructions adapt a guide’s opening question, visual cue, pacing and interpretation of a significant detail to the live research dashboard. [Tour Guide Pro](https://github.com/aiunlocked1412/claude-skill-unlock/blob/f40e6c332784b7bd66999dd52aafa58cfd4c3816/skills/08-hospitality/tour-guide-pro/SKILL.md) · [National Park Service interpretive planning](https://www.nps.gov/subjects/hfc/interpretive-planning.htm)
 
 ## Run locally
 
