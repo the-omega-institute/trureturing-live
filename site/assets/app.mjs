@@ -10339,7 +10339,7 @@ async function startGuide() {
   document.addEventListener('visibilitychange', keepAwake, {signal});
   try {
     const [{narrate, speakSegment}, {guideWriter}] = await Promise.all([
-      import('./narrator.mjs?v=1'), import('./guide-model.mjs?v=1'),
+      import('./narrator.mjs?v=1'), import('./guide-model.mjs?v=2'),
     ]);
     const write = await guideWriter(nyxWidget, AbortSignal.any([signal, AbortSignal.timeout(15000)]));
     await narrate({sample: guideSample, write, show: showGuideScene, speak: speakSegment, caption: guideCaption,
